@@ -165,6 +165,7 @@ function createURLs() {
 	const docs = `${base}docs/`;
 	const explorer = `${base}explorer/`;
 	const aos = `${base}aos/`;
+	const hb_operator = `${base}operator/`;
 
 	return {
 		base: base,
@@ -178,6 +179,7 @@ function createURLs() {
 		aos: aos,
 		docs: docs,
 		docsIntro: `${docs}overview/introduction`,
+		hb_operator: hb_operator,
 		notFound: `${base}404`,
 	};
 }

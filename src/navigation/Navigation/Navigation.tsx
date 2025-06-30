@@ -50,6 +50,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				icon: ASSETS.console,
 				label: language.aos,
 			},
+			{
+				path: URLS.hb_operator,
+				icon: ASSETS.app,
+				label: language.hb_operator,
+			},
 		];
 	}, []);
 

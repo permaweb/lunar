@@ -289,8 +289,7 @@ export const IconAlt2 = styled(IconAlt1)`
 export const Alt3 = styled(Primary)`
 	min-height: 25px !important;
 	height: 25px !important;
-	padding: 4.5px 20px !important;
-	border-radius: ${STYLING.dimensions.radius.primary};
+	padding: 0 10px !important;
 	border-radius: 20px;
 
 	background: ${(props) =>
@@ -308,7 +307,7 @@ export const Alt3 = styled(Primary)`
 				: props.theme.colors.button.primary.border};
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
+		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		letter-spacing: 0.35px;

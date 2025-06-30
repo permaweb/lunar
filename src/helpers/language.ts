@@ -1,6 +1,7 @@
 export const language = {
 	en: {
 		action: `Action`,
+		actions: `Actions`,
 		app: `Lunar`,
 		apply: `Apply`,
 		applyFilters: `Apply Filters`,
@@ -56,6 +57,8 @@ export const language = {
 		goBack: `Go Back`,
 		goTo: `Go To`,
 		handle: `Handle`,
+		hb_operator: `Operator`,
+		hb_operator_info: `Manage HyperBEAM Nodes`,
 		healthy: `Healthy`,
 		home: `Home`,
 		hideResults: `Hide Results`,
@@ -117,6 +120,7 @@ export const language = {
 		size: `Size`,
 		search: `Search`,
 		searching: `Searching`,
+		servers: `Servers`,
 		showResults: `Show Results`,
 		showingRange: (start: number, end: number, total: number) => `Showing ${start} - ${end} of ${total}`,
 		sortNewestToOldest: `Newest to Oldest`,
