@@ -8,6 +8,8 @@ export const DeviceOptions = styled.div`
 	display: flex;
 	height: 100%;
 	flex-direction: column;
+	gap: 10px;
+	padding: 10px;
 `;
 
 export const DeviceOption = styled.div`
@@ -19,24 +21,27 @@ export const DeviceOption = styled.div`
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	color: ${(props) => props.theme.colors.font.primary};
 	padding: 0px 10px;
-	&:last-child {
-		border-bottom: none;
-	}
+	border-radius: ${STYLING.dimensions.radius.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
 		cursor: pointer;
 	}
 	&.active {
-		background: ${(props) => props.theme.colors.container.alt9.background};
+		border-color: ${(props) => props.theme.colors.container.alt9.background};
 	}
 `;
 
-export const ActionDeviceGroup = styled.div``;
+export const ActionDeviceGroup = styled.div`
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.primary};
+	overflow: hidden;
+`;
 
 export const ActionDeviceHeader = styled.div<{ className?: string }>`
-	padding: 8px 10px;
-	background-color: ${(props) => props.theme.colors.container.alt8.background};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+	padding: 5px 10px;
+	background-color: ${(props) => props.theme.colors.container.alt1.background};
 	font-weight: bold;
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	color: ${(props) => props.theme.colors.font.primary};
@@ -51,11 +56,12 @@ export const ActionDeviceHeader = styled.div<{ className?: string }>`
 	}
 
 	&.expanded {
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+		background-color: ${(props) => props.theme.colors.container.alt4.background};
 	}
 
 	&.collapsed {
 		border-bottom: none;
+		border-radius: ${STYLING.dimensions.radius.primary};
 	}
 `;
 
@@ -73,18 +79,26 @@ export const ExpandIcon = styled.span<{ className?: string }>`
 	}
 `;
 
-export const ActionItem = styled(DeviceOption)`
+export const ActionItem = styled.div`
+	width: 100%;
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	color: ${(props) => props.theme.colors.font.primary};
+	padding: 5px 10px;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	height: 40px;
 	cursor: pointer;
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
 	}
+
 	&:last-child {
-		margin-bottom: 10px;
+		border-radius: 0 0 ${STYLING.dimensions.radius.primary} ${STYLING.dimensions.radius.primary};
+	}
+	&.active {
+		background: ${(props) => props.theme.colors.container.alt9.background};
 	}
 `;
 
@@ -95,7 +109,7 @@ export const ActionContent = styled.div`
 export const ActionName = styled.div`
 	font-weight: bold;
 	color: ${(props) => props.theme.colors.font.primary};
-	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 `;
 
 export const ActionDescription = styled.div`
@@ -110,7 +124,7 @@ export const ActionDescription = styled.div`
 `;
 
 export const MethodBadge = styled.div<{ method: string }>`
-	padding: 2px 6px;
+	padding: 2px 5px;
 	border: 1px solid ${(props) => (props.method === 'GET' ? '#2e7d32' : '#ef6c00')};
 	color: ${(props) => (props.method === 'GET' ? '#2e7d32' : '#ef6c00')};
 	border-radius: ${STYLING.dimensions.radius.primary};

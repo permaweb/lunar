@@ -25,7 +25,7 @@ export const ActionsBrowser: React.FC<IActionsBrowserProps> = ({ onActionSelect 
 	};
 
 	return (
-		<S.Section className={'Small'}>
+		<S.GridSection area={'actions'} className={'Small'}>
 			<S.Header>Actions</S.Header>
 			<S.LayoutContent>
 				<S.DeviceOptions>
@@ -60,6 +60,6 @@ export const ActionsBrowser: React.FC<IActionsBrowserProps> = ({ onActionSelect 
 					})}
 				</S.DeviceOptions>
 			</S.LayoutContent>
-		</S.Section>
+		</S.GridSection>
 	);
 };

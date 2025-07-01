@@ -15,7 +15,7 @@ export const ResultsDisplay: React.FC<IResultsDisplayProps> = ({
 	onToggleResultExpansion,
 }) => {
 	return (
-		<S.Section>
+		<S.GridSection area={'results'} className="Full">
 			<S.Header>Results</S.Header>
 			<S.LayoutContent>
 				<S.ResultsContainer>
@@ -60,6 +60,6 @@ export const ResultsDisplay: React.FC<IResultsDisplayProps> = ({
 					)}
 				</S.ResultsContainer>
 			</S.LayoutContent>
-		</S.Section>
+		</S.GridSection>
 	);
 };

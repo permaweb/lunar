@@ -79,8 +79,8 @@ export const Tab = styled.div<{ active: boolean }>`
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	gap: 12.5px;
-	padding: 12.5px 25.5px 10.5px 21.5px;
+	gap: 10px;
+	padding: 10px 20px 10px 20px;
 	margin: 0 0 -1.5px 0;
 	background: ${(props) => (props.active ? props.theme.colors.view.background : 'transparent')};
 	border-top: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};

@@ -14,7 +14,7 @@ export const LayoutWrapper = styled.div`
 	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(2, 1fr);
-	gap: 25px;
+	gap: 10px;
 	position: relative;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -27,24 +27,82 @@ export const SectionMain = styled.div`
 	min-height: 500px;
 	display: flex;
 	flex-direction: row;
-	gap: 20px;
-	margin-bottom: 20px;
-	padding: 20px;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 10px;
+	padding: 10px;
+`;
+
+export const PipelineMainGrid = styled.div`
+	width: 100%;
+	display: grid;
+	grid-template-columns: 320px 500px 1fr;
+	grid-template-areas: 'actions pipeline results';
+	gap: 10px;
+	margin-bottom: 10px;
+	padding: 10px;
+
+	/* Responsive breakpoints */
+	@media (max-width: 1400px) {
+		grid-template-columns: 320px 1fr;
+		grid-template-areas:
+			'actions pipeline'
+			'results results';
+	}
+
+	@media (max-width: 900px) {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			'actions'
+			'pipeline'
+			'results';
+	}
+`;
+
+export const ConfigurationMainGrid = styled.div`
+	width: 100%;
+	display: grid;
+	grid-template-columns: 320px 1fr;
+	grid-template-areas: 'devices configure';
+	gap: 10px;
+	margin-bottom: 10px;
+	padding: 10px;
+
+	@media (max-width: 1200px) {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			'devices'
+			'configure';
+	}
+`;
+
+export const GridSection = styled.div<{ area: string }>`
+	display: flex;
+	flex-direction: column;
+	grid-area: ${(props) => props.area};
+	min-width: ${(props) => (props.area === 'devices' || props.area === 'actions' ? '320px' : '0px')};
+	min-height: ${(props) => (props.area === 'configure' ? '640px' : '0px')};
 `;
 
 export const Section = styled.div<{ className?: string }>`
 	display: flex;
 	flex-direction: column;
-	flex: 1;
-
+	flex: 1 1 100%;
+	&:not(.Small) {
+		min-width: 420px;
+	}
 	&.Small {
-		flex: 0 0 320px;
+		flex: 1 1 320px;
+	}
+	&.Medium {
+		flex: 10 0 500px;
 	}
 	&.Full {
-		flex: 1 1 100%;
+		flex: 10 1 100%;
 	}
 	&.Fill {
-		flex: 1;
+		flex: 10 1 100%;
+		overflow: hidden;
 	}
 `;
 
@@ -90,19 +148,19 @@ export const HeaderWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
+	gap: 10px;
 `;
 
 export const Content = styled.div`
 	display: flex;
-	padding: 16px;
+	padding: 10px;
 	flex-direction: column;
 	a {
 		color: ${(props) => props.theme.colors.font.primary};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
-		padding: 15px;
+		padding: 10px;
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};
 			background: ${(props) => props.theme.colors.container.primary.active};

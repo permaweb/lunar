@@ -15,6 +15,9 @@ interface IPipelineViewProps {
 	draggedIndex: number | null;
 	dragOverIndex: number | null;
 	expandedParams: Record<string, boolean>;
+	isExecuting: boolean;
+	currentExecutingIndex: number | null;
+	executionProgress: number;
 	onClearPipeline: () => void;
 	onExecutePipeline: () => void;
 	onRemoveFromPipeline: (uniqueId: string) => void;
@@ -33,6 +36,9 @@ export const PipelineView: React.FC<IPipelineViewProps> = ({
 	draggedIndex,
 	dragOverIndex,
 	expandedParams,
+	isExecuting,
+	currentExecutingIndex,
+	executionProgress,
 	onClearPipeline,
 	onExecutePipeline,
 	onRemoveFromPipeline,
@@ -45,12 +51,26 @@ export const PipelineView: React.FC<IPipelineViewProps> = ({
 	onDragEnd,
 }) => {
 	return (
-		<S.Section>
+		<S.GridSection area={'pipeline'} className={'Medium'}>
 			<S.Header className={'Split'}>
 				Action Pipeline
 				<S.PipelineActions>
-					<Button type={'alt3'} iconLeftAlign icon={ASSETS.delete} label={'Clear'} handlePress={onClearPipeline} />
-					<Button type={'alt3'} iconLeftAlign icon={ASSETS.send} label={'Run'} handlePress={onExecutePipeline} />
+					<Button
+						type={'alt3'}
+						iconLeftAlign
+						icon={ASSETS.delete}
+						label={'Clear'}
+						handlePress={onClearPipeline}
+						disabled={isExecuting}
+					/>
+					<Button
+						type={'alt3'}
+						iconLeftAlign
+						icon={ASSETS.send}
+						label={isExecuting ? 'Running...' : 'Run'}
+						handlePress={onExecutePipeline}
+						disabled={isExecuting || pipeline.length === 0}
+					/>
 				</S.PipelineActions>
 			</S.Header>
 			<S.LayoutContent>
@@ -61,16 +81,20 @@ export const PipelineView: React.FC<IPipelineViewProps> = ({
 						{pipeline.map((item, index) => {
 							const isDragging = draggedIndex === index;
 							const showDropLineAbove = dragOverIndex === index && draggedIndex !== null && draggedIndex !== index;
+							const isCurrentlyExecuting = currentExecutingIndex === index;
+							const isCompleted = isExecuting && currentExecutingIndex !== null && index < currentExecutingIndex;
 
 							return (
 								<React.Fragment key={item.uniqueId}>
 									{showDropLineAbove && <S.DropIndicator />}
-									<S.PipelineItem
-										draggable
-										onDragStart={(e) => onDragStart(e, index)}
-										onDragEnter={(e) => onDragEnter(e, index)}
+									<S.ExecutingPipelineItem
+										draggable={!isExecuting}
+										onDragStart={(e) => !isExecuting && onDragStart(e, index)}
+										onDragEnter={(e) => !isExecuting && onDragEnter(e, index)}
 										onDragEnd={onDragEnd}
 										className={isDragging ? 'dragging' : ''}
+										isCurrentlyExecuting={isCurrentlyExecuting}
+										isCompleted={isCompleted}
 									>
 										<S.PipelineItemHeader
 											onClick={
@@ -139,14 +163,31 @@ export const PipelineView: React.FC<IPipelineViewProps> = ({
 														))}
 												</S.ParametersContainer>
 											)}
-									</S.PipelineItem>
+									</S.ExecutingPipelineItem>
 								</React.Fragment>
 							);
 						})}
 						{dragOverIndex === pipeline.length && draggedIndex !== null && <S.DropIndicator />}
 					</S.PipelineContainer>
 				)}
+				<S.ProgressContainer>
+					{isExecuting && (
+						<S.ProgressStatus>
+							<span>
+								{currentExecutingIndex !== null
+									? `Executing step ${currentExecutingIndex + 1} of ${pipeline.length}`
+									: 'Initializing...'}
+							</span>
+							<span>{Math.round(executionProgress)}%</span>
+						</S.ProgressStatus>
+					)}
+					{isExecuting && (
+						<S.ProgressBarContainer>
+							<S.ProgressBar progress={executionProgress} />
+						</S.ProgressBarContainer>
+					)}
+				</S.ProgressContainer>
 			</S.LayoutContent>
-		</S.Section>
+		</S.GridSection>
 	);
 };

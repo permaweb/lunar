@@ -73,7 +73,7 @@ export const DeviceConfiguration: React.FC<IDeviceConfigurationProps> = ({ setti
 
 	return (
 		<>
-			<S.Section className={'Small'}>
+			<S.GridSection area={'devices'} className={'Small'}>
 				<S.Header>Device Configuration</S.Header>
 				<S.LayoutContent>
 					<S.DeviceOptions>
@@ -88,8 +88,8 @@ export const DeviceConfiguration: React.FC<IDeviceConfigurationProps> = ({ setti
 						))}
 					</S.DeviceOptions>
 				</S.LayoutContent>
-			</S.Section>
-			<S.Section className={'Fill'}>
+			</S.GridSection>
+			<S.GridSection area={'configure'} className={'Fill'}>
 				<S.Header className={'Split'}>
 					<span>Configure</span>
 					<span className={'Device'}>{devices.find((device) => device.id === selectedDevice)?.label}</span>
@@ -133,7 +133,7 @@ export const DeviceConfiguration: React.FC<IDeviceConfigurationProps> = ({ setti
 						/>
 					)}
 				</S.LayoutContent>
-			</S.Section>
+			</S.GridSection>
 		</>
 	);
 };

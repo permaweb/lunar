@@ -32,6 +32,9 @@ export default function OperatorView() {
 		expandedParams,
 		results,
 		expandedResults,
+		isExecuting,
+		currentExecutingIndex,
+		executionProgress,
 		addToPipeline,
 		removeFromPipeline,
 		updateActionParameter,
@@ -80,12 +83,12 @@ export default function OperatorView() {
 
 			{/* Layout */}
 			{activeTab === 0 && (
-				<S.SectionMain>
+				<S.ConfigurationMainGrid>
 					<DeviceConfiguration settings={settings} setSettings={updateSettings} />
-				</S.SectionMain>
+				</S.ConfigurationMainGrid>
 			)}
 			{activeTab === 1 && (
-				<S.SectionMain>
+				<S.PipelineMainGrid>
 					<ActionsBrowser onActionSelect={addToPipeline} />
 
 					<PipelineView
@@ -94,6 +97,9 @@ export default function OperatorView() {
 						draggedIndex={draggedIndex}
 						dragOverIndex={dragOverIndex}
 						expandedParams={expandedParams}
+						isExecuting={isExecuting}
+						currentExecutingIndex={currentExecutingIndex}
+						executionProgress={executionProgress}
 						onClearPipeline={clearPipeline}
 						onExecutePipeline={executePipeline}
 						onRemoveFromPipeline={removeFromPipeline}
@@ -111,7 +117,7 @@ export default function OperatorView() {
 						expandedResults={expandedResults}
 						onToggleResultExpansion={toggleResultExpansion}
 					/>
-				</S.SectionMain>
+				</S.PipelineMainGrid>
 			)}
 		</S.Wrapper>
 	);

@@ -4,12 +4,12 @@ import { STYLING } from 'helpers/config';
 
 // Form and Configuration styles
 export const ConfigurationFormContainer = styled.div`
-	padding: 16px;
+	padding: 10px;
 	display: flex;
 	width: 100%;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 16px;
+	gap: 10px;
 `;
 
 export const ConfigurationFormFieldWrapper = styled.div`
@@ -57,10 +57,10 @@ export const ArrayButtonContainer = styled.div``;
 
 export const ArrayItem = styled.div`
 	width: 100%;
-	gap: 8px;
+	gap: 10px;
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.primary};
-	padding: 12px;
+	padding: 10px;
 	background: ${(props) => props.theme.colors.container.alt1.background};
 `;
 
@@ -81,7 +81,7 @@ export const ArrayItemContent = styled.div`
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: 10px;
 	&.full {
 		flex: 1 1 100%;
 	}
@@ -108,10 +108,10 @@ export const JSONWriterWrapper = styled.div`
 `;
 
 export const ParameterField = styled.div`
-	margin-bottom: 8px;
+	margin-bottom: 10px;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 10px;
 `;
 
 export const ParameterLabel = styled.label`
@@ -122,7 +122,7 @@ export const ParameterLabel = styled.label`
 `;
 
 export const ParameterInput = styled.input`
-	padding: 6px 8px;
+	padding: 5px 10px;
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.primary};
 	background: ${(props) => props.theme.colors.container.primary.background};

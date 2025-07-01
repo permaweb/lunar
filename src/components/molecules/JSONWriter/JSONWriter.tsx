@@ -197,6 +197,15 @@ export default function JSONWriter(props: {
 							fontFamily: currentTheme.typography.family.alt2,
 							fontSize: currentTheme.typography.size.xxSmall,
 							fontWeight: '600',
+							// Disable intellisense/suggestions
+							// quickSuggestions: false,
+							// suggestOnTriggerCharacters: false,
+							// acceptSuggestionOnEnter: 'off',
+							// acceptSuggestionOnCommitCharacter: false,
+							// snippetSuggestions: 'none',
+							// wordBasedSuggestions: 'off',
+							// parameterHints: { enabled: false },
+							hover: { enabled: false },
 							scrollbar: {
 								verticalSliderSize: 8,
 								horizontalSliderSize: 8,

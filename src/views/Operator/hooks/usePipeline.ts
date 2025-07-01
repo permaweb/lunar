@@ -16,6 +16,9 @@ export const usePipeline = (settings: ISettings, setSettings: (settings: ISettin
 	const [expandedParams, setExpandedParams] = useState<Record<string, boolean>>({});
 	const [results, setResults] = useState<IPipelineResult[]>([]);
 	const [expandedResults, setExpandedResults] = useState<Record<number, boolean>>({});
+	const [isExecuting, setIsExecuting] = useState<boolean>(false);
+	const [currentExecutingIndex, setCurrentExecutingIndex] = useState<number | null>(null);
+	const [executionProgress, setExecutionProgress] = useState<number>(0);
 
 	const pipeline = settings.actions || [];
 
@@ -234,45 +237,61 @@ export const usePipeline = (settings: ISettings, setSettings: (settings: ISettin
 
 		console.log('Starting pipeline execution...');
 
-		// Clear previous results
+		// Initialize execution state
+		setIsExecuting(true);
+		setCurrentExecutingIndex(null);
+		setExecutionProgress(0);
 		setResults([]);
 		setExpandedResults({});
 
 		try {
-			const pipelineResults = await Promise.all(
-				pipeline.map(async (item, index) => {
-					console.log(`Executing step ${index + 1}/${pipeline.length}: ${item.deviceLabel} - ${item.actionKey}`);
+			// Execute actions sequentially and update results one at a time
+			for await (const [index, item] of pipeline.entries()) {
+				console.log(`Executing step ${index + 1}/${pipeline.length}: ${item.deviceLabel} - ${item.actionKey}`);
 
-					try {
-						const result = await executeAction(item);
-						console.log(`Step ${index + 1} completed successfully`);
+				// Update current executing action
+				setCurrentExecutingIndex(index);
+				setExecutionProgress((index / pipeline.length) * 100);
 
-						return {
-							actionKey: item.actionKey,
-							deviceLabel: item.deviceLabel,
-							serverName: item.parameters?.server || 'Unknown',
-							result: result,
-							success: true,
-						};
-					} catch (error: any) {
-						console.error(`Step ${index + 1} failed:`, error);
+				try {
+					const result = await executeAction(item);
+					console.log(`Step ${index + 1} completed successfully`);
 
-						return {
-							actionKey: item.actionKey,
-							deviceLabel: item.deviceLabel,
-							serverName: item.parameters?.server || 'Unknown',
-							result: null,
-							success: false,
-							error: error.message,
-						};
-					}
-				})
-			);
+					const newResult = {
+						actionKey: item.actionKey,
+						deviceLabel: item.deviceLabel,
+						serverName: item.parameters?.server || 'Unknown',
+						result: result,
+						success: true,
+					};
 
-			setResults(pipelineResults);
+					// Update results immediately after each action completes
+					setResults((prevResults) => [...prevResults, newResult]);
+				} catch (error: any) {
+					console.error(`Step ${index + 1} failed:`, error);
+
+					const newResult = {
+						actionKey: item.actionKey,
+						deviceLabel: item.deviceLabel,
+						serverName: item.parameters?.server || 'Unknown',
+						result: null,
+						success: false,
+						error: error.message,
+					};
+
+					// Update results immediately even for failed actions
+					setResults((prevResults) => [...prevResults, newResult]);
+				}
+			}
+
+			// Mark execution as complete
+			setExecutionProgress(100);
+			setCurrentExecutingIndex(null);
 			console.log('Pipeline execution completed!');
 		} catch (error) {
 			console.error('Pipeline execution failed:', error);
+		} finally {
+			setIsExecuting(false);
 		}
 	};
 
@@ -284,6 +303,9 @@ export const usePipeline = (settings: ISettings, setSettings: (settings: ISettin
 		expandedParams,
 		results,
 		expandedResults,
+		isExecuting,
+		currentExecutingIndex,
+		executionProgress,
 
 		// Actions
 		addToPipeline,
