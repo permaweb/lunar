@@ -1,5 +1,6 @@
-import { STYLING } from 'helpers/config';
 import styled from 'styled-components';
+
+import { STYLING } from 'helpers/config';
 
 // Actions and Devices styles
 export const DeviceOptions = styled.div`
