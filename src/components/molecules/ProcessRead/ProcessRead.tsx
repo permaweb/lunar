@@ -79,7 +79,14 @@ export default function ProcessRead(props: { processId: string; autoRun: boolean
 					action: 'Info',
 				});
 
-				const parsedResponse = safelyParseNestedJSON(response);
+				let parsedResponse;
+				try {
+					parsedResponse = typeof response === 'string' ? JSON.parse(response) : response;
+					parsedResponse = safelyParseNestedJSON(parsedResponse);
+				} catch (e) {
+					// If JSON parsing fails, treat it as a plain string response
+					parsedResponse = response;
+				}
 				setCurrentOutput(parsedResponse);
 
 				const roundTrip = Date.now() - start;

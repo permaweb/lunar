@@ -28,6 +28,9 @@ type ThemeType =
 
 interface Settings {
 	theme: ThemeType;
+	syncWithSystem: boolean;
+	preferredLightTheme: ThemeType;
+	preferredDarkTheme: ThemeType;
 	sidebarOpen: boolean;
 	isDesktop: boolean;
 	windowSize: { width: number; height: number };
@@ -47,6 +50,9 @@ interface SettingsProviderProps {
 
 const defaultSettings: Settings = {
 	theme: window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark-primary' : 'light-primary',
+	syncWithSystem: true,
+	preferredLightTheme: 'light-primary',
+	preferredDarkTheme: 'dark-primary',
 	sidebarOpen: false,
 	isDesktop: true,
 	windowSize: { width: window.innerWidth, height: window.innerHeight },
@@ -83,6 +89,9 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				showCategoryAction: parsedSettings.showCategoryAction ?? false,
 				showTopicAction: parsedSettings.showTopicAction ?? false,
 				showLinkAction: parsedSettings.showLinkAction ?? false,
+				syncWithSystem: parsedSettings.syncWithSystem ?? true,
+				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
+				preferredDarkTheme: parsedSettings.preferredDarkTheme ?? 'dark-primary',
 			};
 		} else {
 			settings = {
@@ -129,9 +138,66 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		};
 	}, [settings.isDesktop, settings.sidebarOpen]);
 
+	// Listen for system theme changes when syncWithSystem is enabled
+	React.useEffect(() => {
+		if (!settings.syncWithSystem) return;
+
+		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+		const handleChange = (e: MediaQueryListEvent) => {
+			const newTheme = e.matches ? settings.preferredDarkTheme : settings.preferredLightTheme;
+			setSettings((prevSettings) => {
+				const newSettings = { ...prevSettings, theme: newTheme };
+				localStorage.setItem('settings', JSON.stringify(newSettings));
+				return newSettings;
+			});
+		};
+
+		mediaQuery.addEventListener('change', handleChange);
+		return () => mediaQuery.removeEventListener('change', handleChange);
+	}, [settings.syncWithSystem, settings.preferredLightTheme, settings.preferredDarkTheme]);
+
 	const updateSettings = <K extends keyof Settings>(key: K, value: Settings[K]) => {
 		setSettings((prevSettings) => {
-			const newSettings = { ...prevSettings, [key]: value };
+			let newSettings = { ...prevSettings, [key]: value };
+
+			// When changing theme and syncWithSystem is enabled, update the preferred theme
+			if (key === 'theme' && prevSettings.syncWithSystem) {
+				const themeValue = value as ThemeType;
+				const isLightTheme = themeValue.startsWith('light-');
+				const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+				if (isLightTheme) {
+					newSettings.preferredLightTheme = themeValue;
+					// Only apply the theme if system is currently in light mode
+					if (!systemIsDark) {
+						newSettings.theme = themeValue;
+					} else {
+						// Keep the current dark theme
+						newSettings.theme = prevSettings.theme;
+					}
+				} else {
+					newSettings.preferredDarkTheme = themeValue;
+					// Only apply the theme if system is currently in dark mode
+					if (systemIsDark) {
+						newSettings.theme = themeValue;
+					} else {
+						// Keep the current light theme
+						newSettings.theme = prevSettings.theme;
+					}
+				}
+			}
+
+			// When disabling syncWithSystem, keep the current theme
+			if (key === 'syncWithSystem' && value === false) {
+				// Current theme stays as is
+			}
+
+			// When enabling syncWithSystem, switch to the appropriate preferred theme
+			if (key === 'syncWithSystem' && value === true) {
+				const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				newSettings.theme = isDark ? prevSettings.preferredDarkTheme : prevSettings.preferredLightTheme;
+			}
+
 			localStorage.setItem('settings', JSON.stringify(newSettings));
 			return newSettings;
 		});

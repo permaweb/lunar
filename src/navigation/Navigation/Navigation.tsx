@@ -3,8 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { debounce } from 'lodash';
 
-import { GQLNodeResponseType } from '@permaweb/libs';
-
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { ASSETS, STYLING, URLS } from 'helpers/config';
@@ -30,7 +28,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const [inputTxId, setInputTxId] = React.useState<string>('');
 	const [txOutputOpen, setTxOutputOpen] = React.useState<boolean>(false);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
-	const [txResponse, setTxResponse] = React.useState<GQLNodeResponseType | null>(null);
+	const [txResponse, setTxResponse] = React.useState<any | null>(null);
 	const [panelOpen, setPanelOpen] = React.useState<boolean>(false);
 
 	const paths = React.useMemo(() => {

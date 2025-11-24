@@ -21,7 +21,7 @@ import 'xterm/css/xterm.css';
 
 import * as S from './styles';
 
-export default function ConsoleInstance(props: {
+function ConsoleInstance(props: {
 	processId: string;
 	active: boolean;
 	onTxChange?: (newTx: GQLNodeResponseType) => void;
@@ -799,11 +799,16 @@ export default function ConsoleInstance(props: {
 		);
 	}
 
-	return props.active ? (
+	return (
 		<>
 			{arProvider.walletAddress ? (
 				<>
-					<S.Wrapper ref={consoleRef} fullScreenMode={fullScreenMode} useFixedHeight={false}>
+					<S.Wrapper
+						ref={consoleRef}
+						fullScreenMode={fullScreenMode}
+						useFixedHeight={false}
+						style={{ display: props.active ? 'flex' : 'none' }}
+					>
 						{editorMode && (
 							<S.Editor className={'fade-in'}>
 								<Editor
@@ -832,7 +837,7 @@ export default function ConsoleInstance(props: {
 						)}
 						{getConsole()}
 					</S.Wrapper>
-					{error && (
+					{props.active && error && (
 						<Notification
 							type={'warning'}
 							message={error}
@@ -844,8 +849,10 @@ export default function ConsoleInstance(props: {
 					)}
 				</>
 			) : (
-				<WalletBlock />
+				props.active && <WalletBlock />
 			)}
 		</>
-	) : null;
+	);
 }
+
+export default React.memo(ConsoleInstance);

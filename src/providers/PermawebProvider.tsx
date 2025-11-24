@@ -2,11 +2,11 @@ import React from 'react';
 
 import Arweave from 'arweave';
 import { connect, createSigner } from '@permaweb/aoconnect';
-import PermawebLibs, { ProfileType } from '@permaweb/libs';
+import PermawebLibs, { Types } from '@permaweb/libs';
 
 import { Panel } from 'components/atoms/Panel';
 import { ProfileManager } from 'components/organisms/ProfileManager';
-import { STORAGE } from 'helpers/config';
+import { AO_NODE, STORAGE } from 'helpers/config';
 
 import { useArweaveProvider } from './ArweaveProvider';
 import { useLanguageProvider } from './LanguageProvider';
@@ -14,7 +14,7 @@ import { useLanguageProvider } from './LanguageProvider';
 interface PermawebContextState {
 	deps: { ao: any; arweave: any; signer: any };
 	libs: any;
-	profile: ProfileType;
+	profile: Types.ProfileType;
 	showProfileManager: boolean;
 	setShowProfileManager: (toggle: boolean) => void;
 	refreshProfile: () => void;
@@ -43,19 +43,43 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 	const [libs, setLibs] = React.useState<any>(null);
 	const [deps, setDeps] = React.useState<any>(null);
 
-	const [profile, setProfile] = React.useState<ProfileType | null>(null);
+	const [profile, setProfile] = React.useState<Types.ProfileType | null>(null);
 	const [showProfileManager, setShowProfileManager] = React.useState<boolean>(false);
 	const [refreshProfileTrigger, setRefreshProfileTrigger] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
-		const ao = connect({ MODE: 'legacy' });
-		const arweave = Arweave.init({});
-		const signer = arProvider.wallet ? createSigner(arProvider.wallet) : null;
+		try {
+			const aoConnection: 'mainnet' | 'legacy' = 'legacy';
 
-		const depsToUse = { ao, arweave, signer };
+			let signer = null;
+			if (arProvider.wallet) signer = createSigner(arProvider.wallet);
 
-		setDeps(depsToUse);
-		setLibs(PermawebLibs.init(depsToUse));
+			let ao: any;
+			// @ts-ignore
+			if (aoConnection === 'mainnet') {
+				const config: any = { MODE: 'mainnet', URL: AO_NODE.url, SCHEDULER: AO_NODE.scheduler };
+				if (signer) config.signer = signer;
+				ao = connect(config);
+			} else {
+				ao = connect({ MODE: 'legacy' });
+			}
+
+			ao = connect({ MODE: 'legacy' });
+
+			const dependencies = {
+				ao: ao,
+				arweave: Arweave.init({}),
+				signer: signer,
+				node: { ...AO_NODE },
+			};
+
+			setDeps(dependencies);
+
+			const initializedLibs = PermawebLibs.init(dependencies);
+			setLibs(initializedLibs);
+		} catch (error) {
+			console.error('Error in PermawebProvider initialization:', error);
+		}
 	}, [arProvider.wallet]);
 
 	React.useEffect(() => {

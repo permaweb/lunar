@@ -210,7 +210,12 @@ export const PlaceholderFull = styled(Placeholder)`
 `;
 
 export const TransactionWrapper = styled.div<{ active: boolean }>`
-	display: ${(props) => (props.active ? 'block' : 'none')};
+	display: block;
+	visibility: ${(props) => (props.active ? 'visible' : 'hidden')};
+	height: ${(props) => (props.active ? 'auto' : '0')};
+	overflow: ${(props) => (props.active ? 'visible' : 'hidden')};
+	position: ${(props) => (props.active ? 'relative' : 'absolute')};
+	pointer-events: ${(props) => (props.active ? 'auto' : 'none')};
 `;
 
 export const ModalWrapper = styled.div`

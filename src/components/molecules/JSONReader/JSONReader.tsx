@@ -39,14 +39,26 @@ export default function _JSONTree(props: {
 
 	const copyData = React.useCallback(async () => {
 		if (data) {
-			await navigator.clipboard.writeText(JSON.stringify(data, null, 4));
+			let textToCopy;
+			if (typeof data === 'object' && data !== null && 'result' in data && Object.keys(data).length === 1) {
+				// If it's our wrapped string object, copy just the string value
+				textToCopy = data.result;
+			} else if (typeof data === 'string') {
+				textToCopy = data;
+			} else {
+				textToCopy = JSON.stringify(data, null, 4);
+			}
+			await navigator.clipboard.writeText(textToCopy);
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		}
 	}, [data]);
 
 	React.useEffect(() => {
-		if (props.data) setData(parseJSON(props.data));
+		if (props.data) {
+			const parsed = parseJSON(props.data);
+			setData(typeof parsed === 'string' ? { Result: parsed } : parsed);
+		}
 	}, [props.data]);
 
 	React.useEffect(() => {
