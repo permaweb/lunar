@@ -34,20 +34,22 @@ function Tab(props: ITProps) {
 function TabContent(props: ICProps) {
 	const { id, active } = useParams() as { id: string; active: string };
 
-	let TabView: React.ComponentType<any> | null = null;
-	for (let i = 0; i < props.tabs.length; i++) {
-		const url = typeof props.tabs[i].url === 'function' ? props.tabs[i].url(id) : props.tabs[i].url;
-		if (url.includes(active)) {
-			TabView = props.tabs[i].view;
-			break;
-		}
-	}
+	// Render all tabs and control visibility with CSS to preserve state
+	return (
+		<S.View>
+			{props.tabs.map((tab, index) => {
+				const url = typeof tab.url === 'function' ? tab.url(id) : tab.url;
+				const isActive = url.includes(active);
+				const TabView = tab.view;
 
-	if (!TabView) {
-		TabView = NotFound;
-	}
-
-	return <S.View>{TabView && <TabView />}</S.View>;
+				return (
+					<div key={url} style={{ display: isActive ? 'block' : 'none' }}>
+						<TabView />
+					</div>
+				);
+			})}
+		</S.View>
+	);
 }
 
 export default function URLTabs(props: IUProps) {

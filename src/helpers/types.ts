@@ -87,7 +87,13 @@ export type NotificationType = {
 
 export type TransactionType = 'process' | 'message';
 
-export type TransactionTabType = { id: string; label: string; type: TransactionType | null };
+export type TransactionTabType = {
+	id: string;
+	label: string;
+	type: TransactionType | null;
+	lastRoute?: string;
+	tabKey?: string;
+};
 
 export type MetricDataPoint = {
 	created_date: string;

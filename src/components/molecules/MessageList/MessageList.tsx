@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
-import { DefaultGQLResponseType, GQLNodeResponseType } from '@permaweb/libs';
+import { Types } from '@permaweb/libs';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
@@ -13,7 +13,7 @@ import { Loader } from 'components/atoms/Loader';
 import { Panel } from 'components/atoms/Panel';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, URLS } from 'helpers/config';
+import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, MINT_ACTIONS, STORAGE, URLS } from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { MessageFilterType, TransactionType } from 'helpers/types';
 import { checkValidAddress, formatAddress, formatCount, getRelativeDate, getTagValue } from 'helpers/utils';
@@ -25,7 +25,7 @@ import { Editor } from '../Editor';
 import * as S from './styles';
 
 function Message(props: {
-	element: GQLNodeResponseType;
+	element: Types.GQLNodeResponseType;
 	type: TransactionType;
 	currentFilter: MessageFilterType;
 	parentId: string;
@@ -163,6 +163,18 @@ function Message(props: {
 				return currentTheme.colors.actions.debitNotice;
 			case DEFAULT_ACTIONS.creditNotice.name:
 				return currentTheme.colors.actions.creditNotice;
+			case MINT_ACTIONS.mint.name:
+				return currentTheme.colors.actions.mint;
+			case MINT_ACTIONS.piDelegationRecords.name:
+				return currentTheme.colors.actions.piDelegationRecords;
+			case MINT_ACTIONS.reportMint.name:
+				return currentTheme.colors.actions.reportMint;
+			case MINT_ACTIONS.setPiIndexWeights.name:
+				return currentTheme.colors.actions.setPiIndexWeights;
+			case MINT_ACTIONS.saveDelegationSummary.name:
+				return currentTheme.colors.actions.saveDelegationSummary;
+			case MINT_ACTIONS.nextPiDelegationPage.name:
+				return currentTheme.colors.actions.nextPiDelegationPage;
 			case 'None':
 				return currentTheme.colors.actions.none;
 			default:
@@ -302,7 +314,9 @@ function Message(props: {
 				</S.Output>
 				<S.Time>
 					<p>
-						{props.element.node?.block?.timestamp ? getRelativeDate(props.element.node.block.timestamp * 1000) : '-'}
+						{props.element.node?.block?.timestamp
+							? getRelativeDate(props.element.node.block.timestamp * 1000)
+							: 'Processing'}
 					</p>
 				</S.Time>
 				<S.Results open={open}>
@@ -344,15 +358,25 @@ export default function MessageList(props: {
 	const tableContainerRef = React.useRef(null);
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
-	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(props.currentFilter ?? 'incoming');
+	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(props.currentFilter ?? 'outgoing');
 	const [currentAction, setCurrentAction] = React.useState<string | null>(null);
-	const [actionOptions, setActionOptions] = React.useState<string[]>(
-		Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name)
-	);
+	const [actionOptions, setActionOptions] = React.useState<string[]>(() => {
+		const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
+		try {
+			const savedCustomActions = localStorage.getItem(STORAGE.customActions);
+			if (savedCustomActions) {
+				const customActions = JSON.parse(savedCustomActions);
+				return [...defaultActions, ...customActions];
+			}
+		} catch (e) {
+			console.error('Failed to load custom actions:', e);
+		}
+		return defaultActions;
+	});
 	const [customAction, setCustomAction] = React.useState<string>('');
 	const [toggleFilterChange, setToggleFilterChange] = React.useState<boolean>(false);
 
-	const [currentData, setCurrentData] = React.useState<GQLNodeResponseType[] | null>(null);
+	const [currentData, setCurrentData] = React.useState<any[] | null>(null);
 	const [loadingMessages, setLoadingMessages] = React.useState<boolean>(false);
 
 	const [incomingCount, setIncomingCount] = React.useState<number | null>(null);
@@ -401,7 +425,7 @@ export default function MessageList(props: {
 			if (props.txId) {
 				try {
 					if (!props.childList && props.type === 'process') {
-						let gqlResponse: DefaultGQLResponseType;
+						let gqlResponse: any;
 						switch (currentFilter) {
 							case 'incoming':
 								gqlResponse = await permawebProvider.libs.getGQLData({
@@ -409,6 +433,7 @@ export default function MessageList(props: {
 									recipients: [props.txId],
 									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
+									sort: 'descending',
 								});
 								break;
 							case 'outgoing':
@@ -417,6 +442,7 @@ export default function MessageList(props: {
 									paginator: perPage,
 									...(recipient && checkValidAddress(recipient) ? { recipients: [recipient] } : {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
+									sort: 'descending',
 								});
 								break;
 							default:
@@ -524,9 +550,19 @@ export default function MessageList(props: {
 
 	function handleActionAdd() {
 		flushSync(() => {
-			setActionOptions((prev) => [...prev, customAction]);
+			const newActionOptions = [...actionOptions, customAction];
+			setActionOptions(newActionOptions);
 			handleActionChange(customAction);
 			setCustomAction('');
+
+			// Save custom actions to localStorage
+			try {
+				const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
+				const customActionsOnly = newActionOptions.filter((action) => !defaultActions.includes(action));
+				localStorage.setItem(STORAGE.customActions, JSON.stringify(customActionsOnly));
+			} catch (e) {
+				console.error('Failed to save custom actions:', e);
+			}
 		});
 	}
 
@@ -594,16 +630,16 @@ export default function MessageList(props: {
 								<>
 									<Button
 										type={'alt3'}
-										label={`${language.incoming}${incomingCount ? ` (${formatCount(incomingCount.toString())})` : ''}`}
-										handlePress={() => handleFilterChange('incoming')}
-										active={currentFilter === 'incoming'}
+										label={`${language.outgoing}${outgoingCount ? ` (${formatCount(outgoingCount.toString())})` : ''}`}
+										handlePress={() => handleFilterChange('outgoing')}
+										active={currentFilter === 'outgoing'}
 										disabled={loadingMessages}
 									/>
 									<Button
 										type={'alt3'}
-										label={`${language.outgoing}${outgoingCount ? ` (${formatCount(outgoingCount.toString())})` : ''}`}
-										handlePress={() => handleFilterChange('outgoing')}
-										active={currentFilter === 'outgoing'}
+										label={`${language.incoming}${incomingCount ? ` (${formatCount(incomingCount.toString())})` : ''}`}
+										handlePress={() => handleFilterChange('incoming')}
+										active={currentFilter === 'incoming'}
 										disabled={loadingMessages}
 									/>
 									<S.Divider />
@@ -682,7 +718,7 @@ export default function MessageList(props: {
 							</S.HeaderWrapper>
 						)}
 						<S.BodyWrapper childList={props.childList} isOverallLast={props.isOverallLast}>
-							{currentData.map((element: GQLNodeResponseType, index: number) => {
+							{currentData.map((element: any, index: number) => {
 								const isLastChild = index === currentData.length - 1;
 
 								return (

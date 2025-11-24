@@ -164,6 +164,45 @@ export const MWrapper = styled.div`
 	gap: 30px;
 `;
 
+export const SyncToggle = styled.button`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 15px;
+	border-radius: ${STYLING.dimensions.radius.primary};
+	background: ${(props) => props.theme.colors.container.alt2.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	cursor: pointer;
+	transition: all 150ms;
+
+	&:hover {
+		background: ${(props) => props.theme.colors.container.alt3.background};
+		border-color: ${(props) => props.theme.colors.border.alt1};
+	}
+`;
+
+export const SyncToggleLabel = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+
+	p {
+		color: ${(props) => props.theme.colors.font.primary};
+		font-size: ${(props) => props.theme.typography.size.small};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		text-align: left;
+	}
+
+	span {
+		color: ${(props) => props.theme.colors.font.alt1};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		text-align: left;
+	}
+`;
+
 export const ThemeSection = styled.div``;
 
 export const ThemeSectionHeader = styled.div`

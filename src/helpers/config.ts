@@ -1,5 +1,11 @@
 import { getTxEndpoint } from './endpoints';
 
+export const AO_NODE = {
+	url: 'https://app-1.forward.computer',
+	authority: '3sV90HB2v62DfK6MCwS4EOauFMsJHQowB-MCRDcYCIE',
+	scheduler: '3sV90HB2v62DfK6MCwS4EOauFMsJHQowB-MCRDcYCIE',
+};
+
 export const ASSETS = {
 	add: getTxEndpoint('RLWnDhoB0Dd_X-sLnNy4w2S7ds3l9591HcHK8nc3YRw'),
 	alignBottom: getTxEndpoint('kx2grnSUx7D7Y96EJIjTy11WJB8I8rZl4T8x3IVK3wM'),
@@ -110,10 +116,16 @@ export const DEFAULT_ACTIONS = {
 	creditNotice: { name: TAGS.values.creditNotice },
 };
 
-export const DEFAULT_AO_TAGS = [
-	{ name: 'Data-Protocol', values: ['ao'] },
-	// { name: 'Variant', values: ['ao.TN.1'] }, // TODO
-];
+export const MINT_ACTIONS = {
+	mint: { name: 'Mint' },
+	piDelegationRecords: { name: 'Pi-Delegation-Records' },
+	reportMint: { name: 'Report.Mint' },
+	setPiIndexWeights: { name: 'Set-Pi-Index-Weights' },
+	saveDelegationSummary: { name: 'Save-Delegation-Summary' },
+	nextPiDelegationPage: { name: 'Next-Pi-Delegation-Page' },
+};
+
+export const DEFAULT_AO_TAGS = [{ name: 'Data-Protocol', values: ['ao'] }];
 
 export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...DEFAULT_AO_TAGS];
 
@@ -126,6 +138,7 @@ export const DOM = {
 export const STORAGE = {
 	walletType: `wallet-type`,
 	profile: (id: string) => `profile-${id}`,
+	customActions: 'explorer-custom-actions',
 };
 
 export const STYLING = {

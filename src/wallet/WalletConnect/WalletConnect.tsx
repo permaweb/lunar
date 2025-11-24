@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { Avatar } from 'components/atoms/Avatar';
+import { Checkbox } from 'components/atoms/Checkbox';
 import { Panel } from 'components/atoms/Panel';
 import { ASSETS } from 'helpers/config';
 import {
@@ -200,6 +201,12 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 				handleClose={() => setShowThemeSelector(false)}
 			>
 				<S.MWrapper className={'modal-wrapper'}>
+					<S.SyncToggle onClick={() => updateSettings('syncWithSystem', !settings.syncWithSystem)}>
+						<S.SyncToggleLabel>
+							<p>{language.syncWithSystem}</p>
+						</S.SyncToggleLabel>
+						<Checkbox checked={settings.syncWithSystem} handleSelect={() => {}} disabled={false} />
+					</S.SyncToggle>
 					{Object.entries(THEMES).map(([key, theme]) => (
 						<S.ThemeSection key={key}>
 							<S.ThemeSectionHeader>
@@ -207,20 +214,28 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 								<p>{theme.label}</p>
 							</S.ThemeSectionHeader>
 							<S.ThemeSectionBody>
-								{theme.variants.map((variant) => (
-									<S.ThemeSectionBodyElement
-										key={variant.id}
-										onClick={() => updateSettings('theme', variant.id as any)}
-									>
-										<S.Preview background={variant.background} accent={variant.accent1}>
-											<div id={'preview-accent-1'} />
-										</S.Preview>
-										<div>
-											<S.Indicator active={settings.theme === variant.id} />
-											<p>{variant.name}</p>
-										</div>
-									</S.ThemeSectionBodyElement>
-								))}
+								{theme.variants.map((variant) => {
+									const isActiveTheme = settings.theme === variant.id;
+									const isPreferredLight = settings.preferredLightTheme === variant.id;
+									const isPreferredDark = settings.preferredDarkTheme === variant.id;
+									const showIndicator =
+										isActiveTheme || (settings.syncWithSystem && (isPreferredLight || isPreferredDark));
+
+									return (
+										<S.ThemeSectionBodyElement
+											key={variant.id}
+											onClick={() => updateSettings('theme', variant.id as any)}
+										>
+											<S.Preview background={variant.background} accent={variant.accent1}>
+												<div id={'preview-accent-1'} />
+											</S.Preview>
+											<div>
+												<S.Indicator active={showIndicator} />
+												<p>{variant.name}</p>
+											</div>
+										</S.ThemeSectionBodyElement>
+									);
+								})}
 							</S.ThemeSectionBody>
 						</S.ThemeSection>
 					))}

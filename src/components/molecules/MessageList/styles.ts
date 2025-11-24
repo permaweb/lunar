@@ -267,13 +267,13 @@ export const ActionTooltip = styled.div`
 `;
 
 export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: boolean }>`
-	min-width: 200px;
-	width: 200px;
+	min-width: 225px;
+	width: 225px;
 	position: relative;
 
 	.action-indicator {
 		position: relative;
-		width: ${(props) => (props.useMaxWidth ? '105px' : 'fit-content')};
+		width: ${(props) => (props.useMaxWidth ? '225px' : 'fit-content')};
 		display: flex;
 		justify-content: center;
 		align-items: center;

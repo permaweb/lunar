@@ -24,17 +24,31 @@ import { ProcessSource } from '../ProcessSource';
 
 import * as S from './styles';
 
-export default function Transaction(props: {
+// Create a context to provide txResponse to all tab views without recreating them
+const TxResponseContext = React.createContext<{
+	txResponse: Types.GQLNodeResponseType | null;
+	inputTxId: string;
+	type: TransactionType;
+}>({
+	txResponse: null,
+	inputTxId: '',
+	type: null,
+});
+
+function Transaction(props: {
 	txId: string;
 	type: TransactionType;
 	active: boolean;
 	onTxChange?: (newTx: Types.GQLNodeResponseType) => void;
 	handleMessageOpen: (id: string) => void;
+	tabKey?: string; // Stable key from TransactionTabs to maintain component identity
 }) {
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
-	const language = languageProvider.object[languageProvider.current];
+
+	// Memoize language to prevent unnecessary TABS recreation
+	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
 
 	const currentHash = window.location.hash.replace('#', '');
 
@@ -45,10 +59,6 @@ export default function Transaction(props: {
 	const [error, setError] = React.useState<string | null>(null);
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
-
-	const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
-	const filteredTags =
-		txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
 
 	React.useEffect(() => {
 		setInputTxId(props.txId);
@@ -117,118 +127,132 @@ export default function Transaction(props: {
 	};
 
 	const TABS = React.useMemo(() => {
+		// Don't create TABS if we don't have an inputTxId
+		if (!inputTxId) return null;
+
 		const tabs = [
 			{
 				label: language.overview,
 				icon: ASSETS.overview,
 				disabled: false,
 				url: URLS.explorerInfo(inputTxId),
-				view: () => (
-					<S.InfoWrapper>
-						<S.TagsWrapper>
-							<S.TagsSection className={'border-wrapper-primary'}>
-								<S.SectionHeader>
-									<p>{language.tags}</p>
-								</S.SectionHeader>
-								<S.OverviewWrapper>
-									<OverviewLine
-										label={language.type}
-										value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Type')}
-									/>
-									<OverviewLine
-										label={language.dateCreated}
-										value={
-											txResponse?.node?.block?.timestamp &&
-											formatDate(txResponse.node.block.timestamp * 1000, 'timestamp')
-										}
-									/>
-									<S.OverviewDivider />
-									{props.type === 'process' && (
-										<>
-											<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
-											<OverviewLine
-												label={'Authority'}
-												value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Authority')}
-											/>
-											<OverviewLine
-												label={'Module'}
-												value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Module')}
-											/>
-											<OverviewLine
-												label={'Scheduler'}
-												value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Scheduler')}
-											/>
-										</>
-									)}
-									{txResponse ? (
-										<>
-											{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-												<OverviewLine key={index} label={tag.name} value={tag.value} />
-											))}
-										</>
-									) : (
-										<S.OverviewLine>
-											<span>{language.processOrMessageTagsInfo}</span>
-										</S.OverviewLine>
-									)}
-								</S.OverviewWrapper>
-							</S.TagsSection>
-						</S.TagsWrapper>
-						<S.ReadWrapper>
-							{props.type === 'process' && <ProcessRead processId={inputTxId} autoRun={true} />}
-							{props.type === 'message' && (
-								<>
-									<S.MessageInfo className={'border-wrapper-primary'}>
-										<S.MessageInfoHeader>
-											<p>{language.messageInfo}</p>
-											<S.MessageInfoLine>
-												<span>{`${language.id}: `}</span>
-												<TxAddress address={txResponse?.node?.id} />
-											</S.MessageInfoLine>
-										</S.MessageInfoHeader>
-										<S.MessageInfoBody>
-											<S.MessageInfoLine>
-												<span>{`${language.from}: `}</span>
-												<TxAddress
-													address={getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse.node.owner.address}
+				view: () => {
+					// Read txResponse from context so this view function doesn't need to be recreated when txResponse changes
+					const { txResponse } = React.useContext(TxResponseContext);
+					const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
+					const filteredTags =
+						txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
+					return (
+						<S.InfoWrapper>
+							<S.TagsWrapper>
+								<S.TagsSection className={'border-wrapper-primary'}>
+									<S.SectionHeader>
+										<p>{language.tags}</p>
+									</S.SectionHeader>
+									<S.OverviewWrapper>
+										<OverviewLine
+											label={language.type}
+											value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Type')}
+										/>
+										<OverviewLine
+											label={language.dateCreated}
+											value={
+												txResponse?.node?.block?.timestamp &&
+												formatDate(txResponse.node.block.timestamp * 1000, 'timestamp')
+											}
+										/>
+										<S.OverviewDivider />
+										{props.type === 'process' && (
+											<>
+												<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
+												<OverviewLine
+													label={'Authority'}
+													value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Authority')}
 												/>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.to}: `}</span>
-												<TxAddress address={txResponse?.node?.recipient} />
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.owner}: `}</span>
-												<TxAddress address={txResponse?.node?.owner?.address} />
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.blockHeight}: `}</span>
-												<p>
-													{txResponse?.node?.block?.height
-														? formatCount(txResponse?.node?.block?.height.toString())
-														: '-'}
-												</p>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.timestamp}: `}</span>
-												<p>{txResponse?.node?.block?.timestamp ?? '-'}</p>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.size}: `}</span>
-												<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
-											</S.MessageInfoLine>
-										</S.MessageInfoBody>
-									</S.MessageInfo>
-									<MessageResult
-										processId={txResponse?.node?.recipient}
-										messageId={inputTxId}
-										variant={getTagValue(txResponse.node.tags, TAGS.keys.variant)}
-									/>
-								</>
-							)}
-						</S.ReadWrapper>
-					</S.InfoWrapper>
-				),
+												<OverviewLine
+													label={'Module'}
+													value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Module')}
+												/>
+												<OverviewLine
+													label={'Scheduler'}
+													value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Scheduler')}
+												/>
+											</>
+										)}
+										{txResponse ? (
+											<>
+												{filteredTags.map((tag: { name: string; value: string }, index: number) => (
+													<OverviewLine key={index} label={tag.name} value={tag.value} />
+												))}
+											</>
+										) : (
+											<S.OverviewLine>
+												<span>{language.processOrMessageTagsInfo}</span>
+											</S.OverviewLine>
+										)}
+									</S.OverviewWrapper>
+								</S.TagsSection>
+							</S.TagsWrapper>
+							<S.ReadWrapper>
+								{props.type === 'process' && <ProcessRead processId={inputTxId} autoRun={true} />}
+								{props.type === 'message' && (
+									<>
+										<S.MessageInfo className={'border-wrapper-primary'}>
+											<S.MessageInfoHeader>
+												<p>{language.messageInfo}</p>
+												<S.MessageInfoLine>
+													<span>{`${language.id}: `}</span>
+													<TxAddress address={txResponse?.node?.id} />
+												</S.MessageInfoLine>
+											</S.MessageInfoHeader>
+											<S.MessageInfoBody>
+												<S.MessageInfoLine>
+													<span>{`${language.from}: `}</span>
+													<TxAddress
+														address={
+															txResponse
+																? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse.node.owner.address
+																: undefined
+														}
+													/>
+												</S.MessageInfoLine>
+												<S.MessageInfoLine>
+													<span>{`${language.to}: `}</span>
+													<TxAddress address={txResponse?.node?.recipient} />
+												</S.MessageInfoLine>
+												<S.MessageInfoLine>
+													<span>{`${language.owner}: `}</span>
+													<TxAddress address={txResponse?.node?.owner?.address} />
+												</S.MessageInfoLine>
+												<S.MessageInfoLine>
+													<span>{`${language.blockHeight}: `}</span>
+													<p>
+														{txResponse?.node?.block?.height
+															? formatCount(txResponse?.node?.block?.height.toString())
+															: '-'}
+													</p>
+												</S.MessageInfoLine>
+												<S.MessageInfoLine>
+													<span>{`${language.timestamp}: `}</span>
+													<p>{txResponse?.node?.block?.timestamp ?? '-'}</p>
+												</S.MessageInfoLine>
+												<S.MessageInfoLine>
+													<span>{`${language.size}: `}</span>
+													<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
+												</S.MessageInfoLine>
+											</S.MessageInfoBody>
+										</S.MessageInfo>
+										<MessageResult
+											processId={txResponse?.node?.recipient}
+											messageId={inputTxId}
+											variant={txResponse ? getTagValue(txResponse.node.tags, TAGS.keys.variant) : undefined}
+										/>
+									</>
+								)}
+							</S.ReadWrapper>
+						</S.InfoWrapper>
+					);
+				},
 			},
 			{
 				label: language.messages,
@@ -275,7 +299,10 @@ export default function Transaction(props: {
 					disabled: false,
 					url: URLS.explorerSource(inputTxId),
 					view: () => (
-						<ProcessSource processId={inputTxId} onBoot={getTagValue(txResponse?.node?.tags, TAGS.keys.onBoot)} />
+						<ProcessSource
+							processId={inputTxId}
+							onBoot={txResponse?.node?.tags ? getTagValue(txResponse.node.tags, TAGS.keys.onBoot) : undefined}
+						/>
 					),
 				}
 			);
@@ -292,34 +319,47 @@ export default function Transaction(props: {
 		}
 
 		return tabs;
-	}, [props.type, inputTxId, txResponse, arProvider.walletAddress, language]);
+	}, [props.type, inputTxId, arProvider.walletAddress, language]); // Removed txResponse - tabs will update via re-render, not recreation
+
+	// Memoize the context value separately to avoid recreating it unnecessarily
+	const contextValue = React.useMemo(
+		() => ({ txResponse, inputTxId, type: props.type }),
+		[txResponse, inputTxId, props.type]
+	);
 
 	const transactionTabs = React.useMemo(() => {
+		if (!TABS) return null;
 		const matchingTab = TABS.find((tab) => tab.url === currentHash);
-		const activeUrl = matchingTab ? matchingTab.url : TABS[0].url;
-		return <URLTabs tabs={TABS} activeUrl={activeUrl} />;
-	}, [TABS]);
+		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
+		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} />;
+	}, [TABS, currentHash, props.tabKey]); // Keep URLTabs from recreating
 
 	function getTransaction() {
-		if (!inputTxId || !txResponse) {
-			return (
-				<S.Placeholder>
-					<S.PlaceholderIcon>
-						<ReactSVG src={ASSETS.process} />
-					</S.PlaceholderIcon>
-					<S.PlaceholderDescription>
-						<p>{loadingTx ? `${language.loading}...` : language.processOrMessageId}</p>
-					</S.PlaceholderDescription>
-				</S.Placeholder>
-			);
-		}
+		const showPlaceholder = !inputTxId || !txResponse;
 
-		return transactionTabs;
+		return (
+			<>
+				{showPlaceholder && (
+					<S.Placeholder>
+						<S.PlaceholderIcon>
+							<ReactSVG src={ASSETS.process} />
+						</S.PlaceholderIcon>
+						<S.PlaceholderDescription>
+							<p>{loadingTx ? `${language.loading}...` : language.processOrMessageId}</p>
+						</S.PlaceholderDescription>
+					</S.Placeholder>
+				)}
+				{/* Always render transactionTabs (with null checks) so URLTabs stays mounted */}
+				<TxResponseContext.Provider value={contextValue}>
+					<div style={{ display: showPlaceholder ? 'none' : 'block' }}>{transactionTabs}</div>
+				</TxResponseContext.Provider>
+			</>
+		);
 	}
 
-	return props.active ? (
+	return (
 		<>
-			<S.Wrapper>
+			<S.Wrapper style={{ display: props.active ? 'flex' : 'none' }}>
 				<S.HeaderWrapper>
 					<S.SearchWrapper>
 						<S.SearchInputWrapper>
@@ -380,7 +420,7 @@ export default function Transaction(props: {
 				</S.HeaderWrapper>
 				<S.BodyWrapper>{getTransaction()}</S.BodyWrapper>
 			</S.Wrapper>
-			{error && (
+			{props.active && error && (
 				<Notification
 					type={'warning'}
 					message={error}
@@ -390,5 +430,7 @@ export default function Transaction(props: {
 				/>
 			)}
 		</>
-	) : null;
+	);
 }
+
+export default React.memo(Transaction);

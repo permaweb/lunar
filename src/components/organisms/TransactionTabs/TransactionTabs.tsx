@@ -1,10 +1,9 @@
 import React from 'react';
-import { flushSync } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
-import { GQLNodeResponseType } from '@permaweb/libs';
+import { Types } from '@permaweb/libs';
 
 import { ViewWrapper } from 'app/styles';
 import { Button } from 'components/atoms/Button';
@@ -27,6 +26,8 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	const theme = useTheme();
 
 	const tabsRef = React.useRef<HTMLDivElement>(null);
+	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
+	const callbacksRef = React.useRef<Map<string, (newTx: Types.GQLNodeResponseType) => void>>(new Map());
 
 	const storageKey = `${props.type}-transactions`;
 
@@ -35,10 +36,20 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 
 	const [transactions, setTransactions] = React.useState<TransactionTabType[]>(() => {
 		const stored = localStorage.getItem(storageKey);
-		return stored && JSON.parse(stored).length > 0 ? JSON.parse(stored) : [{ id: '', label: '', type: null }];
+		if (stored) {
+			const parsed = JSON.parse(stored);
+			// Migrate old data to include lastRoute and tabKey fields
+			return parsed.length > 0
+				? parsed.map((tx: any) => ({
+						...tx,
+						lastRoute: tx.lastRoute || (tx.id ? `${URLS[props.type]}${tx.id}` : undefined),
+						tabKey: tx.tabKey || `tab-${Date.now()}-${Math.random()}`,
+				  }))
+				: [{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }];
+		}
+		return [{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }];
 	});
 	const [activeTabIndex, setActiveTabIndex] = React.useState<number>(getInitialIndex());
-	const [isClearing, setIsClearing] = React.useState<boolean>(false);
 	const [showClearConfirmation, setShowClearConfirmation] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
@@ -68,17 +79,36 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 			if (transactions.length === 1 && transactions[0].id === '') {
 				setTransactions((prev) => {
 					const updated = [...prev];
-					updated[0] = { id: txId, label: txId, type: 'message' };
+					updated[0] = { ...updated[0], id: txId, label: txId, type: 'message', lastRoute: location.pathname };
 					return updated;
 				});
 				setActiveTabIndex(0);
 			} else {
 				const newIndex = transactions.length;
-				setTransactions((prev) => [...prev, { id: txId, label: txId, type: 'message' }]);
+				setTransactions((prev) => [
+					...prev,
+					{
+						id: txId,
+						label: txId,
+						type: 'message',
+						lastRoute: location.pathname,
+						tabKey: `tab-${Date.now()}-${Math.random()}`,
+					},
+				]);
 				setActiveTabIndex(newIndex);
 			}
 
 			navigate(`${URLS[props.type]}${txId}${subPath}`);
+		} else if (txId) {
+			// Update lastRoute for existing tab when route changes
+			const tabIndex = transactions.findIndex((tab) => tab.id === txId);
+			if (tabIndex !== -1 && tabIndex === activeTabIndex) {
+				setTransactions((prev) => {
+					const updated = [...prev];
+					updated[tabIndex] = { ...updated[tabIndex], lastRoute: location.pathname };
+					return updated;
+				});
+			}
 		}
 	}, [location.pathname]);
 
@@ -131,93 +161,103 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		return 0;
 	}
 
-	const handleTxChange = (tabIndex: number, newTx: GQLNodeResponseType) => {
-		if (isClearing) return;
+	// Create a stable callback that uses the ref to look up the current index
+	const handleTxChangeByKey = React.useCallback(
+		(tabKey: string, newTx: Types.GQLNodeResponseType) => {
+			const tabIndex = tabIndexMapRef.current.get(tabKey);
+			if (tabIndex === undefined) return;
 
-		const name = getTagValue(newTx.node.tags, 'Name');
-		const type = getTagValue(newTx.node.tags, 'Type');
+			const name = getTagValue(newTx.node.tags, 'Name');
+			const type = getTagValue(newTx.node.tags, 'Type');
 
-		setTransactions((prev) => {
-			const updated = [...prev];
-			if (updated[tabIndex]) {
-				updated[tabIndex] = {
-					...updated[tabIndex],
-					id: newTx.node.id,
-					label: name ?? newTx.node.id,
-					type: type ? (type.toLowerCase() as any) : 'message',
-				};
-			} else {
-				updated.push({
-					id: newTx.node.id,
-					label: name ?? newTx.node.id,
-					type: type ? (type.toLowerCase() as any) : 'message',
-				});
+			setTransactions((prev) => {
+				const updated = [...prev];
+				if (updated[tabIndex]) {
+					updated[tabIndex] = {
+						...updated[tabIndex],
+						id: newTx.node.id,
+						label: name ?? newTx.node.id,
+						type: type ? (type.toLowerCase() as any) : 'message',
+					};
+				} else {
+					updated.push({
+						id: newTx.node.id,
+						label: name ?? newTx.node.id,
+						type: type ? (type.toLowerCase() as any) : 'message',
+					});
+				}
+				return updated;
+			});
+
+			const currentParts = window.location.hash.replace('#', '').split('/');
+			const currentRoute = currentParts[currentParts.length - 1];
+
+			let toRoute = `${URLS[props.type]}${newTx.node.id}`;
+
+			if (props.type === 'explorer') {
+				switch (currentRoute) {
+					case 'info':
+						toRoute = URLS.explorerInfo(newTx.node.id);
+						break;
+					case 'messages':
+						toRoute = URLS.explorerMessages(newTx.node.id);
+						break;
+					case 'read':
+						toRoute = URLS.explorerRead(newTx.node.id);
+						break;
+					case 'write':
+						toRoute = URLS.explorerWrite(newTx.node.id);
+						break;
+					case 'aos':
+						toRoute = URLS.explorerAOS(newTx.node.id);
+						break;
+					case 'source':
+						toRoute = URLS.explorerSource(newTx.node.id);
+						break;
+					default:
+						break;
+				}
 			}
-			return updated;
-		});
 
-		const currentParts = window.location.hash.replace('#', '').split('/');
-		const currentRoute = currentParts[currentParts.length - 1];
-
-		let toRoute = `${URLS[props.type]}${newTx.node.id}`;
-
-		if (props.type === 'explorer') {
-			switch (currentRoute) {
-				case 'info':
-					toRoute = URLS.explorerInfo(newTx.node.id);
-					break;
-				case 'messages':
-					toRoute = URLS.explorerMessages(newTx.node.id);
-					break;
-				case 'read':
-					toRoute = URLS.explorerRead(newTx.node.id);
-					break;
-				case 'write':
-					toRoute = URLS.explorerWrite(newTx.node.id);
-					break;
-				case 'aos':
-					toRoute = URLS.explorerAOS(newTx.node.id);
-					break;
-				case 'source':
-					toRoute = URLS.explorerSource(newTx.node.id);
-					break;
-				default:
-					break;
-			}
-		}
-
-		navigate(toRoute);
-	};
+			navigate(toRoute);
+		},
+		[props.type, navigate]
+	);
 
 	const handleTabRedirect = (index: number) => {
 		setActiveTabIndex(index);
-		navigate(`${URLS[props.type]}${transactions[index].id}`);
+		const targetTab = transactions[index];
+		const route = targetTab.lastRoute || `${URLS[props.type]}${targetTab.id}`;
+		navigate(route);
 	};
 
-	const handleAddTab = (id?: string) => {
-		const newTab = { id: id ?? '', label: id ?? '', type: null } as TransactionTabType;
-
-		flushSync(() => {
-			setIsClearing(true);
+	const handleAddTab = React.useCallback(
+		(id?: string) => {
+			const untitledId = id ? id : `untitled-${Date.now()}`;
+			const newTab = {
+				id: id ?? '',
+				label: id ?? '',
+				type: null,
+				tabKey: `tab-${Date.now()}-${Math.random()}`,
+				untitledId: id ? undefined : untitledId, // Track if this is an untitled tab
+			} as TransactionTabType;
 
 			setTransactions((prev) => {
 				const updated = [...prev, newTab];
 				setActiveTabIndex(updated.length - 1);
 				return updated;
 			});
-		});
 
-		setTimeout(() => setIsClearing(false), 50);
+			setTimeout(() => {
+				if (tabsRef.current) {
+					tabsRef.current.scrollTo({ left: tabsRef.current.scrollWidth });
+				}
+			}, 0);
 
-		setTimeout(() => {
-			setIsClearing(false);
-			if (tabsRef.current) {
-				tabsRef.current.scrollTo({ left: tabsRef.current.scrollWidth });
-			}
-		}, 0);
-
-		navigate(id ? `${URLS[props.type]}${id}` : URLS[props.type]);
-	};
+			navigate(id ? `${URLS[props.type]}${id}` : URLS[props.type]);
+		},
+		[props.type, navigate]
+	);
 
 	const handleDeleteTab = (deletedIndex: number) => {
 		const updatedTransactions = transactions.filter((_, i) => i !== deletedIndex);
@@ -234,13 +274,12 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 
 		newActiveIndex = Math.max(0, newActiveIndex);
 
-		flushSync(() => {
-			setIsClearing(true);
-			setTransactions(updatedTransactions.length > 0 ? updatedTransactions : [{ id: '', label: '', type: null }]);
-			setActiveTabIndex(newActiveIndex);
-		});
-
-		setTimeout(() => setIsClearing(false), 50);
+		setTransactions(
+			updatedTransactions.length > 0
+				? updatedTransactions
+				: [{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }]
+		);
+		setActiveTabIndex(newActiveIndex);
 
 		if (updatedTransactions.length > 0) {
 			const newId = updatedTransactions[newActiveIndex]?.id ?? '';
@@ -251,15 +290,9 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	};
 
 	const handleClearTabs = () => {
-		flushSync(() => {
-			setIsClearing(true);
-			setTransactions([{ id: '', label: '', type: null }]);
-			setActiveTabIndex(0);
-		});
-
+		setTransactions([{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }]);
+		setActiveTabIndex(0);
 		navigate(URLS[props.type], { replace: true });
-
-		setTimeout(() => setIsClearing(false), 50);
 		setShowClearConfirmation(false);
 	};
 
@@ -303,29 +336,6 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		);
 	}, [transactions, activeTabIndex, language]);
 
-	function getTab(tx: TransactionTabType, index: number) {
-		switch (props.type) {
-			case 'explorer':
-				return (
-					<Transaction
-						txId={tx.id}
-						type={tx.type}
-						active={index === activeTabIndex}
-						onTxChange={(newTx: GQLNodeResponseType) => handleTxChange(index, newTx)}
-						handleMessageOpen={(id: string) => handleAddTab(id)}
-					/>
-				);
-			case 'aos':
-				return (
-					<ConsoleInstance
-						processId={tx.id}
-						active={index === activeTabIndex}
-						onTxChange={(newTx: GQLNodeResponseType) => handleTxChange(index, newTx)}
-					/>
-				);
-		}
-	}
-
 	return (
 		<>
 			<S.Wrapper>
@@ -356,17 +366,39 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 					</S.TabsWrapper>
 				</S.HeaderWrapper>
 				<ViewWrapper>
-					{!isClearing ? (
-						<>
-							{transactions.map((tx: TransactionTabType, index) => {
-								return (
-									<S.TransactionWrapper key={index} active={index === activeTabIndex}>
-										{getTab(tx, index)}
-									</S.TransactionWrapper>
-								);
-							})}
-						</>
-					) : null}
+					<>
+						{transactions.map((tx: TransactionTabType, index) => {
+							// Update the index mapping ref
+							tabIndexMapRef.current.set(tx.tabKey!, index);
+
+							// Create or get stable callback for this tab
+							if (!callbacksRef.current.has(tx.tabKey!)) {
+								callbacksRef.current.set(tx.tabKey!, (newTx: Types.GQLNodeResponseType) => {
+									handleTxChangeByKey(tx.tabKey!, newTx);
+								});
+							}
+							const onTxChange = callbacksRef.current.get(tx.tabKey!)!;
+
+							const isActive = index === activeTabIndex;
+							return (
+								<S.TransactionWrapper key={tx.tabKey} active={isActive}>
+									{props.type === 'explorer' ? (
+										<Transaction
+											key={tx.tabKey}
+											txId={tx.id}
+											type={tx.type}
+											active={isActive}
+											onTxChange={onTxChange}
+											handleMessageOpen={handleAddTab}
+											tabKey={tx.tabKey}
+										/>
+									) : (
+										<ConsoleInstance key={tx.tabKey} processId={tx.id} active={isActive} onTxChange={onTxChange} />
+									)}
+								</S.TransactionWrapper>
+							);
+						})}
+					</>
 				</ViewWrapper>
 			</S.Wrapper>
 			{showClearConfirmation && (
@@ -376,18 +408,11 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 							<p>{language.tabsDeleteConfirmationInfo}</p>
 						</S.ModalBodyWrapper>
 						<S.ModalActionsWrapper>
-							<Button
-								type={'primary'}
-								label={language.cancel}
-								handlePress={() => setShowClearConfirmation(false)}
-								disabled={isClearing}
-							/>
+							<Button type={'primary'} label={language.cancel} handlePress={() => setShowClearConfirmation(false)} />
 							<Button
 								type={'primary'}
 								label={language.clearTabs}
 								handlePress={() => handleClearTabs()}
-								disabled={false}
-								loading={isClearing}
 								icon={ASSETS.delete}
 								iconLeftAlign
 								warning
