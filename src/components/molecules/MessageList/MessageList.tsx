@@ -451,26 +451,28 @@ export default function MessageList(props: {
 						setCurrentData(gqlResponse.data);
 						setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
 					} else {
-						const resultResponse = await permawebProvider.deps.ao.result({
-							process: props.recipient,
-							message: props.txId,
-						});
-
-						if (resultResponse && !resultResponse.error) {
-							const gqlResponse = await permawebProvider.libs.getGQLData({
-								tags: [
-									...tags,
-									{ name: 'From-Process', values: [props.recipient] },
-									{
-										name: 'Reference',
-										values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
-									},
-								],
+						if (props.recipient) {
+							const resultResponse = await permawebProvider.deps.ao.result({
+								process: props.recipient,
+								message: props.txId,
 							});
 
-							setCurrentData(gqlResponse.data);
-						} else {
-							setCurrentData([]);
+							if (resultResponse && !resultResponse.error) {
+								const gqlResponse = await permawebProvider.libs.getGQLData({
+									tags: [
+										...tags,
+										{ name: 'From-Process', values: [props.recipient] },
+										{
+											name: 'Reference',
+											values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
+										},
+									],
+								});
+
+								setCurrentData(gqlResponse.data);
+							} else {
+								setCurrentData([]);
+							}
 						}
 					}
 				} catch (e: any) {
@@ -495,7 +497,7 @@ export default function MessageList(props: {
 			}
 			setLoadingMessages(false);
 		})();
-	}, [props.txId, currentFilter, toggleFilterChange, pageCursor, permawebProvider.libs]);
+	}, [props.txId, props.recipient, currentFilter, toggleFilterChange, pageCursor, permawebProvider.libs]);
 
 	const scrollToTop = () => {
 		if (tableContainerRef.current) {

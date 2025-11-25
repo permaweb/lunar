@@ -60,7 +60,7 @@ export default function MessageResult(props: { processId: string; messageId: str
 				}
 			}
 		})();
-	}, [result]);
+	}, [result, props.processId, props.messageId]);
 
 	function getData() {
 		if (!data) return null;
