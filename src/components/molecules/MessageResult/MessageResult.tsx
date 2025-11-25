@@ -50,13 +50,17 @@ export default function MessageResult(props: { processId: string; messageId: str
 						}
 					}
 
+					console.log('Getting message result...');
+
 					const messageResult = await permawebProvider.deps.ao.result({
 						process: props.processId,
 						message: props.messageId,
 					});
+
 					setResult(messageResult);
 				} catch (e: any) {
 					console.error(e);
+					setResult({ Response: e.message ?? 'Error Fetching Result' });
 				}
 			}
 		})();

@@ -29,10 +29,12 @@ const TxResponseContext = React.createContext<{
 	txResponse: Types.GQLNodeResponseType | null;
 	inputTxId: string;
 	type: TransactionType;
+	refreshKey: number;
 }>({
 	txResponse: null,
 	inputTxId: '',
 	type: null,
+	refreshKey: 0,
 });
 
 function Transaction(props: {
@@ -57,6 +59,7 @@ function Transaction(props: {
 	const [txResponse, setTxResponse] = React.useState<Types.GQLNodeResponseType | null>(null);
 	const [hasFetched, setHasFetched] = React.useState<boolean>(false);
 	const [error, setError] = React.useState<string | null>(null);
+	const [refreshKey, setRefreshKey] = React.useState<number>(0);
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
 
@@ -81,6 +84,8 @@ function Transaction(props: {
 	async function handleSubmit() {
 		if (inputTxId && checkValidAddress(inputTxId)) {
 			setLoadingTx(true);
+			setHasFetched(false);
+			setRefreshKey((prev) => prev + 1);
 			try {
 				const response = await permawebProvider.libs.getGQLData({
 					ids: [inputTxId],
@@ -97,6 +102,7 @@ function Transaction(props: {
 				setError(e.message ?? language.errorFetchingTx);
 			}
 			setLoadingTx(false);
+			setHasFetched(true);
 		}
 	}
 
@@ -138,7 +144,7 @@ function Transaction(props: {
 				url: URLS.explorerInfo(inputTxId),
 				view: () => {
 					// Read txResponse from context so this view function doesn't need to be recreated when txResponse changes
-					const { txResponse } = React.useContext(TxResponseContext);
+					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
 					const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
 					const filteredTags =
 						txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
@@ -194,7 +200,7 @@ function Transaction(props: {
 								</S.TagsSection>
 							</S.TagsWrapper>
 							<S.ReadWrapper>
-								{props.type === 'process' && <ProcessRead processId={inputTxId} autoRun={true} />}
+								{props.type === 'process' && <ProcessRead key={refreshKey} processId={inputTxId} autoRun={true} />}
 								{props.type === 'message' && (
 									<>
 										<S.MessageInfo className={'border-wrapper-primary'}>
@@ -243,6 +249,7 @@ function Transaction(props: {
 											</S.MessageInfoBody>
 										</S.MessageInfo>
 										<MessageResult
+											key={refreshKey}
 											processId={txResponse?.node?.recipient}
 											messageId={inputTxId}
 											variant={txResponse ? getTagValue(txResponse.node.tags, TAGS.keys.variant) : undefined}
@@ -259,21 +266,25 @@ function Transaction(props: {
 				icon: ASSETS.message,
 				disabled: false,
 				url: URLS.explorerMessages(inputTxId),
-				view: () => (
-					<S.MessagesWrapper>
-						<S.MessagesSection>
-							{inputTxId && checkValidAddress(inputTxId) && (
-								<MessageList
-									txId={inputTxId}
-									type={props.type}
-									recipient={props.type === 'message' ? txResponse?.node?.recipient : null}
-									parentId={inputTxId}
-									handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
-								/>
-							)}
-						</S.MessagesSection>
-					</S.MessagesWrapper>
-				),
+				view: () => {
+					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
+					return (
+						<S.MessagesWrapper>
+							<S.MessagesSection>
+								{inputTxId && checkValidAddress(inputTxId) && (
+									<MessageList
+										key={refreshKey}
+										txId={inputTxId}
+										type={props.type}
+										recipient={props.type === 'message' ? txResponse?.node?.recipient : null}
+										parentId={inputTxId}
+										handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
+									/>
+								)}
+							</S.MessagesSection>
+						</S.MessagesWrapper>
+					);
+				},
 			},
 		];
 
@@ -298,12 +309,15 @@ function Transaction(props: {
 					icon: ASSETS.code,
 					disabled: false,
 					url: URLS.explorerSource(inputTxId),
-					view: () => (
-						<ProcessSource
-							processId={inputTxId}
-							onBoot={txResponse?.node?.tags ? getTagValue(txResponse.node.tags, TAGS.keys.onBoot) : undefined}
-						/>
-					),
+					view: () => {
+						const { txResponse } = React.useContext(TxResponseContext);
+						return (
+							<ProcessSource
+								processId={inputTxId}
+								onBoot={txResponse?.node?.tags ? getTagValue(txResponse.node.tags, TAGS.keys.onBoot) : undefined}
+							/>
+						);
+					},
 				}
 			);
 
@@ -323,8 +337,8 @@ function Transaction(props: {
 
 	// Memoize the context value separately to avoid recreating it unnecessarily
 	const contextValue = React.useMemo(
-		() => ({ txResponse, inputTxId, type: props.type }),
-		[txResponse, inputTxId, props.type]
+		() => ({ txResponse, inputTxId, type: props.type, refreshKey }),
+		[txResponse, inputTxId, props.type, refreshKey]
 	);
 
 	const transactionTabs = React.useMemo(() => {
