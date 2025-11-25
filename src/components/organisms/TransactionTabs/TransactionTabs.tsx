@@ -51,6 +51,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	});
 	const [activeTabIndex, setActiveTabIndex] = React.useState<number>(getInitialIndex());
 	const [showClearConfirmation, setShowClearConfirmation] = React.useState<boolean>(false);
+	const [visitedTabs, setVisitedTabs] = React.useState<Set<number>>(() => new Set([getInitialIndex()]));
 
 	React.useEffect(() => {
 		const header = document.getElementById('navigation-header');
@@ -83,6 +84,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 					return updated;
 				});
 				setActiveTabIndex(0);
+				setVisitedTabs(new Set([0]));
 			} else {
 				const newIndex = transactions.length;
 				setTransactions((prev) => [
@@ -96,6 +98,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 					},
 				]);
 				setActiveTabIndex(newIndex);
+				setVisitedTabs((prev) => new Set(prev).add(newIndex));
 			}
 
 			navigate(`${URLS[props.type]}${txId}${subPath}`);
@@ -226,6 +229,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 
 	const handleTabRedirect = (index: number) => {
 		setActiveTabIndex(index);
+		setVisitedTabs((prev) => new Set(prev).add(index));
 		const targetTab = transactions[index];
 		const route = targetTab.lastRoute || `${URLS[props.type]}${targetTab.id}`;
 		navigate(route);
@@ -244,7 +248,9 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 
 			setTransactions((prev) => {
 				const updated = [...prev, newTab];
-				setActiveTabIndex(updated.length - 1);
+				const newIndex = updated.length - 1;
+				setActiveTabIndex(newIndex);
+				setVisitedTabs((prevVisited) => new Set(prevVisited).add(newIndex));
 				return updated;
 			});
 
@@ -274,6 +280,22 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 
 		newActiveIndex = Math.max(0, newActiveIndex);
 
+		// Update visited tabs - remove deleted index and adjust indices
+		setVisitedTabs((prev) => {
+			const newVisited = new Set<number>();
+			prev.forEach((idx) => {
+				if (idx < deletedIndex) {
+					newVisited.add(idx);
+				} else if (idx > deletedIndex) {
+					newVisited.add(idx - 1);
+				}
+				// idx === deletedIndex is not added (removed)
+			});
+			// Ensure the new active tab is marked as visited
+			newVisited.add(newActiveIndex);
+			return newVisited;
+		});
+
 		setTransactions(
 			updatedTransactions.length > 0
 				? updatedTransactions
@@ -292,6 +314,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	const handleClearTabs = () => {
 		setTransactions([{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }]);
 		setActiveTabIndex(0);
+		setVisitedTabs(new Set([0]));
 		navigate(URLS[props.type], { replace: true });
 		setShowClearConfirmation(false);
 	};
@@ -380,6 +403,14 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 							const onTxChange = callbacksRef.current.get(tx.tabKey!)!;
 
 							const isActive = index === activeTabIndex;
+							const hasBeenVisited = visitedTabs.has(index);
+
+							// Only render tabs that have been visited (to preserve their state once loaded)
+							// But they'll only load their data when they become active for the first time
+							if (!hasBeenVisited) {
+								return null;
+							}
+
 							return (
 								<S.TransactionWrapper key={tx.tabKey} active={isActive}>
 									{props.type === 'explorer' ? (

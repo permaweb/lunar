@@ -452,26 +452,32 @@ export default function MessageList(props: {
 						setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
 					} else {
 						if (props.recipient) {
-							const resultResponse = await permawebProvider.deps.ao.result({
-								process: props.recipient,
-								message: props.txId,
-							});
+							console.log('Getting message list result response...');
 
-							if (resultResponse && !resultResponse.error) {
-								const gqlResponse = await permawebProvider.libs.getGQLData({
-									tags: [
-										...tags,
-										{ name: 'From-Process', values: [props.recipient] },
-										{
-											name: 'Reference',
-											values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
-										},
-									],
+							try {
+								const resultResponse = await permawebProvider.deps.ao.result({
+									process: props.recipient,
+									message: props.txId,
 								});
 
-								setCurrentData(gqlResponse.data);
-							} else {
-								setCurrentData([]);
+								if (resultResponse && !resultResponse.error) {
+									const gqlResponse = await permawebProvider.libs.getGQLData({
+										tags: [
+											...tags,
+											{ name: 'From-Process', values: [props.recipient] },
+											{
+												name: 'Reference',
+												values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
+											},
+										],
+									});
+
+									setCurrentData(gqlResponse.data);
+								} else {
+									setCurrentData([]);
+								}
+							} catch (e: any) {
+								setLoadingMessages(false);
 							}
 						}
 					}
