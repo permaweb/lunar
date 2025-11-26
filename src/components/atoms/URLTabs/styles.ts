@@ -14,6 +14,7 @@ export const TabsHeader = styled.div<{ useFixed: boolean }>`
 	align-items: center;
 	justify-content: space-between;
 	overflow-x: auto;
+	margin: 0 0 25px 0;
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		position: relative;
 		top: auto;
@@ -50,5 +51,4 @@ export const View = styled.div`
 	height: 100%;
 	width: 100%;
 	position: relative;
-	margin: 25px 0 0 0;
 `;
