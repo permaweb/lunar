@@ -341,6 +341,7 @@ function Message(props: {
 }
 
 export default function MessageList(props: {
+	header?: string;
 	txId?: string;
 	type?: TransactionType;
 	currentFilter?: MessageFilterType;
@@ -626,7 +627,7 @@ export default function MessageList(props: {
 				{!props.childList && (
 					<S.Header>
 						<S.HeaderMain>
-							<p>{language.messages}</p>
+							<p>{props.header ?? language.messages}</p>
 							{loadingMessages && (
 								<div className={'loader'}>
 									<Loader xSm relative />

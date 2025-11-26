@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { ASSETS } from 'helpers/config';
 import { useLanguageProvider } from 'providers/LanguageProvider';
-import NotFound from 'views/NotFound';
 
 import { Button } from '../Button';
 
@@ -37,7 +36,7 @@ function TabContent(props: ICProps) {
 	// Render all tabs and control visibility with CSS to preserve state
 	return (
 		<S.View>
-			{props.tabs.map((tab, index) => {
+			{props.tabs.map((tab, _index) => {
 				const url = typeof tab.url === 'function' ? tab.url(id) : tab.url;
 				const isActive = url.includes(active);
 				const TabView = tab.view;
@@ -81,36 +80,38 @@ export default function URLTabs(props: IUProps) {
 
 	return (
 		<S.Wrapper>
-			<S.TabsHeader useFixed={props.useFixed ? props.useFixed : false} className={'scroll-wrapper'}>
-				<S.Tabs>
-					{props.tabs.map((elem, index) => {
-						const url = typeof elem.url === 'function' ? elem.url(id) : elem.url;
-						return (
-							<Tab
-								key={index}
-								url={url}
-								label={elem.label}
-								icon={elem.icon}
-								disabled={elem.disabled}
-								active={url.includes(active)}
-								handlePress={() => handleRedirect(url)}
+			{props.tabs?.length > 1 && (
+				<S.TabsHeader useFixed={props.useFixed ? props.useFixed : false} className={'scroll-wrapper'}>
+					<S.Tabs>
+						{props.tabs.map((elem, index) => {
+							const url = typeof elem.url === 'function' ? elem.url(id) : elem.url;
+							return (
+								<Tab
+									key={index}
+									url={url}
+									label={elem.label}
+									icon={elem.icon}
+									disabled={elem.disabled}
+									active={url.includes(active)}
+									handlePress={() => handleRedirect(url)}
+								/>
+							);
+						})}
+					</S.Tabs>
+					<S.EndWrapper>
+						{!props.noUrlCopy && (
+							<Button
+								type={'primary'}
+								label={urlCopied ? `${language.copied}!` : language.copyFullUrl}
+								handlePress={() => copyUrl()}
+								icon={ASSETS.copy}
+								iconLeftAlign
 							/>
-						);
-					})}
-				</S.Tabs>
-				<S.EndWrapper>
-					{!props.noUrlCopy && (
-						<Button
-							type={'primary'}
-							label={urlCopied ? `${language.copied}!` : language.copyFullUrl}
-							handlePress={() => copyUrl()}
-							icon={ASSETS.copy}
-							iconLeftAlign
-						/>
-					)}
-					{props.endComponent && props.endComponent}
-				</S.EndWrapper>
-			</S.TabsHeader>
+						)}
+						{props.endComponent && props.endComponent}
+					</S.EndWrapper>
+				</S.TabsHeader>
+			)}
 			<S.Content>
 				<TabContent tabs={props.tabs} />
 			</S.Content>

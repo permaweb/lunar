@@ -37,6 +37,20 @@ export const BodyWrapper = styled.div`
 	gap: 25px;
 `;
 
+export const MessageWrapper = styled.div`
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 25px;
+`;
+
+export const MessageHeaderWrapper = styled.div`
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 25px;
+`;
+
 export const InfoWrapper = styled.div`
 	width: 100%;
 	display: flex;
@@ -100,7 +114,8 @@ export const MessageInfoBody = styled.div`
 
 	> {
 		&:last-child,
-		&:nth-child(3) {
+		&:nth-child(3),
+		&:nth-child(6) {
 			justify-content: flex-end;
 			text-align: right;
 			border-right: none;
@@ -108,13 +123,17 @@ export const MessageInfoBody = styled.div`
 
 		&:first-child,
 		&:nth-child(2),
-		&:nth-child(3) {
+		&:nth-child(3),
+		&:nth-child(4),
+		&:nth-child(5),
+		&:nth-child(6) {
 			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 		}
 
 		&:nth-child(2),
-		&:nth-child(5) {
-			padding: 7.5px 15px;
+		&:nth-child(5),
+		&:nth-child(8) {
+			padding: 10px 15px;
 		}
 	}
 `;
@@ -123,7 +142,7 @@ export const MessageInfoLine = styled.div`
 	display: flex;
 	align-items: center;
 	gap: 7.5px;
-	padding: 7.5px 15px;
+	padding: 10px 15px;
 	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
 	span {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
