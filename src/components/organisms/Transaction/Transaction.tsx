@@ -96,7 +96,24 @@ function Transaction(props: {
 				if (responseData) {
 					if (props.onTxChange) props.onTxChange(responseData);
 				} else {
-					setError(language.txNotFound);
+					/* No response found, create a wallet type */
+					const walletResponse = {
+						cursor: null,
+						node: {
+							id: inputTxId,
+							tags: [{ name: 'Type', value: 'Wallet' }],
+							data: null,
+							owner: {
+								address: null,
+							},
+							block: {
+								height: null,
+								timestamp: null,
+							},
+						},
+					};
+					setTxResponse(walletResponse);
+					if (props.onTxChange) props.onTxChange(walletResponse);
 				}
 			} catch (e: any) {
 				setError(e.message ?? language.errorFetchingTx);
@@ -132,9 +149,130 @@ function Transaction(props: {
 		);
 	};
 
+	const MessageInfoSection = () => {
+		const { txResponse } = React.useContext(TxResponseContext);
+		return (
+			<S.MessageInfo className={'border-wrapper-primary'}>
+				<S.MessageInfoHeader>
+					<p>{language.messageInfo}</p>
+					<S.MessageInfoLine>
+						<span>{`${language.id}: `}</span>
+						<TxAddress address={txResponse?.node?.id} />
+					</S.MessageInfoLine>
+				</S.MessageInfoHeader>
+				<S.MessageInfoBody>
+					<S.MessageInfoLine>
+						<span>{`${language.from}: `}</span>
+						<TxAddress
+							address={
+								txResponse
+									? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse.node.owner.address
+									: undefined
+							}
+						/>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.to}: `}</span>
+						<TxAddress address={txResponse?.node?.recipient} />
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.owner}: `}</span>
+						<TxAddress address={txResponse?.node?.owner?.address} />
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`Action: `}</span>
+						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') : '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`Variant: `}</span>
+						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`Data Protocol: `}</span>
+						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.dateCreated}: `}</span>
+						<p>
+							{txResponse?.node?.block?.timestamp
+								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
+								: '-'}
+						</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.blockHeight}: `}</span>
+						<p>{txResponse?.node?.block?.height ? formatCount(txResponse?.node?.block?.height.toString()) : '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.size}: `}</span>
+						<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
+					</S.MessageInfoLine>
+				</S.MessageInfoBody>
+			</S.MessageInfo>
+		);
+	};
+
+	const TagsSection = () => {
+		const { txResponse } = React.useContext(TxResponseContext);
+		const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
+		const filteredTags =
+			txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
+
+		return (
+			<S.TagsSection className={'border-wrapper-primary'}>
+				<S.SectionHeader>
+					<p>{language.tags}</p>
+				</S.SectionHeader>
+				<S.OverviewWrapper>
+					<OverviewLine
+						label={language.type}
+						value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Type')}
+					/>
+					<OverviewLine
+						label={language.dateCreated}
+						value={
+							txResponse?.node?.block?.timestamp && formatDate(txResponse.node.block.timestamp * 1000, 'timestamp')
+						}
+					/>
+					<S.OverviewDivider />
+					{props.type === 'process' && (
+						<>
+							<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
+							<OverviewLine
+								label={'Authority'}
+								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Authority')}
+							/>
+							<OverviewLine
+								label={'Module'}
+								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Module')}
+							/>
+							<OverviewLine
+								label={'Scheduler'}
+								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Scheduler')}
+							/>
+						</>
+					)}
+					{txResponse ? (
+						<>
+							{filteredTags.map((tag: { name: string; value: string }, index: number) => (
+								<OverviewLine key={index} label={tag.name} value={tag.value} />
+							))}
+						</>
+					) : (
+						<S.OverviewLine>
+							<span>{language.processOrMessageTagsInfo}</span>
+						</S.OverviewLine>
+					)}
+				</S.OverviewWrapper>
+			</S.TagsSection>
+		);
+	};
+
 	const TABS = React.useMemo(() => {
-		// Don't create TABS if we don't have an inputTxId
 		if (!inputTxId) return null;
+
+		const showMessageInfo = props.type === 'message';
+		const showTagsAndRead = props.type === 'process' || props.type === 'message';
 
 		const tabs = [
 			{
@@ -143,155 +281,66 @@ function Transaction(props: {
 				disabled: false,
 				url: URLS.explorerInfo(inputTxId),
 				view: () => {
-					// Read txResponse from context so this view function doesn't need to be recreated when txResponse changes
 					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
-					const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
-					const filteredTags =
-						txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
-					return (
-						<S.MessageWrapper>
-							{props.type === 'message' && (
-								<S.MessageHeaderWrapper>
-									<S.MessageInfo className={'border-wrapper-primary'}>
-										<S.MessageInfoHeader>
-											<p>{language.messageInfo}</p>
-											<S.MessageInfoLine>
-												<span>{`${language.id}: `}</span>
-												<TxAddress address={txResponse?.node?.id} />
-											</S.MessageInfoLine>
-										</S.MessageInfoHeader>
-										<S.MessageInfoBody>
-											<S.MessageInfoLine>
-												<span>{`${language.from}: `}</span>
-												<TxAddress
-													address={
-														txResponse
-															? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse.node.owner.address
-															: undefined
-													}
+					switch (props.type) {
+						case 'process':
+						case 'message':
+							return (
+								<S.MessageWrapper>
+									{showMessageInfo && (
+										<S.MessageHeaderWrapper>
+											<MessageInfoSection />
+											{checkValidAddress(inputTxId) && (
+												<MessageList
+													key={refreshKey}
+													header={language.resultingMessages}
+													txId={inputTxId}
+													type={props.type}
+													recipient={txResponse?.node?.recipient}
+													parentId={inputTxId}
+													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 												/>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.to}: `}</span>
-												<TxAddress address={txResponse?.node?.recipient} />
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.owner}: `}</span>
-												<TxAddress address={txResponse?.node?.owner?.address} />
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`Action: `}</span>
-												<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') : '-'}</p>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`Variant: `}</span>
-												<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`Data Protocol: `}</span>
-												<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.dateCreated}: `}</span>
-												<p>
-													{txResponse?.node?.block?.timestamp
-														? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
-														: '-'}
-												</p>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.blockHeight}: `}</span>
-												<p>
-													{txResponse?.node?.block?.height
-														? formatCount(txResponse?.node?.block?.height.toString())
-														: '-'}
-												</p>
-											</S.MessageInfoLine>
-											<S.MessageInfoLine>
-												<span>{`${language.size}: `}</span>
-												<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
-											</S.MessageInfoLine>
-										</S.MessageInfoBody>
-									</S.MessageInfo>
-									{inputTxId && checkValidAddress(inputTxId) && (
+											)}
+										</S.MessageHeaderWrapper>
+									)}
+									{showTagsAndRead && (
+										<S.InfoWrapper>
+											<S.TagsWrapper>
+												<TagsSection />
+											</S.TagsWrapper>
+											<S.ReadWrapper>
+												{props.type === 'process' && (
+													<ProcessRead key={refreshKey} processId={inputTxId} autoRun={true} />
+												)}
+												{props.type === 'message' && (
+													<MessageResult
+														key={refreshKey}
+														processId={txResponse?.node?.recipient}
+														messageId={inputTxId}
+														variant={txResponse ? getTagValue(txResponse.node.tags, TAGS.keys.variant) : undefined}
+													/>
+												)}
+											</S.ReadWrapper>
+										</S.InfoWrapper>
+									)}
+								</S.MessageWrapper>
+							);
+						case 'wallet':
+							return (
+								<>
+									{checkValidAddress(inputTxId) && (
 										<MessageList
 											key={refreshKey}
-											header={'Resulting Messages'}
 											txId={inputTxId}
 											type={props.type}
-											recipient={props.type === 'message' ? txResponse?.node?.recipient : null}
+											recipient={txResponse?.node?.recipient}
 											parentId={inputTxId}
 											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 										/>
 									)}
-								</S.MessageHeaderWrapper>
-							)}
-							<S.InfoWrapper>
-								<S.TagsWrapper>
-									<S.TagsSection className={'border-wrapper-primary'}>
-										<S.SectionHeader>
-											<p>{language.tags}</p>
-										</S.SectionHeader>
-										<S.OverviewWrapper>
-											<OverviewLine
-												label={language.type}
-												value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Type')}
-											/>
-											<OverviewLine
-												label={language.dateCreated}
-												value={
-													txResponse?.node?.block?.timestamp &&
-													formatDate(txResponse.node.block.timestamp * 1000, 'timestamp')
-												}
-											/>
-											<S.OverviewDivider />
-											{props.type === 'process' && (
-												<>
-													<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
-													<OverviewLine
-														label={'Authority'}
-														value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Authority')}
-													/>
-													<OverviewLine
-														label={'Module'}
-														value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Module')}
-													/>
-													<OverviewLine
-														label={'Scheduler'}
-														value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Scheduler')}
-													/>
-												</>
-											)}
-											{txResponse ? (
-												<>
-													{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-														<OverviewLine key={index} label={tag.name} value={tag.value} />
-													))}
-												</>
-											) : (
-												<S.OverviewLine>
-													<span>{language.processOrMessageTagsInfo}</span>
-												</S.OverviewLine>
-											)}
-										</S.OverviewWrapper>
-									</S.TagsSection>
-								</S.TagsWrapper>
-								<S.ReadWrapper>
-									{props.type === 'process' && <ProcessRead key={refreshKey} processId={inputTxId} autoRun={true} />}
-									{props.type === 'message' && (
-										<>
-											<MessageResult
-												key={refreshKey}
-												processId={txResponse?.node?.recipient}
-												messageId={inputTxId}
-												variant={txResponse ? getTagValue(txResponse.node.tags, TAGS.keys.variant) : undefined}
-											/>
-										</>
-									)}
-								</S.ReadWrapper>
-							</S.InfoWrapper>
-						</S.MessageWrapper>
-					);
+								</>
+							);
+					}
 				},
 			},
 		];
@@ -308,12 +357,12 @@ function Transaction(props: {
 						return (
 							<S.MessagesWrapper>
 								<S.MessagesSection>
-									{inputTxId && checkValidAddress(inputTxId) && (
+									{checkValidAddress(inputTxId) && (
 										<MessageList
 											key={refreshKey}
 											txId={inputTxId}
 											type={props.type}
-											recipient={props.type === 'message' ? txResponse?.node?.recipient : null}
+											recipient={txResponse?.node?.recipient}
 											parentId={inputTxId}
 											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 										/>
@@ -366,9 +415,8 @@ function Transaction(props: {
 		}
 
 		return tabs;
-	}, [props.type, inputTxId, arProvider.walletAddress, language]); // Removed txResponse - tabs will update via re-render, not recreation
+	}, [props.type, inputTxId, arProvider.walletAddress, language]);
 
-	// Memoize the context value separately to avoid recreating it unnecessarily
 	const contextValue = React.useMemo(
 		() => ({ txResponse, inputTxId, type: props.type, refreshKey }),
 		[txResponse, inputTxId, props.type, refreshKey]
@@ -392,7 +440,7 @@ function Transaction(props: {
 							<ReactSVG src={ASSETS.process} />
 						</S.PlaceholderIcon>
 						<S.PlaceholderDescription>
-							<p>{loadingTx ? `${language.loading}...` : language.processOrMessageId}</p>
+							<p>{loadingTx ? `${language.loading}...` : language.explorerSearchInput}</p>
 						</S.PlaceholderDescription>
 					</S.Placeholder>
 				)}
@@ -414,7 +462,7 @@ function Transaction(props: {
 							<FormField
 								value={inputTxId}
 								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
-								placeholder={language.processOrMessageId}
+								placeholder={language.explorerSearchInput}
 								invalid={{ status: inputTxId ? !checkValidAddress(inputTxId) : false, message: null }}
 								disabled={loadingTx}
 								autoFocus
@@ -452,7 +500,7 @@ function Transaction(props: {
 									<span>{props.type}</span>
 								</S.UpdateWrapper>
 							)}
-							{txResponse?.node?.tags && (
+							{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 								<S.UpdateWrapper>
 									<span>{getTagValue(txResponse.node.tags, 'Variant')}</span>
 								</S.UpdateWrapper>
