@@ -144,7 +144,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						value={inputTxId}
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
 						onFocus={() => setTxOutputOpen(true)}
-						placeholder={language.processOrMessageId}
+						placeholder={language.explorerSearchInput}
 						invalid={{ status: inputTxId ? !checkValidAddress(inputTxId) : false, message: null }}
 						disabled={loadingTx}
 						hideErrorMessage

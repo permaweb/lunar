@@ -391,6 +391,20 @@ export default function MessageList(props: {
 	const [perPage, setPerPage] = React.useState(50);
 	const [recipient, setRecipient] = React.useState<string>('');
 
+	function getOutgoingGQLArgs(tags) {
+		switch (props.type) {
+			case 'process':
+				return {
+					tags: [...tags, { name: 'From-Process', values: [props.txId] }],
+				};
+			case 'wallet':
+				return {
+					tags: [...tags],
+					owners: [props.txId],
+				};
+		}
+	}
+
 	React.useEffect(() => {
 		(async function () {
 			const tags = [...DEFAULT_MESSAGE_TAGS];
@@ -403,9 +417,8 @@ export default function MessageList(props: {
 							recipients: [props.txId],
 						}),
 						permawebProvider.libs.getGQLData({
-							tags: [...tags, { name: 'From-Process', values: [props.txId] }],
 							...(recipient && checkValidAddress(recipient) ? { recipients: [recipient] } : {}),
-							paginator: perPage,
+							...getOutgoingGQLArgs(tags),
 						}),
 					]);
 					setIncomingCount(gqlResponseIncoming.count);
@@ -425,7 +438,7 @@ export default function MessageList(props: {
 			setLoadingMessages(true);
 			if (props.txId) {
 				try {
-					if (!props.childList && props.type === 'process') {
+					if (!props.childList && props.type !== 'message') {
 						let gqlResponse: any;
 						switch (currentFilter) {
 							case 'incoming':
@@ -435,15 +448,16 @@ export default function MessageList(props: {
 									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
+									// ...getIncomingGQLArgs()
 								});
 								break;
 							case 'outgoing':
 								gqlResponse = await permawebProvider.libs.getGQLData({
-									tags: [...tags, { name: 'From-Process', values: [props.txId] }],
 									paginator: perPage,
 									...(recipient && checkValidAddress(recipient) ? { recipients: [recipient] } : {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
+									...getOutgoingGQLArgs(tags),
 								});
 								break;
 							default:
@@ -635,7 +649,7 @@ export default function MessageList(props: {
 							)}
 						</S.HeaderMain>
 						<S.HeaderActions>
-							{props.type === 'process' && (
+							{props.type !== 'message' && (
 								<>
 									<Button
 										type={'alt3'}

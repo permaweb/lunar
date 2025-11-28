@@ -85,7 +85,7 @@ export type NotificationType = {
 	status: 'success' | 'warning';
 };
 
-export type TransactionType = 'process' | 'message';
+export type TransactionType = 'process' | 'message' | 'wallet';
 
 export type TransactionTabType = {
 	id: string;
