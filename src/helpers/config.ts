@@ -79,6 +79,7 @@ export const ASSETS = {
 	tools: getTxEndpoint('ORGiGGMr6wIsjVNmWuy9m-CIH8jbY3juwoDLDdxvER8'),
 	transaction: getTxEndpoint('8rHxhGbWrv_jPk3Ku_mL6BvTbdTiRLvSNPwOU-neU_I'),
 	upload: getTxEndpoint('fNHk67l-JsJMKyWvSXoO6Nmcxy1imhlKwACxSMEGKAE'),
+	url: getTxEndpoint('Zfebqn8zm7oJdOyFFXt4uCSeFbYYhoFpx4kjJk4aZCY'),
 	user: getTxEndpoint('aOk91wDJnZ1xQbQum0MHoaOldAiumdFjdjM4LVM83NQ'),
 	users: getTxEndpoint('LfFkPVJBgBWgJwCtoceyS_EAyYa-r__AjAB5_JAx3aw'),
 	video: getTxEndpoint('T2astk8vaCBLLP8PD2rXgLKbwhNYkdHXllXvGbk-Wps'),
@@ -178,6 +179,7 @@ function createURLs() {
 	const docs = `${base}docs/`;
 	const explorer = `${base}explorer/`;
 	const aos = `${base}aos/`;
+	const graphql = `${base}graphql/`;
 
 	return {
 		base: base,
@@ -189,6 +191,7 @@ function createURLs() {
 		explorerSource: (id: string) => `${explorer}${id}/source`,
 		explorerAOS: (id: string) => `${explorer}${id}/aos`,
 		aos: aos,
+		graphql: graphql,
 		docs: docs,
 		docsIntro: `${docs}overview/introduction`,
 		notFound: `${base}404`,

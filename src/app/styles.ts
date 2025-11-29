@@ -206,7 +206,7 @@ export const GlobalStyle = createGlobalStyle`
     animation: ${open} ${transition2};
     span {
       color: ${(props) => props.theme.colors.contrast.color};
-      font-size: ${(props) => props.theme.typography.size.xxxSmall};
+      font-size: ${(props) => props.theme.typography.size.xxxxSmall};
       font-weight: ${(props) => props.theme.typography.weight.bold};
       white-space: nowrap;
 	  }

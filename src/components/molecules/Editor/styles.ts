@@ -58,9 +58,19 @@ export const ActionsWrapper = styled.div`
 	position: absolute;
 	bottom: 20px;
 	right: 32.5px;
+	z-index: 100;
+	pointer-events: none;
 
 	button {
 		padding: 3.5px 0 0 0 !important;
+		pointer-events: auto;
+	}
+`;
+
+export const SubmitWrapper = styled.div`
+	button {
+		padding: 0 17.5px !important;
+		pointer-events: auto;
 	}
 `;
 

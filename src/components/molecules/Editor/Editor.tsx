@@ -2,10 +2,11 @@ import React from 'react';
 import Editor, { BeforeMount, OnMount } from '@monaco-editor/react';
 import { DefaultTheme, useTheme } from 'styled-components';
 
+import { Button } from 'components/atoms/Button';
 import { IconButton } from 'components/atoms/IconButton';
 import { Loader } from 'components/atoms/Loader';
 import { ASSETS } from 'helpers/config';
-import { stripAnsiChars } from 'helpers/utils';
+import { isMac, stripAnsiChars } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -16,6 +17,7 @@ export default function _Editor(props: {
 	readOnly?: boolean;
 	noFullScreen?: boolean;
 	setEditorData?: (data: string) => void;
+	handleSubmit?: (currentValue?: string) => void;
 	header?: string;
 	useFixedHeight?: boolean;
 	loading: boolean;
@@ -144,13 +146,26 @@ export default function _Editor(props: {
 		monaco.editor.setTheme(themeName);
 	}, [currentTheme, themeName]);
 
-	const handleEditorMount: OnMount = (editor) => {
-		if (props.useFixedHeight) return;
+	const handleEditorMount: OnMount = (editor, monaco) => {
+		// Add keyboard shortcut for submit (Cmd+Enter or Ctrl+Enter)
+		if (props.handleSubmit) {
+			editor.onKeyDown((e) => {
+				if ((e.metaKey || e.ctrlKey) && e.keyCode === monaco.KeyCode.Enter) {
+					e.preventDefault();
+					// Get the current value from the editor directly
+					const currentValue = editor.getValue();
+					props.handleSubmit(currentValue);
+				}
+			});
+		}
 
-		const disp = editor.onDidContentSizeChange((e) => {
-			setHeight(e.contentHeight);
-		});
-		return () => disp.dispose();
+		// Handle content size changes for dynamic height
+		if (!props.useFixedHeight) {
+			const disp = editor.onDidContentSizeChange((e) => {
+				setHeight(e.contentHeight);
+			});
+			return () => disp.dispose();
+		}
 	};
 
 	return data !== null ? (
@@ -188,6 +203,9 @@ export default function _Editor(props: {
 							fontSize: currentTheme.typography.size.xxSmall,
 							fontWeight: '600',
 							scrollBeyondLastLine: false,
+							guides: {
+								indentation: false,
+							},
 							scrollbar: {
 								verticalSliderSize: 8,
 								horizontalSliderSize: 8,
@@ -212,6 +230,18 @@ export default function _Editor(props: {
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'top-right'}
 						/>
+					)}
+					{props.handleSubmit && (
+						<S.SubmitWrapper>
+							<Button
+								type={'alt1'}
+								label={`${language.run} (${isMac ? `⌘` : `CTRL`} + ⏎)`}
+								handlePress={props.handleSubmit}
+								disabled={props.loading}
+								loading={props.loading}
+								width={125}
+							/>
+						</S.SubmitWrapper>
 					)}
 				</S.ActionsWrapper>
 			</S.EditorWrapper>

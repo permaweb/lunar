@@ -176,7 +176,7 @@ export const AInput = styled.button<{ hasAvatar: boolean }>`
 	overflow: hidden;
 	span {
 		color: ${(props) => props.theme.colors.font.alt1};
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 	}
 	svg {
