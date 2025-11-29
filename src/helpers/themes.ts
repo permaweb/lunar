@@ -647,7 +647,8 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			alt2: `'Source Code Pro', serif`,
 		},
 		size: {
-			xxxSmall: '11px',
+			xxxxSmall: '11px',
+			xxxSmall: '12px',
 			xxSmall: '13px',
 			xSmall: '14px',
 			small: '15px',
@@ -655,6 +656,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			lg: '18px',
 			xLg: '24px',
 			xxLg: '28px',
+			xxxLg: 'clamp(28px, 2vw, 36px)',
 			h1: 'clamp(36px, 3.5vw, 56px)',
 			h2: 'clamp(32px, 3.25vw, 50px)',
 			h4: 'clamp(28px, 3vw, 42px)',

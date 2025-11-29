@@ -3,6 +3,7 @@ import Editor, { BeforeMount, OnMount } from '@monaco-editor/react';
 import { DefaultTheme, useTheme } from 'styled-components';
 
 import { Button } from 'components/atoms/Button';
+import { isMac } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -163,7 +164,7 @@ export default function JSONWriter(props: {
 					)}
 					<Button
 						type={'alt1'}
-						label={`${language.run} (⌘ + ⏎)`}
+						label={`${language.run} (${isMac ? `⌘` : `CTRL`} + ⏎)`}
 						handlePress={submitHandler}
 						disabled={props.loading || Boolean(error)}
 						loading={props.loading}

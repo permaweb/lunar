@@ -48,6 +48,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				icon: ASSETS.console,
 				label: language.aos,
 			},
+			{
+				path: URLS.graphql,
+				icon: ASSETS.code,
+				label: 'GraphQL',
+			},
 		];
 	}, []);
 
@@ -77,13 +82,10 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				try {
 					const response = await permawebProvider.libs.getGQLData({
 						ids: [inputTxId],
-						tags: [
-							{ name: 'Data-Protocol', values: ['ao'] },
-							{ name: 'Variant', values: ['ao.TN.1'] },
-						],
+						tags: [{ name: 'Data-Protocol', values: ['ao'] }],
 					});
 					const responseData = response?.data?.[0];
-					setTxResponse(responseData ?? null);
+					setTxResponse(responseData ?? { node: { id: inputTxId, tags: [] } });
 				} catch (e: any) {
 					console.error(e);
 				}
@@ -106,6 +108,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 
 		if (txResponse) {
 			const name = getTagValue(txResponse.node.tags, 'Name');
+
 			return (
 				<S.SearchResult>
 					<Link
@@ -117,7 +120,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							setSearchOpen(false);
 						}}
 					>
-						{name ?? formatAddress(txResponse.node.id, false)}
+						{name || formatAddress(txResponse.node.id, false)}
 						<ReactSVG src={ASSETS.go} />
 					</Link>
 				</S.SearchResult>

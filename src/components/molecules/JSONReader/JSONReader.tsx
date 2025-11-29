@@ -58,7 +58,7 @@ export default function _JSONTree(props: {
 		if (props.data) {
 			const parsed = parseJSON(props.data);
 			setData(typeof parsed === 'string' ? { Result: parsed } : parsed);
-		}
+		} else setData(null);
 	}, [props.data]);
 
 	React.useEffect(() => {
