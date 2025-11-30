@@ -120,7 +120,7 @@ export default function ProcessRead(props: { processId: string; autoRun: boolean
 
 	return (
 		<S.Wrapper>
-			<S.SectionWrapper className={'border-wrapper-primary'}>
+			<S.SectionWrapper className={'border-wrapper-alt3'}>
 				<S.Header>
 					<S.HeaderMain>
 						<p>{`${cuLocation ?? '-'}`}</p>

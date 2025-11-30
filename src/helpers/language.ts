@@ -125,7 +125,7 @@ export const language = {
 		sortOldestToNewest: `Oldest to Newest`,
 		source: `Source`,
 		submit: `Submit`,
-		syncWithSystem: `Sync with system`,
+		syncWithSystem: `Sync With System`,
 		syncWithSystemDescription: `Automatically switch between light and dark themes based on your system preferences`,
 		tabsDeleteConfirmationInfo: `Are you sure you want to clear your tabs ? All persisted transactions will be removed from local storage.`,
 		tags: `Tags`,

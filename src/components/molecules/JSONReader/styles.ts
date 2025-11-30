@@ -108,7 +108,7 @@ export const JSONStringIDFlex = styled.span`
 `;
 
 export const JSONStringID = styled.span<{ copied?: boolean }>`
-	color: ${(props) => props.theme.colors.editor.alt1};
+	color: ${(props) => props.theme.colors.editor.alt8};
 	cursor: pointer;
 	text-decoration: ${(props) => (props.copied ? 'none' : 'underline')};
 	text-decoration-thickness: 1.25px;
