@@ -164,7 +164,7 @@ export default function JSONWriter(props: {
 					)}
 					<Button
 						type={'alt1'}
-						label={`${language.run} (${isMac ? `⌘` : `CTRL`} + ⏎)`}
+						label={`${language.run} (${isMac ? `⌘` : `CTRL`} + Enter)`}
 						handlePress={submitHandler}
 						disabled={props.loading || Boolean(error)}
 						loading={props.loading}

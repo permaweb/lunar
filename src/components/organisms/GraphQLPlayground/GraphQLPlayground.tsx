@@ -1,40 +1,46 @@
 import React from 'react';
+import { ReactSVG } from 'react-svg';
 
-import { Button } from 'components/atoms/Button';
+import { FormField } from 'components/atoms/FormField';
+import { IconButton } from 'components/atoms/IconButton';
+import { Select } from 'components/atoms/Select';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { ASSETS } from 'helpers/config';
+import { SelectOptionType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
 
 const DEFAULT_QUERY = `query Transactions {
-  transactions(
-    first: 10
-    tags: [
-      { name: "Data-Protocol", values: ["ao"] }
-    ]
-  ) {
-    edges {
-      node {
-        id
-        tags {
-          name
-          value
+    transactions(
+        first: 10
+        tags: [
+            { name: "Data-Protocol", values: ["ao"] }
+        ]
+    ) {
+        count
+        edges {
+            node {
+                id
+                tags {
+                    name
+                    value
+                }
+                owner {
+                    address
+                }
+                block {
+                    height
+                    timestamp
+                }
+            }
         }
-        owner {
-          address
-        }
-        block {
-          height
-          timestamp
-        }
-      }
     }
-  }
 }`;
 
-const GATEWAYS = ['ao-search-gateway.goldsky.com', 'arweave-search.goldsky.com', 'arweave.net'];
+const DEFAULT_GATEWAYS = ['ao-search-gateway.goldsky.com', 'arweave-search.goldsky.com', 'arweave.net'];
+const STORAGE_KEY = 'lunar-gql-gateways';
 
 export default function GraphQLPlayground(props: {
 	playgroundId: string;
@@ -50,7 +56,34 @@ export default function GraphQLPlayground(props: {
 	const [query, setQuery] = React.useState<string>(props.initialQuery || DEFAULT_QUERY);
 	const [result, setResult] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState<boolean>(false);
-	const [currentGateway, setCurrentGateway] = React.useState<string>(props.initialGateway || GATEWAYS[0]);
+	const [gateways, setGateways] = React.useState<string[]>(() => {
+		try {
+			const stored = localStorage.getItem(STORAGE_KEY);
+			return stored ? JSON.parse(stored) : DEFAULT_GATEWAYS;
+		} catch {
+			return DEFAULT_GATEWAYS;
+		}
+	});
+	const [selectedGateway, setSelectedGateway] = React.useState<string>(() => {
+		const initial = props.initialGateway || gateways[0];
+		return gateways.includes(initial) ? initial : gateways[0];
+	});
+	const [inputGateway, setInputGateway] = React.useState<string>(() => {
+		const initial = props.initialGateway || gateways[0];
+		const gateway = gateways.includes(initial) ? initial : gateways[0];
+		return `https://${gateway}`;
+	});
+
+	const gatewayOptions: SelectOptionType[] = React.useMemo(
+		() => gateways.map((gateway) => ({ id: gateway, label: gateway })),
+		[gateways]
+	);
+
+	const activeGatewayOption: SelectOptionType = React.useMemo(() => {
+		// Only show as active if it's in the saved gateways list
+		const gateway = gateways.includes(selectedGateway) ? selectedGateway : gateways[0];
+		return { id: gateway, label: gateway };
+	}, [selectedGateway, gateways]);
 
 	React.useEffect(() => {
 		if (props.initialQuery !== undefined) {
@@ -59,16 +92,18 @@ export default function GraphQLPlayground(props: {
 	}, [props.initialQuery]);
 
 	React.useEffect(() => {
-		if (props.initialGateway !== undefined) {
-			setCurrentGateway(props.initialGateway);
+		if (props.initialGateway !== undefined && gateways.includes(props.initialGateway)) {
+			setSelectedGateway(props.initialGateway);
+			setInputGateway(`https://${props.initialGateway}`);
 		}
-	}, [props.initialGateway]);
+	}, [props.initialGateway, gateways]);
 
 	React.useEffect(() => {
-		if (props.onGatewayChange && currentGateway !== (props.initialGateway || GATEWAYS[0])) {
-			props.onGatewayChange(currentGateway);
+		const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
+		if (props.onGatewayChange && trimmedGateway && trimmedGateway !== (props.initialGateway || gateways[0])) {
+			props.onGatewayChange(trimmedGateway);
 		}
-	}, [currentGateway, props.onGatewayChange, props.initialGateway]);
+	}, [inputGateway, props.onGatewayChange, props.initialGateway, gateways]);
 
 	// Extract query name from GraphQL query
 	const extractQueryName = React.useCallback((queryString: string): string | null => {
@@ -86,6 +121,16 @@ export default function GraphQLPlayground(props: {
 			return () => clearTimeout(timeoutId);
 		}
 	}, [query, props.onQueryChange, props.initialQuery, extractQueryName]);
+
+	const saveCustomGateway = React.useCallback(() => {
+		const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
+		if (trimmedGateway && !gateways.includes(trimmedGateway)) {
+			const updatedGateways = [...gateways, trimmedGateway];
+			setGateways(updatedGateways);
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedGateways));
+			setSelectedGateway(trimmedGateway);
+		}
+	}, [inputGateway, gateways]);
 
 	// Prepare query for sending - only wrap if not already wrapped
 	const prepareQuery = React.useCallback((queryString: string): string => {
@@ -120,8 +165,9 @@ export default function GraphQLPlayground(props: {
 				setResult(null);
 				setLoading(true);
 				try {
+					const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
 					const preparedQuery = prepareQuery(queryToExecute);
-					const response = await fetch(`https://${currentGateway}/graphql`, {
+					const response = await fetch(`https://${trimmedGateway}/graphql`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ query: preparedQuery }),
@@ -137,25 +183,55 @@ export default function GraphQLPlayground(props: {
 				setLoading(false);
 			}
 		},
-		[query, currentGateway, prepareQuery]
+		[query, inputGateway, prepareQuery]
 	);
 
 	return (
 		<S.Wrapper style={{ display: props.active ? 'flex' : 'none' }}>
 			<S.HeaderWrapper>
-				{GATEWAYS.map((gateway: string) => {
-					return (
-						<Button
-							key={gateway}
-							type={'primary'}
-							label={gateway}
-							handlePress={() => setCurrentGateway(gateway)}
-							active={gateway === currentGateway}
-							icon={ASSETS.url}
-							iconLeftAlign
+				<S.InputWrapper>
+					<S.InputFormWrapper>
+						<ReactSVG src={ASSETS.url} />
+						<FormField
+							value={inputGateway}
+							onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+								setInputGateway(e.target.value);
+							}}
+							placeholder={'https://arweave.net'}
+							invalid={{ status: false, message: null }}
+							disabled={false}
+							autoFocus
+							hideErrorMessage
+							sm
 						/>
-					);
-				})}
+					</S.InputFormWrapper>
+					<IconButton
+						type={'alt1'}
+						src={ASSETS.write}
+						handlePress={saveCustomGateway}
+						disabled={!inputGateway.trim() || gateways.includes(inputGateway.trim().replace(/^https?:\/\//, ''))}
+						dimensions={{
+							wrapper: 32.5,
+							icon: 17.5,
+						}}
+						tooltip={language.save}
+					/>
+				</S.InputWrapper>
+				<S.GatewaysWrapper>
+					<S.GatewaysLabel>
+						<span>{language.savedGateways || 'Saved Gateways'}</span>
+					</S.GatewaysLabel>
+					<Select
+						label={''}
+						activeOption={activeGatewayOption}
+						setActiveOption={(option) => {
+							setSelectedGateway(option.id);
+							setInputGateway(`https://${option.id}`);
+						}}
+						options={gatewayOptions}
+						disabled={false}
+					/>
+				</S.GatewaysWrapper>
 			</S.HeaderWrapper>
 			<S.Container>
 				<S.EditorWrapper>

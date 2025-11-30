@@ -58,7 +58,7 @@ export const ActionsWrapper = styled.div`
 	position: absolute;
 	bottom: 20px;
 	right: 32.5px;
-	z-index: 100;
+	z-index: 1;
 	pointer-events: none;
 
 	button {

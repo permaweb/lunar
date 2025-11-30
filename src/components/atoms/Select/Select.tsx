@@ -24,7 +24,7 @@ export default function Select(props: IProps) {
 					<ReactSVG src={ASSETS.arrow} />
 				</S.Dropdown>
 				{active && (
-					<S.Options className={'border-wrapper-primary'}>
+					<S.Options>
 						{props.options.map((option: SelectOptionType, index: number) => {
 							return (
 								<S.Option

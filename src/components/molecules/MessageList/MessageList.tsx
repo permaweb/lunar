@@ -307,10 +307,10 @@ function Message(props: {
 				{getFrom()}
 				{getTo()}
 				<S.Input>
-					<Button type={'alt3'} label={language.view} handlePress={(e) => handleShowViewData(e)} />
+					<Button type={'alt3'} label={language.input} handlePress={(e) => handleShowViewData(e)} />
 				</S.Input>
 				<S.Output>
-					<Button type={'alt3'} label={language.view} handlePress={(e) => handleShowViewResult(e)} />
+					<Button type={'alt3'} label={language.output} handlePress={(e) => handleShowViewResult(e)} />
 				</S.Output>
 				<S.Time>
 					<p>

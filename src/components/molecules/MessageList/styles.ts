@@ -248,8 +248,8 @@ export const ID = styled(ElementItem)`
 `;
 
 export const Action = styled(ElementItem)`
-	min-width: 200px;
-	width: 200px;
+	min-width: 225px;
+	width: 225px;
 `;
 
 export const ActionTooltip = styled.div`
@@ -534,9 +534,10 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		props.childList ? props.theme.colors.container.alt2.background : props.theme.colors.container.primary.background};
 
 	p {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
+		text-transform: uppercase;
 	}
 `;
