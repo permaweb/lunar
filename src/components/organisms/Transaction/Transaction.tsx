@@ -219,7 +219,7 @@ function Transaction(props: {
 			txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
 
 		return (
-			<S.TagsSection className={'border-wrapper-primary'}>
+			<S.TagsSection className={'border-wrapper-alt3'}>
 				<S.SectionHeader>
 					<p>{language.tags}</p>
 				</S.SectionHeader>

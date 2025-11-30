@@ -170,13 +170,13 @@ export const SyncToggle = styled.button`
 	justify-content: space-between;
 	padding: 15px;
 	border-radius: ${STYLING.dimensions.radius.primary};
-	background: ${(props) => props.theme.colors.container.alt2.background};
+	background: ${(props) => props.theme.colors.container.primary.background};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	cursor: pointer;
 	transition: all 150ms;
 
 	&:hover {
-		background: ${(props) => props.theme.colors.container.alt3.background};
+		background: ${(props) => props.theme.colors.container.primary.active};
 		border-color: ${(props) => props.theme.colors.border.alt1};
 	}
 `;
@@ -187,10 +187,11 @@ export const SyncToggleLabel = styled.div`
 	gap: 5px;
 
 	p {
-		color: ${(props) => props.theme.colors.font.primary};
-		font-size: ${(props) => props.theme.typography.size.small};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+		text-transform: uppercase;
 		text-align: left;
 	}
 
