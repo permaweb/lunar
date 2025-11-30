@@ -1,10 +1,9 @@
 import React from 'react';
-import { JSONTree } from 'react-json-tree';
-import { useTheme } from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 import { IconButton } from 'components/atoms/IconButton';
-import { ASSETS } from 'helpers/config';
-import { stripAnsiChars } from 'helpers/utils';
+import { ASSETS, URLS } from 'helpers/config';
+import { checkValidAddress, stripAnsiChars } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -17,7 +16,7 @@ export default function _JSONTree(props: {
 	noWrapper?: boolean;
 	noFullScreen?: boolean;
 }) {
-	const currentTheme: any = useTheme();
+	const navigate = useNavigate();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -88,26 +87,134 @@ export default function _JSONTree(props: {
 		return input;
 	};
 
-	const theme = {
-		base00:
-			props.noWrapper && !fullScreenMode
-				? currentTheme.colors.view.background
-				: currentTheme.colors.container.alt1.background,
-		base01: currentTheme.colors.container.alt7.background,
-		base02: currentTheme.colors.container.alt7.background,
-		base03: currentTheme.colors.container.alt7.background,
-		base04: currentTheme.colors.container.alt7.background,
-		base05: currentTheme.colors.container.alt7.background,
-		base06: currentTheme.colors.container.alt7.background,
-		base07: currentTheme.colors.container.alt7.background,
-		base08: currentTheme.colors.editor.primary,
-		base09: currentTheme.colors.editor.alt2,
-		base0A: currentTheme.colors.editor.alt2,
-		base0B: currentTheme.colors.editor.alt1,
-		base0C: currentTheme.colors.editor.primary,
-		base0D: currentTheme.colors.editor.primary,
-		base0E: currentTheme.colors.editor.primary,
-		base0F: currentTheme.colors.editor.primary,
+	const CustomJSONViewer = ({ data }: { data: any }) => {
+		const [copiedValue, setCopiedValue] = React.useState<string | null>(null);
+
+		const handleCopy = React.useCallback(async (value: string) => {
+			await navigator.clipboard.writeText(value);
+			setCopiedValue(value);
+			setTimeout(() => setCopiedValue(null), 1000);
+		}, []);
+
+		const renderValue = (value: any, _key?: string, isLast: boolean = false): JSX.Element => {
+			if (value === null) {
+				return (
+					<>
+						<S.JSONNull>null</S.JSONNull>
+						{!isLast && <S.JSONComma>,</S.JSONComma>}
+					</>
+				);
+			}
+			if (value === undefined) {
+				return (
+					<>
+						<S.JSONUndefined>undefined</S.JSONUndefined>
+						{!isLast && <S.JSONComma>,</S.JSONComma>}
+					</>
+				);
+			}
+			if (typeof value === 'boolean') {
+				return (
+					<>
+						<S.JSONBoolean>{value.toString()}</S.JSONBoolean>
+						{!isLast && <S.JSONComma>,</S.JSONComma>}
+					</>
+				);
+			}
+			if (typeof value === 'number') {
+				return (
+					<>
+						<S.JSONNumber>{value}</S.JSONNumber>
+						{!isLast && <S.JSONComma>,</S.JSONComma>}
+					</>
+				);
+			}
+			if (typeof value === 'string') {
+				const isValidId = checkValidAddress(value);
+				if (isValidId) {
+					return (
+						<>
+							<S.JSONStringIDFlex>
+								<S.JSONStringID
+									onClick={() => handleCopy(value)}
+									title={copiedValue === value ? 'Copied!' : 'Click to copy'}
+									copied={copiedValue === value}
+								>
+									"{value}"
+								</S.JSONStringID>
+								<S.JSONStringIDOpen onClick={() => navigate(`${URLS.explorer}/${value}`)}>(Open)</S.JSONStringIDOpen>
+							</S.JSONStringIDFlex>
+							{!isLast && <S.JSONComma>,</S.JSONComma>}
+						</>
+					);
+				}
+				return (
+					<>
+						<S.JSONString>"{value}"</S.JSONString>
+						{!isLast && <S.JSONComma>,</S.JSONComma>}
+					</>
+				);
+			}
+			if (Array.isArray(value)) {
+				if (value.length === 0) {
+					return (
+						<>
+							<S.JSONArray>[]</S.JSONArray>
+							{!isLast && <S.JSONComma>,</S.JSONComma>}
+						</>
+					);
+				}
+				return (
+					<>
+						<S.JSONBracket>[</S.JSONBracket>
+						<S.JSONIndent>
+							{value.map((item, index) => (
+								<S.JSONArrayItem key={index}>
+									{renderValue(item, undefined, index === value.length - 1)}
+								</S.JSONArrayItem>
+							))}
+						</S.JSONIndent>
+						<S.JSONBracket>]</S.JSONBracket>
+						{!isLast && <S.JSONComma>,</S.JSONComma>}
+					</>
+				);
+			}
+			if (typeof value === 'object') {
+				const entries = Object.entries(value);
+				if (entries.length === 0) {
+					return (
+						<>
+							<S.JSONObject>{'{}'}</S.JSONObject>
+							{!isLast && <S.JSONComma>,</S.JSONComma>}
+						</>
+					);
+				}
+				return (
+					<>
+						<S.JSONBracket>{'{'}</S.JSONBracket>
+						<S.JSONIndent>
+							{entries.map(([k, v], index) => (
+								<S.JSONProperty key={k}>
+									<S.JSONKey>"{k}"</S.JSONKey>
+									<S.JSONColon>: </S.JSONColon>
+									{renderValue(v, k, index === entries.length - 1)}
+								</S.JSONProperty>
+							))}
+						</S.JSONIndent>
+						<S.JSONBracket>{'}'}</S.JSONBracket>
+						{!isLast && <S.JSONComma>,</S.JSONComma>}
+					</>
+				);
+			}
+			return (
+				<>
+					<S.JSONString>{String(value)}</S.JSONString>
+					{!isLast && <S.JSONComma>,</S.JSONComma>}
+				</>
+			);
+		};
+
+		return <S.JSONViewerRoot>{renderValue(data, undefined, true)}</S.JSONViewerRoot>;
 	};
 
 	return (
@@ -150,7 +257,7 @@ export default function _JSONTree(props: {
 			</S.Header>
 
 			{data ? (
-				<JSONTree data={data} hideRoot={true} theme={theme} shouldExpandNodeInitially={() => true} />
+				<CustomJSONViewer data={data} />
 			) : (
 				<S.Placeholder>
 					<p>{props.placeholder ?? language.noDataToDisplay}</p>

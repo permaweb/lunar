@@ -54,6 +54,11 @@ export default function _Editor(props: {
 			{ token: 'string.key.json', foreground: strip(theme.colors.editor.primary) },
 			{ token: 'string.value.json', foreground: strip(theme.colors.editor.alt1) },
 			{ token: 'comment', foreground: strip(theme.colors.editor.alt10) },
+			{ token: 'identifier', foreground: strip(theme.colors.editor.primary) },
+			{ token: 'type.identifier', foreground: strip(theme.colors.editor.primary) },
+			{ token: 'delimiter', foreground: strip(theme.colors.editor.alt1) },
+			{ token: 'operator', foreground: strip(theme.colors.editor.alt8) },
+			{ token: 'variable', foreground: strip(theme.colors.editor.alt4) },
 		];
 	}
 
@@ -78,7 +83,7 @@ export default function _Editor(props: {
 
 		monaco.editor.defineTheme(themes.light, {
 			base: 'vs',
-			inherit: true,
+			inherit: false,
 			rules: getRules(currentTheme),
 			colors: getColors(currentTheme),
 		});
@@ -131,7 +136,7 @@ export default function _Editor(props: {
 
 		monaco.editor.defineTheme(themes.light, {
 			base: 'vs',
-			inherit: true,
+			inherit: false,
 			rules: getRules(currentTheme),
 			colors: getColors(currentTheme),
 		});
@@ -235,11 +240,10 @@ export default function _Editor(props: {
 						<S.SubmitWrapper>
 							<Button
 								type={'alt1'}
-								label={`${language.run} (${isMac ? `⌘` : `CTRL`} + ⏎)`}
-								handlePress={props.handleSubmit}
+								label={`${language.run} (${isMac ? `⌘` : `CTRL`} + Enter)`}
+								handlePress={props.handleSubmit as any}
 								disabled={props.loading}
 								loading={props.loading}
-								width={125}
 							/>
 						</S.SubmitWrapper>
 					)}

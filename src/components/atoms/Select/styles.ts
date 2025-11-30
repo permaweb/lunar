@@ -22,7 +22,7 @@ export const Label = styled.div<{ disabled: boolean }>`
 `;
 
 export const Dropdown = styled.button<{ active: boolean }>`
-	height: 32.5px;
+	height: ${STYLING.dimensions.form.small};
 	width: 100%;
 	text-align: left;
 	padding: 0 12.5px;
@@ -32,7 +32,7 @@ export const Dropdown = styled.button<{ active: boolean }>`
 	background: ${(props) =>
 		props.active ? props.theme.colors.button.primary.active.background : props.theme.colors.button.primary.background};
 	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.primary : props.theme.colors.border.primary)};
-	border-radius: ${STYLING.dimensions.radius.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
 	transition: all 100ms;
 	&:hover {
 		background: ${(props) => props.theme.colors.button.primary.active.background};
@@ -69,6 +69,7 @@ export const Dropdown = styled.button<{ active: boolean }>`
 		width: fit-content;
 		text-overflow: ellipsis;
 		overflow: hidden;
+		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		color: ${(props) =>
@@ -76,10 +77,10 @@ export const Dropdown = styled.button<{ active: boolean }>`
 	}
 
 	svg {
-		height: 17.5px;
-		width: 17.5px;
+		height: 15px;
+		width: 15px;
 		margin: 5px 0 0 0;
-		transform: rotate(90deg);
+		transform: rotate(0deg);
 		color: ${(props) =>
 			props.active ? props.theme.colors.font.light1 : props.theme.colors.button.primary.color} !important;
 	}
@@ -88,23 +89,25 @@ export const Dropdown = styled.button<{ active: boolean }>`
 export const Options = styled.ul`
 	width: 100%;
 	position: absolute;
-	top: 40px;
+	top: 45px;
 	z-index: 2;
-	padding: 10px 0;
+	overflow: hidden;
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	border-radius: ${STYLING.dimensions.radius.alt2};
 `;
 
 export const Option = styled.li<{ active: boolean }>`
 	text-align: center;
-	height: 37.5px;
+	height: 40px;
 	display: flex;
 	align-items: center;
 	cursor: ${(props) => (props.active ? 'default' : 'pointer')};
 	pointer-events: ${(props) => (props.active ? 'none' : 'all')};
-	color: ${(props) => (props.active ? props.theme.colors.font.light1 : props.theme.colors.font.primary)};
-	font-size: ${(props) => props.theme.typography.size.xSmall};
+	color: ${(props) => (props.active ? props.theme.colors.font.light1 : props.theme.colors.font.light1)};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	background: ${(props) =>
-		props.active ? props.theme.colors.container.alt9.background : props.theme.colors.container.primary.active};
+		props.active ? props.theme.colors.container.alt9.background : props.theme.colors.container.alt8.background};
 	border: 1px solid transparent;
 	padding: 0 15px;
 	transition: all 100ms;

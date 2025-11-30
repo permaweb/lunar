@@ -16,13 +16,64 @@ export const HeaderWrapper = styled.div`
 	display: flex;
 	gap: 20px;
 	align-items: center;
-	justify-content: flex-start;
+	justify-content: space-between;
+`;
 
-	button {
-		span {
-			font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
-			text-transform: uppercase !important;
-		}
+export const InputWrapper = styled.div`
+	max-width: 100%;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 15px;
+	position: relative;
+`;
+
+export const InputFormWrapper = styled.div`
+	width: 510px;
+	max-width: 100%;
+	position: relative;
+
+	input {
+		max-width: 100%;
+		padding: 10px 10px 10px 42.5px !important;
+	}
+
+	svg {
+		height: 15px;
+		width: 15px;
+		color: ${(props) => props.theme.colors.font.alt1};
+		fill: ${(props) => props.theme.colors.font.alt1};
+		position: absolute;
+		z-index: 1;
+		top: 11.5px;
+		left: 14.5px;
+	}
+`;
+
+export const GatewaysWrapper = styled.div`
+	display: flex;
+	gap: 10px;
+	align-items: center;
+`;
+
+export const GatewaysLabel = styled.div`
+	height: calc(${STYLING.dimensions.form.small} - 2px);
+	width: fit-content;
+	padding: 4.5px 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.border.alt2};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.light1};
+		text-align: center;
+		text-transform: uppercase;
+		white-space: nowrap;
 	}
 `;
 

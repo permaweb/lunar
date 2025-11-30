@@ -15,6 +15,7 @@ export const TabsHeader = styled.div<{ useFixed: boolean }>`
 	justify-content: space-between;
 	overflow-x: auto;
 	margin: 0 0 25px 0;
+
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		position: relative;
 		top: auto;
