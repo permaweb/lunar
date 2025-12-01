@@ -12,7 +12,7 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { ASSETS, DEFAULT_AO_TAGS, TAGS, URLS } from 'helpers/config';
-import { TransactionType } from 'helpers/types';
+import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -310,7 +310,12 @@ function Transaction(props: {
 											</S.TagsWrapper>
 											<S.ReadWrapper>
 												{props.type === 'process' && (
-													<ProcessRead key={refreshKey} processId={inputTxId} autoRun={true} />
+													<ProcessRead
+														key={refreshKey}
+														processId={inputTxId}
+														variant={getTagValue(txResponse?.node?.tags, 'Variant') as MessageVariantEnum}
+														autoRun={true}
+													/>
 												)}
 												{props.type === 'message' && (
 													<MessageResult

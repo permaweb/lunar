@@ -394,6 +394,7 @@ export default function MessageList(props: {
 	function getOutgoingGQLArgs(tags) {
 		switch (props.type) {
 			case 'process':
+			case 'message':
 				return {
 					tags: [...tags, { name: 'From-Process', values: [props.txId] }],
 				};

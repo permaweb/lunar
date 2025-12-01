@@ -3,12 +3,19 @@ import React from 'react';
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { AO_NODE } from 'helpers/config';
+import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatMs } from 'helpers/utils';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
 import * as S from './styles';
 
-export default function ProcessRead(props: { processId: string; autoRun: boolean; hideOutput?: boolean }) {
+export default function ProcessRead(props: {
+	processId: string;
+	variant: MessageVariantEnum;
+	autoRun: boolean;
+	hideOutput?: boolean;
+}) {
 	const permawebProvider = usePermawebProvider();
 
 	const [cuLocation, setCuLocation] = React.useState(null);
@@ -29,18 +36,25 @@ export default function ProcessRead(props: { processId: string; autoRun: boolean
 			setCurrentOutput(null);
 			setReadLog([]);
 			setErrorLog([]);
-			try {
-				const response = await fetch(`https://cu.ao-testnet.xyz/results/${props.processId}`, {
-					method: 'GET',
-				});
+			switch (props.variant) {
+				case MessageVariantEnum.Legacynet:
+					try {
+						const response = await fetch(`https://cu.ao-testnet.xyz/results/${props.processId}`, {
+							method: 'GET',
+						});
 
-				const cu = new URL(response.url);
-				setCuLocation(cu.host);
-			} catch (e: any) {
-				console.error(e);
+						const cu = new URL(response.url);
+						setCuLocation(cu.host);
+					} catch (e: any) {
+						console.error(e);
+					}
+					break;
+				case MessageVariantEnum.Mainnet:
+					setCuLocation(AO_NODE.url);
+					break;
 			}
 		})();
-	}, [props.processId]);
+	}, [props.processId, props.variant]);
 
 	const safelyParseNestedJSON = (input) => {
 		if (typeof input === 'string') {
@@ -73,11 +87,18 @@ export default function ProcessRead(props: { processId: string; autoRun: boolean
 
 				tick();
 
-				await new Promise((r) => setTimeout(r, 1000));
-				const response = await permawebProvider.libs.readProcess({
-					processId: props.processId,
-					action: 'Info',
-				});
+				let response;
+				switch (props.variant) {
+					case MessageVariantEnum.Legacynet:
+						response = await permawebProvider.libs.readProcess({
+							processId: props.processId,
+							action: 'Info',
+						});
+						break;
+					case MessageVariantEnum.Mainnet:
+						response = await permawebProvider.libsMainnet.readState({ processId: props.processId });
+						break;
+				}
 
 				let parsedResponse;
 				try {
@@ -106,7 +127,7 @@ export default function ProcessRead(props: { processId: string; autoRun: boolean
 
 	React.useEffect(() => {
 		if (props.autoRun) fetchData();
-	}, [props.processId, props.autoRun]);
+	}, [props.processId, props.variant, props.autoRun]);
 
 	React.useEffect(() => {
 		if (isInitialMount.current) {

@@ -257,10 +257,10 @@ export const darkTheme = {
 export const darkThemeHighContrast = {
 	scheme: 'dark',
 	neutral1: '#111214',
-	neutral2: '#202124',
+	neutral2: '#161719',
 	neutral3: '#25252b',
 	neutral4: '#424242',
-	neutral5: '#828282ff',
+	neutral5: '#828282',
 	neutral6: '#4E4E4E',
 	neutral7: '#5A5A5A',
 	neutral8: '#666666',

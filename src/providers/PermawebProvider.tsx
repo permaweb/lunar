@@ -13,7 +13,9 @@ import { useLanguageProvider } from './LanguageProvider';
 
 interface PermawebContextState {
 	deps: { ao: any; arweave: any; signer: any };
+	depsMainnet: { ao: any; arweave: any; signer: any };
 	libs: any;
+	libsMainnet: any;
 	profile: Types.ProfileType;
 	showProfileManager: boolean;
 	setShowProfileManager: (toggle: boolean) => void;
@@ -22,7 +24,9 @@ interface PermawebContextState {
 
 const DEFAULT_CONTEXT = {
 	deps: null,
+	depsMainnet: null,
 	libs: null,
+	libsMainnet: null,
 	profile: null,
 	showProfileManager: false,
 	setShowProfileManager(_toggle: boolean) {},
@@ -41,7 +45,10 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 	const language = languageProvider.object[languageProvider.current];
 
 	const [libs, setLibs] = React.useState<any>(null);
+	const [libsMainnet, setLibsMainnet] = React.useState<any>(null);
+
 	const [deps, setDeps] = React.useState<any>(null);
+	const [depsMainnet, setDepsMainnet] = React.useState<any>(null);
 
 	const [profile, setProfile] = React.useState<Types.ProfileType | null>(null);
 	const [showProfileManager, setShowProfileManager] = React.useState<boolean>(false);
@@ -49,34 +56,32 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 
 	React.useEffect(() => {
 		try {
-			const aoConnection: 'mainnet' | 'legacy' = 'legacy';
-
 			let signer = null;
 			if (arProvider.wallet) signer = createSigner(arProvider.wallet);
 
-			let ao: any;
-			// @ts-ignore
-			if (aoConnection === 'mainnet') {
-				const config: any = { MODE: 'mainnet', URL: AO_NODE.url, SCHEDULER: AO_NODE.scheduler };
-				if (signer) config.signer = signer;
-				ao = connect(config);
-			} else {
-				ao = connect({ MODE: 'legacy' });
-			}
+			const aoLegacy = connect({ MODE: 'legacy' });
 
-			ao = connect({ MODE: 'legacy' });
+			const configMainnet: any = { MODE: 'mainnet', URL: AO_NODE.url, SCHEDULER: AO_NODE.scheduler };
+			if (signer) configMainnet.signer = signer;
+			const aoMainnet = connect(configMainnet);
 
-			const dependencies = {
-				ao: ao,
+			const dependenciesShared = {
 				arweave: Arweave.init({}),
 				signer: signer,
 				node: { ...AO_NODE },
 			};
 
-			setDeps(dependencies);
+			const dependenciesLegacy = { ao: aoLegacy, ...dependenciesShared };
+			const dependenciesMainnet = { ao: aoMainnet, ...dependenciesShared };
 
-			const initializedLibs = PermawebLibs.init(dependencies);
+			setDeps(dependenciesLegacy);
+			setDepsMainnet(dependenciesMainnet);
+
+			const initializedLibs = PermawebLibs.init(dependenciesLegacy);
 			setLibs(initializedLibs);
+
+			const initializedLibsMainnet = PermawebLibs.init(dependenciesMainnet);
+			setLibsMainnet(initializedLibsMainnet);
 		} catch (error) {
 			console.error('Error in PermawebProvider initialization:', error);
 		}
@@ -153,7 +158,9 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 		<PermawebContext.Provider
 			value={{
 				deps: deps,
+				depsMainnet: depsMainnet,
 				libs: libs,
+				libsMainnet: libsMainnet,
 				profile: profile,
 				showProfileManager,
 				setShowProfileManager,
