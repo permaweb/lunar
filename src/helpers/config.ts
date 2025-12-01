@@ -3,7 +3,7 @@ import { getTxEndpoint } from './endpoints';
 export const AO_NODE = {
 	url: 'https://app-1.forward.computer',
 	authority: '3sV90HB2v62DfK6MCwS4EOauFMsJHQowB-MCRDcYCIE',
-	scheduler: '3sV90HB2v62DfK6MCwS4EOauFMsJHQowB-MCRDcYCIE',
+	scheduler: 'n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo',
 };
 
 export const ASSETS = {

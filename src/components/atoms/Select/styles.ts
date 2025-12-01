@@ -93,6 +93,7 @@ export const Options = styled.ul`
 	z-index: 2;
 	overflow: hidden;
 	background: ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.border.alt2};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 `;
 

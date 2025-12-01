@@ -11,6 +11,8 @@ export function formatAddress(address: string | null, wrap: boolean) {
 }
 
 export function getTagValue(list: { [key: string]: any }[], name: string): string {
+	if (!list) return null;
+
 	for (let i = 0; i < list.length; i++) {
 		if (list[i]) {
 			if (list[i]!.name === name) {

@@ -118,8 +118,8 @@ export const DBodyWrapper = styled.ul`
 		align-items: center;
 		cursor: pointer;
 		color: ${(props) => props.theme.colors.font.primary} !important;
-		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
-		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
+		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		border: 1px solid transparent;
 		border-radius: ${STYLING.dimensions.radius.alt2};
@@ -177,7 +177,7 @@ export const SyncToggle = styled.button`
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
-		border-color: ${(props) => props.theme.colors.border.alt1};
+		border: 1px solid ${(props) => props.theme.colors.border.alt4};
 	}
 `;
 
