@@ -31,6 +31,7 @@ export default function ProcessEditor(props: { processId: string; type: 'read' |
 
 	async function handleSubmit(message: object) {
 		setLoading(true);
+		setOutput(null);
 
 		let messageToSend: any = { ...message };
 		let connectFn: (message: object) => any;
