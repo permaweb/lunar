@@ -174,7 +174,6 @@ export default function GraphQLPlayground(props: {
 					});
 
 					const data = await response.json();
-					console.log(data);
 					setResult(JSON.stringify(data, null, 2));
 				} catch (e: any) {
 					console.error(e);

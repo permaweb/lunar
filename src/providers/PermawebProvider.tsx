@@ -62,6 +62,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			const aoLegacy = connect({ MODE: 'legacy' });
 
 			const configMainnet: any = { MODE: 'mainnet', URL: AO_NODE.url, SCHEDULER: AO_NODE.scheduler };
+
 			if (signer) configMainnet.signer = signer;
 			const aoMainnet = connect(configMainnet);
 
