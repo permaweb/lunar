@@ -245,7 +245,7 @@ function Message(props: {
 		}
 
 		return (
-			<Panel open={open} width={550} header={header} handleClose={handleClose}>
+			<Panel open={open} width={625} header={header} handleClose={handleClose}>
 				<S.OverlayWrapper>
 					<S.OverlayInfo>
 						<S.OverlayInfoLine>
@@ -429,7 +429,7 @@ export default function MessageList(props: {
 				}
 			}
 		})();
-	}, [props.txId, toggleFilterChange]);
+	}, [props.txId, toggleFilterChange, currentAction, recipient]);
 
 	React.useEffect(() => {
 		(async function () {
