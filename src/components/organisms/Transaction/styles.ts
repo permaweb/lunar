@@ -136,6 +136,21 @@ export const MessageInfoBody = styled.div`
 			padding: 10px 15px;
 		}
 	}
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		grid-template-columns: repeat(1, 1fr);
+
+		> {
+			&:nth-child(7),
+			&:nth-child(8) {
+				border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+			}
+
+			&:last-child {
+				border-bottom: none;
+			}
+		}
+	}
 `;
 
 export const MessageInfoLine = styled.div`
@@ -155,6 +170,20 @@ export const MessageInfoLine = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
+	}
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		flex-direction: column;
+		align-items: flex-start;
+		border-right: none;
+		padding: 15px;
+	}
+`;
+
+export const MessageInfoID = styled(MessageInfoLine)`
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		flex-direction: row;
+		align-items: flex-start;
 	}
 `;
 

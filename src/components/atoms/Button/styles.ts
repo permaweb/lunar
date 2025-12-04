@@ -488,3 +488,59 @@ export const IconAlt4 = styled(IconPrimary)`
 				: props.theme.colors.button.alt1.color};
 	}
 `;
+
+export const Warning = styled(Alt1)`
+	background: ${(props) => (props.active ? props.theme.colors.warning.alt1 : props.theme.colors.warning.primary)};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.warning.alt1 : props.theme.colors.warning.primary)};
+	&:hover {
+		background: ${(props) => props.theme.colors.warning.alt1};
+		border: 1px solid ${(props) => props.theme.colors.warning.alt1};
+		span {
+			color: ${(props) => props.theme.colors.font.light1} !important;
+		}
+		svg {
+			fill: ${(props) => props.theme.colors.font.light1} !important;
+			color: ${(props) => props.theme.colors.font.light1} !important;
+		}
+	}
+	&:focus {
+		background: ${(props) => (props.active ? props.theme.colors.warning.alt1 : props.theme.colors.warning.alt1)};
+		border: 1px solid ${(props) => props.theme.colors.warning.alt1};
+		span {
+			color: ${(props) => props.theme.colors.font.light1} !important;
+		}
+		svg {
+			fill: ${(props) => props.theme.colors.font.light1} !important;
+			color: ${(props) => props.theme.colors.font.light1} !important;
+		}
+	}
+	&:disabled {
+		background: ${(props) => props.theme.colors.button.alt1.disabled.background};
+		border: 1px solid ${(props) => props.theme.colors.button.alt1.disabled.border};
+		span {
+			color: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
+		}
+		svg {
+			fill: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
+			color: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
+		}
+	}
+
+	span {
+		width: fit-content;
+		text-overflow: ellipsis;
+		overflow: hidden;
+		color: ${(props) => props.theme.colors.font.light1} !important;
+	}
+`;
+
+export const IconWarning = styled(IconPrimary)`
+	svg {
+		color: ${(props) =>
+			props.disabled
+				? props.theme.colors.button.alt1.disabled.color
+				: props.active
+				? props.theme.colors.font.light1
+				: props.theme.colors.font.light1};
+	}
+`;

@@ -97,6 +97,7 @@ export const language = {
 		profileMenu: `Profile menu`,
 		profileUpdated: `Profile updated`,
 		profileUpdatingInfo: `Updating your profile`,
+		queryVariables: `Query Variables`,
 		read: `Read`,
 		recipient: `Recipient`,
 		refresh: `Refresh`,
