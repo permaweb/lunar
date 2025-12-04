@@ -1,6 +1,7 @@
 import React from 'react';
 import { ReactSVG } from 'react-svg';
 
+import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { Select } from 'components/atoms/Select';
@@ -41,6 +42,8 @@ const DEFAULT_QUERY = `query Transactions {
 
 const DEFAULT_GATEWAYS = ['ao-search-gateway.goldsky.com', 'arweave-search.goldsky.com', 'arweave.net'];
 const STORAGE_KEY = 'lunar-gql-gateways';
+const STORAGE_KEY_VARIABLES = (playgroundId: string) => `lunar-gql-variables-${playgroundId}`;
+const STORAGE_KEY_SHOW_VARIABLES = (playgroundId: string) => `lunar-gql-show-variables-${playgroundId}`;
 
 export default function GraphQLPlayground(props: {
 	playgroundId: string;
@@ -73,6 +76,72 @@ export default function GraphQLPlayground(props: {
 		const gateway = gateways.includes(initial) ? initial : gateways[0];
 		return `https://${gateway}`;
 	});
+	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
+	const [showVariables, setShowVariables] = React.useState<boolean>(() => {
+		try {
+			const stored = localStorage.getItem(STORAGE_KEY_SHOW_VARIABLES(props.playgroundId));
+			return stored ? JSON.parse(stored) : false;
+		} catch {
+			return false;
+		}
+	});
+	const [variables, setVariables] = React.useState<string>(() => {
+		try {
+			const stored = localStorage.getItem(STORAGE_KEY_VARIABLES(props.playgroundId));
+			return stored || '{}';
+		} catch {
+			return '{}';
+		}
+	});
+	const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+	const toggleFullscreen = React.useCallback(async () => {
+		if (!document.fullscreenElement) {
+			try {
+				await wrapperRef.current?.requestFullscreen();
+				setIsFullscreen(true);
+			} catch (err) {
+				console.error('Error attempting to enable fullscreen:', err);
+			}
+		} else {
+			try {
+				await document.exitFullscreen();
+				setIsFullscreen(false);
+			} catch (err) {
+				console.error('Error attempting to exit fullscreen:', err);
+			}
+		}
+	}, []);
+
+	// Listen for fullscreen changes (e.g., user pressing ESC)
+	React.useEffect(() => {
+		const handleFullscreenChange = () => {
+			setIsFullscreen(!!document.fullscreenElement);
+		};
+
+		document.addEventListener('fullscreenchange', handleFullscreenChange);
+		return () => {
+			document.removeEventListener('fullscreenchange', handleFullscreenChange);
+		};
+	}, []);
+
+	// Persist variables when they change
+	React.useEffect(() => {
+		try {
+			localStorage.setItem(STORAGE_KEY_VARIABLES(props.playgroundId), variables);
+		} catch (e) {
+			console.error('Failed to save variables:', e);
+		}
+	}, [variables, props.playgroundId]);
+
+	// Persist showVariables toggle state
+	React.useEffect(() => {
+		try {
+			localStorage.setItem(STORAGE_KEY_SHOW_VARIABLES(props.playgroundId), JSON.stringify(showVariables));
+		} catch (e) {
+			console.error('Failed to save showVariables state:', e);
+		}
+	}, [showVariables, props.playgroundId]);
 
 	const gatewayOptions: SelectOptionType[] = React.useMemo(
 		() => gateways.map((gateway) => ({ id: gateway, label: gateway })),
@@ -142,8 +211,11 @@ export default function GraphQLPlayground(props: {
 			.replace(/"""[\s\S]*?"""/g, '') // Remove """ multi-line comments
 			.trim();
 
-		// Check if query already starts with 'query' or 'mutation' keyword or just '{'
-		const hasWrapper = /^\s*(?:query|mutation|subscription)\s*(?:[A-Za-z][A-Za-z0-9_]*)?\s*\{/.test(withoutComments);
+		// Check if query already starts with 'query', 'mutation', or 'subscription' keyword
+		// Allow for optional query name and optional variable definitions like ($var: Type!)
+		const hasWrapper = /^\s*(?:query|mutation|subscription)(?:\s+[A-Za-z][A-Za-z0-9_]*)?(?:\s*\([^)]*\))?\s*\{/.test(
+			withoutComments
+		);
 		const startsWithBrace = /^\s*\{/.test(withoutComments);
 
 		// If it has proper wrapper or starts with {, use as-is (return original with comments)
@@ -167,10 +239,34 @@ export default function GraphQLPlayground(props: {
 				try {
 					const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
 					const preparedQuery = prepareQuery(queryToExecute);
+
+					// Parse variables if they exist
+					let parsedVariables = undefined;
+					if (variables.trim() && variables.trim() !== '{}') {
+						try {
+							parsedVariables = JSON.parse(variables);
+							// Only include if it's a non-empty object
+							if (parsedVariables && typeof parsedVariables === 'object' && Object.keys(parsedVariables).length > 0) {
+								console.log('Including variables:', parsedVariables);
+							} else {
+								parsedVariables = undefined;
+							}
+						} catch (e) {
+							console.error('Invalid variables JSON:', e);
+						}
+					}
+
+					const body: any = { query: preparedQuery };
+					if (parsedVariables) {
+						body.variables = parsedVariables;
+					}
+
+					console.log('GraphQL Request:', body);
+
 					const response = await fetch(`https://${trimmedGateway}/graphql`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ query: preparedQuery }),
+						body: JSON.stringify(body),
 					});
 
 					const data = await response.json();
@@ -182,11 +278,11 @@ export default function GraphQLPlayground(props: {
 				setLoading(false);
 			}
 		},
-		[query, inputGateway, prepareQuery]
+		[query, inputGateway, prepareQuery, showVariables, variables]
 	);
 
 	return (
-		<S.Wrapper style={{ display: props.active ? 'flex' : 'none' }}>
+		<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
 			<S.HeaderWrapper>
 				<S.InputWrapper>
 					<S.InputFormWrapper>
@@ -211,15 +307,29 @@ export default function GraphQLPlayground(props: {
 						disabled={!inputGateway.trim() || gateways.includes(inputGateway.trim().replace(/^https?:\/\//, ''))}
 						dimensions={{
 							wrapper: 32.5,
-							icon: 17.5,
+							icon: 15.5,
 						}}
 						tooltip={language.save}
 					/>
+					<IconButton
+						type={'alt1'}
+						src={ASSETS.fullscreen}
+						handlePress={toggleFullscreen}
+						dimensions={{
+							wrapper: 32.5,
+							icon: 15.5,
+						}}
+						tooltip={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+					/>
+					<Button
+						type={'primary'}
+						label={language.queryVariables}
+						handlePress={() => setShowVariables((prev) => !prev)}
+						active={showVariables}
+						icon={showVariables ? ASSETS.close : null}
+					/>
 				</S.InputWrapper>
 				<S.GatewaysWrapper>
-					<S.GatewaysLabel>
-						<span>{language.savedGateways || 'Saved Gateways'}</span>
-					</S.GatewaysLabel>
 					<Select
 						label={''}
 						activeOption={activeGatewayOption}
@@ -232,23 +342,38 @@ export default function GraphQLPlayground(props: {
 					/>
 				</S.GatewaysWrapper>
 			</S.HeaderWrapper>
-			<S.Container>
-				<S.EditorWrapper>
-					<Editor
-						initialData={query}
-						language={'graphql'}
-						setEditorData={setQuery}
-						handleSubmit={executeQuery}
-						loading={loading}
-						useFixedHeight
-						noFullScreen
-					/>
+			<S.Container isFullscreen={isFullscreen}>
+				<S.EditorWrapper showVariables={showVariables}>
+					<S.QueryEditorWrapper showVariables={showVariables}>
+						<Editor
+							initialData={query}
+							language={'graphql'}
+							setEditorData={setQuery}
+							handleSubmit={executeQuery}
+							loading={loading}
+							useFixedHeight
+							noFullScreen
+						/>
+					</S.QueryEditorWrapper>
+					{showVariables && (
+						<S.VariablesEditorWrapper>
+							<Editor
+								initialData={variables}
+								language={'json'}
+								setEditorData={setVariables}
+								loading={false}
+								useFixedHeight
+								noFullScreen
+							/>
+						</S.VariablesEditorWrapper>
+					)}
 				</S.EditorWrapper>
 				<S.ResultWrapper>
 					<JSONReader
 						data={result}
 						header={language.response}
 						placeholder={loading ? `${language.loading}...` : language.runForResponse}
+						noFullScreen
 					/>
 				</S.ResultWrapper>
 			</S.Container>

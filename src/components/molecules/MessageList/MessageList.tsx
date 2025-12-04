@@ -359,8 +359,30 @@ export default function MessageList(props: {
 	const tableContainerRef = React.useRef(null);
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
-	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(props.currentFilter ?? 'outgoing');
-	const [currentAction, setCurrentAction] = React.useState<string | null>(null);
+
+	const loadedFilterState = React.useMemo(() => {
+		if (props.txId && !props.childList) {
+			try {
+				const saved = localStorage.getItem(STORAGE.messageFilter(props.txId));
+				if (saved) {
+					const parsed = JSON.parse(saved);
+					return {
+						filter: parsed.filter,
+						action: parsed.action || null,
+						recipient: parsed.recipient || '',
+					};
+				}
+			} catch (e) {
+				console.error('Failed to load message filter:', e);
+			}
+		}
+		return null;
+	}, [props.txId, props.childList]);
+
+	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(
+		props.currentFilter ?? loadedFilterState?.filter ?? 'outgoing'
+	);
+	const [currentAction, setCurrentAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
 	const [actionOptions, setActionOptions] = React.useState<string[]>(() => {
 		const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
 		try {
@@ -389,7 +411,22 @@ export default function MessageList(props: {
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
 	const [pageNumber, setPageNumber] = React.useState(1);
 	const [perPage, setPerPage] = React.useState(50);
-	const [recipient, setRecipient] = React.useState<string>('');
+	const [recipient, setRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
+
+	function saveFilterState() {
+		if (props.txId && !props.childList) {
+			try {
+				const filterState = {
+					filter: currentFilter,
+					action: currentAction,
+					recipient: recipient,
+				};
+				localStorage.setItem(STORAGE.messageFilter(props.txId), JSON.stringify(filterState));
+			} catch (e) {
+				console.error('Failed to save message filter:', e);
+			}
+		}
+	}
 
 	function getOutgoingGQLArgs(tags) {
 		switch (props.type) {
@@ -405,6 +442,11 @@ export default function MessageList(props: {
 				};
 		}
 	}
+
+	// Save filter state whenever it changes
+	React.useEffect(() => {
+		saveFilterState();
+	}, [currentFilter, currentAction, recipient]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -590,6 +632,23 @@ export default function MessageList(props: {
 		});
 	}
 
+	function handleActionRemove() {
+		flushSync(() => {
+			const newActionOptions = actionOptions.filter((action) => action !== currentAction);
+			setActionOptions(newActionOptions);
+			handleActionChange(currentAction);
+
+			// Update custom actions in localStorage
+			try {
+				const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
+				const customActionsOnly = newActionOptions.filter((action) => !defaultActions.includes(action));
+				localStorage.setItem(STORAGE.customActions, JSON.stringify(customActionsOnly));
+			} catch (e) {
+				console.error('Failed to save custom actions:', e);
+			}
+		});
+	}
+
 	function getMessage() {
 		let message: string = language.associatedMessagesInfo;
 		if (loadingMessages) message = `${language.associatedMessagesLoading}...`;
@@ -635,6 +694,7 @@ export default function MessageList(props: {
 	}
 
 	const invalidPerPage = perPage <= 0 || perPage > 100;
+	const customActionSelected = currentAction && actionOptions.some((action) => action === currentAction);
 
 	return (
 		<>
@@ -801,10 +861,14 @@ export default function MessageList(props: {
 								hideErrorMessage
 							/>
 							<Button
-								type={'alt1'}
-								label={language.submit}
-								handlePress={() => handleActionAdd()}
-								disabled={!customAction || actionOptions.some((action) => action === customAction) || loadingMessages}
+								type={customActionSelected ? 'warning' : 'alt1'}
+								label={customActionSelected ? language.remove : language.submit}
+								handlePress={() => (customActionSelected ? handleActionRemove() : handleActionAdd())}
+								disabled={
+									customActionSelected
+										? false
+										: !customAction || actionOptions.some((action) => action === customAction) || loadingMessages
+								}
 								active={false}
 								height={40}
 								fullWidth

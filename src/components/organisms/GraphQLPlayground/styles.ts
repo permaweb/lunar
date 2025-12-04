@@ -2,13 +2,19 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div`
+export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	width: 100%;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	gap: 25px;
 	position: relative;
+
+	&:fullscreen {
+		background: ${(props) => props.theme.colors.container.primary.background};
+		padding: 25px;
+		overflow: auto;
+	}
 `;
 
 export const HeaderWrapper = styled.div`
@@ -53,11 +59,11 @@ export const InputFormWrapper = styled.div`
 export const GatewaysWrapper = styled.div`
 	display: flex;
 	gap: 10px;
-	align-items: center;
+	align-items: flex-start;
 `;
 
 export const GatewaysLabel = styled.div`
-	height: calc(${STYLING.dimensions.form.small} - 2px);
+	height: calc(${STYLING.dimensions.form.small} - 1.75px);
 	width: fit-content;
 	padding: 4.5px 15px;
 	display: flex;
@@ -74,33 +80,57 @@ export const GatewaysLabel = styled.div`
 		text-align: center;
 		text-transform: uppercase;
 		white-space: nowrap;
+		line-height: 1;
 	}
 `;
 
-export const Container = styled.div`
+export const Container = styled.div<{ isFullscreen?: boolean }>`
 	height: calc(100vh - 295px);
 	width: 100%;
 	display: flex;
 	gap: 25px;
 	position: relative;
 
+	${(props) =>
+		props.isFullscreen &&
+		`
+		height: calc(100vh - 112.5px);
+	`}
+
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		flex-direction: column;
 	}
 `;
 
-export const EditorWrapper = styled.div`
+export const EditorWrapper = styled.div<{ showVariables?: boolean }>`
 	height: 100%;
 	flex: 1;
+	min-width: 0;
 	position: relative;
-	overflow: visible;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: ${(props) => (props.showVariables ? '15px' : '0')};
+`;
+
+export const QueryEditorWrapper = styled.div<{ showVariables?: boolean }>`
+	height: ${(props) => (props.showVariables ? '65%' : '100%')};
+	position: relative;
+	overflow: hidden;
+`;
+
+export const VariablesEditorWrapper = styled.div`
+	height: 35%;
+	position: relative;
+	overflow: hidden;
 `;
 
 export const ResultWrapper = styled.div`
 	height: 100%;
 	flex: 1;
+	min-width: 0;
 	position: relative;
-	overflow: visible;
+	overflow: hidden;
 
 	> * {
 		&:first-child {

@@ -736,7 +736,10 @@ function ConsoleInstance(props: {
 												<Button
 													key={index}
 													type={'primary'}
-													label={name ?? formatAddress(tx.node.id, false)}
+													label={`${name ?? formatAddress(tx.node.id, false)} (${getTagValue(
+														tx.node.tags,
+														'Variant'
+													)})`}
 													handlePress={() => setInputProcessId(tx.node.id)}
 													disabled={loadingOptions}
 													height={42.5}

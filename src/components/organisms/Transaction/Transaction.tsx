@@ -155,10 +155,10 @@ function Transaction(props: {
 			<S.MessageInfo className={'border-wrapper-primary'}>
 				<S.MessageInfoHeader>
 					<p>{language.messageInfo}</p>
-					<S.MessageInfoLine>
+					<S.MessageInfoID>
 						<span>{`${language.id}: `}</span>
 						<TxAddress address={txResponse?.node?.id} />
-					</S.MessageInfoLine>
+					</S.MessageInfoID>
 				</S.MessageInfoHeader>
 				<S.MessageInfoBody>
 					<S.MessageInfoLine>

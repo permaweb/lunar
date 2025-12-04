@@ -284,7 +284,7 @@ export default function GraphQLTabs() {
 								iconLeftAlign
 							/>,
 							<Button
-								type={'warning'}
+								type={'primary'}
 								label={language.clearTabs}
 								handlePress={() => setShowClearConfirmation(true)}
 								icon={ASSETS.delete}
