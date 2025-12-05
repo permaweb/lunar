@@ -168,6 +168,7 @@ export const BodyWrapper = styled.div<{
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
+
 export const ElementWrapper = styled.div<{ open: boolean; lastChild?: boolean }>`
 	height: 40px;
 	min-width: 100%;

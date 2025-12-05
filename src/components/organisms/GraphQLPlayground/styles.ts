@@ -110,7 +110,7 @@ export const EditorWrapper = styled.div<{ showVariables?: boolean }>`
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	gap: ${(props) => (props.showVariables ? '15px' : '0')};
+	gap: ${(props) => (props.showVariables ? '25px' : '0')};
 `;
 
 export const QueryEditorWrapper = styled.div<{ showVariables?: boolean }>`

@@ -180,6 +180,7 @@ function createURLs() {
 	const docs = `${base}docs/`;
 	const explorer = `${base}explorer/`;
 	const aos = `${base}aos/`;
+	const monitor = `${base}monitor/`;
 	const graphql = `${base}graphql/`;
 
 	return {
@@ -192,6 +193,7 @@ function createURLs() {
 		explorerSource: (id: string) => `${explorer}${id}/source`,
 		explorerAOS: (id: string) => `${explorer}${id}/aos`,
 		aos: aos,
+		monitor: monitor,
 		graphql: graphql,
 		docs: docs,
 		docsIntro: `${docs}overview/introduction`,

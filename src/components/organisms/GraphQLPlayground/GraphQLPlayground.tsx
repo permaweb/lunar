@@ -52,6 +52,8 @@ export default function GraphQLPlayground(props: {
 	initialGateway?: string;
 	onQueryChange?: (query: string, queryName?: string) => void;
 	onGatewayChange?: (gateway: string) => void;
+	onResponse?: (response: any) => void;
+	response?: React.ReactNode;
 }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -247,7 +249,6 @@ export default function GraphQLPlayground(props: {
 							parsedVariables = JSON.parse(variables);
 							// Only include if it's a non-empty object
 							if (parsedVariables && typeof parsedVariables === 'object' && Object.keys(parsedVariables).length > 0) {
-								console.log('Including variables:', parsedVariables);
 							} else {
 								parsedVariables = undefined;
 							}
@@ -261,8 +262,6 @@ export default function GraphQLPlayground(props: {
 						body.variables = parsedVariables;
 					}
 
-					console.log('GraphQL Request:', body);
-
 					const response = await fetch(`https://${trimmedGateway}/graphql`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
@@ -271,6 +270,8 @@ export default function GraphQLPlayground(props: {
 
 					const data = await response.json();
 					setResult(JSON.stringify(data, null, 2));
+
+					if (props.onResponse) props.onResponse(data);
 				} catch (e: any) {
 					console.error(e);
 					setResult(JSON.stringify({ error: e.message || 'Failed to execute query' }, null, 2));
@@ -368,13 +369,18 @@ export default function GraphQLPlayground(props: {
 						</S.VariablesEditorWrapper>
 					)}
 				</S.EditorWrapper>
+
 				<S.ResultWrapper>
-					<JSONReader
-						data={result}
-						header={language.response}
-						placeholder={loading ? `${language.loading}...` : language.runForResponse}
-						noFullScreen
-					/>
+					{props.response ? (
+						<>{props.response}</>
+					) : (
+						<JSONReader
+							data={result}
+							header={language.response}
+							placeholder={loading ? `${language.loading}...` : language.runForResponse}
+							noFullScreen
+						/>
+					)}
 				</S.ResultWrapper>
 			</S.Container>
 		</S.Wrapper>

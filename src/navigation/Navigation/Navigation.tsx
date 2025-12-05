@@ -35,23 +35,23 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		return [
 			{
 				path: URLS.base,
-				icon: ASSETS.app,
 				label: language.home,
 			},
 			{
 				path: URLS.explorer,
-				icon: ASSETS.explorer,
 				label: language.explorer,
 			},
 			{
 				path: URLS.aos,
-				icon: ASSETS.console,
 				label: language.aos,
 			},
 			{
+				path: URLS.monitor,
+				label: language.monitor,
+			},
+			{
 				path: URLS.graphql,
-				icon: ASSETS.code,
-				label: 'GraphQL',
+				label: language.graphQL,
 			},
 		];
 	}, []);
