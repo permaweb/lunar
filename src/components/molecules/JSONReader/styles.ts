@@ -70,6 +70,22 @@ export const JSONProperty = styled.div`
 	display: block;
 `;
 
+export const CollapseArrow = styled.span<{ isCollapsed: boolean }>`
+	display: inline-flex;
+	position: relative;
+	top: ${(props) => (props.isCollapsed ? '-1.5px' : '0.5px')};
+	margin-right: 5px;
+	color: ${(props) => props.theme.colors.font.alt1};
+	font-size: ${(props) => props.theme.typography.size.base};
+	transform: rotate(${(props) => (props.isCollapsed ? '0deg' : '90deg')});
+	transition: all 100ms;
+
+	&:hover {
+		cursor: pointer;
+		color: ${(props) => props.theme.colors.font.alt2};
+	}
+`;
+
 export const JSONArrayItem = styled.div`
 	display: block;
 `;
@@ -79,7 +95,7 @@ export const JSONValue = styled.span`
 `;
 
 export const JSONKey = styled.span`
-	color: ${(props) => props.theme.colors.editor.primary};
+	color: ${(props) => props.theme.colors.editor.alt5};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 `;
 
@@ -97,7 +113,7 @@ export const JSONComma = styled.span`
 `;
 
 export const JSONString = styled.span`
-	color: ${(props) => props.theme.colors.editor.alt1};
+	color: ${(props) => props.theme.colors.editor.primary};
 `;
 
 export const JSONStringIDFlex = styled.span`
@@ -113,6 +129,7 @@ export const JSONStringID = styled.span<{ copied?: boolean }>`
 	text-decoration: ${(props) => (props.copied ? 'none' : 'underline')};
 	text-decoration-thickness: 1.25px;
 	position: relative;
+	transition: all 100ms;
 
 	&:hover {
 		opacity: 0.8;
@@ -136,20 +153,22 @@ export const JSONStringID = styled.span<{ copied?: boolean }>`
 
 export const JSONStringIDOpen = styled.div`
 	display: inline-flex;
-	color: ${(props) => props.theme.colors.editor.alt6};
-	cursor: pointer;
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	color: ${(props) => props.theme.colors.font.alt1};
+	transition: all 100ms;
 
 	&:hover {
-		opacity: 0.8;
+		cursor: pointer;
+		color: ${(props) => props.theme.colors.font.alt2};
 	}
 `;
 
 export const JSONNumber = styled.span`
-	color: ${(props) => props.theme.colors.editor.alt2};
+	color: ${(props) => props.theme.colors.editor.alt8};
 `;
 
 export const JSONBoolean = styled.span`
-	color: ${(props) => props.theme.colors.editor.alt2};
+	color: ${(props) => props.theme.colors.editor.alt8};
 `;
 
 export const JSONNull = styled.span`
@@ -161,7 +180,7 @@ export const JSONUndefined = styled.span`
 `;
 
 export const JSONBracket = styled.span`
-	color: ${(props) => props.theme.colors.editor.alt5};
+	color: ${(props) => props.theme.colors.editor.alt6};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 `;
 

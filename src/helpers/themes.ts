@@ -524,7 +524,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		font: {
 			primary: currentTheme.neutralA1,
 			alt1: currentTheme.neutralA5,
-			alt2: currentTheme.neutralA4,
+			alt2: currentTheme.neutralA6,
 			alt3: currentTheme.neutral8,
 			alt4: currentTheme.neutral1,
 			alt5: currentTheme.primary1,

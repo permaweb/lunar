@@ -89,6 +89,7 @@ export default function _JSONTree(props: {
 
 	const CustomJSONViewer = ({ data }: { data: any }) => {
 		const [copiedValue, setCopiedValue] = React.useState<string | null>(null);
+		const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
 
 		const handleCopy = React.useCallback(async (value: string) => {
 			await navigator.clipboard.writeText(value);
@@ -96,7 +97,19 @@ export default function _JSONTree(props: {
 			setTimeout(() => setCopiedValue(null), 1000);
 		}, []);
 
-		const renderValue = (value: any, _key?: string, isLast: boolean = false): JSX.Element => {
+		const toggleCollapse = React.useCallback((path: string) => {
+			setCollapsed((prev) => {
+				const next = new Set(prev);
+				if (next.has(path)) {
+					next.delete(path);
+				} else {
+					next.add(path);
+				}
+				return next;
+			});
+		}, []);
+
+		const renderValue = (value: any, _key?: string, isLast: boolean = false, path: string = 'root'): JSX.Element => {
 			if (value === null) {
 				return (
 					<>
@@ -164,18 +177,42 @@ export default function _JSONTree(props: {
 						</>
 					);
 				}
+				const isCollapsed = collapsed.has(path);
 				return (
 					<>
-						<S.JSONBracket>[</S.JSONBracket>
-						<S.JSONIndent>
-							{value.map((item, index) => (
-								<S.JSONArrayItem key={index}>
-									{renderValue(item, undefined, index === value.length - 1)}
-								</S.JSONArrayItem>
-							))}
-						</S.JSONIndent>
-						<S.JSONBracket>]</S.JSONBracket>
-						{!isLast && <S.JSONComma>,</S.JSONComma>}
+						{isCollapsed ? (
+							<>
+								<S.JSONBracket>[ … ]</S.JSONBracket>
+								{!isLast && <S.JSONComma>,</S.JSONComma>}
+							</>
+						) : (
+							<>
+								<S.JSONBracket>[</S.JSONBracket>
+								<S.JSONIndent>
+									{value.map((item, index) => {
+										const itemPath = `${path}[${index}]`;
+										const isCollapsible =
+											typeof item === 'object' &&
+											item !== null &&
+											(Array.isArray(item) ? item.length > 0 : Object.keys(item).length > 0);
+										const isCollapsed = collapsed.has(itemPath);
+
+										return (
+											<S.JSONArrayItem key={index}>
+												{isCollapsible && (
+													<S.CollapseArrow isCollapsed={isCollapsed} onClick={() => toggleCollapse(itemPath)}>
+														›
+													</S.CollapseArrow>
+												)}
+												{renderValue(item, undefined, index === value.length - 1, itemPath)}
+											</S.JSONArrayItem>
+										);
+									})}
+								</S.JSONIndent>
+								<S.JSONBracket>]</S.JSONBracket>
+								{!isLast && <S.JSONComma>,</S.JSONComma>}
+							</>
+						)}
 					</>
 				);
 			}
@@ -189,20 +226,44 @@ export default function _JSONTree(props: {
 						</>
 					);
 				}
+				const isCollapsed = collapsed.has(path);
 				return (
 					<>
-						<S.JSONBracket>{'{'}</S.JSONBracket>
-						<S.JSONIndent>
-							{entries.map(([k, v], index) => (
-								<S.JSONProperty key={k}>
-									<S.JSONKey>"{k}"</S.JSONKey>
-									<S.JSONColon>: </S.JSONColon>
-									{renderValue(v, k, index === entries.length - 1)}
-								</S.JSONProperty>
-							))}
-						</S.JSONIndent>
-						<S.JSONBracket>{'}'}</S.JSONBracket>
-						{!isLast && <S.JSONComma>,</S.JSONComma>}
+						{isCollapsed ? (
+							<>
+								<S.JSONBracket>{'{ … }'}</S.JSONBracket>
+								{!isLast && <S.JSONComma>,</S.JSONComma>}
+							</>
+						) : (
+							<>
+								<S.JSONBracket>{'{'}</S.JSONBracket>
+								<S.JSONIndent>
+									{entries.map(([k, v], index) => {
+										const propPath = `${path}.${k}`;
+										const isCollapsible =
+											typeof v === 'object' &&
+											v !== null &&
+											(Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0);
+										const isCollapsed = collapsed.has(propPath);
+
+										return (
+											<S.JSONProperty key={k}>
+												{isCollapsible && (
+													<S.CollapseArrow isCollapsed={isCollapsed} onClick={() => toggleCollapse(propPath)}>
+														›
+													</S.CollapseArrow>
+												)}
+												<S.JSONKey>"{k}"</S.JSONKey>
+												<S.JSONColon>: </S.JSONColon>
+												{renderValue(v, k, index === entries.length - 1, propPath)}
+											</S.JSONProperty>
+										);
+									})}
+								</S.JSONIndent>
+								<S.JSONBracket>{'}'}</S.JSONBracket>
+								{!isLast && <S.JSONComma>,</S.JSONComma>}
+							</>
+						)}
 					</>
 				);
 			}
