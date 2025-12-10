@@ -1,10 +1,12 @@
 import { getTxEndpoint } from './endpoints';
 
 export const AO_NODE = {
-	url: 'https://app-1.forward.computer',
-	authority: '3sV90HB2v62DfK6MCwS4EOauFMsJHQowB-MCRDcYCIE',
+	url: 'https://push.forward.computer',
+	authority: 'YUsEnCSlxvOMxRd1qG6rkaPwMgi3xOorfDfYJoMDndA',
 	scheduler: 'n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo',
 };
+
+export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
 
 export const ASSETS = {
 	add: getTxEndpoint('RLWnDhoB0Dd_X-sLnNy4w2S7ds3l9591HcHK8nc3YRw'),

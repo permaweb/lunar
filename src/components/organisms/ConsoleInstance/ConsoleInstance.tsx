@@ -526,6 +526,7 @@ function ConsoleInstance(props: {
 		await sendMessage(data);
 	}
 
+	// TODO: AO.N.1
 	async function sendMessage(data: string | null, outputType?: 'data' | 'prompt') {
 		if (terminalInstance.current) {
 			startLoader();

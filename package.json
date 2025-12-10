@@ -22,7 +22,7 @@
 		"@hello-pangea/dnd": "^17.0.0",
 		"@monaco-editor/react": "^4.7.0",
 		"@othent/kms": "^1.0.7",
-		"@permaweb/aoconnect": "0.0.92",
+		"@permaweb/aoconnect": "0.0.93",
 		"@permaweb/libs": "0.0.73",
 		"arweave": "^1.15.5",
 		"html-react-parser": "^5.1.18",

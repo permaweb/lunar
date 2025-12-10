@@ -282,6 +282,12 @@ function Transaction(props: {
 				url: URLS.explorerInfo(inputTxId),
 				view: () => {
 					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
+
+					const variant = txResponse
+						? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+						: undefined;
+					console.log(variant);
+
 					switch (props.type) {
 						case 'process':
 						case 'message':
@@ -295,6 +301,7 @@ function Transaction(props: {
 													key={refreshKey}
 													header={language.resultingMessages}
 													txId={inputTxId}
+													variant={variant}
 													type={props.type}
 													recipient={txResponse?.node?.recipient}
 													parentId={inputTxId}
@@ -322,7 +329,7 @@ function Transaction(props: {
 														key={refreshKey}
 														processId={txResponse?.node?.recipient}
 														messageId={inputTxId}
-														variant={txResponse ? getTagValue(txResponse.node.tags, TAGS.keys.variant) : undefined}
+														variant={variant}
 													/>
 												)}
 											</S.ReadWrapper>

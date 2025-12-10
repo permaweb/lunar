@@ -15,8 +15,17 @@ import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, MINT_ACTIONS, STORAGE, URLS } from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
-import { MessageFilterType, TransactionType } from 'helpers/types';
-import { checkValidAddress, formatAddress, formatCount, getRelativeDate, getTagValue } from 'helpers/utils';
+import { MessageFilterType, MessageVariantEnum, TransactionType } from 'helpers/types';
+import {
+	checkValidAddress,
+	formatAddress,
+	formatCount,
+	getRelativeDate,
+	getTagValue,
+	removeCommitments,
+	resolveLibDeps,
+	resolveMessageId,
+} from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
@@ -55,12 +64,27 @@ function Message(props: {
 				let processId: string = props.element.node.recipient;
 
 				if (processId) {
+					const variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
+
+					const deps = resolveLibDeps({
+						variant: variant,
+						permawebProvider: permawebProvider,
+					});
+
+					const messageId = await resolveMessageId({
+						messageId: props.element.node.id,
+						variant: variant,
+						target: props.element.node.recipient,
+						permawebProvider: permawebProvider,
+					});
+
 					try {
-						const messageResult = await permawebProvider.deps.ao.result({
+						const messageResult = await deps.ao.result({
 							process: processId,
-							message: props.element.node.id,
+							message: messageId,
 						});
-						setResult(messageResult);
+
+						setResult(removeCommitments(messageResult));
 					} catch (e: any) {
 						console.error(e);
 					}
@@ -343,6 +367,7 @@ function Message(props: {
 export default function MessageList(props: {
 	header?: string;
 	txId?: string;
+	variant?: MessageVariantEnum;
 	type?: TransactionType;
 	currentFilter?: MessageFilterType;
 	recipient?: string | null;
@@ -512,17 +537,35 @@ export default function MessageList(props: {
 						if (props.recipient) {
 							console.log('Getting message list result response...');
 
+							// TODO: AO.N.1
 							try {
-								const resultResponse = await permawebProvider.deps.ao.result({
-									process: props.recipient,
-									message: props.txId,
+								const deps = resolveLibDeps({
+									variant: props.variant,
+									permawebProvider: permawebProvider,
 								});
+
+								console.log(props.variant);
+
+								const messageId = await resolveMessageId({
+									messageId: props.txId,
+									variant: props.variant,
+									target: props.recipient,
+									permawebProvider: permawebProvider,
+								});
+
+								const resultResponse = await deps.ao.result({
+									process: props.recipient,
+									message: messageId,
+								});
+
+								console.log(resultResponse);
 
 								if (resultResponse && !resultResponse.error) {
 									const gqlResponse = await permawebProvider.libs.getGQLData({
 										tags: [
 											...tags,
-											{ name: 'From-Process', values: [props.recipient] },
+											// { name: 'From-Process', values: [props.recipient] },
+											{ name: 'Variant', values: [props.variant] },
 											{
 												name: 'Reference',
 												values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
@@ -561,7 +604,15 @@ export default function MessageList(props: {
 			}
 			setLoadingMessages(false);
 		})();
-	}, [props.txId, props.recipient, currentFilter, toggleFilterChange, pageCursor, permawebProvider.libs]);
+	}, [
+		props.txId,
+		props.variant,
+		props.recipient,
+		currentFilter,
+		toggleFilterChange,
+		pageCursor,
+		permawebProvider.libs,
+	]);
 
 	const scrollToTop = () => {
 		if (tableContainerRef.current) {

@@ -191,19 +191,8 @@ export default function _JSONTree(props: {
 								<S.JSONIndent>
 									{value.map((item, index) => {
 										const itemPath = `${path}[${index}]`;
-										const isCollapsible =
-											typeof item === 'object' &&
-											item !== null &&
-											(Array.isArray(item) ? item.length > 0 : Object.keys(item).length > 0);
-										const isCollapsed = collapsed.has(itemPath);
-
 										return (
 											<S.JSONArrayItem key={index}>
-												{isCollapsible && (
-													<S.CollapseArrow isCollapsed={isCollapsed} onClick={() => toggleCollapse(itemPath)}>
-														›
-													</S.CollapseArrow>
-												)}
 												{renderValue(item, undefined, index === value.length - 1, itemPath)}
 											</S.JSONArrayItem>
 										);

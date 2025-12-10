@@ -1,3 +1,6 @@
+import { DEFAULT_SCHEDULER_URL } from './config';
+import { MessageVariantEnum } from './types';
+
 export function checkValidAddress(address: string | null) {
 	if (!address) return false;
 	return /^[a-z0-9_-]{43}$/i.test(address);
@@ -220,4 +223,69 @@ export function stripAnsiChars(input: string) {
 	if (!input) return null;
 	const ansiRegex = /\x1B\[[0-9;]*m/g;
 	return input.toString().replace(ansiRegex, '');
+}
+
+export function removeCommitments(obj: any): any {
+	if (Array.isArray(obj)) {
+		return obj.map(removeCommitments);
+	}
+	if (obj && typeof obj === 'object') {
+		return Object.entries(obj).reduce((acc: any, [key, value]) => {
+			// Skip any key named "commitments" (case-insensitive)
+			if (typeof key === 'string' && key.toLowerCase() === 'commitments') {
+				return acc;
+			}
+
+			acc[key] = removeCommitments(value);
+
+			return acc;
+		}, {});
+	}
+	return obj;
+}
+
+export function resolveLibDeps(args: { variant: MessageVariantEnum; permawebProvider: any }) {
+	switch (args.variant) {
+		case MessageVariantEnum.Legacynet:
+			return args.permawebProvider.deps;
+		case MessageVariantEnum.Mainnet:
+			return args.permawebProvider.depsMainnet;
+		default:
+			return args.permawebProvider.depsMainnet;
+	}
+}
+
+export async function resolveMessageId(args: {
+	messageId: string;
+	variant: MessageVariantEnum;
+	schedulerUrl?: string;
+	target: string;
+	permawebProvider: any;
+}) {
+	let messageIdToUse = args.messageId;
+
+	switch (args.variant) {
+		case MessageVariantEnum.Legacynet:
+			break;
+		case MessageVariantEnum.Mainnet:
+			const schedulerUrl = args.schedulerUrl ?? DEFAULT_SCHEDULER_URL;
+
+			try {
+				const schedulerResponse = await fetch(
+					`${schedulerUrl}/~scheduler@1.0/schedule?target=${args.target}&accept=application/aos-2`
+				);
+				const parsedSchedulerResponse = args.permawebProvider.libs.mapFromProcessCase(await schedulerResponse.json());
+				const currentElement = parsedSchedulerResponse?.edges?.find(
+					(element) => element.node?.message?.id === args.messageId
+				);
+
+				messageIdToUse = currentElement.cursor;
+			} catch (e: any) {
+				console.error(e);
+			}
+
+			break;
+	}
+
+	return messageIdToUse;
 }
