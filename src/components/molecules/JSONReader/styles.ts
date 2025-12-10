@@ -68,13 +68,14 @@ export const JSONIndent = styled.div`
 
 export const JSONProperty = styled.div`
 	display: block;
+	position: relative;
 `;
 
 export const CollapseArrow = styled.span<{ isCollapsed: boolean }>`
 	display: inline-flex;
-	position: relative;
-	top: ${(props) => (props.isCollapsed ? '-1.5px' : '0.5px')};
-	margin-right: 5px;
+	position: absolute;
+	top: -4.5px;
+	left: -12.5px;
 	color: ${(props) => props.theme.colors.font.alt1};
 	font-size: ${(props) => props.theme.typography.size.base};
 	transform: rotate(${(props) => (props.isCollapsed ? '0deg' : '90deg')});
