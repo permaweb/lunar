@@ -320,13 +320,14 @@ export const OverviewLine = styled.div`
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
+		white-space: nowrap;
 	}
 
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
 		text-align: right;
 		text-align: right;
-		max-width: 65%;
+		max-width: 45%;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -334,6 +335,10 @@ export const OverviewLine = styled.div`
 
 	span {
 		color: ${(props) => props.theme.colors.font.alt1};
+		max-width: 45%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
