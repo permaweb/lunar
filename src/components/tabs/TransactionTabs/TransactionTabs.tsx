@@ -10,13 +10,12 @@ import { Button } from 'components/atoms/Button';
 import { IconButton } from 'components/atoms/IconButton';
 import { Modal } from 'components/atoms/Modal';
 import { ViewHeader } from 'components/atoms/ViewHeader';
+import { ConsoleInstance } from 'components/organisms/ConsoleInstance';
 import { Transaction } from 'components/organisms/Transaction';
 import { ASSETS, URLS } from 'helpers/config';
 import { TransactionTabType } from 'helpers/types';
 import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
-
-import { ConsoleInstance } from '../ConsoleInstance';
 
 import * as S from './styles';
 

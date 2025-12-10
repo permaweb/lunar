@@ -20,6 +20,7 @@ export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 export const HeaderWrapper = styled.div`
 	width: 100%;
 	display: flex;
+	flex-wrap: wrap;
 	gap: 20px;
 	align-items: center;
 	justify-content: space-between;

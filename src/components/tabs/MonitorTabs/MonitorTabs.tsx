@@ -7,10 +7,9 @@ import { Button } from 'components/atoms/Button';
 import { IconButton } from 'components/atoms/IconButton';
 import { Modal } from 'components/atoms/Modal';
 import { ViewHeader } from 'components/atoms/ViewHeader';
+import { Monitor } from 'components/organisms/Monitor';
 import { ASSETS } from 'helpers/config';
 import { useLanguageProvider } from 'providers/LanguageProvider';
-
-import Monitor from '../Monitor/Monitor';
 
 import * as S from './styles';
 

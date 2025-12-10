@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Button } from 'components/atoms/Button';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { getTagValue } from 'helpers/utils';
 
@@ -7,39 +8,66 @@ import { GraphQLPlayground } from '../GraphQLPlayground';
 
 import * as S from './styles';
 
-const CURRENT_NODE = 'https://app-1.forward.computer';
+const CURRENT_NODE = 'http://localhost:8734';
 const SU_URL = 'https://su-router.ao-testnet.xyz';
 
 function MonitorElement(props: { node: any }) {
-	const [currentSlot, setCurrentSlot] = React.useState<number | null>(null);
-	const [targetSlot, setTargetSlot] = React.useState<number | null>(null);
+	const [currentSlot, setCurrentSlot] = React.useState<string | number | null>(null);
+	const [targetSlot, setTargetSlot] = React.useState<string | number | null>(null);
+
+	const fetchedRef = React.useRef(false);
 
 	React.useEffect(() => {
-		if (props.node) {
-			(async function () {
-				try {
-					const targetSlotResponse = await fetch(`${SU_URL}/${props.node.id}/latest`);
-					const targetSlotParsed = Number(getTagValue((await targetSlotResponse.json()).assignment?.tags, 'Nonce'));
-					setTargetSlot(targetSlotParsed);
-				} catch (e: any) {
-					console.error(e);
-				}
+		if (props.node && !fetchedRef.current) {
+			fetchedRef.current = true;
 
+			const fetchTargetSlot = async () => {
 				try {
-					const currentSlotResponse = await fetch(`${CURRENT_NODE}/${props.node.id}~process@1.0/compute/at-slot`);
-					const currentSlotParsed = Number(await currentSlotResponse.text());
-					setCurrentSlot(currentSlotParsed);
+					const response = await fetch(`${SU_URL}/${props.node.id}/latest`);
+					const data = await response.json();
+					const slot = Number(getTagValue(data.assignment?.tags, 'Nonce'));
+					setTargetSlot(slot);
 				} catch (e: any) {
-					console.error(e);
+					console.error('Error fetching target slot:', e);
+					setTargetSlot('Error');
 				}
-			})();
+			};
+
+			const fetchCurrentSlot = async () => {
+				try {
+					const response = await fetch(`${CURRENT_NODE}/${props.node.id}~process@1.0/compute/at-slot`);
+					const slot = Number(await response.text());
+					setCurrentSlot(slot);
+				} catch (e: any) {
+					console.error('Error fetching current slot:', e);
+					setCurrentSlot('Error');
+				}
+			};
+
+			// TODO: Handle non AO.TN.1
+			Promise.all([fetchTargetSlot(), fetchCurrentSlot()]);
 		}
-	}, [props.node]);
+	}, [props.node.id]);
 
-	const percentage =
-		currentSlot !== null && targetSlot !== null && targetSlot > 0
-			? ((currentSlot / targetSlot) * 100).toFixed(2) + '%'
-			: '-';
+	const hasError = currentSlot === 'Error' || targetSlot === 'Error';
+	const isLoading = currentSlot === null || targetSlot === null;
+
+	const calculatePercentage = (): number | null => {
+		if (hasError || isLoading) return null;
+		if (typeof currentSlot === 'number' && typeof targetSlot === 'number' && targetSlot > 0) {
+			return Math.round((currentSlot / targetSlot) * 100);
+		}
+		return null;
+	};
+
+	const percentage = calculatePercentage();
+	const percentageDisplay = hasError ? 'Error' : percentage !== null ? `${percentage}%` : '-';
+
+	const getSlotDisplay = (slot: string | number | null): string => {
+		if (slot === null) return 'Loading...';
+		if (slot === 'Error') return 'Error';
+		return String(slot);
+	};
 
 	return (
 		<S.ElementWrapper open={false}>
@@ -47,16 +75,16 @@ function MonitorElement(props: { node: any }) {
 				<TxAddress address={props.node.id} />
 			</S.ID>
 			<S.Current>
-				<p>{currentSlot ?? 'Loading...'}</p>
+				<p>{getSlotDisplay(currentSlot)}</p>
 			</S.Current>
 			<S.Target>
-				<p>{targetSlot ?? 'Loading...'}</p>
+				<p>{getSlotDisplay(targetSlot)}</p>
 			</S.Target>
-			<S.Status>
-				<p>{percentage}</p>
-			</S.Status>
+			<S.StatusIndicator percentage={hasError ? 'Error' : percentage}>
+				<p>{percentageDisplay}</p>
+			</S.StatusIndicator>
 			<S.Actions>
-				<p>-</p>
+				<Button type={'alt2'} label={'Hydrate'} handlePress={(e) => console.log(e)} disabled={false} />
 			</S.Actions>
 		</S.ElementWrapper>
 	);
@@ -70,6 +98,7 @@ export default function Monitor(props: {
 	onQueryChange?: (query: string, queryName?: string) => void;
 	onGatewayChange?: (gateway: string) => void;
 }) {
+	const [loading, setLoading] = React.useState<boolean>(false);
 	const [currentData, setCurrentData] = React.useState<any>(null);
 
 	async function handleResponse(gqlResponse: any) {
@@ -80,14 +109,17 @@ export default function Monitor(props: {
 		}
 	}
 
-	const Response = () => (
-		<S.MonitorTableWrapper className={'border-wrapper-alt2'}>
-			<S.Header>
-				<S.HeaderMain>
-					<p>Results</p>
-				</S.HeaderMain>
-			</S.Header>
-			{currentData ? (
+	const Response = React.useMemo(
+		() => (
+			<S.MonitorTableWrapper className={'border-wrapper-alt2 scroll-wrapper-hidden'}>
+				<S.Header>
+					<S.HeaderMain>
+						<S.HeaderLabel>
+							<p>{`Results`}</p>
+							{currentData?.length > 0 && <span>{`(${currentData.length})`}</span>}
+						</S.HeaderLabel>
+					</S.HeaderMain>
+				</S.Header>
 				<S.BodyWrapper>
 					<S.SubheaderWrapper>
 						<S.ID>
@@ -106,18 +138,29 @@ export default function Monitor(props: {
 							<p>Actions</p>
 						</S.Actions>
 					</S.SubheaderWrapper>
-					<S.ElementsWrapper className={'scroll-wrapper-hidden'}>
-						{currentData.map((edge) => {
-							return <MonitorElement key={edge.node.id} node={edge.node} />;
-						})}
-					</S.ElementsWrapper>
+					{currentData && !loading ? (
+						<S.ElementsWrapper>
+							{currentData?.length > 0 ? (
+								<>
+									{currentData.map((edge) => {
+										return <MonitorElement key={edge.node.id} node={edge.node} />;
+									})}
+								</>
+							) : (
+								<S.WrapperEmpty>
+									<p>{loading ? 'Loading...' : 'No Results'}</p>
+								</S.WrapperEmpty>
+							)}
+						</S.ElementsWrapper>
+					) : (
+						<S.WrapperEmpty>
+							<p>{loading ? 'Loading...' : 'Run for Results'}</p>
+						</S.WrapperEmpty>
+					)}
 				</S.BodyWrapper>
-			) : (
-				<S.WrapperEmpty>
-					<p>Run for Results</p>
-				</S.WrapperEmpty>
-			)}
-		</S.MonitorTableWrapper>
+			</S.MonitorTableWrapper>
+		),
+		[currentData, loading]
 	);
 
 	return (
@@ -128,8 +171,9 @@ export default function Monitor(props: {
 			initialGateway={props.initialGateway}
 			onQueryChange={props.onQueryChange}
 			onGatewayChange={props.onGatewayChange}
+			setLoading={(isLoading: boolean) => setLoading(isLoading)}
 			onResponse={handleResponse}
-			response={<Response />}
+			response={Response}
 		/>
 	);
 }

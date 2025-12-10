@@ -52,6 +52,7 @@ export default function GraphQLPlayground(props: {
 	initialGateway?: string;
 	onQueryChange?: (query: string, queryName?: string) => void;
 	onGatewayChange?: (gateway: string) => void;
+	setLoading?: (isLoading: boolean) => void;
 	onResponse?: (response: any) => void;
 	response?: React.ReactNode;
 }) {
@@ -229,6 +230,11 @@ export default function GraphQLPlayground(props: {
 		return `query { ${trimmed} }`;
 	}, []);
 
+	function handleSetLoading(isLoading: boolean) {
+		setLoading(isLoading);
+		if (props.setLoading) props.setLoading(isLoading);
+	}
+
 	const executeQuery = React.useCallback(
 		async (queryOverride?: string) => {
 			// Use the override query if provided, otherwise use the state query
@@ -237,7 +243,7 @@ export default function GraphQLPlayground(props: {
 
 			if (queryToExecute && typeof queryToExecute === 'string') {
 				setResult(null);
-				setLoading(true);
+				handleSetLoading(true);
 				try {
 					const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
 					const preparedQuery = prepareQuery(queryToExecute);
@@ -276,7 +282,7 @@ export default function GraphQLPlayground(props: {
 					console.error(e);
 					setResult(JSON.stringify({ error: e.message || 'Failed to execute query' }, null, 2));
 				}
-				setLoading(false);
+				handleSetLoading(false);
 			}
 		},
 		[query, inputGateway, prepareQuery, showVariables, variables]

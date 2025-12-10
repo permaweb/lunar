@@ -1,4 +1,4 @@
-import { MonitorTabs } from 'components/organisms/MonitorTabs';
+import { MonitorTabs } from 'components/tabs/MonitorTabs';
 
 export default function Monitor() {
 	return <MonitorTabs />;

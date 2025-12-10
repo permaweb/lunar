@@ -1,4 +1,4 @@
-import { GraphQLTabs } from 'components/organisms/GraphQLTabs';
+import { GraphQLTabs } from 'components/tabs/GraphQLTabs';
 
 export default function GraphQL() {
 	return <GraphQLTabs />;

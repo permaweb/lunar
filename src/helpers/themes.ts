@@ -580,6 +580,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		},
 		indicator: {
 			active: currentTheme.positive1,
+			neutral: currentTheme.caution1,
 		},
 		link: {
 			color: currentTheme.link1,
@@ -608,10 +609,6 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		},
 		shadow: {
 			primary: currentTheme.shadow1,
-		},
-		status: {
-			draft: currentTheme.caution1,
-			published: currentTheme.positive1,
 		},
 		tabs: {
 			color: currentTheme.neutralA4,
