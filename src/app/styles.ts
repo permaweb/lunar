@@ -357,7 +357,7 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.alt2};
+		color: ${(props) => props.theme.colors.font.alt1};
 	}
 
 	a {

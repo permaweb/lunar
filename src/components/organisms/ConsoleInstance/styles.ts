@@ -169,7 +169,8 @@ export const OptionsLoader = styled.div`
 `;
 
 export const LoadingWrapper = styled.div`
-	position: absolute;
-	bottom: 0;
-	right: 20px;
+	height: fit-content;
+	width: 100%;
+	background: ${(props) => props.theme.colors.container.alt1.background} !important;
+	padding: 25px;
 `;

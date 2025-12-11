@@ -255,6 +255,17 @@ export function resolveLibDeps(args: { variant: MessageVariantEnum; permawebProv
 	}
 }
 
+export function resolveLibs(args: { variant: MessageVariantEnum; permawebProvider: any }) {
+	switch (args.variant) {
+		case MessageVariantEnum.Legacynet:
+			return args.permawebProvider.libs;
+		case MessageVariantEnum.Mainnet:
+			return args.permawebProvider.libsMainnet;
+		default:
+			return args.permawebProvider.libsMainnet;
+	}
+}
+
 export async function resolveMessageId(args: {
 	messageId: string;
 	variant: MessageVariantEnum;

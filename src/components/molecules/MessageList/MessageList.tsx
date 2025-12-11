@@ -36,6 +36,7 @@ import * as S from './styles';
 function Message(props: {
 	element: Types.GQLNodeResponseType;
 	type: TransactionType;
+	variant?: MessageVariantEnum;
 	currentFilter: MessageFilterType;
 	parentId: string;
 	handleOpen: (id: string) => void;
@@ -350,6 +351,7 @@ function Message(props: {
 			{open && (
 				<MessageList
 					txId={props.element.node.id}
+					variant={props.variant}
 					type={props.type}
 					currentFilter={props.currentFilter}
 					recipient={props.element.node.recipient}
@@ -516,7 +518,6 @@ export default function MessageList(props: {
 									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
-									// ...getIncomingGQLArgs()
 								});
 								break;
 							case 'outgoing':
@@ -537,14 +538,11 @@ export default function MessageList(props: {
 						if (props.recipient) {
 							console.log('Getting message list result response...');
 
-							// TODO: AO.N.1
 							try {
 								const deps = resolveLibDeps({
 									variant: props.variant,
 									permawebProvider: permawebProvider,
 								});
-
-								console.log(props.variant);
 
 								const messageId = await resolveMessageId({
 									messageId: props.txId,
@@ -558,13 +556,12 @@ export default function MessageList(props: {
 									message: messageId,
 								});
 
-								console.log(resultResponse);
-
+								// TODO: AO.N.1
 								if (resultResponse && !resultResponse.error) {
 									const gqlResponse = await permawebProvider.libs.getGQLData({
 										tags: [
 											...tags,
-											// { name: 'From-Process', values: [props.recipient] },
+											{ name: 'From-Process', values: [props.recipient] },
 											{ name: 'Variant', values: [props.variant] },
 											{
 												name: 'Reference',
@@ -861,6 +858,7 @@ export default function MessageList(props: {
 										key={element.node.id}
 										element={element}
 										type={props.type}
+										variant={props.variant}
 										currentFilter={currentFilter}
 										parentId={props.parentId}
 										handleOpen={props.handleMessageOpen ? (id: string) => props.handleMessageOpen(id) : null}

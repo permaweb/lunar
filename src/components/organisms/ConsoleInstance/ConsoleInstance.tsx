@@ -10,8 +10,8 @@ import { Loader } from 'components/atoms/Loader';
 import { Notification } from 'components/atoms/Notification';
 import { Editor } from 'components/molecules/Editor';
 import { ASSETS, TAGS } from 'helpers/config';
-import { GQLNodeResponseType } from 'helpers/types';
-import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
+import { GQLNodeResponseType, MessageVariantEnum } from 'helpers/types';
+import { checkValidAddress, formatAddress, getTagValue, resolveLibDeps, resolveLibs } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -194,13 +194,13 @@ function ConsoleInstance(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			if (props.active && terminalRef.current && arProvider.wallet && checkValidAddress(inputProcessId)) {
+			if (props.active && terminalRef.current && arProvider.wallet && checkValidAddress(inputProcessId) && txResponse) {
 				await document.fonts.ready;
 
 				terminalInstance.current = new Terminal({
 					cursorBlink: false,
 					fontFamily: theme.typography.family.alt2,
-					fontSize: 13,
+					fontSize: 12,
 					fontWeight: 700,
 					theme: getTheme(theme),
 				});
@@ -297,6 +297,7 @@ function ConsoleInstance(props: {
 							return;
 						} else {
 							if (commandBuffer.trim()) {
+								terminalInstance.current.write(`\r\x1b[2K\x1b[90m${commandBuffer}\x1b[0m\r\n`);
 								commandHistory.push(commandBuffer.trim());
 								historyIndex = commandHistory.length;
 								await resolveCommand(commandBuffer);
@@ -360,7 +361,7 @@ function ConsoleInstance(props: {
 				terminalInstance.current.dispose();
 			}
 		};
-	}, [props.active, inputProcessId, permawebProvider.libs]);
+	}, [props.active, inputProcessId, txResponse, permawebProvider.libs]);
 
 	function stripAnsi(input: string): string {
 		return input.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
@@ -439,7 +440,14 @@ function ConsoleInstance(props: {
 				}
 
 				try {
-					const results = await permawebProvider.deps.ao.results(args);
+					const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
+
+					const deps = resolveLibDeps({
+						variant: variant,
+						permawebProvider: permawebProvider,
+					});
+
+					const results = await deps.ao.results(args);
 
 					if (results?.edges?.length) {
 						const newEdges = results.edges
@@ -526,20 +534,31 @@ function ConsoleInstance(props: {
 		await sendMessage(data);
 	}
 
-	// TODO: AO.N.1
 	async function sendMessage(data: string | null, outputType?: 'data' | 'prompt') {
-		if (terminalInstance.current) {
+		if (terminalInstance.current && txResponse) {
 			startLoader();
 
 			try {
-				const message = await permawebProvider.libs.sendMessage({
+				const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
+
+				const deps = resolveLibDeps({
+					variant: variant,
+					permawebProvider: permawebProvider,
+				});
+
+				const libs = resolveLibs({
+					variant: variant,
+					permawebProvider: permawebProvider,
+				});
+
+				const message = await libs.sendMessage({
 					processId: inputProcessId,
 					action: 'Eval',
 					data: data ?? '',
 					useRawData: true,
 				});
 
-				const response = await permawebProvider.deps.ao.result({
+				const response = await deps.ao.result({
 					process: inputProcessId,
 					message: message,
 				});
@@ -575,6 +594,7 @@ function ConsoleInstance(props: {
 							terminalInstance.current.write(line + '\r\n');
 						}
 					});
+					terminalInstance.current.write('\r\n');
 				}
 
 				const newPrompt = response?.Output?.prompt ?? promptRef.current;
@@ -583,6 +603,7 @@ function ConsoleInstance(props: {
 				terminalInstance.current.write('\r');
 				terminalInstance.current.write(newPrompt);
 			} catch (e: any) {
+				console.error(e);
 				stopLoader();
 				terminalInstance.current.write(prompt);
 			}
@@ -592,8 +613,8 @@ function ConsoleInstance(props: {
 	function getTheme(currentTheme: DefaultTheme, args?: { useAltBackground?: boolean }) {
 		return {
 			background: args?.useAltBackground
-				? currentTheme.colors.container.alt1.background
-				: currentTheme.colors.view.background,
+				? currentTheme.colors.view.background
+				: currentTheme.colors.container.alt1.background,
 			foreground: currentTheme.colors.font.primary,
 			cursor: currentTheme.colors.font.alt2,
 			cursorAccent: currentTheme.colors.font.alt4,
@@ -635,7 +656,7 @@ function ConsoleInstance(props: {
 	function startLoader() {
 		setLoadingMessage(true);
 		loadingRef.current = true;
-		terminalInstance.current.write('\n');
+		terminalInstance.current.write('\r\n');
 		hideCursor();
 		spinnerInterval = setInterval(() => {
 			clearLine();
@@ -760,45 +781,55 @@ function ConsoleInstance(props: {
 
 		return (
 			<S.ConsoleWrapper editorMode={editorMode}>
-				<S.Console className={'border-wrapper-alt1 scroll-wrapper'} ref={terminalRef} />
-				{hasConnected && showResults && <S.Console className={'border-wrapper-alt1 scroll-wrapper'} ref={logsRef} />}
-				<S.ActionsWrapper fullScreenMode={fullScreenMode}>
-					<IconButton
-						type={'alt1'}
-						src={showResults ? ASSETS.arrowRight : ASSETS.arrowLeft}
-						handlePress={() => setShowResults((prev) => !prev)}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
-						disabled={!hasConnected}
-						tooltip={showResults ? language.hideResults : language.showResults}
-						tooltipPosition={'top-right'}
-					/>
-					<IconButton
-						type={'alt1'}
-						src={ASSETS.code}
-						handlePress={() => setEditorMode((prev) => !prev)}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
-						disabled={!hasConnected}
-						tooltip={editorMode ? language.closeEditor : language.openEditor}
-						tooltipPosition={'top-right'}
-					/>
-					<IconButton
-						type={'alt1'}
-						src={ASSETS.fullscreen}
-						handlePress={toggleFullscreen}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
-						tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
-						tooltipPosition={'top-right'}
-					/>
-				</S.ActionsWrapper>
+				{txResponse ? (
+					<>
+						<S.Console className={'border-wrapper-alt3 scroll-wrapper'} ref={terminalRef} />
+						{hasConnected && showResults && (
+							<S.Console className={'border-wrapper-alt3 scroll-wrapper'} ref={logsRef} />
+						)}
+						<S.ActionsWrapper fullScreenMode={fullScreenMode}>
+							<IconButton
+								type={'alt1'}
+								src={showResults ? ASSETS.arrowRight : ASSETS.arrowLeft}
+								handlePress={() => setShowResults((prev) => !prev)}
+								dimensions={{
+									wrapper: 25,
+									icon: 12.5,
+								}}
+								disabled={!hasConnected}
+								tooltip={showResults ? language.hideResults : language.showResults}
+								tooltipPosition={'top-right'}
+							/>
+							<IconButton
+								type={'alt1'}
+								src={ASSETS.code}
+								handlePress={() => setEditorMode((prev) => !prev)}
+								dimensions={{
+									wrapper: 25,
+									icon: 12.5,
+								}}
+								disabled={!hasConnected}
+								tooltip={editorMode ? language.closeEditor : language.openEditor}
+								tooltipPosition={'top-right'}
+							/>
+							<IconButton
+								type={'alt1'}
+								src={ASSETS.fullscreen}
+								handlePress={toggleFullscreen}
+								dimensions={{
+									wrapper: 25,
+									icon: 12.5,
+								}}
+								tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+								tooltipPosition={'top-right'}
+							/>
+						</S.ActionsWrapper>
+					</>
+				) : (
+					<S.LoadingWrapper className={'border-wrapper-alt1'}>
+						<Loader sm relative />
+					</S.LoadingWrapper>
+				)}
 			</S.ConsoleWrapper>
 		);
 	}
