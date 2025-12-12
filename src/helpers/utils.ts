@@ -16,6 +16,7 @@ export function formatAddress(address: string | null, wrap: boolean) {
 export function getTagValue(list: { [key: string]: any }[], name: string): string {
 	if (!list) return null;
 
+	// Try exact match first
 	for (let i = 0; i < list.length; i++) {
 		if (list[i]) {
 			if (list[i]!.name === name) {
@@ -23,6 +24,17 @@ export function getTagValue(list: { [key: string]: any }[], name: string): strin
 			}
 		}
 	}
+
+	// Fallback to case-insensitive match
+	const lowerName = name.toLowerCase();
+	for (let i = 0; i < list.length; i++) {
+		if (list[i]) {
+			if (list[i]!.name.toLowerCase() === lowerName) {
+				return list[i]!.value as string;
+			}
+		}
+	}
+
 	return null;
 }
 
@@ -264,6 +276,13 @@ export function resolveLibs(args: { variant: MessageVariantEnum; permawebProvide
 		default:
 			return args.permawebProvider.libsMainnet;
 	}
+}
+
+export function lowercaseTagKeys(tags: { name: string; values: string[] }[]): { name: string; values: string[] }[] {
+	return tags.map((tag) => ({
+		...tag,
+		name: tag.name.toLowerCase(),
+	}));
 }
 
 export async function resolveMessageId(args: {

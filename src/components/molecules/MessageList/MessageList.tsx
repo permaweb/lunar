@@ -22,6 +22,7 @@ import {
 	formatCount,
 	getRelativeDate,
 	getTagValue,
+	lowercaseTagKeys,
 	removeCommitments,
 	resolveLibDeps,
 	resolveMessageId,
@@ -502,7 +503,7 @@ export default function MessageList(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			const tags = [...DEFAULT_MESSAGE_TAGS];
+			let tags = [...DEFAULT_MESSAGE_TAGS];
 			if (currentAction) tags.push({ name: 'Action', values: [currentAction] });
 
 			setLoadingMessages(true);
@@ -556,18 +557,22 @@ export default function MessageList(props: {
 									message: messageId,
 								});
 
-								// TODO: AO.N.1
 								if (resultResponse && !resultResponse.error) {
+									tags.push(
+										{ name: 'From-Process', values: [props.recipient] },
+										{ name: 'Variant', values: [props.variant] },
+										{
+											name: 'Reference',
+											values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
+										}
+									);
+
+									if (props.variant === MessageVariantEnum.Mainnet) {
+										tags = lowercaseTagKeys(tags);
+									}
+
 									const gqlResponse = await permawebProvider.libs.getGQLData({
-										tags: [
-											...tags,
-											{ name: 'From-Process', values: [props.recipient] },
-											{ name: 'Variant', values: [props.variant] },
-											{
-												name: 'Reference',
-												values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
-											},
-										],
+										tags: [...tags],
 									});
 
 									setCurrentData(gqlResponse.data);
