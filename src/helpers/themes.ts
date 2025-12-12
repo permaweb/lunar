@@ -488,7 +488,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			primary: {
 				fill: currentTheme.neutralA4,
 				active: currentTheme.neutral3,
-				disabled: currentTheme.neutralA3,
+				disabled: currentTheme.neutral7,
 			},
 			alt1: {
 				fill: currentTheme.neutral4,

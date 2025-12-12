@@ -4,6 +4,7 @@ import { useTheme } from 'styled-components';
 import { ViewWrapper } from 'app/styles';
 import { ViewHeader } from 'components/atoms/ViewHeader';
 import { MessageList } from 'components/molecules/MessageList';
+import { MessageVariantEnum } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { Metrics } from './Metrics';
@@ -69,7 +70,7 @@ export default function Landing() {
 			</S.NodesWrapper> */}
 			<S.MessagesWrapper>
 				<ViewWrapper>
-					<MessageList />
+					<MessageList variant={MessageVariantEnum.Legacynet} />
 				</ViewWrapper>
 			</S.MessagesWrapper>
 		</S.Wrapper>

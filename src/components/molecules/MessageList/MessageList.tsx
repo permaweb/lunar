@@ -13,7 +13,7 @@ import { Loader } from 'components/atoms/Loader';
 import { Panel } from 'components/atoms/Panel';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, MINT_ACTIONS, STORAGE, URLS } from 'helpers/config';
+import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, MINT_ACTIONS, STORAGE, TAGS, URLS } from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { MessageFilterType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
@@ -370,7 +370,7 @@ function Message(props: {
 export default function MessageList(props: {
 	header?: string;
 	txId?: string;
-	variant?: MessageVariantEnum;
+	variant: MessageVariantEnum;
 	type?: TransactionType;
 	currentFilter?: MessageFilterType;
 	recipient?: string | null;
@@ -863,7 +863,7 @@ export default function MessageList(props: {
 										key={element.node.id}
 										element={element}
 										type={props.type}
-										variant={props.variant}
+										variant={getTagValue(element.node.tags, TAGS.keys.variant) as MessageVariantEnum}
 										currentFilter={currentFilter}
 										parentId={props.parentId}
 										handleOpen={props.handleMessageOpen ? (id: string) => props.handleMessageOpen(id) : null}

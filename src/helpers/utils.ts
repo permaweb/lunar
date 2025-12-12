@@ -263,7 +263,7 @@ export function resolveLibDeps(args: { variant: MessageVariantEnum; permawebProv
 		case MessageVariantEnum.Mainnet:
 			return args.permawebProvider.depsMainnet;
 		default:
-			return args.permawebProvider.depsMainnet;
+			return args.permawebProvider.deps;
 	}
 }
 
@@ -274,7 +274,7 @@ export function resolveLibs(args: { variant: MessageVariantEnum; permawebProvide
 		case MessageVariantEnum.Mainnet:
 			return args.permawebProvider.libsMainnet;
 		default:
-			return args.permawebProvider.libsMainnet;
+			return args.permawebProvider.libs;
 	}
 }
 

@@ -18,7 +18,7 @@ import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
-import { ConsoleInstance } from '../ConsoleInstance';
+import { AOS } from '../AOS';
 import { ProcessEditor } from '../ProcessEditor';
 import { ProcessSource } from '../ProcessSource';
 
@@ -346,6 +346,7 @@ function Transaction(props: {
 										<MessageList
 											key={refreshKey}
 											txId={inputTxId}
+											variant={MessageVariantEnum.Legacynet}
 											type={props.type}
 											recipient={txResponse?.node?.recipient}
 											parentId={inputTxId}
@@ -443,7 +444,7 @@ function Transaction(props: {
 					icon: ASSETS.console,
 					disabled: false,
 					url: URLS.explorerAOS(inputTxId),
-					view: () => <ConsoleInstance processId={inputTxId} active={true} />,
+					view: () => <AOS processId={inputTxId} active={true} />,
 				});
 			}
 		}

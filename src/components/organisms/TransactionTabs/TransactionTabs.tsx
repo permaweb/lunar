@@ -16,7 +16,7 @@ import { TransactionTabType } from 'helpers/types';
 import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
-import { ConsoleInstance } from '../ConsoleInstance';
+import { AOS } from '../AOS';
 
 import * as S from './styles';
 
@@ -424,7 +424,13 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 											tabKey={tx.tabKey}
 										/>
 									) : (
-										<ConsoleInstance key={tx.tabKey} processId={tx.id} active={isActive} onTxChange={onTxChange} />
+										<AOS
+											key={tx.tabKey}
+											processId={tx.id}
+											active={isActive}
+											onTxChange={onTxChange}
+											tabKey={tx.tabKey}
+										/>
 									)}
 								</S.TransactionWrapper>
 							);
