@@ -2,6 +2,8 @@ import React from 'react';
 
 import { JSONReader } from 'components/molecules/JSONReader';
 import { JSONWriter } from 'components/molecules/JSONWriter';
+import { MessageVariantEnum } from 'helpers/types';
+import { removeCommitments, resolveLibDeps } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -9,7 +11,11 @@ import { WalletBlock } from 'wallet/WalletBlock';
 
 import * as S from './styles';
 
-export default function ProcessEditor(props: { processId: string; type: 'read' | 'write' }) {
+export default function ProcessEditor(props: {
+	processId: string;
+	variant: MessageVariantEnum;
+	type: 'read' | 'write';
+}) {
 	const permawebProvider = usePermawebProvider();
 	const arProvider = useArweaveProvider();
 
@@ -33,16 +39,21 @@ export default function ProcessEditor(props: { processId: string; type: 'read' |
 		setLoading(true);
 		setOutput(null);
 
+		const deps = resolveLibDeps({
+			variant: props.variant,
+			permawebProvider: permawebProvider,
+		});
+
 		let messageToSend: any = { ...message };
 		let connectFn: (message: object) => any;
 
 		switch (props.type) {
 			case 'read':
-				connectFn = permawebProvider.deps.ao.dryrun;
+				connectFn = deps.ao.dryrun;
 				break;
 			case 'write':
-				connectFn = permawebProvider.deps.ao.message;
-				messageToSend.signer = permawebProvider.deps.signer;
+				connectFn = deps.ao.message;
+				messageToSend.signer = deps.signer;
 				break;
 		}
 
@@ -51,14 +62,14 @@ export default function ProcessEditor(props: { processId: string; type: 'read' |
 
 			switch (props.type) {
 				case 'read':
-					setOutput(response);
+					setOutput(removeCommitments(response));
 					break;
 				case 'write':
-					const result = await permawebProvider.deps.ao.result({
+					const result = await deps.ao.result({
 						process: messageToSend.process,
 						message: response,
 					});
-					setOutput(result);
+					setOutput(removeCommitments(result));
 					break;
 			}
 		} catch (e: any) {

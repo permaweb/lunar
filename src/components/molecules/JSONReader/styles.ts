@@ -181,7 +181,7 @@ export const JSONUndefined = styled.span`
 `;
 
 export const JSONBracket = styled.span`
-	color: ${(props) => props.theme.colors.editor.alt6};
+	color: ${(props) => props.theme.colors.font.alt1};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 `;
 
@@ -194,9 +194,9 @@ export const JSONArrayWrapper = styled.div`
 `;
 
 export const JSONObject = styled.span`
-	color: ${(props) => props.theme.colors.editor.primary};
+	color: ${(props) => props.theme.colors.font.alt1};
 `;
 
 export const JSONArray = styled.span`
-	color: ${(props) => props.theme.colors.editor.primary};
+	color: ${(props) => props.theme.colors.font.alt1};
 `;

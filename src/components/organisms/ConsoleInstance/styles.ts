@@ -169,7 +169,91 @@ export const OptionsLoader = styled.div`
 `;
 
 export const LoadingWrapper = styled.div`
-	position: absolute;
-	bottom: 0;
-	right: 20px;
+	height: fit-content;
+	width: 100%;
+	background: ${(props) => props.theme.colors.container.alt1.background} !important;
+	padding: 25px;
+`;
+
+export const InputWrapper = styled.div`
+	height: 100%;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+`;
+
+export const OutputArea = styled.div`
+	flex: 1;
+	overflow-y: auto;
+	padding: 15px;
+	font-family: ${(props) => props.theme.typography.family.alt2};
+	font-size: 12px;
+	font-weight: 700;
+	color: ${(props) => props.theme.colors.font.primary};
+	background: ${(props) => props.theme.colors.container.alt1.background};
+	white-space: pre-wrap;
+	word-wrap: break-word;
+	line-height: 1.5;
+
+	.output-line {
+		margin: 2px 0;
+	}
+
+	.output-command {
+		color: ${(props) => props.theme.colors.font.alt1};
+		opacity: 0.7;
+	}
+
+	.output-error {
+		color: ${(props) => props.theme.colors.warning.primary};
+	}
+
+	.output-loading {
+		color: ${(props) => props.theme.colors.font.alt3};
+	}
+`;
+
+export const InputArea = styled.textarea`
+	width: 100%;
+	min-height: 80px;
+	max-height: 200px;
+	padding: 15px;
+	font-family: ${(props) => props.theme.typography.family.alt2};
+	font-size: 12px;
+	font-weight: 700;
+	color: ${(props) => props.theme.colors.font.primary};
+	background: ${(props) => props.theme.colors.container.alt1.background};
+	border: none;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	outline: none;
+	resize: vertical;
+	line-height: 1.5;
+
+	&::placeholder {
+		color: ${(props) => props.theme.colors.font.alt1};
+		opacity: 0.5;
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+`;
+
+export const PromptLabel = styled.div`
+	padding: 10px 15px;
+	font-family: ${(props) => props.theme.typography.family.alt2};
+	font-size: 11px;
+	font-weight: 700;
+	color: ${(props) => props.theme.colors.font.alt1};
+	background: ${(props) => props.theme.colors.container.alt1.background};
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+
+	span {
+		opacity: 0.6;
+	}
 `;

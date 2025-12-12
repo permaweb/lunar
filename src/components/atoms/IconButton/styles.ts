@@ -102,6 +102,7 @@ export const Primary = styled.button<{
 	padding: 4.5px 0 0 0 !important;
 	pointer-events: ${(props) => (props.disabled ? 'none' : 'all')};
 	border-radius: 50%;
+	cursor: ${(props) => (props.disabled ? 'not-allowed' : 'pointer')} !important;
 
 	svg {
 		height: ${(props) => (props.dimensions ? `${props.dimensions.icon.toString()}px` : `24.5px`)};

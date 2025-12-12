@@ -5,7 +5,7 @@ import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { AO_NODE } from 'helpers/config';
 import { MessageVariantEnum } from 'helpers/types';
-import { checkValidAddress, formatMs } from 'helpers/utils';
+import { checkValidAddress, formatMs, removeCommitments } from 'helpers/utils';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
 import * as S from './styles';
@@ -108,7 +108,7 @@ export default function ProcessRead(props: {
 					// If JSON parsing fails, treat it as a plain string response
 					parsedResponse = response;
 				}
-				setCurrentOutput(parsedResponse);
+				setCurrentOutput(removeCommitments(parsedResponse));
 
 				const roundTrip = Date.now() - start;
 				setRoundtripTime(roundTrip);

@@ -261,8 +261,6 @@ export default function GraphQLPlayground(props: {
 						body.variables = parsedVariables;
 					}
 
-					console.log('GraphQL Request:', body);
-
 					const response = await fetch(`https://${trimmedGateway}/graphql`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },

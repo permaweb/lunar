@@ -18,7 +18,7 @@ import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
-import { ConsoleInstance } from '../ConsoleInstance';
+import { AOS } from '../AOS';
 import { ProcessEditor } from '../ProcessEditor';
 import { ProcessSource } from '../ProcessSource';
 
@@ -57,6 +57,9 @@ function Transaction(props: {
 	const [inputTxId, setInputTxId] = React.useState<string>(props.txId);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
 	const [txResponse, setTxResponse] = React.useState<Types.GQLNodeResponseType | null>(null);
+
+	// Memoize owner address to prevent unnecessary TABS recreation
+	const ownerAddress = React.useMemo(() => txResponse?.node?.owner?.address, [txResponse?.node?.owner?.address]);
 	const [hasFetched, setHasFetched] = React.useState<boolean>(false);
 	const [error, setError] = React.useState<string | null>(null);
 	const [refreshKey, setRefreshKey] = React.useState<number>(0);
@@ -282,6 +285,11 @@ function Transaction(props: {
 				url: URLS.explorerInfo(inputTxId),
 				view: () => {
 					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
+
+					const variant = txResponse
+						? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+						: undefined;
+
 					switch (props.type) {
 						case 'process':
 						case 'message':
@@ -295,6 +303,7 @@ function Transaction(props: {
 													key={refreshKey}
 													header={language.resultingMessages}
 													txId={inputTxId}
+													variant={variant}
 													type={props.type}
 													recipient={txResponse?.node?.recipient}
 													parentId={inputTxId}
@@ -322,7 +331,7 @@ function Transaction(props: {
 														key={refreshKey}
 														processId={txResponse?.node?.recipient}
 														messageId={inputTxId}
-														variant={txResponse ? getTagValue(txResponse.node.tags, TAGS.keys.variant) : undefined}
+														variant={variant}
 													/>
 												)}
 											</S.ReadWrapper>
@@ -337,6 +346,7 @@ function Transaction(props: {
 										<MessageList
 											key={refreshKey}
 											txId={inputTxId}
+											variant={MessageVariantEnum.Legacynet}
 											type={props.type}
 											recipient={txResponse?.node?.recipient}
 											parentId={inputTxId}
@@ -359,6 +369,11 @@ function Transaction(props: {
 					url: URLS.explorerMessages(inputTxId),
 					view: () => {
 						const { txResponse, refreshKey } = React.useContext(TxResponseContext);
+
+						const variant = txResponse
+							? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+							: undefined;
+
 						return (
 							<S.MessagesWrapper>
 								<S.MessagesSection>
@@ -366,6 +381,7 @@ function Transaction(props: {
 										<MessageList
 											key={refreshKey}
 											txId={inputTxId}
+											variant={variant}
 											type={props.type}
 											recipient={txResponse?.node?.recipient}
 											parentId={inputTxId}
@@ -382,14 +398,28 @@ function Transaction(props: {
 					icon: ASSETS.read,
 					disabled: false,
 					url: URLS.explorerRead(inputTxId),
-					view: () => <ProcessEditor processId={inputTxId} type={'read'} />,
+					view: () => {
+						const { txResponse } = React.useContext(TxResponseContext);
+
+						const variant = txResponse
+							? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+							: undefined;
+						return <ProcessEditor processId={inputTxId} variant={variant} type={'read'} />;
+					},
 				},
 				{
 					label: language.write,
 					icon: ASSETS.write,
 					disabled: false,
 					url: URLS.explorerWrite(inputTxId),
-					view: () => <ProcessEditor processId={inputTxId} type={'write'} />,
+					view: () => {
+						const { txResponse } = React.useContext(TxResponseContext);
+
+						const variant = txResponse
+							? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+							: undefined;
+						return <ProcessEditor processId={inputTxId} variant={variant} type={'write'} />;
+					},
 				},
 				{
 					label: language.source,
@@ -408,19 +438,19 @@ function Transaction(props: {
 				}
 			);
 
-			if (arProvider.walletAddress && txResponse?.node?.owner?.address === arProvider.walletAddress) {
+			if (arProvider.walletAddress && ownerAddress === arProvider.walletAddress) {
 				tabs.push({
 					label: language.aos,
 					icon: ASSETS.console,
 					disabled: false,
 					url: URLS.explorerAOS(inputTxId),
-					view: () => <ConsoleInstance processId={inputTxId} active={true} />,
+					view: () => <AOS processId={inputTxId} active={true} />,
 				});
 			}
 		}
 
 		return tabs;
-	}, [props.type, inputTxId, arProvider.walletAddress, language]);
+	}, [props.type, inputTxId, arProvider.walletAddress, ownerAddress, language]);
 
 	const contextValue = React.useMemo(
 		() => ({ txResponse, inputTxId, type: props.type, refreshKey }),

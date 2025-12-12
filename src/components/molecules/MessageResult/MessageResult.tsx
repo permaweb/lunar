@@ -3,7 +3,7 @@ import React from 'react';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { getTxEndpoint } from 'helpers/endpoints';
-import { checkValidAddress } from 'helpers/utils';
+import { checkValidAddress, removeCommitments, resolveLibDeps, resolveMessageId } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
@@ -52,12 +52,24 @@ export default function MessageResult(props: { processId: string; messageId: str
 
 					console.log('Getting message result...');
 
-					const messageResult = await permawebProvider.deps.ao.result({
-						process: props.processId,
-						message: props.messageId,
+					const deps = resolveLibDeps({
+						variant: props.variant,
+						permawebProvider: permawebProvider,
 					});
 
-					setResult(messageResult);
+					const messageId = await resolveMessageId({
+						messageId: props.messageId,
+						variant: props.variant,
+						target: props.processId,
+						permawebProvider: permawebProvider,
+					});
+
+					const messageResult = await deps.ao.result({
+						process: props.processId,
+						message: messageId,
+					});
+
+					setResult(removeCommitments(messageResult));
 				} catch (e: any) {
 					console.error(e);
 					setResult({ Response: e.message ?? 'Error Fetching Result' });

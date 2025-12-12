@@ -10,8 +10,8 @@ import { Loader } from 'components/atoms/Loader';
 import { Notification } from 'components/atoms/Notification';
 import { Editor } from 'components/molecules/Editor';
 import { ASSETS, TAGS } from 'helpers/config';
-import { GQLNodeResponseType } from 'helpers/types';
-import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
+import { GQLNodeResponseType, MessageVariantEnum } from 'helpers/types';
+import { checkValidAddress, formatAddress, getTagValue, resolveLibDeps, resolveLibs } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -25,6 +25,7 @@ function ConsoleInstance(props: {
 	processId: string;
 	active: boolean;
 	onTxChange?: (newTx: GQLNodeResponseType) => void;
+	tabKey?: string;
 }) {
 	const theme = useTheme();
 
@@ -45,6 +46,11 @@ function ConsoleInstance(props: {
 
 	const mainFitAddon = React.useRef<FitAddon | null>(null);
 	const logsFitAddon = React.useRef<FitAddon | null>(null);
+	const refreshLineRef = React.useRef<(() => void) | null>(null);
+	const commandBufferRef = React.useRef<string>('');
+	const cursorPositionRef = React.useRef<number>(0);
+	const currentRowRef = React.useRef<number>(1);
+	const isCurrentlyWrappedRef = React.useRef<boolean>(false);
 
 	const [inputProcessId, setInputProcessId] = React.useState<string>(props.processId ?? '');
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
@@ -58,7 +64,7 @@ function ConsoleInstance(props: {
 	const [editorMode, setEditorMode] = React.useState<boolean>(false);
 	const [editorData, setEditorData] = React.useState<string>('');
 	const [error, setError] = React.useState<string | null>(null);
-	const [showResults, setShowResults] = React.useState<boolean>(true);
+	const [showResults, setShowResults] = React.useState<boolean>(false);
 
 	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
 	const [cursorHistory, setCursorHistory] = React.useState([]);
@@ -108,7 +114,13 @@ function ConsoleInstance(props: {
 
 	React.useEffect(() => {
 		const ro = new ResizeObserver(() => {
-			if (mainFitAddon.current) mainFitAddon.current.fit();
+			if (mainFitAddon.current) {
+				mainFitAddon.current.fit();
+				// Refresh the current line after resize to fix wrapping
+				if (refreshLineRef.current && hasConnectedRef.current) {
+					setTimeout(() => refreshLineRef.current?.(), 0);
+				}
+			}
 			if (logsFitAddon.current) logsFitAddon.current.fit();
 		});
 		if (terminalRef.current) ro.observe(terminalRef.current);
@@ -117,8 +129,19 @@ function ConsoleInstance(props: {
 	}, []);
 
 	React.useEffect(() => {
-		if (mainFitAddon.current) mainFitAddon.current.fit();
-		if (logsFitAddon.current) logsFitAddon.current.fit();
+		// Use requestAnimationFrame to wait for DOM layout to complete
+		const frame = requestAnimationFrame(() => {
+			if (mainFitAddon.current) {
+				mainFitAddon.current.fit();
+				// Refresh the current line after UI changes to fix wrapping
+				if (refreshLineRef.current && hasConnectedRef.current) {
+					setTimeout(() => refreshLineRef.current?.(), 0);
+				}
+			}
+			if (logsFitAddon.current) logsFitAddon.current.fit();
+		});
+
+		return () => cancelAnimationFrame(frame);
 	}, [editorMode, showResults, fullScreenMode]);
 
 	React.useEffect(() => {
@@ -194,13 +217,20 @@ function ConsoleInstance(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			if (props.active && terminalRef.current && arProvider.wallet && checkValidAddress(inputProcessId)) {
+			if (
+				props.active &&
+				terminalRef.current &&
+				arProvider.wallet &&
+				checkValidAddress(inputProcessId) &&
+				txResponse &&
+				!terminalInstance.current
+			) {
 				await document.fonts.ready;
 
 				terminalInstance.current = new Terminal({
 					cursorBlink: false,
 					fontFamily: theme.typography.family.alt2,
-					fontSize: 13,
+					fontSize: 12,
 					fontWeight: 700,
 					theme: getTheme(theme),
 				});
@@ -226,32 +256,105 @@ function ConsoleInstance(props: {
 				hideCursor();
 				terminalInstance.current.focus();
 
-				let commandBuffer = '';
-				let cursorPosition = 0;
 				const commandHistory: string[] = [];
-
 				let historyIndex: number = commandHistory.length;
-				let currentRow = 1;
-				let isCurrentlyWrapped = false;
 
 				const refreshLine = () => {
 					const term = terminalInstance.current!;
+					if (!term) return;
+
+					const commandBuffer = commandBufferRef.current;
+					const cursorPosition = cursorPositionRef.current;
+					const currentRow = currentRowRef.current;
+					const isCurrentlyWrapped = isCurrentlyWrappedRef.current;
+
 					const rawPrompt = promptRef.current;
 					const cleanPrompt = stripAnsi(rawPrompt);
+					const cols = term.cols;
 
-					if (isCurrentlyWrapped) {
-						const sliceStart = term.cols * (currentRow - 1);
-						const wrappedLine = (cleanPrompt + commandBuffer).slice(sliceStart, sliceStart + term.cols);
-						term.write(`\x1b[2K\r${wrappedLine}`);
+					// Calculate total visual length (prompt + buffer)
+					const totalLength = cleanPrompt.length + commandBuffer.length;
+					const totalLines = Math.max(1, Math.ceil(totalLength / cols));
+
+					// Determine if we need to add new lines first
+					const needsMoreLines = totalLines > currentRow;
+					if (needsMoreLines && isCurrentlyWrapped) {
+						// We're at the end, add the new lines we need
+						const linesToAdd = totalLines - currentRow;
+						for (let i = 0; i < linesToAdd; i++) {
+							term.write('\r\n');
+						}
+						// Move back up to where we started
+						term.write(`\x1b[${linesToAdd}A\r`);
+					}
+
+					// Move cursor to start of input area
+					if (isCurrentlyWrapped && currentRow > 1) {
+						term.write(`\x1b[${currentRow - 1}A\r`);
 					} else {
-						term.write(`\x1b[2K\r${rawPrompt}${commandBuffer}`);
+						term.write('\r');
 					}
 
-					const moveLeftCount = cleanPrompt.length + commandBuffer.length - (cleanPrompt.length + cursorPosition);
-					if (moveLeftCount > 0) {
-						terminalInstance.current.write(`\x1b[${moveLeftCount}D`);
+					// Clear existing lines
+					const linesToClear = Math.max(currentRow, totalLines);
+					for (let i = 0; i < linesToClear; i++) {
+						term.write('\x1b[2K'); // Clear line
+						if (i < linesToClear - 1) {
+							term.write('\x1b[E'); // Move to beginning of next line (down + CR)
+						}
 					}
+
+					// Move back to start
+					if (linesToClear > 1) {
+						term.write(`\x1b[${linesToClear - 1}A\r`);
+					} else {
+						term.write('\r');
+					}
+
+					// Render content
+					let bufferOffset = 0;
+					for (let lineNum = 0; lineNum < totalLines; lineNum++) {
+						if (lineNum === 0) {
+							// First line: prompt + beginning of command
+							const spaceForCommand = cols - cleanPrompt.length;
+							const commandSlice = commandBuffer.substring(0, spaceForCommand);
+							term.write(rawPrompt + commandSlice);
+							bufferOffset = spaceForCommand;
+						} else {
+							// Continuation lines: just command text
+							const commandSlice = commandBuffer.substring(bufferOffset, bufferOffset + cols);
+							term.write(commandSlice);
+							bufferOffset += cols;
+						}
+
+						if (lineNum < totalLines - 1) {
+							term.write('\x1b[E'); // Move to beginning of next line
+						}
+					}
+
+					// Position cursor at the correct location
+					const cursorTotalOffset = cleanPrompt.length + cursorPosition;
+					const cursorRow = Math.floor(cursorTotalOffset / cols);
+					const cursorCol = cursorTotalOffset % cols;
+
+					// Move up if needed (we're currently at the last line)
+					const rowsToMoveUp = totalLines - 1 - cursorRow;
+					if (rowsToMoveUp > 0) {
+						term.write(`\x1b[${rowsToMoveUp}A`);
+					}
+
+					// Move to column
+					term.write('\r');
+					if (cursorCol > 0) {
+						term.write(`\x1b[${cursorCol}C`);
+					}
+
+					currentRowRef.current = totalLines;
+					isCurrentlyWrappedRef.current = totalLines > 1;
 				};
+
+				// Store reference so it can be called on resize
+				refreshLineRef.current = refreshLine;
 
 				terminalInstance.current.onData(async (data: string) => {
 					if (loadingRef.current) return;
@@ -261,25 +364,25 @@ function ConsoleInstance(props: {
 						switch (data) {
 							case '\x1b[A' /* Up */:
 								historyIndex = Math.max(0, historyIndex - 1);
-								commandBuffer = commandHistory[historyIndex] || '';
-								cursorPosition = commandBuffer.length;
+								commandBufferRef.current = commandHistory[historyIndex] || '';
+								cursorPositionRef.current = commandBufferRef.current.length;
 								refreshLine();
 								return;
 							case '\x1b[B' /* Down */:
 								historyIndex = Math.min(commandHistory.length, historyIndex + 1);
-								commandBuffer = commandHistory[historyIndex] || '';
-								cursorPosition = commandBuffer.length;
+								commandBufferRef.current = commandHistory[historyIndex] || '';
+								cursorPositionRef.current = commandBufferRef.current.length;
 								refreshLine();
 								return;
 							case '\x1b[D' /* Left */:
-								if (cursorPosition > 0) {
-									cursorPosition--;
+								if (cursorPositionRef.current > 0) {
+									cursorPositionRef.current--;
 									refreshLine();
 								}
 								return;
 							case '\x1b[C' /* Right */:
-								if (cursorPosition < commandBuffer.length) {
-									cursorPosition++;
+								if (cursorPositionRef.current < commandBufferRef.current.length) {
+									cursorPositionRef.current++;
 									refreshLine();
 								}
 								return;
@@ -296,35 +399,28 @@ function ConsoleInstance(props: {
 							await sendMessage(null, 'prompt');
 							return;
 						} else {
-							if (commandBuffer.trim()) {
-								commandHistory.push(commandBuffer.trim());
+							if (commandBufferRef.current.trim()) {
+								terminalInstance.current.write(`\r\x1b[2K\x1b[90m${commandBufferRef.current}\x1b[0m\r\n`);
+								commandHistory.push(commandBufferRef.current.trim());
 								historyIndex = commandHistory.length;
-								await resolveCommand(commandBuffer);
+								await resolveCommand(commandBufferRef.current);
 							} else {
 								terminalInstance.current.write(`\r\n${promptRef.current}`);
 							}
-							commandBuffer = '';
-							cursorPosition = 0;
-							currentRow = 1;
-							isCurrentlyWrapped = false;
+							commandBufferRef.current = '';
+							cursorPositionRef.current = 0;
+							currentRowRef.current = 1;
+							isCurrentlyWrappedRef.current = false;
 							return;
 						}
 					}
 
 					if (data === '\u007F') {
-						if (cursorPosition > 0) {
-							commandBuffer = commandBuffer.slice(0, cursorPosition - 1) + commandBuffer.slice(cursorPosition);
-							cursorPosition--;
-
-							const rawPrompt = promptRef.current;
-							const cleanPrompt = stripAnsi(rawPrompt);
-							const cols = terminalInstance.current.cols;
-							const totalLength = cleanPrompt.length + commandBuffer.length;
-
-							const newRow = Math.floor(totalLength / cols);
-							currentRow = newRow + 1;
-							isCurrentlyWrapped = totalLength > cols;
-
+						if (cursorPositionRef.current > 0) {
+							commandBufferRef.current =
+								commandBufferRef.current.slice(0, cursorPositionRef.current - 1) +
+								commandBufferRef.current.slice(cursorPositionRef.current);
+							cursorPositionRef.current--;
 							refreshLine();
 						}
 						return;
@@ -332,35 +428,21 @@ function ConsoleInstance(props: {
 
 					/* Insert */
 					if (hasConnectedRef.current) {
-						commandBuffer = commandBuffer.slice(0, cursorPosition) + data + commandBuffer.slice(cursorPosition);
-						cursorPosition++;
-
-						const rawPrompt = promptRef.current;
-						const cleanPrompt = stripAnsi(rawPrompt);
-						const hasWrapped = cleanPrompt.length + commandBuffer.length > terminalInstance.current.cols * currentRow;
-
-						if (hasWrapped) {
-							const combined = cleanPrompt + commandBuffer;
-							const currentLine = combined.substring(terminalInstance.current.cols * currentRow);
-
-							terminalInstance.current.write(`\r\n${currentLine}`);
-
-							currentRow++;
-							isCurrentlyWrapped = true;
-
-							return;
-						} else refreshLine();
+						commandBufferRef.current =
+							commandBufferRef.current.slice(0, cursorPositionRef.current) +
+							data +
+							commandBufferRef.current.slice(cursorPositionRef.current);
+						cursorPositionRef.current++;
+						refreshLine();
 					}
 				});
 			}
 		})();
 
 		return () => {
-			if (terminalInstance.current) {
-				terminalInstance.current.dispose();
-			}
+			// Don't dispose terminal instance - keep it alive for tab switching
 		};
-	}, [props.active, inputProcessId, permawebProvider.libs]);
+	}, [inputProcessId, txResponse, arProvider.wallet]);
 
 	function stripAnsi(input: string): string {
 		return input.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
@@ -379,7 +461,7 @@ function ConsoleInstance(props: {
 	}, [arProvider.walletAddress, txResponse]);
 
 	React.useEffect(() => {
-		if (!showResults || !hasConnected) return;
+		if (!showResults || !hasConnected || !logsRef.current) return;
 
 		if (!logsInstance.current) {
 			logsInstance.current = new Terminal({
@@ -439,7 +521,14 @@ function ConsoleInstance(props: {
 				}
 
 				try {
-					const results = await permawebProvider.deps.ao.results(args);
+					const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
+
+					const deps = resolveLibDeps({
+						variant: variant,
+						permawebProvider: permawebProvider,
+					});
+
+					const results = await deps.ao.results(args);
 
 					if (results?.edges?.length) {
 						const newEdges = results.edges
@@ -527,18 +616,30 @@ function ConsoleInstance(props: {
 	}
 
 	async function sendMessage(data: string | null, outputType?: 'data' | 'prompt') {
-		if (terminalInstance.current) {
+		if (terminalInstance.current && txResponse) {
 			startLoader();
 
 			try {
-				const message = await permawebProvider.libs.sendMessage({
+				const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
+
+				const deps = resolveLibDeps({
+					variant: variant,
+					permawebProvider: permawebProvider,
+				});
+
+				const libs = resolveLibs({
+					variant: variant,
+					permawebProvider: permawebProvider,
+				});
+
+				const message = await libs.sendMessage({
 					processId: inputProcessId,
 					action: 'Eval',
 					data: data ?? '',
 					useRawData: true,
 				});
 
-				const response = await permawebProvider.deps.ao.result({
+				const response = await deps.ao.result({
 					process: inputProcessId,
 					message: message,
 				});
@@ -574,6 +675,7 @@ function ConsoleInstance(props: {
 							terminalInstance.current.write(line + '\r\n');
 						}
 					});
+					terminalInstance.current.write('\r\n');
 				}
 
 				const newPrompt = response?.Output?.prompt ?? promptRef.current;
@@ -582,6 +684,7 @@ function ConsoleInstance(props: {
 				terminalInstance.current.write('\r');
 				terminalInstance.current.write(newPrompt);
 			} catch (e: any) {
+				console.error(e);
 				stopLoader();
 				terminalInstance.current.write(prompt);
 			}
@@ -591,8 +694,8 @@ function ConsoleInstance(props: {
 	function getTheme(currentTheme: DefaultTheme, args?: { useAltBackground?: boolean }) {
 		return {
 			background: args?.useAltBackground
-				? currentTheme.colors.container.alt1.background
-				: currentTheme.colors.view.background,
+				? currentTheme.colors.view.background
+				: currentTheme.colors.container.alt1.background,
 			foreground: currentTheme.colors.font.primary,
 			cursor: currentTheme.colors.font.alt2,
 			cursorAccent: currentTheme.colors.font.alt4,
@@ -634,7 +737,7 @@ function ConsoleInstance(props: {
 	function startLoader() {
 		setLoadingMessage(true);
 		loadingRef.current = true;
-		terminalInstance.current.write('\n');
+		terminalInstance.current.write('\r\n');
 		hideCursor();
 		spinnerInterval = setInterval(() => {
 			clearLine();
@@ -759,45 +862,55 @@ function ConsoleInstance(props: {
 
 		return (
 			<S.ConsoleWrapper editorMode={editorMode}>
-				<S.Console className={'border-wrapper-alt1 scroll-wrapper'} ref={terminalRef} />
-				{hasConnected && showResults && <S.Console className={'border-wrapper-alt1 scroll-wrapper'} ref={logsRef} />}
-				<S.ActionsWrapper fullScreenMode={fullScreenMode}>
-					<IconButton
-						type={'alt1'}
-						src={showResults ? ASSETS.arrowRight : ASSETS.arrowLeft}
-						handlePress={() => setShowResults((prev) => !prev)}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
-						disabled={!hasConnected}
-						tooltip={showResults ? language.hideResults : language.showResults}
-						tooltipPosition={'top-right'}
-					/>
-					<IconButton
-						type={'alt1'}
-						src={ASSETS.code}
-						handlePress={() => setEditorMode((prev) => !prev)}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
-						disabled={!hasConnected}
-						tooltip={editorMode ? language.closeEditor : language.openEditor}
-						tooltipPosition={'top-right'}
-					/>
-					<IconButton
-						type={'alt1'}
-						src={ASSETS.fullscreen}
-						handlePress={toggleFullscreen}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
-						tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
-						tooltipPosition={'top-right'}
-					/>
-				</S.ActionsWrapper>
+				{txResponse ? (
+					<>
+						<S.Console className={'border-wrapper-alt3 scroll-wrapper'} ref={terminalRef} />
+						{hasConnected && showResults && (
+							<S.Console className={'border-wrapper-alt3 scroll-wrapper'} ref={logsRef} />
+						)}
+						<S.ActionsWrapper fullScreenMode={fullScreenMode}>
+							<IconButton
+								type={'alt1'}
+								src={showResults ? ASSETS.arrowRight : ASSETS.arrowLeft}
+								handlePress={() => setShowResults((prev) => !prev)}
+								dimensions={{
+									wrapper: 25,
+									icon: 12.5,
+								}}
+								disabled={!hasConnected}
+								tooltip={showResults ? language.hideResults : language.showResults}
+								tooltipPosition={'top-right'}
+							/>
+							<IconButton
+								type={'alt1'}
+								src={ASSETS.code}
+								handlePress={() => setEditorMode((prev) => !prev)}
+								dimensions={{
+									wrapper: 25,
+									icon: 12.5,
+								}}
+								disabled={!hasConnected}
+								tooltip={editorMode ? language.closeEditor : language.openEditor}
+								tooltipPosition={'top-right'}
+							/>
+							<IconButton
+								type={'alt1'}
+								src={ASSETS.fullscreen}
+								handlePress={toggleFullscreen}
+								dimensions={{
+									wrapper: 25,
+									icon: 12.5,
+								}}
+								tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+								tooltipPosition={'top-right'}
+							/>
+						</S.ActionsWrapper>
+					</>
+				) : (
+					<S.LoadingWrapper className={'border-wrapper-alt2'}>
+						<Loader sm relative />
+					</S.LoadingWrapper>
+				)}
 			</S.ConsoleWrapper>
 		);
 	}
