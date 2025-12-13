@@ -11,6 +11,7 @@ const GraphQL = getLazyImport('GraphQL');
 const Docs = getLazyImport('Docs');
 const NotFound = getLazyImport('NotFound');
 
+import { Loader } from 'components/atoms/Loader';
 import { DOM, LINKS, URLS } from 'helpers/config';
 import { Navigation } from 'navigation/Navigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -108,7 +109,7 @@ export default function App() {
 			<div id={DOM.loader} />
 			<div id={DOM.notification} />
 			<div id={DOM.overlay} />
-			<Suspense fallback={null}>
+			<Suspense fallback={<Loader />}>
 				<S.App>
 					<Routes>
 						{getRoute(URLS.base, <Landing />)}
