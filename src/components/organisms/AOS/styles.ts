@@ -39,7 +39,7 @@ export const ResultsWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
-	padding: 5px 0 0 0;
+	padding: 5px 5px 0 0;
 
 	.result-command {
 		width: fit-content;
@@ -59,7 +59,7 @@ export const ResultsWrapper = styled.div`
 
 	.result-loading {
 		font-family: ${(props) => props.theme.typography.family.primary};
-		color: ${(props) => props.theme.colors.font.alt2};
+		color: ${(props) => props.theme.colors.font.alt1};
 	}
 
 	.result-success {
@@ -408,7 +408,7 @@ export const LoadWrapper = styled(ActionsWrapper)`
 	right: ${(props) => (props.fullScreenMode ? '42.5px' : '27.5px')};
 `;
 
-export const PanelContent = styled.div`
+export const PanelContent = styled.form`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;

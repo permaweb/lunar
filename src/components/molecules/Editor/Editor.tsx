@@ -54,8 +54,6 @@ export default function _Editor(props: {
 			{ token: 'string.key.json', foreground: strip(theme.colors.editor.primary) },
 			{ token: 'string.value.json', foreground: strip(theme.colors.editor.alt1) },
 			{ token: 'comment', foreground: strip(theme.colors.editor.alt10) },
-			{ token: 'identifier', foreground: strip(theme.colors.editor.primary) },
-			{ token: 'type.identifier', foreground: strip(theme.colors.editor.primary) },
 			{ token: 'delimiter', foreground: strip(theme.colors.editor.alt1) },
 			{ token: 'operator', foreground: strip(theme.colors.editor.alt8) },
 			{ token: 'variable', foreground: strip(theme.colors.editor.alt4) },

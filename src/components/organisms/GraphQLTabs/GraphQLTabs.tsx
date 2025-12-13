@@ -1,6 +1,5 @@
 import React from 'react';
 import { ReactSVG } from 'react-svg';
-import { useTheme } from 'styled-components';
 
 import { ViewWrapper } from 'app/styles';
 import { Button } from 'components/atoms/Button';
@@ -23,8 +22,6 @@ type GraphQLTabType = {
 };
 
 export default function GraphQLTabs() {
-	const theme = useTheme();
-
 	const tabsRef = React.useRef<HTMLDivElement>(null);
 
 	const storageKey = 'graphql-tabs';
@@ -79,26 +76,6 @@ export default function GraphQLTabs() {
 		})();
 		return new Set([initialActiveIndex]);
 	});
-
-	React.useEffect(() => {
-		const header = document.getElementById('navigation-header');
-		if (header) {
-			header.style.background = theme.colors.container.alt1.background;
-			header.style.position = 'relative';
-			header.style.boxShadow = `inset 0px 6px 6px -6px ${theme.colors.shadow.primary}`;
-			header.style.borderTop = `0.5px solid ${theme.colors.border.primary}`;
-			header.style.borderBottom = 'none';
-		}
-
-		return () => {
-			if (header) {
-				header.style.background = '';
-				header.style.position = 'sticky';
-				header.style.boxShadow = 'none';
-				header.style.borderTop = 'none';
-			}
-		};
-	}, [theme]);
 
 	React.useEffect(() => {
 		const el = tabsRef.current;
