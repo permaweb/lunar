@@ -263,11 +263,12 @@ export const C1Wrapper = styled.div`
 `;
 
 export const LogoWrapper = styled.div`
+	height: 30px;
+	width: 30px;
 	svg {
 		height: 30px;
 		width: 30px;
 		padding: 2.5px 0 0 0;
-		margin: 5.5px 0 0 0;
 		color: ${(props) => props.theme.colors.icon.alt2.fill};
 		fill: ${(props) => props.theme.colors.icon.alt2.fill};
 		&:hover {

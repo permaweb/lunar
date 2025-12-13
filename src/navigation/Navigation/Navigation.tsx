@@ -51,7 +51,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 			{
 				path: URLS.graphql,
 				icon: ASSETS.code,
-				label: 'GraphQL',
+				label: language.graphql,
 			},
 		];
 	}, []);
