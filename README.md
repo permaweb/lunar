@@ -21,4 +21,4 @@ Run the development server:
 
 `npm run start:development`
 
-This will launch the app locally at http://localhost:4000. Port configurations can be modified in `package.json` and `webpack.config.js`
+This will launch the app locally at http://localhost:3000. Port configurations can be modified in `package.json` and `vite.config.js`

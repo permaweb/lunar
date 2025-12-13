@@ -3,7 +3,6 @@ import path from 'path';
 import polyfillNode from 'rollup-plugin-polyfill-node';
 import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig({
 	plugins: [
@@ -11,7 +10,6 @@ export default defineConfig({
 			protocolImports: true,
 		}),
 		react(),
-		viteSingleFile(),
 	],
 	resolve: {
 		alias: {
@@ -51,9 +49,49 @@ export default defineConfig({
 	},
 	build: {
 		outDir: 'dist',
-		sourcemap: process.env.NODE_ENV !== 'production',
+		sourcemap: false,
 		rollupOptions: {
-			plugins: [polyfillNode()],
+			plugins: [
+				polyfillNode(),
+				{
+					name: 'copy-service-worker',
+					writeBundle() {
+						const fs = require('fs');
+						const swPath = path.resolve(__dirname, 'public/service-worker.js');
+						const outPath = path.resolve(__dirname, 'dist/service-worker.js');
+						if (fs.existsSync(swPath)) {
+							fs.copyFileSync(swPath, outPath);
+							console.log('Service worker copied to dist');
+						}
+					},
+				},
+			],
+			output: {
+				manualChunks: (id: string) => {
+					if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+						return 'vendor';
+					}
+					if (id.includes('@permaweb/aoconnect')) {
+						return 'ao-connect';
+					}
+					if (id.includes('@permaweb/libs') || id.includes('arweave')) {
+						return 'permaweb-libs';
+					}
+					if (id.includes('@stripe/')) {
+						return 'stripe';
+					}
+					if (
+						id.includes('html-react-parser') ||
+						id.includes('react-markdown') ||
+						id.includes('react-svg') ||
+						id.includes('webfontloader')
+					) {
+						return 'utils';
+					}
+
+					return undefined;
+				},
+			},
 		},
 	},
 	server: {
