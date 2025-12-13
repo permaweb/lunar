@@ -56,10 +56,14 @@ export const InputFormWrapper = styled.div`
 	}
 `;
 
-export const GatewaysWrapper = styled.div`
+export const ActionsWrapper = styled.div`
 	display: flex;
 	gap: 10px;
-	align-items: flex-start;
+	align-items: center;
+
+	button {
+		border-radius: ${STYLING.dimensions.radius.alt2} !important;
+	}
 `;
 
 export const GatewaysLabel = styled.div`
@@ -110,7 +114,7 @@ export const EditorWrapper = styled.div<{ showVariables?: boolean }>`
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	gap: ${(props) => (props.showVariables ? '15px' : '0')};
+	gap: ${(props) => (props.showVariables ? '25px' : '0')};
 `;
 
 export const QueryEditorWrapper = styled.div<{ showVariables?: boolean }>`
@@ -135,7 +139,7 @@ export const ResultWrapper = styled.div`
 	> * {
 		&:first-child {
 			height: 100%;
-			overflow: auto;
+			/* overflow: auto; */
 		}
 	}
 `;

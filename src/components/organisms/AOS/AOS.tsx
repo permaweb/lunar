@@ -7,6 +7,7 @@ import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { Loader } from 'components/atoms/Loader';
+import { Panel } from 'components/atoms/Panel';
 import { Editor } from 'components/molecules/Editor';
 import { AO_NODE, ASSETS, TAGS } from 'helpers/config';
 import { MessageVariantEnum } from 'helpers/types';
@@ -108,8 +109,10 @@ function AOS(props: {
 	const [fullScreenMode, setFullScreenMode] = React.useState<boolean>(false);
 	const [editorMode, setEditorMode] = React.useState<boolean>(true);
 	const [editorData, setEditorData] = React.useState<string>('');
-	const [loadingOptions, setLoadingOptions] = React.useState<boolean>(false);
+	const [loading, setLoading] = React.useState<boolean>(false);
 	const [txOptions, setTxOptions] = React.useState<Types.GQLNodeResponseType[] | null>(null);
+	const [showCreatePanel, setShowCreatePanel] = React.useState<boolean>(false);
+	const [processName, setProcessName] = React.useState<string>('');
 	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
 	const [cursorHistory, setCursorHistory] = React.useState<string[]>([]);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
@@ -231,25 +234,27 @@ function AOS(props: {
 		(async function () {
 			if (props.active) {
 				if (inputProcessId && checkValidAddress(inputProcessId)) {
-					setLoadingTx(true);
-					try {
-						const response = await permawebProvider.libs.getGQLData({ ids: [inputProcessId] });
-						const responseData = response?.data?.[0];
+					if (!txResponse) {
+						setLoadingTx(true);
+						try {
+							const response = await permawebProvider.libs.getGQLData({ ids: [inputProcessId] });
+							const responseData = response?.data?.[0];
 
-						setTxResponse(responseData ?? null);
+							setTxResponse(responseData ?? null);
 
-						if (responseData) {
-							if (props.onTxChange) props.onTxChange(responseData);
-						} else {
-							setError(language.txNotFound);
+							if (responseData) {
+								if (props.onTxChange) props.onTxChange(responseData);
+							} else {
+								setError(language.txNotFound);
+							}
+						} catch (e: any) {
+							setError(e.message ?? language.errorFetchingTx);
 						}
-					} catch (e: any) {
-						setError(e.message ?? language.errorFetchingTx);
+						setLoadingTx(false);
 					}
-					setLoadingTx(false);
 				} else {
 					if (arProvider.walletAddress) {
-						setLoadingOptions(true);
+						setLoading(true);
 						try {
 							const gqlResponse = await permawebProvider.libs.getGQLData({
 								owners: [arProvider.walletAddress],
@@ -263,7 +268,7 @@ function AOS(props: {
 						} catch (e: any) {
 							setError(e.message ?? language.errorOccurred);
 						}
-						setLoadingOptions(false);
+						setLoading(false);
 					}
 				}
 			}
@@ -432,6 +437,53 @@ function AOS(props: {
 		[inputValue, hasConnected, historyIndex, commandHistory, inputProcessId, prompt, addResultLine]
 	);
 
+	async function handleSearchProcessId(value: string) {
+		setLoading(true);
+		await new Promise((r) => setTimeout(r, 500));
+		setInputProcessId(value);
+		setLoading(false);
+	}
+
+	async function handleSpawnProcess() {
+		if (arProvider.walletAddress && processName.trim()) {
+			setLoading(true);
+			setShowCreatePanel(false);
+			const name = processName.trim();
+
+			try {
+				const processId = await permawebProvider.libsMainnet.createProcess({
+					tags: [{ name: 'Name', value: name }],
+				});
+
+				setInputProcessId(processId);
+
+				const updatedTx: any = {
+					node: {
+						id: processId,
+						tags: [
+							{ name: 'Type', value: 'Process' },
+							{ name: 'Variant', value: MessageVariantEnum.Mainnet },
+							{ name: 'Scheduler', value: AO_NODE.scheduler },
+							{ name: 'Name', value: name },
+						],
+						owner: {
+							address: arProvider.walletAddress,
+						},
+					},
+				};
+
+				if (props.onTxChange) props.onTxChange(updatedTx);
+
+				setTxResponse(updatedTx);
+				setShowCreatePanel(false);
+				setProcessName('');
+			} catch (e: any) {
+				console.error(e);
+			}
+			setLoading(false);
+		}
+	}
+
 	async function resolveCommand(data: string | null) {
 		if (data && data.startsWith('.')) {
 			const command = data.substring(1);
@@ -551,81 +603,122 @@ function AOS(props: {
 		return props.active ? <WalletBlock /> : null;
 	}
 
-	if (!inputProcessId) {
+	if (!inputProcessId || !checkValidAddress(inputProcessId)) {
 		return (
-			<S.Wrapper ref={wrapperRef} fullScreenMode={false} useFixedHeight={false}>
-				<S.ConsoleWrapper editorMode={false}>
-					<S.OptionsWrapper className={'border-wrapper-alt1 scroll-wrapper'}>
-						<S.OptionsHeader>
-							<p>{language.connectToAOS}</p>
-							{(loadingTx || loadingOptions) && <span>{`${language.loading}...`}</span>}
-						</S.OptionsHeader>
-						<S.OptionsInput>
-							<FormField
-								value={inputProcessId}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputProcessId(e.target.value)}
-								placeholder={language.processId}
-								invalid={{ status: inputProcessId ? !checkValidAddress(inputProcessId) : false, message: null }}
-								disabled={loadingTx}
-								hideErrorMessage
-								sm
-							/>
-						</S.OptionsInput>
-						{loadingOptions && !txOptions ? (
-							<S.OptionsLoader>
-								<Loader sm relative />
-							</S.OptionsLoader>
-						) : (
-							<>
-								{txOptions && (
-									<>
-										<S.OptionsHeader>
-											<p>{language.yourProcesses}</p>
-										</S.OptionsHeader>
-										<S.Options>
-											{txOptions.map((tx: Types.GQLNodeResponseType, index: number) => {
-												const name = getTagValue(tx.node.tags, 'Name');
-												return (
-													<Button
-														key={index}
-														type={'primary'}
-														label={`${name ?? formatAddress(tx.node.id, false)} (${getTagValue(
-															tx.node.tags,
-															'Variant'
-														)})`}
-														handlePress={() => setInputProcessId(tx.node.id)}
-														disabled={loadingOptions}
-														height={42.5}
-														fullWidth
-													/>
-												);
-											})}
-										</S.Options>
-										<S.OptionsPaginator>
-											<Button
-												type={'alt3'}
-												label={language.previous}
-												handlePress={handlePrevious}
-												disabled={cursorHistory.length === 0 || loadingOptions}
-											/>
-											<Button
-												type={'alt3'}
-												label={language.next}
-												handlePress={handleNext}
-												disabled={!nextCursor || loadingOptions}
-											/>
-										</S.OptionsPaginator>
-									</>
-								)}
-							</>
-						)}
-					</S.OptionsWrapper>
-				</S.ConsoleWrapper>
-			</S.Wrapper>
+			<>
+				<S.Wrapper ref={wrapperRef} fullScreenMode={false} useFixedHeight={false}>
+					<S.ConsoleWrapper editorMode={false}>
+						<S.OptionsWrapper className={'border-wrapper-alt1'}>
+							<S.OptionsHeader>
+								<p>{language.connectToAOS}</p>
+							</S.OptionsHeader>
+							<S.OptionsCreate>
+								<Button
+									type={'alt1'}
+									label={language.createNewProcess}
+									handlePress={() => setShowCreatePanel(true)}
+									disabled={loading}
+									height={42.5}
+									fullWidth
+								/>
+							</S.OptionsCreate>
+							<S.OptionsDivider>
+								<div className={'aos-options-divider'} />
+								<span>Or</span>
+								<div className={'aos-options-divider'} />
+							</S.OptionsDivider>
+							<S.OptionsInput>
+								<FormField
+									value={inputProcessId}
+									onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchProcessId(e.target.value)}
+									placeholder={loadingTx || loading ? `${language.loading}...` : language.searchProcessId}
+									invalid={{ status: inputProcessId ? !checkValidAddress(inputProcessId) : false, message: null }}
+									disabled={loadingTx || loading}
+									hideErrorMessage
+									sm
+								/>
+							</S.OptionsInput>
+							{loading && !txOptions ? (
+								<S.OptionsLoader>
+									<Loader sm relative />
+								</S.OptionsLoader>
+							) : (
+								<>
+									{txOptions && (
+										<>
+											<S.Options className={'scroll-wrapper'}>
+												{txOptions.map((tx: Types.GQLNodeResponseType, index: number) => {
+													const name = getTagValue(tx.node.tags, 'Name');
+													return (
+														<Button
+															key={index}
+															type={'primary'}
+															label={`${name ?? formatAddress(tx.node.id, false)} (${getTagValue(
+																tx.node.tags,
+																'Variant'
+															)})`}
+															handlePress={() => setInputProcessId(tx.node.id)}
+															disabled={loading}
+															height={42.5}
+															fullWidth
+														/>
+													);
+												})}
+											</S.Options>
+											<S.OptionsPaginator>
+												<Button
+													type={'alt3'}
+													label={language.previous}
+													handlePress={handlePrevious}
+													disabled={cursorHistory.length === 0 || loading}
+												/>
+												<Button
+													type={'alt3'}
+													label={language.next}
+													handlePress={handleNext}
+													disabled={!nextCursor || loading}
+												/>
+											</S.OptionsPaginator>
+										</>
+									)}
+								</>
+							)}
+						</S.OptionsWrapper>
+					</S.ConsoleWrapper>
+				</S.Wrapper>
+				<Panel
+					open={showCreatePanel}
+					width={550}
+					handleClose={() => {
+						setShowCreatePanel(false);
+						setProcessName('');
+					}}
+					header={language.createNewProcess}
+				>
+					<S.PanelContent className={'modal-wrapper'}>
+						<FormField
+							label={language.processName || 'Process Name'}
+							value={processName}
+							onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProcessName(e.target.value)}
+							placeholder={language.enterProcessName || 'Enter Process Name'}
+							invalid={{ status: false, message: null }}
+							disabled={loading}
+						/>
+						<Button
+							type={'alt1'}
+							label={loading ? `${language.creatingProcess}...` : language.create}
+							handlePress={handleSpawnProcess}
+							disabled={loading || !processName.trim()}
+							height={42.5}
+							fullWidth
+						/>
+					</S.PanelContent>
+				</Panel>
+			</>
 		);
 	}
 
-	if (!txResponse || !hasConnected) {
+	if (checkValidAddress(inputProcessId) && (!txResponse || !hasConnected)) {
 		return (
 			<S.Wrapper ref={wrapperRef} fullScreenMode={false} useFixedHeight={false}>
 				<S.LoadingWrapper className={'fade-in border-wrapper-alt3'}>
