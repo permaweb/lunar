@@ -319,15 +319,16 @@ export default function GraphQLPlayground(props: {
 						}}
 						tooltip={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
 					/>
+				</S.InputWrapper>
+				<S.ActionsWrapper>
 					<Button
 						type={'primary'}
 						label={language.queryVariables}
 						handlePress={() => setShowVariables((prev) => !prev)}
 						active={showVariables}
 						icon={showVariables ? ASSETS.close : null}
+						height={36.5}
 					/>
-				</S.InputWrapper>
-				<S.GatewaysWrapper>
 					<Select
 						label={''}
 						activeOption={activeGatewayOption}
@@ -338,7 +339,7 @@ export default function GraphQLPlayground(props: {
 						options={gatewayOptions}
 						disabled={false}
 					/>
-				</S.GatewaysWrapper>
+				</S.ActionsWrapper>
 			</S.HeaderWrapper>
 			<S.Container isFullscreen={isFullscreen}>
 				<S.EditorWrapper showVariables={showVariables}>

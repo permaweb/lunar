@@ -264,13 +264,20 @@ export default function _JSONTree(props: {
 			);
 		};
 
-		return <S.JSONViewerRoot>{renderValue(data, undefined, true)}</S.JSONViewerRoot>;
+		return (
+			<S.JSONViewerRoot
+				fullScreenMode={fullScreenMode}
+				maxHeight={!fullScreenMode ? props.maxHeight : undefined}
+				className={'scroll-wrapper'}
+			>
+				{renderValue(data, undefined, true)}
+			</S.JSONViewerRoot>
+		);
 	};
 
 	return (
 		<S.Wrapper
-			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}scroll-wrapper`}
-			maxHeight={props.maxHeight}
+			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}`}
 			noWrapper={props.noWrapper && !fullScreenMode}
 			ref={readerRef}
 		>

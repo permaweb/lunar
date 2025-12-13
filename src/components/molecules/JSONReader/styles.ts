@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
-export const Wrapper = styled.div<{ maxHeight?: number; noWrapper?: boolean }>`
-	max-height: ${(props) => (props.maxHeight ? `${props.maxHeight.toString()}px` : 'none')};
+export const Wrapper = styled.div<{ noWrapper?: boolean }>`
 	padding: ${(props) => (props.noWrapper ? '0' : '10px 15px 15px 15px')};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -54,7 +53,10 @@ export const ActionsWrapper = styled.div`
 	}
 `;
 
-export const JSONViewerRoot = styled.div`
+export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight: number }>`
+	height: 100%;
+	max-height: ${(props) => (props.maxHeight ? `${props.maxHeight.toString()}px` : 'none')};
+	padding: ${(props) => (props.fullScreenMode ? '0 0 35px 0' : '0 0 35px 0')};
 	margin: 10px 0 0 0;
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};

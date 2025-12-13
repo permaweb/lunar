@@ -63,7 +63,7 @@ export const ResultsWrapper = styled.div`
 	}
 
 	.result-success {
-		letter-spacing: -0.25px;
+		letter-spacing: -0.35px;
 		font-family: ${(props) => props.theme.typography.family.alt2};
 		color: ${(props) => props.theme.colors.font.primary};
 	}
@@ -161,7 +161,7 @@ export const SplashScreenLine = styled.div`
 	span {
 		font-family: ${(props) => props.theme.typography.family.alt2};
 		color: ${(props) => props.theme.colors.editor.alt1};
-		letter-spacing: -0.25px;
+		letter-spacing: -0.5px;
 	}
 
 	p {
@@ -186,7 +186,7 @@ export const InputWrapper = styled.div<{ disabled: boolean }>`
 		props.disabled
 			? props.theme.colors.button.primary.disabled.background
 			: props.theme.colors.container.alt1.background} !important;
-	border: 1px solid ${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt2)} !important;
+	border: 1px solid ${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt1)} !important;
 	position: relative;
 	transition: border-color 100ms ease;
 	cursor: text;
@@ -249,7 +249,7 @@ export const InputActionsSection = styled.div`
 
 export const OptionsWrapper = styled.div`
 	height: fit-content;
-	max-height: calc(100% - 130px);
+	max-height: calc(100% - 30px);
 	width: 450px;
 	max-width: 90vw;
 	display: flex;
@@ -258,20 +258,22 @@ export const OptionsWrapper = styled.div`
 	margin: 0 auto;
 	position: relative;
 	top: 20px;
-	padding: 20px 15px 20px 30px;
-	overflow: scroll;
+	padding: 17.5px;
 `;
 
 export const OptionsHeader = styled.div`
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: center;
+	margin: 10px 0 12.5px 0;
+
 	p {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.medium};
-		color: ${(props) => props.theme.colors.font.alt1};
+		font-size: ${(props) => props.theme.typography.size.base};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
 		text-transform: uppercase;
+		text-align: center;
 	}
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -282,7 +284,7 @@ export const OptionsHeader = styled.div`
 `;
 
 export const OptionsCreate = styled.div`
-	margin: 0 0 15px 0;
+	margin: 0 0 2.5px 0;
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.alt2} !important;
@@ -292,14 +294,41 @@ export const OptionsCreate = styled.div`
 	}
 `;
 
+export const OptionsDivider = styled.div`
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 12.5px;
+	margin: 1.5px 0;
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		color: ${(props) => props.theme.colors.font.alt1};
+		text-transform: uppercase;
+	}
+
+	.aos-options-divider {
+		height: 1px;
+		flex: 1;
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	}
+`;
+
 export const OptionsInput = styled.div`
-	margin: 0 0 15px 0;
+	margin: 0 0 2.5px 0;
+
+	input {
+		height: 42.5px !important;
+	}
 `;
 
 export const Options = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 15px;
+	padding: 0 2.5px 0 0;
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.primary} !important;
@@ -377,4 +406,11 @@ export const LoadWrapper = styled(ActionsWrapper)`
 	right: 27.5px;
 	bottom: ${(props) => (props.fullScreenMode ? '30px' : '20px')};
 	right: ${(props) => (props.fullScreenMode ? '42.5px' : '27.5px')};
+`;
+
+export const PanelContent = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 20px 0;
 `;

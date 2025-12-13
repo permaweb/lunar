@@ -166,7 +166,7 @@ export const GlobalStyle = createGlobalStyle`
   .border-wrapper-alt1 {
     background: ${(props) => props.theme.colors.container.primary.background};
     box-shadow: 0 3.5px 7.5px 0 ${(props) => props.theme.colors.shadow.primary};
-    border: 1px solid ${(props) => props.theme.colors.border.alt1};
+    border: 1px solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
   }
 
@@ -184,7 +184,7 @@ export const GlobalStyle = createGlobalStyle`
 
 	.border-wrapper-alt4 {
     background: ${(props) => props.theme.colors.container.primary.background};
-    border: 1px solid ${(props) => props.theme.colors.border.alt1};
+    border: 1px solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
   }
 
@@ -206,6 +206,7 @@ export const GlobalStyle = createGlobalStyle`
     animation: ${open} ${transition2};
     span {
       color: ${(props) => props.theme.colors.contrast.color};
+      font-family: ${(props) => props.theme.typography.family.primary};
       font-size: ${(props) => props.theme.typography.size.xxxxSmall};
       font-weight: ${(props) => props.theme.typography.weight.bold};
       white-space: nowrap;
@@ -273,6 +274,12 @@ export const GlobalStyle = createGlobalStyle`
     ::-webkit-scrollbar-thumb {
       background-color: transparent;
     }
+
+		scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} transparent;
+
+		::-webkit-scrollbar-thumb {
+			background-color: ${(props) => props.theme.colors.scrollbar.thumb};
+		}
 
     &:hover {
       scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} transparent;
