@@ -22,7 +22,7 @@ export default function Landing() {
 
 		const handleScroll = () => {
 			if (window.scrollY > 0) {
-				header.style.borderBottom = `1px solid ${theme.colors.border.primary}`;
+				header.style.borderBottom = `1px solid ${theme.colors.border.alt2}`;
 			} else {
 				header.style.borderBottom = 'none';
 			}

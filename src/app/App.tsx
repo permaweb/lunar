@@ -38,6 +38,7 @@ export default function App() {
 
 	const { settings, updateSettings } = useSettingsProvider();
 
+	const hasHiddenLoaderRef = React.useRef(false);
 	const hasInitializedServiceWorkerRef = React.useRef(false);
 
 	React.useEffect(() => {
@@ -49,6 +50,16 @@ export default function App() {
 			})();
 		}
 	}, []);
+
+	React.useEffect(() => {
+		if (!hasHiddenLoaderRef.current && settings) {
+			hasHiddenLoaderRef.current = true;
+			const loader = document.getElementById('app-loader');
+			if (loader) {
+				loader.style.display = 'none';
+			}
+		}
+	}, [settings]);
 
 	if (process.env.NODE_ENV === 'development') {
 		const suppressed = 'ResizeObserver loop completed with undelivered notifications.';

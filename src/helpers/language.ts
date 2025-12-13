@@ -58,6 +58,7 @@ export const language = {
 		from: `From`,
 		goBack: `Go Back`,
 		goTo: `Go To`,
+		graphql: `GraphQL`,
 		handle: `Handle`,
 		healthy: `Healthy`,
 		home: `Home`,
