@@ -1,7 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
-import { useTheme } from 'styled-components';
 
 import { Types } from '@permaweb/libs';
 
@@ -23,7 +22,6 @@ import * as S from './styles';
 export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const theme = useTheme();
 
 	const tabsRef = React.useRef<HTMLDivElement>(null);
 	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
@@ -52,26 +50,6 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	const [activeTabIndex, setActiveTabIndex] = React.useState<number>(getInitialIndex());
 	const [showClearConfirmation, setShowClearConfirmation] = React.useState<boolean>(false);
 	const [visitedTabs, setVisitedTabs] = React.useState<Set<number>>(() => new Set([getInitialIndex()]));
-
-	React.useEffect(() => {
-		const header = document.getElementById('navigation-header');
-		if (header) {
-			header.style.background = theme.colors.container.alt1.background;
-			header.style.position = 'relative';
-			header.style.boxShadow = `inset 0px 6px 6px -6px ${theme.colors.shadow.primary}`;
-			header.style.borderTop = `0.5px solid ${theme.colors.border.primary}`;
-			header.style.borderBottom = 'none';
-		}
-
-		return () => {
-			if (header) {
-				header.style.background = '';
-				header.style.position = 'sticky';
-				header.style.boxShadow = 'none';
-				header.style.borderTop = 'none';
-			}
-		};
-	}, [theme]);
 
 	React.useEffect(() => {
 		const { txId, subPath } = extractTxDetailsFromPath(location.pathname);

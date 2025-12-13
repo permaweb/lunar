@@ -615,8 +615,9 @@ function AOS(props: {
 							<S.OptionsCreate>
 								<Button
 									type={'alt1'}
-									label={language.createNewProcess}
+									label={loading ? `${language.creatingProcess}...` : language.createNewProcess}
 									handlePress={() => setShowCreatePanel(true)}
+									loading={loading}
 									disabled={loading}
 									height={42.5}
 									fullWidth
@@ -631,7 +632,7 @@ function AOS(props: {
 								<FormField
 									value={inputProcessId}
 									onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchProcessId(e.target.value)}
-									placeholder={loadingTx || loading ? `${language.loading}...` : language.searchProcessId}
+									placeholder={language.searchProcessId}
 									invalid={{ status: inputProcessId ? !checkValidAddress(inputProcessId) : false, message: null }}
 									disabled={loadingTx || loading}
 									hideErrorMessage
@@ -695,7 +696,7 @@ function AOS(props: {
 					}}
 					header={language.createNewProcess}
 				>
-					<S.PanelContent className={'modal-wrapper'}>
+					<S.PanelContent onSubmit={handleSpawnProcess} className={'modal-wrapper'}>
 						<FormField
 							label={language.processName || 'Process Name'}
 							value={processName}
@@ -711,6 +712,7 @@ function AOS(props: {
 							disabled={loading || !processName.trim()}
 							height={42.5}
 							fullWidth
+							formSubmit
 						/>
 					</S.PanelContent>
 				</Panel>
@@ -747,7 +749,7 @@ function AOS(props: {
 						</S.Editor>
 					)}
 					<S.ConsoleWrapper editorMode={editorMode}>
-						<S.ResultsWrapper ref={resultsRef} className={'fade-in scroll-wrapper-hidden'}>
+						<S.ResultsWrapper ref={resultsRef} className={'fade-in scroll-wrapper'}>
 							<S.SplashScreen className={'fade-in border-wrapper-primary'}>
 								<S.SplashScreenHeader>AOS</S.SplashScreenHeader>
 								<S.SplashScreenLine>

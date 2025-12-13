@@ -159,9 +159,14 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		);
 	}
 
+	const isTabsView =
+		location.pathname.startsWith(URLS.explorer) ||
+		location.pathname.startsWith(URLS.aos) ||
+		location.pathname.startsWith(URLS.graphql);
+
 	return (
 		<>
-			<S.Header id={'navigation-header'} navigationOpen={props.open} className={'fade-in'}>
+			<S.Header id={'navigation-header'} navigationOpen={props.open} className={`${isTabsView ? ' tabs-view' : ''}`}>
 				<S.Content>
 					<S.C1Wrapper>
 						<S.LogoWrapper>
