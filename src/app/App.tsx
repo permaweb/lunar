@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
+import { serviceWorkerManager } from 'helpers/serviceWorkerManager';
 const views = (import.meta as any).glob('../views/**/index.tsx');
 
 const Landing = getLazyImport('Landing');
@@ -35,6 +36,18 @@ export default function App() {
 	const language = languageProvider.object[languageProvider.current];
 
 	const { settings, updateSettings } = useSettingsProvider();
+
+	const hasInitializedServiceWorkerRef = React.useRef(false);
+
+	React.useEffect(() => {
+		if (!hasInitializedServiceWorkerRef.current) {
+			hasInitializedServiceWorkerRef.current = true;
+			(async () => {
+				await serviceWorkerManager.register();
+				await serviceWorkerManager.checkArNSUpdate();
+			})();
+		}
+	}, []);
 
 	if (process.env.NODE_ENV === 'development') {
 		const suppressed = 'ResizeObserver loop completed with undelivered notifications.';
