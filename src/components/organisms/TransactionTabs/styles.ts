@@ -222,7 +222,6 @@ export const ModalWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
-	padding: 0 20px 20px 20px !important;
 `;
 
 export const ModalBodyWrapper = styled.div`

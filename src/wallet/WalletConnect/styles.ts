@@ -161,7 +161,7 @@ export const DFooterWrapper = styled(DBodyWrapper)`
 export const MWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: 30px;
+	gap: 20px;
 `;
 
 export const SyncToggle = styled.button`
@@ -204,7 +204,9 @@ export const SyncToggleLabel = styled.div`
 	}
 `;
 
-export const ThemeSection = styled.div``;
+export const ThemeSection = styled.div`
+	width: 100%;
+`;
 
 export const ThemeSectionHeader = styled.div`
 	display: flex;
@@ -227,6 +229,7 @@ export const ThemeSectionHeader = styled.div`
 `;
 
 export const ThemeSectionBody = styled.div`
+	width: 100%;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 30px 20px;
@@ -243,7 +246,8 @@ export const Indicator = styled.div<{ active: boolean }>`
 `;
 
 export const ThemeSectionBodyElement = styled.button`
-	width: 175px;
+	min-width: calc(50% - 40px);
+	flex: 1;
 
 	display: flex;
 	flex-direction: column;

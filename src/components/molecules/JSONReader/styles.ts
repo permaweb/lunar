@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 export const Wrapper = styled.div<{ noWrapper?: boolean }>`
-	padding: ${(props) => (props.noWrapper ? '0' : '10px 15px 15px 15px')};
+	padding: ${(props) => (props.noWrapper ? '0' : '15px')};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -18,12 +18,11 @@ export const JSONWrapper = styled.div`
 `;
 
 export const Header = styled.div`
+	height: 32.5px;
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: 15px;
-	margin: 0 0 2.5px 0;
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
 		font-family: ${(props) => props.theme.typography.family.alt1};
@@ -49,15 +48,13 @@ export const ActionsWrapper = styled.div`
 	gap: 15px;
 
 	button {
-		padding: 3.5px 0 0 0 !important;
+		padding: 5px 0 0 0 !important;
 	}
 `;
 
 export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight: number }>`
-	height: 100%;
+	height: calc(100% - 32.5px);
 	max-height: ${(props) => (props.maxHeight ? `${props.maxHeight.toString()}px` : 'none')};
-	padding: ${(props) => (props.fullScreenMode ? '0 0 35px 0' : '0 0 35px 0')};
-	margin: 10px 0 0 0;
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	line-height: 1.6;
@@ -65,7 +62,7 @@ export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight: n
 `;
 
 export const JSONIndent = styled.div`
-	padding-left: 12px;
+	padding-left: 22.5px;
 `;
 
 export const JSONProperty = styled.div`
@@ -91,6 +88,7 @@ export const CollapseArrow = styled.span<{ isCollapsed: boolean }>`
 
 export const JSONArrayItem = styled.div`
 	display: block;
+	position: relative;
 `;
 
 export const JSONValue = styled.span`

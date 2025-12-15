@@ -750,8 +750,8 @@ function AOS(props: {
 					)}
 					<S.ConsoleWrapper editorMode={editorMode}>
 						<S.ResultsWrapper ref={resultsRef} className={'fade-in scroll-wrapper'}>
-							<S.SplashScreen className={'fade-in border-wrapper-primary'}>
-								<S.SplashScreenHeader>AOS</S.SplashScreenHeader>
+							<S.SplashScreen className={'fade-in border-wrapper-alt3'}>
+								<S.SplashScreenHeader>{`AOS`}</S.SplashScreenHeader>
 								<S.SplashScreenLine>
 									<p>Welcome to AOS: Your operating system for AO, the decentralized open access supercomputer.</p>
 								</S.SplashScreenLine>

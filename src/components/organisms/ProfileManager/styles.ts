@@ -264,7 +264,7 @@ export const SAction = styled.div`
 `;
 
 export const MWrapper = styled.div`
-	padding: 0 20px 20px 20px;
+	padding: 0 20px;
 `;
 
 export const MInfo = styled.div`

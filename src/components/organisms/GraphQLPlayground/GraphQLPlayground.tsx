@@ -300,12 +300,12 @@ export default function GraphQLPlayground(props: {
 					</S.InputFormWrapper>
 					<IconButton
 						type={'alt1'}
-						src={ASSETS.write}
+						src={ASSETS.save}
 						handlePress={saveCustomGateway}
 						disabled={!inputGateway.trim() || gateways.includes(inputGateway.trim().replace(/^https?:\/\//, ''))}
 						dimensions={{
 							wrapper: 32.5,
-							icon: 15.5,
+							icon: 14.5,
 						}}
 						tooltip={language.save}
 					/>
@@ -315,9 +315,9 @@ export default function GraphQLPlayground(props: {
 						handlePress={toggleFullscreen}
 						dimensions={{
 							wrapper: 32.5,
-							icon: 15.5,
+							icon: 14.5,
 						}}
-						tooltip={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+						tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
 					/>
 				</S.InputWrapper>
 				<S.ActionsWrapper>

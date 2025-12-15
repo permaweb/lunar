@@ -166,7 +166,7 @@ export const GlobalStyle = createGlobalStyle`
   .border-wrapper-alt1 {
     background: ${(props) => props.theme.colors.container.primary.background};
     box-shadow: 0 3.5px 7.5px 0 ${(props) => props.theme.colors.shadow.primary};
-    border: 1px solid ${(props) => props.theme.colors.border.primary};
+    border: 1px solid ${(props) => props.theme.colors.border.alt2};
     border-radius: ${STYLING.dimensions.radius.alt1};
   }
 
@@ -195,13 +195,13 @@ export const GlobalStyle = createGlobalStyle`
   }
 
 	.modal-wrapper {
-		padding: 0 20px 20px 20px !important;
+		padding: 0 20px !important;
 	}
 
   .info {
     padding: 0 5px 0.5px 5px;
     background: ${(props) => props.theme.colors.contrast.background};
-    border: 1px solid ${(props) => props.theme.colors.border.alt2};
+    border: 1px solid ${(props) => props.theme.colors.contrast.background};
     border-radius: ${STYLING.dimensions.radius.alt2};
     animation: ${open} ${transition2};
     span {

@@ -57,6 +57,7 @@ function Transaction(props: {
 	const [inputTxId, setInputTxId] = React.useState<string>(props.txId);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
 	const [txResponse, setTxResponse] = React.useState<Types.GQLNodeResponseType | null>(null);
+	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
 
 	// Memoize owner address to prevent unnecessary TABS recreation
 	const ownerAddress = React.useMemo(() => txResponse?.node?.owner?.address, [txResponse?.node?.owner?.address]);
@@ -65,6 +66,8 @@ function Transaction(props: {
 	const [refreshKey, setRefreshKey] = React.useState<number>(0);
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
+
+	const wrapperRef = React.useRef<HTMLDivElement>(null);
 
 	React.useEffect(() => {
 		setInputTxId(props.txId);
@@ -487,9 +490,34 @@ function Transaction(props: {
 		);
 	}
 
+	const toggleFullscreen = React.useCallback(async () => {
+		const el = wrapperRef.current;
+		if (!el) return;
+
+		if (document.fullscreenElement !== el) {
+			try {
+				// Exit current fullscreen first if needed, then enter fullscreen for this element
+				if (document.fullscreenElement) {
+					await document.exitFullscreen();
+				}
+				await el.requestFullscreen();
+				setIsFullscreen(true);
+			} catch (err) {
+				console.error('Error attempting to enable fullscreen:', err);
+			}
+		} else {
+			try {
+				await document.exitFullscreen();
+				setIsFullscreen(false);
+			} catch (err) {
+				console.error('Error attempting to exit fullscreen:', err);
+			}
+		}
+	}, []);
+
 	return (
 		<>
-			<S.Wrapper style={{ display: props.active ? 'flex' : 'none' }}>
+			<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
 				<S.HeaderWrapper>
 					<S.SearchWrapper>
 						<S.SearchInputWrapper>
@@ -512,7 +540,7 @@ function Transaction(props: {
 							disabled={!checkValidAddress(inputTxId)}
 							dimensions={{
 								wrapper: 32.5,
-								icon: 17.5,
+								icon: 14.5,
 							}}
 							tooltip={idCopied ? `${language.copied}!` : language.copyId}
 						/>
@@ -523,9 +551,19 @@ function Transaction(props: {
 							disabled={loadingTx || !checkValidAddress(inputTxId)}
 							dimensions={{
 								wrapper: 32.5,
-								icon: 17.5,
+								icon: 14.5,
 							}}
 							tooltip={loadingTx ? `${language.loading}...` : language.refresh}
+						/>
+						<IconButton
+							type={'alt1'}
+							src={ASSETS.fullscreen}
+							handlePress={toggleFullscreen}
+							dimensions={{
+								wrapper: 32.5,
+								icon: 14.5,
+							}}
+							tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
 						/>
 					</S.SearchWrapper>
 					<S.HeaderActionsWrapper>

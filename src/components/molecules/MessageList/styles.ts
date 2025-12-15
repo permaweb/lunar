@@ -64,7 +64,7 @@ export const FilterDropdown = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 12.5px;
-	padding: 0 15px 25px 15px;
+	padding: 0 20px;
 `;
 
 export const FilterDropdownHeader = styled.div`
@@ -373,7 +373,7 @@ export const OverlayWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 15px;
-	padding: 0 20px 20px 20px;
+	padding: 0 20px;
 `;
 
 export const OverlayTagsWrapper = styled.div`

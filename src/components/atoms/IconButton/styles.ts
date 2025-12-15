@@ -128,14 +128,14 @@ export const Primary = styled.button<{
 export const Alt1 = styled(Primary)`
 	background: ${(props) =>
 		props.active
-			? props.theme.colors.button.primary.active.background
+			? props.theme.colors.container.alt3.background
 			: props.disabled
 			? props.theme.colors.button.primary.disabled.background
 			: props.theme.colors.button.primary.background};
 	border: 1px solid
 		${(props) =>
 			props.active
-				? props.theme.colors.button.primary.active.border
+				? props.theme.colors.border.alt3
 				: props.disabled
 				? props.theme.colors.button.primary.disabled.border
 				: props.theme.colors.button.primary.border};
@@ -157,24 +157,32 @@ export const Alt1 = styled(Primary)`
 	}
 
 	&:hover {
+		border: 1px solid
+			${(props) =>
+				props.active
+					? props.theme.colors.border.alt4
+					: props.disabled
+					? props.theme.colors.button.primary.disabled.border
+					: props.theme.colors.border.alt3};
+
 		background: ${(props) =>
 			props.disabled
 				? props.theme.colors.button.primary.disabled.background
-				: props.theme.colors.button.primary.active.background};
+				: props.theme.colors.container.alt3.background};
 
 		svg {
 			color: ${(props) =>
 				props.active
-					? props.theme.colors.font.light1
+					? props.theme.colors.font.primary
 					: props.disabled
 					? props.theme.colors.button.primary.disabled.color
-					: props.theme.colors.button.primary.active.color};
+					: props.theme.colors.font.primary};
 			fill: ${(props) =>
 				props.active
-					? props.theme.colors.font.light1
+					? props.theme.colors.font.primary
 					: props.disabled
 					? props.theme.colors.button.primary.disabled.color
-					: props.theme.colors.button.primary.active.color};
+					: props.theme.colors.font.primary};
 		}
 	}
 `;

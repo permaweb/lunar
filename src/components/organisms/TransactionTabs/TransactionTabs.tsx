@@ -36,7 +36,6 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		const stored = localStorage.getItem(storageKey);
 		if (stored) {
 			const parsed = JSON.parse(stored);
-			// Migrate old data to include lastRoute and tabKey fields
 			return parsed.length > 0
 				? parsed.map((tx: any) => ({
 						...tx,
@@ -169,38 +168,6 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 				}
 				return updated;
 			});
-
-			const currentParts = window.location.hash.replace('#', '').split('/');
-			const currentRoute = currentParts[currentParts.length - 1];
-
-			let toRoute = `${URLS[props.type]}${newTx.node.id}`;
-
-			if (props.type === 'explorer') {
-				switch (currentRoute) {
-					case 'info':
-						toRoute = URLS.explorerInfo(newTx.node.id);
-						break;
-					case 'messages':
-						toRoute = URLS.explorerMessages(newTx.node.id);
-						break;
-					case 'read':
-						toRoute = URLS.explorerRead(newTx.node.id);
-						break;
-					case 'write':
-						toRoute = URLS.explorerWrite(newTx.node.id);
-						break;
-					case 'aos':
-						toRoute = URLS.explorerAOS(newTx.node.id);
-						break;
-					case 'source':
-						toRoute = URLS.explorerSource(newTx.node.id);
-						break;
-					default:
-						break;
-				}
-			}
-
-			navigate(toRoute);
 		},
 		[props.type, navigate]
 	);

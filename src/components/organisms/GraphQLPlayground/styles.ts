@@ -139,7 +139,6 @@ export const ResultWrapper = styled.div`
 	> * {
 		&:first-child {
 			height: 100%;
-			/* overflow: auto; */
 		}
 	}
 `;
