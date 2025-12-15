@@ -39,7 +39,7 @@ export const ResultsWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
-	padding: 5px 5px 0 0;
+	padding: 0 15px 0 0;
 
 	.result-command {
 		width: fit-content;
@@ -123,7 +123,7 @@ export const LoadingText = styled.span`
 `;
 
 export const SplashScreen = styled.div`
-	padding: 20px 15px 15px 15px;
+	padding: 15px;
 	display: flex;
 	flex-direction: column;
 	gap: 7.5px;
@@ -132,20 +132,12 @@ export const SplashScreen = styled.div`
 `;
 
 export const SplashScreenHeader = styled.div`
-	height: 15px;
-	width: 50px;
 	display: flex;
-	align-items: center;
-	justify-content: center;
-	position: absolute;
-	top: -7.5px;
-	left: 15px;
-	z-index: 1;
-	background: ${(props) => props.theme.colors.view.background};
 	font-family: ${(props) => props.theme.typography.family.primary};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	color: ${(props) => props.theme.colors.editor.alt1};
+	margin: 0 0 1.5px 0;
 `;
 
 export const SplashScreenLine = styled.div`
@@ -269,9 +261,9 @@ export const OptionsHeader = styled.div`
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.base};
-		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
+		color: ${(props) => props.theme.colors.font.alt1};
 		text-transform: uppercase;
 		text-align: center;
 	}
@@ -328,7 +320,8 @@ export const Options = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 15px;
-	padding: 0 2.5px 0 0;
+	padding: 0 12.5px 0 0;
+	overflow-y: scroll;
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.primary} !important;

@@ -54,6 +54,7 @@ export default function App() {
 	React.useEffect(() => {
 		if (!hasHiddenLoaderRef.current && settings) {
 			hasHiddenLoaderRef.current = true;
+			document.body.style.background = '';
 			const loader = document.getElementById('app-loader');
 			if (loader) {
 				loader.style.display = 'none';

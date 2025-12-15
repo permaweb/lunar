@@ -58,11 +58,16 @@ export default function ProcessSource(props: { processId: string; onBoot?: strin
 	}, [props.processId]);
 
 	React.useEffect(() => {
-		if (src && editorRef.current) {
-			setTimeout(() => {
-				editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			}, 10);
-		}
+		if (!src) return;
+
+		const id = setTimeout(() => {
+			editorRef.current?.scrollIntoView({
+				behavior: 'smooth',
+				block: 'start',
+			});
+		}, 10);
+
+		return () => clearTimeout(id);
 	}, [src]);
 
 	return src ? (

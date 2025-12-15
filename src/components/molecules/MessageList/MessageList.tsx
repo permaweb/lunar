@@ -225,7 +225,7 @@ function Message(props: {
 		if (!data) return null;
 
 		if (typeof data === 'object') {
-			return <JSONReader data={data} header={language.data} maxHeight={600} />;
+			return <JSONReader data={data} header={language.data} maxHeight={600} noFullScreen />;
 		}
 
 		return <Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} />;
@@ -266,7 +266,7 @@ function Message(props: {
 			open = true;
 			header = language.result;
 			handleClose = () => setShowViewResult(false);
-			content = <JSONReader data={result} header={language.output} noWrapper />;
+			content = <JSONReader data={result} header={language.output} noWrapper noFullScreen />;
 			if (result) loading = false;
 		}
 
@@ -763,7 +763,7 @@ export default function MessageList(props: {
 							)}
 						</S.HeaderMain>
 						<S.HeaderActions>
-							{props.type !== 'message' && (
+							{props.type && props.type !== 'message' && (
 								<>
 									<Button
 										type={'alt3'}
@@ -882,7 +882,7 @@ export default function MessageList(props: {
 			{!props.childList && (
 				<Panel
 					open={showFilters}
-					width={475}
+					width={500}
 					header={language.messageFilters}
 					handleClose={() => setShowFilters(false)}
 				>
@@ -956,7 +956,7 @@ export default function MessageList(props: {
 								handlePress={() => handleFilterUpdate()}
 								disabled={invalidPerPage}
 								active={false}
-								height={37.5}
+								height={42.5}
 								fullWidth
 							/>
 						</S.FilterApply>

@@ -26,10 +26,15 @@ export default function _JSONTree(props: {
 	const [data, setData] = React.useState<object | null>(null);
 	const [copied, setCopied] = React.useState<boolean>(false);
 	const [fullScreenMode, setFullScreenMode] = React.useState<boolean>(false);
+	const parsedDataRef = React.useRef<{ input: any; output: any }>({ input: null, output: null });
 
 	const toggleFullscreen = React.useCallback(async () => {
 		const el = readerRef.current!;
-		if (!document.fullscreenElement) {
+		if (document.fullscreenElement !== el) {
+			// Exit current fullscreen first if needed, then enter fullscreen for this element
+			if (document.fullscreenElement) {
+				await document.exitFullscreen?.();
+			}
 			await el.requestFullscreen?.();
 		} else {
 			await document.exitFullscreen?.();
@@ -54,10 +59,18 @@ export default function _JSONTree(props: {
 	}, [data]);
 
 	React.useEffect(() => {
-		if (props.data) {
-			const parsed = parseJSON(props.data);
-			setData(typeof parsed === 'string' ? { Result: parsed } : parsed);
-		} else setData(null);
+		// Only parse if props.data actually changed
+		if (parsedDataRef.current.input !== props.data) {
+			if (props.data) {
+				const parsed = parseJSON(props.data);
+				const output = typeof parsed === 'string' ? { Result: parsed } : parsed;
+				parsedDataRef.current = { input: props.data, output };
+				setData(output);
+			} else {
+				parsedDataRef.current = { input: null, output: null };
+				setData(null);
+			}
+		}
 	}, [props.data]);
 
 	React.useEffect(() => {
@@ -87,9 +100,15 @@ export default function _JSONTree(props: {
 		return input;
 	};
 
-	const CustomJSONViewer = ({ data }: { data: any }) => {
+	const CustomJSONViewer = React.forwardRef<
+		{ collapseAll: () => void; expandAll: () => void; getCollapsedState: () => { isFullyCollapsed: boolean } },
+		{ data: any }
+	>(({ data }, ref) => {
 		const [copiedValue, setCopiedValue] = React.useState<string | null>(null);
 		const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
+		const [allPaths, setAllPaths] = React.useState<Set<string>>(new Set());
+		const allPathsRef = React.useRef<Set<string>>(new Set());
+		const dataRef = React.useRef<any>(null);
 
 		const handleCopy = React.useCallback(async (value: string) => {
 			await navigator.clipboard.writeText(value);
@@ -109,7 +128,35 @@ export default function _JSONTree(props: {
 			});
 		}, []);
 
-		const renderValue = (value: any, _key?: string, isLast: boolean = false, path: string = 'root'): JSX.Element => {
+		const collapseAll = React.useCallback(() => {
+			setCollapsed(new Set(allPathsRef.current));
+		}, []);
+
+		const expandAll = React.useCallback(() => {
+			setCollapsed(new Set());
+		}, []);
+
+		const getCollapsedState = React.useCallback(() => {
+			return { isFullyCollapsed: collapsed.size > 0 && collapsed.size === allPaths.size };
+		}, [collapsed, allPaths]);
+
+		React.useImperativeHandle(
+			ref,
+			() => ({
+				collapseAll,
+				expandAll,
+				getCollapsedState,
+			}),
+			[collapseAll, expandAll, getCollapsedState]
+		);
+
+		const renderValue = (
+			value: any,
+			_key?: string,
+			isLast: boolean = false,
+			path: string = 'root',
+			collectPaths: boolean = false
+		): JSX.Element => {
 			if (value === null) {
 				return (
 					<>
@@ -177,6 +224,9 @@ export default function _JSONTree(props: {
 						</>
 					);
 				}
+				if (collectPaths && value.length > 0) {
+					allPaths.add(path);
+				}
 				const isCollapsed = collapsed.has(path);
 				return (
 					<>
@@ -191,9 +241,24 @@ export default function _JSONTree(props: {
 								<S.JSONIndent>
 									{value.map((item, index) => {
 										const itemPath = `${path}[${index}]`;
+										const isCollapsible =
+											typeof item === 'object' &&
+											item !== null &&
+											(Array.isArray(item) ? item.length > 0 : Object.keys(item).length > 0);
+										const isItemCollapsed = collapsed.has(itemPath);
+
+										if (collectPaths && isCollapsible) {
+											allPaths.add(itemPath);
+										}
+
 										return (
 											<S.JSONArrayItem key={index}>
-												{renderValue(item, undefined, index === value.length - 1, itemPath)}
+												{isCollapsible && (
+													<S.CollapseArrow isCollapsed={isItemCollapsed} onClick={() => toggleCollapse(itemPath)}>
+														›
+													</S.CollapseArrow>
+												)}
+												{renderValue(item, undefined, index === value.length - 1, itemPath, collectPaths)}
 											</S.JSONArrayItem>
 										);
 									})}
@@ -215,6 +280,9 @@ export default function _JSONTree(props: {
 						</>
 					);
 				}
+				if (collectPaths && entries.length > 0) {
+					allPaths.add(path);
+				}
 				const isCollapsed = collapsed.has(path);
 				return (
 					<>
@@ -235,6 +303,10 @@ export default function _JSONTree(props: {
 											(Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0);
 										const isCollapsed = collapsed.has(propPath);
 
+										if (collectPaths && isCollapsible) {
+											allPaths.add(propPath);
+										}
+
 										return (
 											<S.JSONProperty key={k}>
 												{isCollapsible && (
@@ -244,7 +316,7 @@ export default function _JSONTree(props: {
 												)}
 												<S.JSONKey>"{k}"</S.JSONKey>
 												<S.JSONColon>: </S.JSONColon>
-												{renderValue(v, k, index === entries.length - 1, propPath)}
+												{renderValue(v, k, index === entries.length - 1, propPath, collectPaths)}
 											</S.JSONProperty>
 										);
 									})}
@@ -264,6 +336,64 @@ export default function _JSONTree(props: {
 			);
 		};
 
+		React.useEffect(() => {
+			// Only recollect if data actually changed (deep comparison would be expensive, so use ref check)
+			if (dataRef.current === data) {
+				return;
+			}
+			dataRef.current = data;
+
+			const paths = new Set<string>();
+
+			const collectAllPaths = (value: any, path: string = 'root') => {
+				if (Array.isArray(value)) {
+					if (value.length > 0) {
+						paths.add(path);
+						value.forEach((item, index) => {
+							const itemPath = `${path}[${index}]`;
+							if (typeof item === 'object' && item !== null) {
+								const isCollapsible = Array.isArray(item) ? item.length > 0 : Object.keys(item).length > 0;
+								if (isCollapsible) {
+									paths.add(itemPath);
+									collectAllPaths(item, itemPath);
+								}
+							}
+						});
+					}
+				} else if (typeof value === 'object' && value !== null) {
+					const entries = Object.entries(value);
+					if (entries.length > 0) {
+						paths.add(path);
+						entries.forEach(([k, v]) => {
+							const propPath = `${path}.${k}`;
+							if (typeof v === 'object' && v !== null) {
+								const isCollapsible = Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0;
+								if (isCollapsible) {
+									paths.add(propPath);
+									collectAllPaths(v, propPath);
+								}
+							}
+						});
+					}
+				}
+			};
+
+			collectAllPaths(data);
+
+			// Check if paths actually changed (but allow first initialization)
+			const pathsChanged =
+				allPathsRef.current.size > 0 &&
+				(paths.size !== allPathsRef.current.size || Array.from(paths).some((p) => !allPathsRef.current.has(p)));
+
+			allPathsRef.current = paths;
+			setAllPaths(paths);
+
+			// Only reset collapsed if the structure of the data actually changed (not on first load)
+			if (pathsChanged) {
+				setCollapsed(new Set());
+			}
+		}, [data]);
+
 		return (
 			<S.JSONViewerRoot
 				fullScreenMode={fullScreenMode}
@@ -273,7 +403,22 @@ export default function _JSONTree(props: {
 				{renderValue(data, undefined, true)}
 			</S.JSONViewerRoot>
 		);
-	};
+	});
+
+	const jsonViewerRef = React.useRef<{
+		collapseAll: () => void;
+		expandAll: () => void;
+		getCollapsedState: () => { isFullyCollapsed: boolean };
+	}>(null);
+
+	const handleToggleCollapse = React.useCallback(() => {
+		const state = jsonViewerRef.current?.getCollapsedState();
+		if (state?.isFullyCollapsed) {
+			jsonViewerRef.current?.expandAll();
+		} else {
+			jsonViewerRef.current?.collapseAll();
+		}
+	}, []);
 
 	return (
 		<S.Wrapper
@@ -285,6 +430,18 @@ export default function _JSONTree(props: {
 				<p>{props.header ?? language.output}</p>
 
 				<S.ActionsWrapper>
+					<IconButton
+						type={'alt1'}
+						src={ASSETS.plusMinus}
+						handlePress={handleToggleCollapse}
+						disabled={!data}
+						dimensions={{
+							wrapper: 25,
+							icon: 12.5,
+						}}
+						tooltip={language.collapseExpandAll}
+						tooltipPosition={'bottom-right'}
+					/>
 					{!props.noFullScreen && (
 						<IconButton
 							type={'alt1'}
@@ -314,7 +471,7 @@ export default function _JSONTree(props: {
 			</S.Header>
 
 			{data ? (
-				<CustomJSONViewer data={data} />
+				<CustomJSONViewer key="json-viewer" data={data} ref={jsonViewerRef} />
 			) : (
 				<S.Placeholder>
 					<p>{props.placeholder ?? language.noDataToDisplay}</p>

@@ -2,11 +2,19 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div`
+export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	width: 100%;
+	height: 100%;
 	display: flex;
 	flex-direction: column;
 	gap: 25px;
+	position: relative;
+
+	&:fullscreen {
+		background: ${(props) => props.theme.colors.container.primary.background};
+		padding: 25px;
+		overflow: auto;
+	}
 `;
 
 export const HeaderWrapper = styled.form`

@@ -340,5 +340,5 @@ export function debugLog(level: string, context: string, ...args: any[]) {
 	const style = COLORS[level] || 'color: #8F8F8F';
 	const method = METHOD[level] || console.log;
 
-	method(`%c[Portal: ${capitalize(level)}]%c %c(${context})%c -`, style, '', 'font-weight: medium;', '', ...args);
+	method(`%c[Lunar: ${capitalize(level)}]%c %c(${context})%c -`, style, '', 'font-weight: medium;', '', ...args);
 }

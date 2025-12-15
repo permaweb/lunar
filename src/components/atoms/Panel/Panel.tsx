@@ -12,6 +12,9 @@ import { IProps } from './types';
 export default function Panel(props: IProps) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
+	const bodyRef = React.useRef<HTMLDivElement>(null);
+	const [hasOverflow, setHasOverflow] = React.useState(false);
+	const [isFullscreen, setIsFullscreen] = React.useState(false);
 
 	React.useEffect(() => {
 		if (props.open) {
@@ -39,6 +42,34 @@ export default function Panel(props: IProps) {
 		};
 	}, [escFunction]);
 
+	React.useEffect(() => {
+		const checkOverflow = () => {
+			if (bodyRef.current) {
+				const hasScrollbar = bodyRef.current.scrollHeight > bodyRef.current.clientHeight;
+				setHasOverflow(hasScrollbar);
+			}
+		};
+
+		checkOverflow();
+		const observer = new ResizeObserver(checkOverflow);
+		if (bodyRef.current) {
+			observer.observe(bodyRef.current);
+		}
+
+		return () => observer.disconnect();
+	}, [props.children, props.open]);
+
+	React.useEffect(() => {
+		const handleFullscreenChange = () => {
+			setIsFullscreen(document.fullscreenElement !== null);
+		};
+
+		document.addEventListener('fullscreenchange', handleFullscreenChange);
+		return () => {
+			document.removeEventListener('fullscreenchange', handleFullscreenChange);
+		};
+	}, []);
+
 	function getHeader() {
 		switch (typeof props.header) {
 			case 'string':
@@ -51,12 +82,7 @@ export default function Panel(props: IProps) {
 	function getBody() {
 		return (
 			<>
-				<S.Container
-					open={props.open}
-					noHeader={!props.header}
-					width={props.width}
-					className={'border-wrapper-primary'}
-				>
+				<S.Container open={props.open} noHeader={!props.header} width={props.width} className={'border-wrapper-alt1'}>
 					<CloseHandler
 						active={props.open && !props.closeHandlerDisabled}
 						disabled={!props.open || props.closeHandlerDisabled}
@@ -68,14 +94,14 @@ export default function Panel(props: IProps) {
 								{props.handleClose && (
 									<S.Close>
 										<IconButton
-											type={'primary'}
+											type={'alt1'}
 											warning
 											src={ASSETS.close}
 											handlePress={() => props.handleClose()}
 											active={false}
 											dimensions={{
 												wrapper: 32.5,
-												icon: 18.5,
+												icon: 16.5,
 											}}
 											tooltip={language.close}
 										/>
@@ -83,9 +109,23 @@ export default function Panel(props: IProps) {
 								)}
 							</S.Header>
 						)}
-						<S.Body className={'scroll-wrapper'}>{props.children}</S.Body>
+						<S.Body hasOverflow={hasOverflow}>
+							<S.BodyContent ref={bodyRef} className={'scroll-wrapper'}>
+								{props.children}
+							</S.BodyContent>
+						</S.Body>
 					</CloseHandler>
 				</S.Container>
+			</>
+		);
+	}
+
+	// If in fullscreen, render directly instead of using portal
+	if (isFullscreen) {
+		return (
+			<>
+				{getBody()}
+				<S.PanelOverlay open={props.open} />
 			</>
 		);
 	}
@@ -96,14 +136,6 @@ export default function Panel(props: IProps) {
 			<S.PanelOverlay open={props.open} />
 		</Portal>
 	);
-
-	// return (
-	// 	<Portal node={DOM.overlay}>
-	// 		<S.Wrapper open={true} noHeader={!props.header} top={window ? (window as any).pageYOffset : 0}>
-	// 			{getBody()}
-	// 		</S.Wrapper>
-	// 	</Portal>
-	// );
 }
 
 let panelOpenCounter = 0;

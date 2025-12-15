@@ -99,7 +99,11 @@ export default function _Editor(props: {
 
 	const toggleFullscreen = React.useCallback(async () => {
 		const el = editorRef.current!;
-		if (!document.fullscreenElement) {
+		if (document.fullscreenElement !== el) {
+			// Exit current fullscreen first if needed, then enter fullscreen for this element
+			if (document.fullscreenElement) {
+				await document.exitFullscreen?.();
+			}
 			await el.requestFullscreen?.();
 		} else {
 			await document.exitFullscreen?.();
