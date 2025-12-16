@@ -89,8 +89,33 @@ self.addEventListener('fetch', (event) => {
 					return cachedResponse;
 				}
 
-				// Network-first strategy for assets or when no cache exists
-				const fetchPromise = fetch(request)
+				// For assets: try cache first, then network (but only cache successful responses)
+				if (isAssetFile && cachedResponse) {
+					console.log('[Service Worker] Serving asset from cache:', request.url);
+					// Update cache in background, removing bad cached responses
+					fetch(request)
+						.then((response) => {
+							if (response && response.status === 200 && response.type === 'basic') {
+								caches.open(CACHE_NAME).then((cache) => {
+									console.log('[Service Worker] Updating asset cache in background:', request.url);
+									cache.put(request, response);
+								});
+							} else {
+								// Remove bad response from cache
+								caches.open(CACHE_NAME).then((cache) => {
+									console.log('[Service Worker] Removing failed asset from cache:', request.url);
+									cache.delete(request);
+								});
+							}
+						})
+						.catch((error) => {
+							console.warn('[Service Worker] Background fetch failed for asset:', request.url, error);
+						});
+					return cachedResponse;
+				}
+
+				// No cached response, fetch from network
+				return fetch(request)
 					.then((response) => {
 						// Only cache successful responses
 						if (response && response.status === 200 && response.type === 'basic') {
@@ -99,21 +124,15 @@ self.addEventListener('fetch', (event) => {
 								console.log('[Service Worker] Caching new file:', request.url);
 								cache.put(request, responseToCache);
 							});
+						} else {
+							console.warn('[Service Worker] Not caching failed response:', request.url, response.status);
 						}
 						return response;
 					})
 					.catch((error) => {
 						console.warn('[Service Worker] Fetch failed for:', request.url, error);
-						// If fetch fails and we have a cached version, use it
-						if (cachedResponse) {
-							console.log('[Service Worker] Using cached fallback for:', request.url);
-							return cachedResponse;
-						}
-						// If no cached version, throw the error
 						throw error;
 					});
-
-				return fetchPromise;
 			})
 		);
 	}

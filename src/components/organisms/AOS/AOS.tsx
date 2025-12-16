@@ -297,7 +297,6 @@ function AOS(props: {
 
 		let cursor: string | null = null;
 		let canceled = false;
-		let isFirstIteration = true;
 
 		(async function () {
 			const args: any = {
@@ -322,29 +321,36 @@ function AOS(props: {
 					const results = await deps.ao.results(args);
 
 					if (results?.edges?.length) {
-						const newEdges = results.edges
-							.filter((e) => e.node?.Output?.print && !processedCursors.current.has(e.cursor))
-							.sort((a, b) => JSON.parse(atob(a.cursor)).ordinate - JSON.parse(atob(b.cursor)).ordinate);
+						let newEdges = [];
+
+						const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
+
+						switch (variant) {
+							case MessageVariantEnum.Legacynet:
+								newEdges = results.edges
+									.filter((e) => e.node?.Output?.print && !processedCursors.current.has(e.cursor))
+									.sort((a, b) => JSON.parse(atob(a.cursor)).ordinate - JSON.parse(atob(b.cursor)).ordinate);
+								break;
+							case MessageVariantEnum.Mainnet:
+								newEdges = results.edges
+									.filter((e) => e.node?.Output?.print && !processedCursors.current.has(e.cursor))
+									.sort((a, b) => Number(a.cursor) - Number(b.cursor));
+								break;
+						}
 
 						if (newEdges.length) {
-							if (isFirstIteration) {
-								cursor = newEdges[newEdges.length - 1].cursor;
-								processedCursors.current.add(cursor);
-								isFirstIteration = false;
-							} else {
-								newEdges.forEach((edge) => {
-									const rawOutput = edge.node.Output.data;
-									const sanitizedOutput = rawOutput.toString().replace(/\t/g, '  ');
-									const htmlOutput = ansiToHtml(sanitizedOutput);
-									addResultLine(htmlOutput, 'success', true, sanitizedOutput);
-									processedCursors.current.add(edge.cursor);
-								});
+							newEdges.forEach((edge) => {
+								const rawOutput = edge.node.Output.data;
+								const sanitizedOutput = rawOutput.toString().replace(/\t/g, '  ');
+								const htmlOutput = ansiToHtml(sanitizedOutput);
+								addResultLine(htmlOutput, 'success', true, sanitizedOutput);
+								processedCursors.current.add(edge.cursor);
+							});
 
-								const lastEdge = newEdges[newEdges.length - 1];
-								cursor = lastEdge.cursor;
-								const newPrompt = lastEdge.node.Output.prompt ?? prompt;
-								setPrompt(newPrompt);
-							}
+							const lastEdge = newEdges[newEdges.length - 1];
+							cursor = lastEdge.cursor;
+							const newPrompt = lastEdge.node.Output.prompt ?? prompt;
+							setPrompt(newPrompt);
 						}
 					}
 				} catch (e) {
