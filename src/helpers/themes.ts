@@ -295,7 +295,7 @@ export const darkThemeAlt2 = {
 	neutral3: '#262834',
 	neutral4: '#2E2F34',
 	neutral5: '#3d3e45',
-	neutral6: '#27282F',
+	neutral6: '#41424b',
 	neutral7: '#52545F',
 	neutral8: '#4D4F57',
 	neutral9: '#36363F',
@@ -426,7 +426,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 				background: currentTheme.neutral5,
 			},
 			alt5: {
-				background: currentTheme.neutralA4,
+				background: currentTheme.neutral6,
 			},
 			alt6: {
 				background: currentTheme.primary1,

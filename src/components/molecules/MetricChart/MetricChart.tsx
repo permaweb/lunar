@@ -126,6 +126,27 @@ export default function MetricChart(props: {
 		return props.dataList.map((item) => item[props.metric]);
 	}, [props.dataList, props.metric]);
 
+	const createDottedPattern = React.useCallback(() => {
+		const canvas = document.createElement('canvas');
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return theme.colors.container.alt1.background;
+
+		canvas.width = 3;
+		canvas.height = 3;
+
+		// Background color
+		ctx.fillStyle = theme.colors.container.alt1.background;
+		ctx.fillRect(0, 0, 3, 3);
+
+		// Dot color
+		ctx.fillStyle = theme.colors.container.alt5.background;
+		ctx.beginPath();
+		ctx.arc(3, 3, 1, 0, 2 * Math.PI);
+		ctx.fill();
+
+		return ctx.createPattern(canvas, 'repeat');
+	}, [theme]);
+
 	const chartData = React.useMemo(() => {
 		return {
 			labels,
@@ -134,7 +155,7 @@ export default function MetricChart(props: {
 					label: props.chartLabel || (props.metric as string),
 					data: datasetData,
 					fill: true,
-					backgroundColor: theme.colors.container.alt1.background,
+					backgroundColor: createDottedPattern(),
 					borderColor: theme.colors.border.alt5,
 					pointBackgroundColor: theme.colors.border.alt6,
 					pointBorderColor: theme.colors.border.alt5,
@@ -143,7 +164,7 @@ export default function MetricChart(props: {
 				},
 			],
 		};
-	}, [labels, datasetData, theme, props.metric, props.chartLabel]);
+	}, [labels, datasetData, theme, props.metric, props.chartLabel, createDottedPattern]);
 
 	const handleHover = React.useCallback(
 		(_event: any, activeElements: any[], chart: any) => {
@@ -223,7 +244,7 @@ export default function MetricChart(props: {
 	};
 
 	return (
-		<S.Wrapper className={'border-wrapper-primary'}>
+		<S.Wrapper className={'border-wrapper-alt4'}>
 			<S.HeaderWrapper>
 				<S.HeaderSection>
 					<S.HeaderLabel>
