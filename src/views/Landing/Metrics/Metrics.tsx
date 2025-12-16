@@ -66,10 +66,10 @@ export default function Metrics() {
 				</>
 			) : (
 				<>
-					<S.Placeholder />
-					<S.Placeholder />
-					<S.Placeholder />
-					<S.Placeholder />
+					<S.Placeholder className={'border-wrapper-alt4'} />
+					<S.Placeholder className={'border-wrapper-alt4'} />
+					<S.Placeholder className={'border-wrapper-alt4'} />
+					<S.Placeholder className={'border-wrapper-alt4'} />
 				</>
 			)}
 		</S.Wrapper>

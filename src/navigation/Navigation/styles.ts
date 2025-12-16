@@ -380,6 +380,7 @@ export const PWrapper = styled.div`
 	right: 10px;
 	transition: width 50ms ease-out;
 	animation: ${openRight} 200ms;
+	border-radius: ${STYLING.dimensions.radius.primary};
 `;
 
 export const PMenu = styled.div``;
@@ -406,7 +407,7 @@ export const MNavWrapper = styled.div`
 		color: ${(props) => props.theme.colors.font.primary};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.small};
-		font-weight: ${(props) => props.theme.typography.weight.medium};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
 		padding: 15px;
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};

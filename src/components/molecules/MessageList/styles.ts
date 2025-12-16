@@ -293,7 +293,7 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 
 	.action-indicator {
 		position: relative;
-		width: ${(props) => (props.useMaxWidth ? '225px' : 'fit-content')};
+		width: ${(props) => (props.useMaxWidth ? '215px' : 'fit-content')};
 		display: flex;
 		justify-content: center;
 		align-items: center;

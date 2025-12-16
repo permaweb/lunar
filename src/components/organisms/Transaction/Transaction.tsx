@@ -187,7 +187,7 @@ function Transaction(props: {
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`Action: `}</span>
-						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') : '-'}</p>
+						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || '-' : '-'}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`Variant: `}</span>
