@@ -15,6 +15,7 @@ import { checkValidAddress, formatAddress, getTagValue, resolveLibDeps, resolveL
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
+import { useSettingsProvider } from 'providers/SettingsProvider';
 import { WalletBlock } from 'wallet/WalletBlock';
 
 import * as S from './styles';
@@ -95,6 +96,7 @@ function AOS(props: {
 	const theme = useTheme();
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
+	const settingsProvider = useSettingsProvider();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -785,7 +787,7 @@ function AOS(props: {
 								<S.SplashScreenLine>
 									<p>
 										{`Node: `}
-										<span>{AO_NODE.url}</span>
+										<span>{settingsProvider.settings.nodes.find((node) => node.active)?.url ?? '-'}</span>
 									</p>
 								</S.SplashScreenLine>
 								<S.SplashScreenLine>

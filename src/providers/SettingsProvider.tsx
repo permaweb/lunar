@@ -2,7 +2,7 @@ import React from 'react';
 import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
-import { STYLING } from 'helpers/config';
+import { AO_NODE, STYLING } from 'helpers/config';
 import {
 	darkTheme,
 	darkThemeAlt1,
@@ -26,6 +26,12 @@ type ThemeType =
 	| 'dark-alt-1'
 	| 'dark-alt-2';
 
+export interface NodeConfig {
+	url: string;
+	authority: string;
+	active: boolean;
+}
+
 interface Settings {
 	theme: ThemeType;
 	syncWithSystem: boolean;
@@ -37,11 +43,15 @@ interface Settings {
 	showCategoryAction: boolean;
 	showTopicAction: boolean;
 	showLinkAction: boolean;
+	nodes: NodeConfig[];
 }
 
 interface SettingsContextState {
 	settings: Settings;
 	updateSettings: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+	addNode: (node: Omit<NodeConfig, 'active' | 'authority'>) => void;
+	removeNode: (url: string) => void;
+	setActiveNode: (url: string) => void;
 }
 
 interface SettingsProviderProps {
@@ -59,11 +69,15 @@ const defaultSettings: Settings = {
 	showCategoryAction: false,
 	showTopicAction: false,
 	showLinkAction: false,
+	nodes: [{ url: AO_NODE.url, authority: AO_NODE.authority, active: true }],
 };
 
 const SettingsContext = React.createContext<SettingsContextState>({
 	settings: defaultSettings,
 	updateSettings: () => {},
+	addNode: () => {},
+	removeNode: () => {},
+	setActiveNode: () => {},
 });
 
 export function useSettingsProvider(): SettingsContextState {
@@ -92,6 +106,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				syncWithSystem: parsedSettings.syncWithSystem ?? true,
 				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
 				preferredDarkTheme: parsedSettings.preferredDarkTheme ?? 'dark-primary',
+				nodes: parsedSettings.nodes ?? [{ url: AO_NODE.url, authority: AO_NODE.authority, active: true }],
 			};
 		} else {
 			settings = {
@@ -203,6 +218,63 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		});
 	};
 
+	const addNode = async (node: Omit<NodeConfig, 'active' | 'authority'>) => {
+		try {
+			const authorityResponse = await fetch(`${node.url}/~meta@1.0/info/address`);
+			const authority = await authorityResponse.text();
+
+			const newNode = {
+				...node,
+				authority: authority,
+				active: true,
+			};
+
+			setSettings((prevSettings) => {
+				const newSettings = {
+					...prevSettings,
+					nodes: [...prevSettings.nodes.map((n) => ({ ...n, active: false })), { ...newNode }],
+				};
+				localStorage.setItem('settings', JSON.stringify(newSettings));
+				return newSettings;
+			});
+		} catch (e: any) {
+			console.error(e);
+		}
+	};
+
+	const removeNode = (url: string) => {
+		setSettings((prevSettings) => {
+			const filteredNodes = prevSettings.nodes.filter((node) => node.url !== url);
+			// Ensure at least one node remains
+			if (filteredNodes.length === 0) {
+				return prevSettings;
+			}
+			// If we removed the active node, set the first remaining node as active
+			const hasActiveNode = filteredNodes.some((node) => node.active);
+			const newNodes = hasActiveNode
+				? filteredNodes
+				: filteredNodes.map((node, idx) => ({ ...node, active: idx === 0 }));
+
+			const newSettings = {
+				...prevSettings,
+				nodes: newNodes,
+			};
+			localStorage.setItem('settings', JSON.stringify(newSettings));
+			return newSettings;
+		});
+	};
+
+	const setActiveNode = (url: string) => {
+		setSettings((prevSettings) => {
+			const newSettings = {
+				...prevSettings,
+				nodes: prevSettings.nodes.map((node) => ({ ...node, active: node.url === url })),
+			};
+			localStorage.setItem('settings', JSON.stringify(newSettings));
+			return newSettings;
+		});
+	};
+
 	function getTheme() {
 		switch (settings.theme) {
 			case 'light-primary':
@@ -227,7 +299,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	}
 
 	return (
-		<SettingsContext.Provider value={{ settings, updateSettings }}>
+		<SettingsContext.Provider value={{ settings, updateSettings, addNode, removeNode, setActiveNode }}>
 			<ThemeProvider theme={getTheme()}>{props.children}</ThemeProvider>
 		</SettingsContext.Provider>
 	);

@@ -67,6 +67,7 @@ export const Dropdown = styled.div`
 	z-index: 1;
 	top: 47.5px;
 	right: -1.5px;
+	background: ${(props) => props.theme.colors.container.alt1.background} !important;
 `;
 
 export const DHeaderWrapper = styled.div`
@@ -242,7 +243,7 @@ export const Indicator = styled.div<{ active: boolean }>`
 	width: 12.5px;
 	border-radius: 50%;
 	background: ${(props) => (props.active ? props.theme.colors.indicator.active : 'transparent')};
-	border: 1px solid ${(props) => props.theme.colors.border.alt4};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	transition: all 150ms;
 `;
 
@@ -291,5 +292,118 @@ export const Preview = styled.div<{ background: string; accent: string }>`
 		right: 10px;
 		border-radius: ${STYLING.dimensions.radius.alt2};
 		background: ${(props) => props.accent};
+	}
+`;
+
+export const NodeSection = styled.div`
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+`;
+
+export const NodeSectionHeader = styled.div`
+	p {
+		color: ${(props) => props.theme.colors.font.alt1};
+		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		font-family: ${(props) => props.theme.typography.family.alt1} !important;
+		text-transform: uppercase;
+	}
+`;
+
+export const NodeList = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+`;
+
+export const NodeItem = styled.div<{ active: boolean }>`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 15px;
+	border-radius: ${STYLING.dimensions.radius.primary};
+	background: ${(props) =>
+		props.active ? props.theme.colors.container.primary.active : props.theme.colors.container.primary.background};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt2 : props.theme.colors.border.primary)};
+	transition: all 100ms;
+	cursor: ${(props) => (props.active ? 'default' : 'pointer')};
+
+	&:hover {
+		background: ${(props) => props.theme.colors.container.primary.active};
+		border: 1px solid ${(props) => props.theme.colors.border.alt2};
+	}
+`;
+
+export const NodeInfo = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 12.5px;
+	flex: 1;
+`;
+
+export const NodeDetails = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	overflow: hidden;
+
+	p {
+		color: ${(props) => props.theme.colors.font.primary};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	span {
+		color: ${(props) => props.theme.colors.font.alt1};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+`;
+
+export const NodeRemove = styled.div`
+	button {
+		padding: 4.05px 0 0 0 !important;
+	}
+`;
+
+export const NodeDivider = styled.div`
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 12.5px;
+	margin: 1.5px 0;
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		color: ${(props) => props.theme.colors.font.alt1};
+		text-transform: uppercase;
+	}
+
+	.node-divider {
+		height: 1px;
+		flex: 1;
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	}
+`;
+
+export const NodeAddSection = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+
+	button {
+		margin: 5px 0 0 0;
 	}
 `;

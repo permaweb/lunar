@@ -10,6 +10,7 @@ import { AO_NODE, STORAGE } from 'helpers/config';
 
 import { useArweaveProvider } from './ArweaveProvider';
 import { useLanguageProvider } from './LanguageProvider';
+import { useSettingsProvider } from './SettingsProvider';
 
 interface PermawebContextState {
 	deps: { ao: any; arweave: any; signer: any };
@@ -41,6 +42,7 @@ export function usePermawebProvider(): PermawebContextState {
 
 export function PermawebProvider(props: { children: React.ReactNode }) {
 	const arProvider = useArweaveProvider();
+	const settingsProvider = useSettingsProvider();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -61,7 +63,11 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 
 			const aoLegacy = connect({ MODE: 'legacy' });
 
-			const configMainnet: any = { MODE: 'mainnet', URL: AO_NODE.url, SCHEDULER: AO_NODE.scheduler };
+			const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
+			const nodeUrl = activeNode?.url || AO_NODE.url;
+			const nodeAuthority = activeNode?.authority || AO_NODE.authority;
+
+			const configMainnet: any = { MODE: 'mainnet', URL: nodeUrl, SCHEDULER: AO_NODE.scheduler };
 
 			if (signer) configMainnet.signer = signer;
 			const aoMainnet = connect(configMainnet);
@@ -69,7 +75,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			const dependenciesShared = {
 				arweave: Arweave.init({}),
 				signer: signer,
-				node: { ...AO_NODE },
+				node: { url: nodeUrl, authority: nodeAuthority, scheduler: AO_NODE.scheduler },
 			};
 
 			const dependenciesLegacy = { ao: aoLegacy, ...dependenciesShared };
@@ -86,7 +92,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 		} catch (error) {
 			console.error('Error in PermawebProvider initialization:', error);
 		}
-	}, [arProvider.wallet]);
+	}, [arProvider.wallet, settingsProvider.settings.nodes]);
 
 	React.useEffect(() => {
 		(async function () {
