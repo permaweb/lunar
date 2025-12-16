@@ -19,6 +19,7 @@ export const TabsWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	position: relative;
+	margin: 30px 0 0 0;
 `;
 
 export const BodyWrapper = styled.div`

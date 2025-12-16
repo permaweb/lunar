@@ -26,6 +26,7 @@ export const ConsoleWrapper = styled.div<{ editorMode: boolean }>`
 	flex-direction: column;
 	position: relative;
 	margin: 0 auto;
+	padding: 1.5px 0;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;

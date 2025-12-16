@@ -112,7 +112,7 @@ export default function _Editor(props: {
 
 	React.useEffect(() => {
 		const onFullScreenChange = () => {
-			setFullScreenMode(!!document.fullscreenElement);
+			setFullScreenMode(document.fullscreenElement === editorRef.current);
 		};
 		document.addEventListener('fullscreenchange', onFullScreenChange);
 		return () => {

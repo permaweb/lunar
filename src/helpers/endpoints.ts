@@ -17,3 +17,7 @@ export function getRendererEndpoint(renderWith: string, tx: string) {
 		return `https://${renderWith}.arweave.dev/?tx=${tx}`;
 	}
 }
+
+export function getMetricsEndpoint(days: number) {
+	return `https://atlas-server.decent.land/explorer/days?limit=${days}`;
+}

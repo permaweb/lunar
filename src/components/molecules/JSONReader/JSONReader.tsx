@@ -75,7 +75,7 @@ export default function _JSONTree(props: {
 
 	React.useEffect(() => {
 		const onFullScreenChange = () => {
-			setFullScreenMode(!!document.fullscreenElement);
+			setFullScreenMode(document.fullscreenElement === readerRef.current);
 		};
 		document.addEventListener('fullscreenchange', onFullScreenChange);
 		return () => {

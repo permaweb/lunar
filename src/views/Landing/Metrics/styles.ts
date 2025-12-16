@@ -17,4 +17,25 @@ export const Wrapper = styled.div`
 export const Placeholder = styled.div`
 	height: 250px;
 	width: 100%;
+	box-shadow: none !important;
+	background: ${(props) => props.theme.colors.container.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.alt1};
+	border-radius: ${STYLING.dimensions.radius.alt1};
+	background: linear-gradient(
+		90deg,
+		${(props) => props.theme.colors.container.primary.background} 0%,
+		${(props) => props.theme.colors.container.alt2.background} 50%,
+		${(props) => props.theme.colors.container.primary.background} 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1s ease-in-out infinite alternate;
+
+	@keyframes shimmer {
+		0% {
+			background-position: 0% 0;
+		}
+		100% {
+			background-position: 100% 0;
+		}
+	}
 `;

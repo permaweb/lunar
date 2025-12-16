@@ -116,7 +116,7 @@ export default function GraphQLPlayground(props: {
 	// Listen for fullscreen changes (e.g., user pressing ESC)
 	React.useEffect(() => {
 		const handleFullscreenChange = () => {
-			setIsFullscreen(!!document.fullscreenElement);
+			setIsFullscreen(document.fullscreenElement === wrapperRef.current);
 		};
 
 		document.addEventListener('fullscreenchange', handleFullscreenChange);

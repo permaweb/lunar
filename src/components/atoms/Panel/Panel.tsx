@@ -61,7 +61,7 @@ export default function Panel(props: IProps) {
 
 	React.useEffect(() => {
 		const handleFullscreenChange = () => {
-			setIsFullscreen(document.fullscreenElement !== null);
+			setIsFullscreen(!!document.fullscreenElement);
 		};
 
 		document.addEventListener('fullscreenchange', handleFullscreenChange);
