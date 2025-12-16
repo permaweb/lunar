@@ -447,7 +447,10 @@ function Transaction(props: {
 					icon: ASSETS.console,
 					disabled: false,
 					url: URLS.explorerAOS(inputTxId),
-					view: () => <AOS processId={inputTxId} active={true} />,
+					view: () => {
+						const hash = window.location.hash.replace('#', '');
+						return <AOS processId={inputTxId} active={hash === URLS.explorerAOS(inputTxId)} />;
+					},
 				});
 			}
 		}

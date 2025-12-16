@@ -105,14 +105,14 @@ export default function MetricChart(props: {
 	React.useEffect(() => {
 		if (props.dataList.length > 0) {
 			const currentDataPoint = props.dataList[props.dataList.length - 1];
-			setCurrentDate(currentDataPoint.created_date);
+			setCurrentDate(currentDataPoint.day);
 			setCurrentValue(currentDataPoint[props.metric]);
 		}
 	}, [props.dataList, props.metric]);
 
 	const labels = React.useMemo(() => {
 		return props.dataList.map((item) => {
-			const date = new Date(item.created_date);
+			const date = new Date(item.day);
 			return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 		});
 	}, [props.dataList]);
@@ -154,7 +154,7 @@ export default function MetricChart(props: {
 				const yIndex = chart.scales.y.getValueForPixel(activeElem.y);
 				if (xIndex !== null && yIndex !== null) {
 					const element = props.dataList[xIndex];
-					setCurrentDate(element.created_date);
+					setCurrentDate(element.day);
 					setCurrentValue(element[props.metric]);
 				}
 			} else {

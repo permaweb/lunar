@@ -456,13 +456,19 @@ export default function MessageList(props: {
 		}
 	}
 
-	function getOutgoingGQLArgs(tags) {
+	function getOutgoingGQLArgs(outgoingTags) {
 		switch (props.type) {
 			case 'process':
 			case 'message':
-				return {
-					tags: [...tags, { name: 'From-Process', values: [props.txId] }],
-				};
+				let tags = [...outgoingTags];
+
+				tags.push({ name: 'From-Process', values: [props.txId] });
+
+				if (props.variant === MessageVariantEnum.Mainnet) {
+					tags = lowercaseTagKeys(tags);
+				}
+
+				return { tags: [...tags] };
 			case 'wallet':
 				return {
 					tags: [...tags],
@@ -499,7 +505,7 @@ export default function MessageList(props: {
 				}
 			}
 		})();
-	}, [props.txId, toggleFilterChange, currentAction, recipient]);
+	}, [props.txId, props.variant, toggleFilterChange, currentAction, recipient]);
 
 	React.useEffect(() => {
 		(async function () {

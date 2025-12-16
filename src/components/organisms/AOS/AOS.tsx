@@ -362,7 +362,7 @@ function AOS(props: {
 
 	React.useEffect(() => {
 		const onFullScreenChange = () => {
-			setFullScreenMode(!!document.fullscreenElement);
+			setFullScreenMode(document.fullscreenElement === wrapperRef.current);
 		};
 		document.addEventListener('fullscreenchange', onFullScreenChange);
 		return () => {

@@ -96,17 +96,18 @@ export type TransactionTabType = {
 };
 
 export type MetricDataPoint = {
-	created_date: string;
-	tx_count: number;
-	eval_count: number;
-	transfer_count: number;
-	new_process_count: number;
-	new_module_count: number;
-	active_users: number;
-	active_processes: number;
-	tx_count_rolling: number;
-	processes_rolling: number;
-	modules_rolling: number;
+	active_processes_over_blocks: number;
+	active_users_over_blocks: number;
+	day: string;
+	evals: number;
+	modules_roll: number;
+	new_modules_over_blocks: number;
+	new_processes_over_blocks: number;
+	processed_blocks: number;
+	processes_roll: number;
+	transfers: number;
+	txs: number;
+	txs_roll: number;
 };
 
 export type MessageFilterType = 'incoming' | 'outgoing';
