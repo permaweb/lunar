@@ -22,7 +22,7 @@ const common = {
 		saveDelegationSummary: '#eb9330',
 		nextPiDelegationPage: '#667eea',
 		none: '#373744',
-		other: '#6086e3',
+		other: '#5E66DB',
 	},
 	editorLight: {
 		primary: '#ec3063',

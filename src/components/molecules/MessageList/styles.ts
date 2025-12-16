@@ -240,16 +240,36 @@ export const ElementItem = styled.div`
 `;
 
 export const ID = styled(ElementItem)`
-	min-width: 185px;
-	width: 185px;
+	min-width: 250px;
+	width: 250px;
 	display: flex;
 	align-items: center;
-	gap: 12.5px;
+	gap: 5px;
+`;
+
+export const TxAddress = styled.div`
+	min-width: 150px;
+	width: 150px;
+	margin: 0 0 0 7.5px;
+`;
+
+export const Variant = styled.div`
+	min-width: 52.5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: ${(props) => props.theme.colors.container.alt1.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+
+	span {
+		color: ${(props) => props.theme.colors.font.primary};
+		text-transform: uppercase;
+	}
 `;
 
 export const Action = styled(ElementItem)`
-	min-width: 225px;
-	width: 225px;
+	min-width: 215px;
+	width: 215px;
 `;
 
 export const ActionTooltip = styled.div`
@@ -267,8 +287,8 @@ export const ActionTooltip = styled.div`
 `;
 
 export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: boolean }>`
-	min-width: 225px;
-	width: 225px;
+	min-width: 215px;
+	width: 215px;
 	position: relative;
 
 	.action-indicator {

@@ -89,6 +89,7 @@ function Message(props: {
 						setResult(removeCommitments(messageResult));
 					} catch (e: any) {
 						console.error(e);
+						setResult({ Result: e.message ?? 'Error Getting Result' });
 					}
 				}
 			}
@@ -326,8 +327,12 @@ function Message(props: {
 						tooltip={language.openInNewTab}
 						tooltipPosition={'right'}
 					/>
-
-					<TxAddress address={props.element.node.id} />
+					<S.TxAddress>
+						<TxAddress address={props.element.node.id} />
+					</S.TxAddress>
+					<S.Variant className={'info'}>
+						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant)}</span>
+					</S.Variant>
 				</S.ID>
 				{getAction(true)}
 				{getFrom()}
@@ -471,7 +476,7 @@ export default function MessageList(props: {
 				return { tags: [...tags] };
 			case 'wallet':
 				return {
-					tags: [...tags],
+					tags: [...outgoingTags],
 					owners: [props.txId],
 				};
 		}
