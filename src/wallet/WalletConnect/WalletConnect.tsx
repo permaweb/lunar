@@ -201,7 +201,10 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 				handleClose={() => setShowThemeSelector(false)}
 			>
 				<S.MWrapper className={'modal-wrapper'}>
-					<S.SyncToggle onClick={() => updateSettings('syncWithSystem', !settings.syncWithSystem)}>
+					<S.SyncToggle
+						onClick={() => updateSettings('syncWithSystem', !settings.syncWithSystem)}
+						active={settings.syncWithSystem}
+					>
 						<S.SyncToggleLabel>
 							<p>{language.syncWithSystem}</p>
 						</S.SyncToggleLabel>

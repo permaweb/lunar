@@ -167,6 +167,7 @@ export default function MetricChart(props: {
 	const options = {
 		responsive: true,
 		maintainAspectRatio: false,
+		animation: false as any,
 		plugins: {
 			tooltip: { enabled: false },
 			legend: { display: false, labels: { usePointStyle: true } },

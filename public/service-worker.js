@@ -64,10 +64,32 @@ self.addEventListener('fetch', (event) => {
 		url.pathname.endsWith('.webp') ||
 		url.pathname.includes('/assets/');
 
+	// Use cache-first for non-assets files to prevent flickering
+	const isAssetFile = url.pathname.includes('/assets/');
+
 	if (isBundleFile) {
 		event.respondWith(
 			caches.match(request).then((cachedResponse) => {
-				// Try to fetch from network first
+				// Cache-first strategy for non-assets (SVGs, fonts, etc.) to prevent flickering
+				if (!isAssetFile && cachedResponse) {
+					console.log('[Service Worker] Serving from cache:', request.url);
+					// Update cache in background
+					fetch(request)
+						.then((response) => {
+							if (response && response.status === 200 && response.type === 'basic') {
+								caches.open(CACHE_NAME).then((cache) => {
+									console.log('[Service Worker] Updating cache in background:', request.url);
+									cache.put(request, response);
+								});
+							}
+						})
+						.catch((error) => {
+							console.warn('[Service Worker] Background fetch failed:', request.url, error);
+						});
+					return cachedResponse;
+				}
+
+				// Network-first strategy for assets or when no cache exists
 				const fetchPromise = fetch(request)
 					.then((response) => {
 						// Only cache successful responses
@@ -91,25 +113,6 @@ self.addEventListener('fetch', (event) => {
 						throw error;
 					});
 
-				// If we have a cached response, validate it works, otherwise fetch
-				if (cachedResponse) {
-					console.log('[Service Worker] Found cached response for:', request.url);
-					// Return cached response immediately, but verify it in background
-					return cachedResponse
-						.clone()
-						.blob()
-						.then(() => {
-							console.log('[Service Worker] Serving valid cache for:', request.url);
-							return cachedResponse;
-						})
-						.catch(() => {
-							// Cached response is corrupted, fetch from network
-							console.warn('[Service Worker] Cached response corrupted, fetching from network:', request.url);
-							return fetchPromise;
-						});
-				}
-
-				// No cached response, fetch from network
 				return fetchPromise;
 			})
 		);
