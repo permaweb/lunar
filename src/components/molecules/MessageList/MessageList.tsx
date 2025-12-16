@@ -833,7 +833,7 @@ export default function MessageList(props: {
 				{currentData?.length > 0 ? (
 					<S.Wrapper childList={props.childList}>
 						{!props.childList && (
-							<S.HeaderWrapper>
+							<S.HeaderWrapper className={'fade-in'}>
 								<S.ID>
 									<p>{language.id}</p>
 								</S.ID>
@@ -860,7 +860,7 @@ export default function MessageList(props: {
 								</S.Results>
 							</S.HeaderWrapper>
 						)}
-						<S.BodyWrapper childList={props.childList} isOverallLast={props.isOverallLast}>
+						<S.BodyWrapper childList={props.childList} isOverallLast={props.isOverallLast} className={'fade-in'}>
 							{currentData.map((element: any, index: number) => {
 								const isLastChild = index === currentData.length - 1;
 

@@ -6,15 +6,39 @@ import { MetricDataPoint } from 'helpers/types';
 
 import * as S from './styles';
 
+const METRICS_CACHE_KEY = 'lunar-metrics-cache';
+const CACHE_DURATION = 6 * 60 * 60 * 1000;
+
 export default function Metrics() {
 	const [metrics, setMetrics] = React.useState<MetricDataPoint[] | null>(null);
 
 	React.useEffect(() => {
 		(async function () {
 			try {
+				const cachedData = localStorage.getItem(METRICS_CACHE_KEY);
+				if (cachedData) {
+					const { data, timestamp } = JSON.parse(cachedData);
+					const now = Date.now();
+
+					if (now - timestamp < CACHE_DURATION) {
+						setMetrics(data);
+						return;
+					}
+				}
+
 				const response = await fetch(getMetricsEndpoint(30));
 				const data = await response.json();
-				setMetrics(data.reverse());
+				const reversedData = data.reverse();
+
+				localStorage.setItem(
+					METRICS_CACHE_KEY,
+					JSON.stringify({
+						data: reversedData,
+						timestamp: Date.now(),
+					})
+				);
+
+				setMetrics(reversedData);
 			} catch (e: any) {
 				console.error(e);
 			}

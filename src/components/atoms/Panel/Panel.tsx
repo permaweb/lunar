@@ -82,7 +82,12 @@ export default function Panel(props: IProps) {
 	function getBody() {
 		return (
 			<>
-				<S.Container open={props.open} noHeader={!props.header} width={props.width} className={'border-wrapper-alt1'}>
+				<S.Container
+					open={props.open}
+					noHeader={!props.header}
+					width={props.width}
+					className={'border-wrapper-primary'}
+				>
 					<CloseHandler
 						active={props.open && !props.closeHandlerDisabled}
 						disabled={!props.open || props.closeHandlerDisabled}

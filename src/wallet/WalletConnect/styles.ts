@@ -164,20 +164,21 @@ export const MWrapper = styled.div`
 	gap: 20px;
 `;
 
-export const SyncToggle = styled.button`
+export const SyncToggle = styled.button<{ active: boolean }>`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	padding: 15px;
 	border-radius: ${STYLING.dimensions.radius.primary};
-	background: ${(props) => props.theme.colors.container.primary.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	background: ${(props) =>
+		props.active ? props.theme.colors.container.primary.active : props.theme.colors.container.primary.background};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt2 : props.theme.colors.border.primary)};
 	cursor: pointer;
 	transition: all 150ms;
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
-		border: 1px solid ${(props) => props.theme.colors.border.alt4};
+		border: 1px solid ${(props) => props.theme.colors.border.alt2};
 	}
 `;
 
