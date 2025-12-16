@@ -25,7 +25,6 @@ export default function Avatar(props: IProps) {
 			dimensions={props.dimensions}
 			hasCallback={props.callback !== null}
 			hasOwner={props.owner !== null}
-			className={'fade-in'}
 			hasImage={hasImage}
 		>
 			{thumbnail}

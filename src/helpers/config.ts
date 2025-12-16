@@ -1,8 +1,15 @@
 import { getTxEndpoint } from './endpoints';
 
+// TODO
+// export const AO_NODE = {
+// 	url: 'https://push.forward.computer',
+// 	authority: 'YUsEnCSlxvOMxRd1qG6rkaPwMgi3xOorfDfYJoMDndA',
+// 	scheduler: 'n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo',
+// };
+
 export const AO_NODE = {
-	url: 'https://push.forward.computer',
-	authority: 'YUsEnCSlxvOMxRd1qG6rkaPwMgi3xOorfDfYJoMDndA',
+	url: 'http://localhost:8734',
+	authority: 'mYJTM8VpIibDLuyGLQTcbcPy-LeOY48qzECADTUYfWc',
 	scheduler: 'n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo',
 };
 
