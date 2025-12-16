@@ -125,6 +125,7 @@ export const language = {
 		search: `Search`,
 		searching: `Searching`,
 		searchProcessId: `Search for Process ID`,
+		settings: `Settings`,
 		showResults: `Show Results`,
 		showingRange: (start: number, end: number, total: number) => `Showing ${start} - ${end} of ${total}`,
 		sortNewestToOldest: `Newest to Oldest`,

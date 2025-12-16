@@ -3,10 +3,10 @@ import React from 'react';
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { AO_NODE } from 'helpers/config';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatMs, removeCommitments } from 'helpers/utils';
 import { usePermawebProvider } from 'providers/PermawebProvider';
+import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import * as S from './styles';
 
@@ -17,6 +17,7 @@ export default function ProcessRead(props: {
 	hideOutput?: boolean;
 }) {
 	const permawebProvider = usePermawebProvider();
+	const settingsProvider = useSettingsProvider();
 
 	const [cuLocation, setCuLocation] = React.useState(null);
 	const [startTime, setStartTime] = React.useState(null);
@@ -50,11 +51,12 @@ export default function ProcessRead(props: {
 					}
 					break;
 				case MessageVariantEnum.Mainnet:
-					setCuLocation(AO_NODE.url);
+					const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
+					setCuLocation(activeNode?.url || null);
 					break;
 			}
 		})();
-	}, [props.processId, props.variant]);
+	}, [props.processId, props.variant, settingsProvider.settings.nodes]);
 
 	const safelyParseNestedJSON = (input) => {
 		if (typeof input === 'string') {
@@ -127,7 +129,7 @@ export default function ProcessRead(props: {
 
 	React.useEffect(() => {
 		if (props.autoRun) fetchData();
-	}, [props.processId, props.variant, props.autoRun]);
+	}, [props.processId, props.variant, props.autoRun, settingsProvider.settings.nodes]);
 
 	React.useEffect(() => {
 		if (isInitialMount.current) {
@@ -137,7 +139,7 @@ export default function ProcessRead(props: {
 		if (!isFetching) {
 			fetchData();
 		}
-	}, [props.processId, toggleRead]);
+	}, [props.processId, toggleRead, settingsProvider.settings.nodes]);
 
 	return (
 		<S.Wrapper>
