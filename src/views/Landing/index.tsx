@@ -33,6 +33,7 @@ export default function Landing() {
 
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
+			header.style.borderBottom = 'none';
 		};
 	}, [theme.colors.border.primary]);
 
