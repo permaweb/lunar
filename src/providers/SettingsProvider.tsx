@@ -2,6 +2,7 @@ import React from 'react';
 import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
+import { Notification } from 'components/atoms/Notification';
 import { AO_NODE, STYLING } from 'helpers/config';
 import {
 	darkTheme,
@@ -14,6 +15,7 @@ import {
 	lightThemeHighContrast,
 	theme,
 } from 'helpers/themes';
+import { NotificationType } from 'helpers/types';
 import { checkWindowCutoff } from 'helpers/window';
 
 type ThemeType =
@@ -121,6 +123,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	};
 
 	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings());
+	const [settingsUpdateResponse, setSettingsUpdateResponse] = React.useState<NotificationType | null>(null);
 
 	const handleWindowResize = React.useCallback(() => {
 		const newIsDesktop = checkWindowCutoff(parseInt(STYLING.cutoffs.desktop));
@@ -220,6 +223,20 @@ export function SettingsProvider(props: SettingsProviderProps) {
 
 	const addNode = async (node: Omit<NodeConfig, 'active' | 'authority'>) => {
 		try {
+			// Check if node already exists
+			if (settings.nodes.some((n) => n.url === node.url)) {
+				setSettingsUpdateResponse({
+					status: 'warning',
+					message: `Node ${node.url} already exists`,
+				});
+				return;
+			}
+
+			setSettingsUpdateResponse({
+				status: null,
+				message: `Loading...`,
+			});
+
 			const authorityResponse = await fetch(`${node.url}/~meta@1.0/info/address`);
 			const authority = await authorityResponse.text();
 
@@ -237,8 +254,18 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				localStorage.setItem('settings', JSON.stringify(newSettings));
 				return newSettings;
 			});
+
+			setSettingsUpdateResponse({
+				status: 'success',
+				message: `Connected to ${node.url}`,
+			});
 		} catch (e: any) {
 			console.error(e);
+
+			setSettingsUpdateResponse({
+				status: 'warning',
+				message: e.message ?? `Error connecting to ${node.url}`,
+			});
 		}
 	};
 
@@ -300,7 +327,18 @@ export function SettingsProvider(props: SettingsProviderProps) {
 
 	return (
 		<SettingsContext.Provider value={{ settings, updateSettings, addNode, removeNode, setActiveNode }}>
-			<ThemeProvider theme={getTheme()}>{props.children}</ThemeProvider>
+			<ThemeProvider theme={getTheme()}>
+				{props.children}
+				{settingsUpdateResponse && (
+					<Notification
+						type={settingsUpdateResponse.status}
+						message={settingsUpdateResponse.message}
+						callback={() => {
+							setSettingsUpdateResponse(null);
+						}}
+					/>
+				)}
+			</ThemeProvider>
 		</SettingsContext.Provider>
 	);
 }

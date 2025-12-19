@@ -70,7 +70,7 @@ export const Dropdown = styled.button<{ active: boolean }>`
 		text-overflow: ellipsis;
 		overflow: hidden;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
-		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		color: ${(props) =>
 			props.active ? props.theme.colors.font.light1 : props.theme.colors.button.primary.color} !important;
@@ -89,17 +89,17 @@ export const Dropdown = styled.button<{ active: boolean }>`
 export const Options = styled.ul`
 	width: 100%;
 	position: absolute;
-	top: 45px;
-	z-index: 2;
+	top: 42.5px;
+	z-index: 4;
 	overflow: hidden;
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.border.alt2};
 	border-radius: ${STYLING.dimensions.radius.alt2};
+	box-shadow: ${(props) => props.theme.colors.container.alt11.background} 0px 1px 2px 0.5px;
 `;
 
 export const Option = styled.li<{ active: boolean }>`
 	text-align: center;
-	height: 40px;
+	height: calc(${STYLING.dimensions.form.small} + 2px);
 	display: flex;
 	align-items: center;
 	cursor: ${(props) => (props.active ? 'default' : 'pointer')};

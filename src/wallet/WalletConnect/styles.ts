@@ -323,12 +323,13 @@ export const NodeItem = styled.div<{ active: boolean }>`
 	align-items: center;
 	justify-content: space-between;
 	padding: 12px 15px;
-	border-radius: ${STYLING.dimensions.radius.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
 	background: ${(props) =>
-		props.active ? props.theme.colors.container.primary.active : props.theme.colors.container.primary.background};
-	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt2 : props.theme.colors.border.primary)};
+		props.active ? props.theme.colors.container.alt1.background : props.theme.colors.container.primary.background};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt3 : props.theme.colors.border.primary)};
 	transition: all 100ms;
 	cursor: ${(props) => (props.active ? 'default' : 'pointer')};
+	pointer-events: ${(props) => (!props.active ? 'all' : 'none')};
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
@@ -351,7 +352,7 @@ export const NodeDetails = styled.div`
 
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		white-space: nowrap;
@@ -372,7 +373,7 @@ export const NodeDetails = styled.div`
 
 export const NodeRemove = styled.div`
 	button {
-		padding: 4.05px 0 0 0 !important;
+		padding: 3.75px 0 0 0 !important;
 	}
 `;
 

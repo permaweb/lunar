@@ -10,7 +10,7 @@ export const Wrapper = styled.div<{ warning: boolean | undefined }>`
 	left: 50%;
 	bottom: 20px;
 	transform: translate(-50%, 0);
-	z-index: 20;
+	z-index: 2147483647;
 	animation: ${open} ${transition1};
 	display: flex;
 	align-items: center;
@@ -64,18 +64,18 @@ export const Message = styled.span`
 	font-size: ${(props) => props.theme.typography.size.xSmall} !important;
 `;
 
-export const Close = styled.div`
+export const Close = styled.button`
 	margin: 0 0 0 auto;
-	button {
+	span {
+		color: ${(props) => props.theme.colors.font.light1} !important;
+		font-family: ${(props) => props.theme.typography.family.primary} !important;
+		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+	}
+	&:hover {
 		span {
 			color: ${(props) => props.theme.colors.font.light1} !important;
-			font-size: ${(props) => props.theme.typography.size.xSmall};
-		}
-		&:hover {
-			span {
-				color: ${(props) => props.theme.colors.font.light1} !important;
-				opacity: 0.75;
-			}
+			opacity: 0.75;
 		}
 	}
 `;

@@ -352,6 +352,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			alt4: currentTheme.neutralA5,
 			alt5: currentTheme.primary1,
 			alt6: currentTheme.primary2,
+			alt7: currentTheme.dark1,
 		},
 		button: {
 			primary: {
@@ -442,6 +443,9 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			},
 			alt10: {
 				background: currentTheme.primary2,
+			},
+			alt11: {
+				background: currentTheme.dark1,
 			},
 		},
 		contrast: {

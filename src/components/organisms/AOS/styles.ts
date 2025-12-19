@@ -322,7 +322,23 @@ export const Options = styled.div`
 	flex-direction: column;
 	gap: 15px;
 	padding: 0 12.5px 0 0;
+
 	overflow-y: scroll;
+	scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} ${(props) => props.theme.colors.scrollbar.track};
+
+	::-webkit-scrollbar-track {
+		background: ${(props) => props.theme.colors.scrollbar.track};
+	}
+	::-webkit-scrollbar {
+		width: 15px;
+		border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	}
+	::-webkit-scrollbar-thumb {
+		background-color: ${(props) => props.theme.colors.scrollbar.thumb};
+		border-radius: 36px;
+		border: 3.5px solid transparent;
+		background-clip: padding-box;
+	}
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.primary} !important;

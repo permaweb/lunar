@@ -655,7 +655,7 @@ function AOS(props: {
 								<>
 									{txOptions && (
 										<>
-											<S.Options className={'scroll-wrapper'}>
+											<S.Options>
 												{txOptions.map((tx: Types.GQLNodeResponseType, index: number) => {
 													const name = getTagValue(tx.node.tags, 'Name');
 													return (

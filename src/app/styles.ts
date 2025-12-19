@@ -271,6 +271,7 @@ export const GlobalStyle = createGlobalStyle`
     ::-webkit-scrollbar {
       width: 12.5px;
     }
+		scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} transparent;
 
     ::-webkit-scrollbar-thumb {
       background-color: transparent;
@@ -292,13 +293,13 @@ export const GlobalStyle = createGlobalStyle`
   }
 
 	.scroll-wrapper-hidden {
-		overflow: auto;
-		::-webkit-scrollbar {
-			display: none;
-		}
-		
-		-ms-overflow-style: none;
-		scrollbar-width: none;
+			overflow: auto;
+			::-webkit-scrollbar {
+				display: none;
+			}
+			
+			-ms-overflow-style: none;
+			scrollbar-width: none;
 		}
 `;
 

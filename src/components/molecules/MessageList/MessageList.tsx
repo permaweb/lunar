@@ -403,6 +403,7 @@ export default function MessageList(props: {
 						filter: parsed.filter,
 						action: parsed.action || null,
 						recipient: parsed.recipient || '',
+						fromAddress: parsed.fromAddress || '',
 					};
 				}
 			} catch (e) {
@@ -445,6 +446,32 @@ export default function MessageList(props: {
 	const [pageNumber, setPageNumber] = React.useState(1);
 	const [perPage, setPerPage] = React.useState(50);
 	const [recipient, setRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
+	const [fromAddress, setFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
+	const [fromAddressIsProcess, setFromAddressIsProcess] = React.useState<boolean>(false);
+
+	// Applied filter states (only updated when "Apply Filters" is clicked)
+	const [appliedAction, setAppliedAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
+	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
+	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
+	const [appliedFromAddressIsProcess, setAppliedFromAddressIsProcess] = React.useState<boolean>(false);
+
+	async function checkIsProcess(address: string): Promise<boolean> {
+		try {
+			const response = await permawebProvider.libs.getGQLData({
+				ids: [address],
+			});
+
+			if (response?.data?.length) {
+				const type = getTagValue(response.data[0].node.tags, 'Type');
+				return type === 'Process';
+			}
+
+			return false;
+		} catch (e) {
+			console.error('Error checking if address is process:', e);
+			return false;
+		}
+	}
 
 	function saveFilterState() {
 		if (props.txId && !props.childList) {
@@ -453,6 +480,7 @@ export default function MessageList(props: {
 					filter: currentFilter,
 					action: currentAction,
 					recipient: recipient,
+					fromAddress: fromAddress,
 				};
 				localStorage.setItem(STORAGE.messageFilter(props.txId), JSON.stringify(filterState));
 			} catch (e) {
@@ -482,24 +510,59 @@ export default function MessageList(props: {
 		}
 	}
 
+	// Check if fromAddress is a process whenever it changes
+	React.useEffect(() => {
+		(async function () {
+			if (fromAddress && checkValidAddress(fromAddress)) {
+				const isProcess = await checkIsProcess(fromAddress);
+				setFromAddressIsProcess(isProcess);
+			} else {
+				setFromAddressIsProcess(false);
+			}
+		})();
+	}, [fromAddress]);
+
+	// Initialize appliedFromAddressIsProcess on mount if there's a loaded fromAddress
+	React.useEffect(() => {
+		(async function () {
+			if (loadedFilterState?.fromAddress && checkValidAddress(loadedFilterState.fromAddress)) {
+				const isProcess = await checkIsProcess(loadedFilterState.fromAddress);
+				setAppliedFromAddressIsProcess(isProcess);
+				setFromAddressIsProcess(isProcess);
+			}
+		})();
+	}, []);
+
 	// Save filter state whenever it changes
 	React.useEffect(() => {
 		saveFilterState();
-	}, [currentFilter, currentAction, recipient]);
+	}, [currentFilter, currentAction, recipient, fromAddress]);
 
 	React.useEffect(() => {
 		(async function () {
-			const tags = [...DEFAULT_MESSAGE_TAGS];
-			if (currentAction) tags.push({ name: 'Action', values: [currentAction] });
+			let tags = [...DEFAULT_MESSAGE_TAGS];
+			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
 			if (props.txId) {
 				try {
+					// Build incoming query args
+					let incomingQueryArgs: any = {
+						tags: tags,
+						recipients: [props.txId],
+					};
+
+					// Add fromAddress filter if applicable
+					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
+						if (appliedFromAddressIsProcess) {
+							incomingQueryArgs.tags = [...tags, { name: 'From-Process', values: [appliedFromAddress] }];
+						} else {
+							incomingQueryArgs.owners = [appliedFromAddress];
+						}
+					}
+
 					const [gqlResponseIncoming, gqlResponseOutgoing] = await Promise.all([
+						permawebProvider.libs.getGQLData(incomingQueryArgs),
 						permawebProvider.libs.getGQLData({
-							tags: tags,
-							recipients: [props.txId],
-						}),
-						permawebProvider.libs.getGQLData({
-							...(recipient && checkValidAddress(recipient) ? { recipients: [recipient] } : {}),
+							...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 							...getOutgoingGQLArgs(tags),
 						}),
 					]);
@@ -510,12 +573,12 @@ export default function MessageList(props: {
 				}
 			}
 		})();
-	}, [props.txId, props.variant, toggleFilterChange, currentAction, recipient]);
+	}, [props.txId, props.variant, toggleFilterChange]);
 
 	React.useEffect(() => {
 		(async function () {
 			let tags = [...DEFAULT_MESSAGE_TAGS];
-			if (currentAction) tags.push({ name: 'Action', values: [currentAction] });
+			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
 
 			setLoadingMessages(true);
 			if (props.txId) {
@@ -524,18 +587,31 @@ export default function MessageList(props: {
 						let gqlResponse: any;
 						switch (currentFilter) {
 							case 'incoming':
-								gqlResponse = await permawebProvider.libs.getGQLData({
+								let incomingQueryArgs: any = {
 									tags: tags,
 									recipients: [props.txId],
 									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
-								});
+								};
+
+								// Add fromAddress filter if applicable
+								if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
+									if (appliedFromAddressIsProcess) {
+										incomingQueryArgs.tags = [...tags, { name: 'From-Process', values: [appliedFromAddress] }];
+									} else {
+										incomingQueryArgs.owners = [appliedFromAddress];
+									}
+								}
+
+								gqlResponse = await permawebProvider.libs.getGQLData(incomingQueryArgs);
 								break;
 							case 'outgoing':
 								gqlResponse = await permawebProvider.libs.getGQLData({
 									paginator: perPage,
-									...(recipient && checkValidAddress(recipient) ? { recipients: [recipient] } : {}),
+									...(appliedRecipient && checkValidAddress(appliedRecipient)
+										? { recipients: [appliedRecipient] }
+										: {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
 									...getOutgoingGQLArgs(tags),
@@ -607,7 +683,7 @@ export default function MessageList(props: {
 					paginator: perPage,
 					minBlock: currentBlock - 20,
 					maxBlock: currentBlock,
-					...(recipient && checkValidAddress(recipient) ? { recipients: [recipient] } : {}),
+					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
 				});
 
@@ -663,7 +739,11 @@ export default function MessageList(props: {
 	}
 
 	function handleFilterChange(filter: MessageFilterType) {
-		if (filter === 'incoming') setRecipient('');
+		if (filter === 'incoming') {
+			setRecipient('');
+		} else {
+			setFromAddress('');
+		}
 		setCurrentFilter(filter);
 		handleClear();
 	}
@@ -673,6 +753,12 @@ export default function MessageList(props: {
 	}
 
 	function handleFilterUpdate() {
+		// Update applied filter states
+		setAppliedAction(currentAction);
+		setAppliedRecipient(recipient);
+		setAppliedFromAddress(fromAddress);
+		setAppliedFromAddressIsProcess(fromAddressIsProcess);
+
 		setToggleFilterChange((prev) => !prev);
 		setShowFilters(false);
 		handleClear();
@@ -793,26 +879,46 @@ export default function MessageList(props: {
 									<S.Divider />
 								</>
 							)}
-							{currentAction && !showFilters && (
+							{appliedAction && (
 								<Button
 									type={'alt3'}
-									label={currentAction}
+									label={appliedAction}
 									handlePress={() => {
-										handleActionChange(currentAction);
-										handleFilterUpdate();
+										setCurrentAction(null);
+										setAppliedAction(null);
+										setToggleFilterChange((prev) => !prev);
+										handleClear();
 									}}
 									active={true}
 									disabled={loadingMessages}
 									icon={ASSETS.close}
 								/>
 							)}
-							{recipient && checkValidAddress(recipient) && !showFilters && (
+							{appliedRecipient && checkValidAddress(appliedRecipient) && (
 								<Button
 									type={'alt3'}
-									label={formatAddress(recipient, false)}
+									label={`To: ${formatAddress(appliedRecipient, false)}`}
 									handlePress={() => {
 										setRecipient('');
-										handleFilterUpdate();
+										setAppliedRecipient('');
+										setToggleFilterChange((prev) => !prev);
+										handleClear();
+									}}
+									active={true}
+									disabled={loadingMessages}
+									icon={ASSETS.close}
+								/>
+							)}
+							{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
+								<Button
+									type={'alt3'}
+									label={`From: ${formatAddress(appliedFromAddress, false)}`}
+									handlePress={() => {
+										setFromAddress('');
+										setAppliedFromAddress('');
+										setAppliedFromAddressIsProcess(false);
+										setToggleFilterChange((prev) => !prev);
+										handleClear();
 									}}
 									active={true}
 									disabled={loadingMessages}
@@ -893,13 +999,13 @@ export default function MessageList(props: {
 			{!props.childList && (
 				<Panel
 					open={showFilters}
-					width={500}
+					width={515}
 					header={language.messageFilters}
 					handleClose={() => setShowFilters(false)}
 				>
 					<S.FilterDropdown>
 						<S.FilterDropdownHeader>
-							<p>{language.byAction}</p>
+							<p>{language.filterByAction}</p>
 						</S.FilterDropdownHeader>
 						<S.FilterDropdownActionSelect>
 							{actionOptions.map((action) => {
@@ -926,7 +1032,7 @@ export default function MessageList(props: {
 								hideErrorMessage
 							/>
 							<Button
-								type={customActionSelected ? 'warning' : 'alt1'}
+								type={customActionSelected ? 'primary' : 'alt1'}
 								label={customActionSelected ? language.remove : language.submit}
 								handlePress={() => (customActionSelected ? handleActionRemove() : handleActionAdd())}
 								disabled={
@@ -940,15 +1046,6 @@ export default function MessageList(props: {
 							/>
 						</S.FilterDropdownActionSelect>
 						<S.FilterDivider />
-						<FormField
-							type={'number'}
-							label={language.resultsPerPage}
-							value={perPage}
-							onChange={(e: any) => setPerPage(e.target.value)}
-							disabled={loadingMessages}
-							invalid={{ status: invalidPerPage, message: invalidPerPage ? 'Value must be between 0 and 100' : null }}
-						/>
-
 						{(currentFilter !== 'incoming' || !props.txId) && (
 							<FormField
 								label={language.recipient}
@@ -960,6 +1057,25 @@ export default function MessageList(props: {
 							/>
 						)}
 
+						{currentFilter === 'incoming' && props.txId && (
+							<FormField
+								label={language.from}
+								value={fromAddress}
+								onChange={(e: any) => setFromAddress(e.target.value)}
+								disabled={loadingMessages}
+								invalid={{ status: fromAddress ? !checkValidAddress(fromAddress) : null, message: null }}
+								hideErrorMessage
+							/>
+						)}
+						<S.FilterDivider />
+						<FormField
+							type={'number'}
+							label={language.resultsPerPage}
+							value={perPage}
+							onChange={(e: any) => setPerPage(e.target.value)}
+							disabled={loadingMessages}
+							invalid={{ status: invalidPerPage, message: invalidPerPage ? 'Value must be between 0 and 100' : null }}
+						/>
 						<S.FilterApply>
 							<Button
 								type={'alt1'}

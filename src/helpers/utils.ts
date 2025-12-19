@@ -342,3 +342,7 @@ export function debugLog(level: string, context: string, ...args: any[]) {
 
 	method(`%c[Lunar: ${capitalize(level)}]%c %c(${context})%c -`, style, '', 'font-weight: medium;', '', ...args);
 }
+
+export function stripUrlProtocol(url: string) {
+	return url.replace(/^https?:\/\//, '');
+}
