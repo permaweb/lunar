@@ -4,7 +4,7 @@ import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageVariantEnum } from 'helpers/types';
-import { checkValidAddress, formatMs, removeCommitments } from 'helpers/utils';
+import { checkValidAddress, formatMs, removeCommitments, stripUrlProtocol } from 'helpers/utils';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
 
@@ -90,14 +90,18 @@ export default function ProcessRead(props: {
 				tick();
 
 				let response;
+				let node;
 				switch (props.variant) {
 					case MessageVariantEnum.Legacynet:
+						node = cuLocation;
 						response = await permawebProvider.libs.readProcess({
 							processId: props.processId,
 							action: 'Info',
 						});
 						break;
 					case MessageVariantEnum.Mainnet:
+						const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
+						node = activeNode.url;
 						response = await permawebProvider.libsMainnet.readState({ processId: props.processId });
 						break;
 				}
@@ -117,7 +121,10 @@ export default function ProcessRead(props: {
 				cancelAnimationFrame(frameId);
 				setIsFetching(false);
 
-				setReadLog((prevLog) => [...prevLog, { startTime: start, roundtripTime: roundTrip }]);
+				setReadLog((prevLog) => [
+					...prevLog,
+					{ startTime: start, roundtripTime: roundTrip, node: stripUrlProtocol(node ?? '') },
+				]);
 			} catch (e) {
 				console.error(e);
 				cancelAnimationFrame(frameId);
@@ -128,18 +135,21 @@ export default function ProcessRead(props: {
 	};
 
 	React.useEffect(() => {
-		if (props.autoRun) fetchData();
-	}, [props.processId, props.variant, props.autoRun, settingsProvider.settings.nodes]);
-
-	React.useEffect(() => {
 		if (isInitialMount.current) {
 			isInitialMount.current = false;
+			if (props.autoRun) {
+				fetchData();
+			}
 			return;
 		}
+		// Reset logs when node changes
+		setReadLog([]);
+		setErrorLog([]);
+		setCurrentOutput(null);
 		if (!isFetching) {
 			fetchData();
 		}
-	}, [props.processId, toggleRead, settingsProvider.settings.nodes]);
+	}, [props.processId, props.variant, props.autoRun, toggleRead, permawebProvider.libsMainnet]);
 
 	return (
 		<S.Wrapper>
@@ -187,9 +197,9 @@ export default function ProcessRead(props: {
 									readLog.map((log, index) => (
 										<S.Line key={index}>
 											<span>
-												{`(${index + 1}) Started at ${new Date(
+												{`(${index + 1}) Roundtrip Time (${formatMs(log.roundtripTime)}), Started at ${new Date(
 													log.startTime
-												).toLocaleTimeString()}, Roundtrip Time (${formatMs(log.roundtripTime)})`}
+												).toLocaleTimeString()}`}
 											</span>
 										</S.Line>
 									))

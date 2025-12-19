@@ -33,7 +33,8 @@ export const HeaderWrapper = styled.form`
 
 export const HeaderActionsWrapper = styled.div`
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
+	flex-wrap: wrap;
 	gap: 20px;
 `;
 
@@ -306,6 +307,8 @@ export const UpdateWrapper = styled.div`
 		text-transform: uppercase;
 	}
 `;
+
+export const NodeConnectionWrapper = styled.div``;
 
 export const OverviewWrapper = styled.div`
 	height: fit-content;

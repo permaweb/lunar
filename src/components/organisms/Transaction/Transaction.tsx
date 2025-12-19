@@ -6,6 +6,7 @@ import { Types } from '@permaweb/libs';
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { Notification } from 'components/atoms/Notification';
+import { Select } from 'components/atoms/Select';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { MessageList } from 'components/molecules/MessageList';
@@ -17,6 +18,7 @@ import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagV
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
+import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import { AOS } from '../AOS';
 import { ProcessEditor } from '../ProcessEditor';
@@ -48,11 +50,15 @@ function Transaction(props: {
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
-
-	// Memoize language to prevent unnecessary TABS recreation
 	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
+	const settingsProvider = useSettingsProvider();
 
 	const currentHash = window.location.hash.replace('#', '');
+
+	const nodeOptions = React.useMemo(
+		() => settingsProvider.settings.nodes.map((node) => ({ id: node.url, label: node.url })),
+		[settingsProvider.settings.nodes]
+	);
 
 	const [inputTxId, setInputTxId] = React.useState<string>(props.txId);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
@@ -570,23 +576,44 @@ function Transaction(props: {
 						/>
 					</S.SearchWrapper>
 					<S.HeaderActionsWrapper>
-						<S.TxInfoWrapper>
-							{props.type && (
+						{props.type && txResponse && (
+							<S.TxInfoWrapper>
 								<S.UpdateWrapper>
 									<span>{props.type}</span>
 								</S.UpdateWrapper>
+								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
+									<>
+										<S.UpdateWrapper>
+											<span>{getTagValue(txResponse.node.tags, 'Variant')}</span>
+										</S.UpdateWrapper>
+									</>
+								)}
+								{txResponse?.node?.block?.timestamp && (
+									<>
+										<S.UpdateWrapper>
+											<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>
+										</S.UpdateWrapper>
+									</>
+								)}
+							</S.TxInfoWrapper>
+						)}
+						{txResponse?.node?.tags &&
+							getTagValue(txResponse.node.tags, 'Variant') &&
+							getTagValue(txResponse.node.tags, 'Variant') === MessageVariantEnum.Mainnet && (
+								<S.NodeConnectionWrapper>
+									<Select
+										label={''}
+										activeOption={nodeOptions.find(
+											(option) => option.id === settingsProvider.settings.nodes.find((node) => node.active)?.url
+										)}
+										setActiveOption={(option) => {
+											settingsProvider.setActiveNode(option.id);
+										}}
+										options={nodeOptions}
+										disabled={false}
+									/>
+								</S.NodeConnectionWrapper>
 							)}
-							{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
-								<S.UpdateWrapper>
-									<span>{getTagValue(txResponse.node.tags, 'Variant')}</span>
-								</S.UpdateWrapper>
-							)}
-							{txResponse?.node?.block?.timestamp && (
-								<S.UpdateWrapper>
-									<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>
-								</S.UpdateWrapper>
-							)}
-						</S.TxInfoWrapper>
 					</S.HeaderActionsWrapper>
 				</S.HeaderWrapper>
 				<S.BodyWrapper>{getTransaction()}</S.BodyWrapper>

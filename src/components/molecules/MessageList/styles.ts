@@ -80,7 +80,7 @@ export const FilterDropdownHeader = styled.div`
 export const FilterDivider = styled.div`
 	height: 1px;
 	width: 100%;
-	margin: 15px 0;
+	margin: 15px 0 10px 0;
 	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 

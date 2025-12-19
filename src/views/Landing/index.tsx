@@ -53,24 +53,9 @@ export default function Landing() {
 					<Metrics />
 				</ViewWrapper>
 			</S.NetworkWrapper>
-			{/* <S.NodesWrapper>
-				<S.HeaderWrapper>
-					<ViewHeader
-						header={language.nodes}
-						actions={[
-							<S.Subheader>
-								<span>{language.aoMainnet}</span>
-							</S.Subheader>,
-						]}
-					/>
-				</S.HeaderWrapper>
-				<ViewWrapper>
-					<Nodes />
-				</ViewWrapper>
-			</S.NodesWrapper> */}
 			<S.MessagesWrapper>
 				<ViewWrapper>
-					<MessageList variant={MessageVariantEnum.Legacynet} />
+					<MessageList header={language.recentMessages} variant={MessageVariantEnum.Legacynet} />
 				</ViewWrapper>
 			</S.MessagesWrapper>
 		</S.Wrapper>
