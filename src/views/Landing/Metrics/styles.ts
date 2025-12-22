@@ -15,7 +15,7 @@ export const Wrapper = styled.div<{ gridTemplate: number }>`
 `;
 
 export const Placeholder = styled.div`
-	height: 240.5px;
+	height: 313.5px;
 	width: 100%;
 	box-shadow: none !important;
 	background: ${(props) => props.theme.colors.container.primary};

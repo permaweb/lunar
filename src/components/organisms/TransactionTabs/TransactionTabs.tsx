@@ -153,12 +153,18 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 			setTransactions((prev) => {
 				const updated = [...prev];
 				if (updated[tabIndex]) {
+					const isBlankTab = updated[tabIndex].id === '';
 					updated[tabIndex] = {
 						...updated[tabIndex],
 						id: newTx.node.id,
 						label: name ?? newTx.node.id,
 						type: type ? (type.toLowerCase() as any) : 'message',
 					};
+
+					// Navigate if this was a blank tab being filled in and it's the active tab
+					if (isBlankTab && tabIndex === activeTabIndex) {
+						navigate(`${URLS[props.type]}${newTx.node.id}`);
+					}
 				} else {
 					updated.push({
 						id: newTx.node.id,
@@ -169,7 +175,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 				return updated;
 			});
 		},
-		[props.type, navigate]
+		[props.type, navigate, activeTabIndex]
 	);
 
 	const handleTabRedirect = (index: number) => {

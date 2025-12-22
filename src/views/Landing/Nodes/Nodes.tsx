@@ -58,9 +58,6 @@ function Node(props: { index: number; node: any }) {
 }
 
 export default function Nodes() {
-	const languageProvider = useLanguageProvider();
-	const language = languageProvider.object[languageProvider.current];
-
 	const [routerUrls] = React.useState<string[]>(['push.forward.computer']);
 	const [routers, setRouters] = React.useState<any[] | null>(null);
 
@@ -118,6 +115,11 @@ export default function Nodes() {
 									</S.NodeRow>
 								))}
 							</S.RouterBody>
+							{/* <S.RouterFooter>
+								<S.Subheader>
+									<span>{router.name}</span>
+								</S.Subheader>
+							</S.RouterFooter> */}
 						</S.RouterWrapper>
 					);
 				})

@@ -7,6 +7,7 @@ import { useTheme } from 'styled-components';
 import { Types } from '@permaweb/libs';
 
 import { Button } from 'components/atoms/Button';
+import { Calendar } from 'components/atoms/Calendar';
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { Loader } from 'components/atoms/Loader';
@@ -449,11 +450,57 @@ export default function MessageList(props: {
 	const [fromAddress, setFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
 	const [fromAddressIsProcess, setFromAddressIsProcess] = React.useState<boolean>(false);
 
+	// Time range filter states
+	const [startDate, setStartDate] = React.useState<{ year: number; month: number; day: number } | null>(null);
+	const [endDate, setEndDate] = React.useState<{ year: number; month: number; day: number } | null>(null);
+	const [showStartCalendar, setShowStartCalendar] = React.useState<boolean>(false);
+	const [showEndCalendar, setShowEndCalendar] = React.useState<boolean>(false);
+
 	// Applied filter states (only updated when "Apply Filters" is clicked)
 	const [appliedAction, setAppliedAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
 	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
 	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
 	const [appliedFromAddressIsProcess, setAppliedFromAddressIsProcess] = React.useState<boolean>(false);
+	const [appliedStartDate, setAppliedStartDate] = React.useState<{ year: number; month: number; day: number } | null>(
+		null
+	);
+	const [appliedEndDate, setAppliedEndDate] = React.useState<{ year: number; month: number; day: number } | null>(null);
+
+	function dateToTimestamp(date: { year: number; month: number; day: number }): number {
+		return Math.floor(new Date(date.year, date.month - 1, date.day).getTime() / 1000);
+	}
+
+	function formatDateLabel(date: { year: number; month: number; day: number } | null): string {
+		if (!date) return '';
+		return `${date.month}/${date.day}/${date.year}`;
+	}
+
+	async function timestampToBlockHeight(timestamp: number): Promise<number> {
+		try {
+			// Fetch current network height
+			const networkResponse = await fetch(arweaveEndpoint);
+			const networkData = await networkResponse.json();
+			const currentBlockHeight = networkData.height;
+
+			// Fetch current block data to get timestamp
+			const blockResponse = await fetch(`${arweaveEndpoint}/block/current`);
+			const currentBlockData = await blockResponse.json();
+			const currentBlockTimestamp = currentBlockData.timestamp;
+
+			// Arweave block time is approximately 2 minutes (120 seconds)
+			const BLOCK_TIME = 120;
+
+			// Calculate block height based on time difference from current block
+			const timeDifference = currentBlockTimestamp - timestamp;
+			const blockDifference = Math.floor(timeDifference / BLOCK_TIME);
+			const estimatedBlock = currentBlockHeight - blockDifference;
+
+			return Math.max(0, estimatedBlock);
+		} catch (e) {
+			console.error('Error converting timestamp to block height:', e);
+			return 0;
+		}
+	}
 
 	async function checkIsProcess(address: string): Promise<boolean> {
 		try {
@@ -559,12 +606,40 @@ export default function MessageList(props: {
 						}
 					}
 
+					// Add time range filters
+					if (appliedStartDate) {
+						incomingQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+					}
+					if (appliedEndDate) {
+						incomingQueryArgs.maxBlock = await timestampToBlockHeight(
+							dateToTimestamp({
+								...appliedEndDate,
+								day: appliedEndDate.day + 1,
+							})
+						);
+					}
+
+					let outgoingQueryArgs: any = {
+						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+						...getOutgoingGQLArgs(tags),
+					};
+
+					// Add time range filters for outgoing
+					if (appliedStartDate) {
+						outgoingQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+					}
+					if (appliedEndDate) {
+						outgoingQueryArgs.maxBlock = await timestampToBlockHeight(
+							dateToTimestamp({
+								...appliedEndDate,
+								day: appliedEndDate.day + 1,
+							})
+						);
+					}
+
 					const [gqlResponseIncoming, gqlResponseOutgoing] = await Promise.all([
 						permawebProvider.libs.getGQLData(incomingQueryArgs),
-						permawebProvider.libs.getGQLData({
-							...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
-							...getOutgoingGQLArgs(tags),
-						}),
+						permawebProvider.libs.getGQLData(outgoingQueryArgs),
 					]);
 					setIncomingCount(gqlResponseIncoming.count);
 					setOutgoingCount(gqlResponseOutgoing.count);
@@ -604,10 +679,23 @@ export default function MessageList(props: {
 									}
 								}
 
+								// Add time range filters
+								if (appliedStartDate) {
+									incomingQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+								}
+								if (appliedEndDate) {
+									incomingQueryArgs.maxBlock = await timestampToBlockHeight(
+										dateToTimestamp({
+											...appliedEndDate,
+											day: appliedEndDate.day + 1,
+										})
+									);
+								}
+
 								gqlResponse = await permawebProvider.libs.getGQLData(incomingQueryArgs);
 								break;
 							case 'outgoing':
-								gqlResponse = await permawebProvider.libs.getGQLData({
+								let outgoingArgs: any = {
 									paginator: perPage,
 									...(appliedRecipient && checkValidAddress(appliedRecipient)
 										? { recipients: [appliedRecipient] }
@@ -615,7 +703,22 @@ export default function MessageList(props: {
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
 									...getOutgoingGQLArgs(tags),
-								});
+								};
+
+								// Add time range filters
+								if (appliedStartDate) {
+									outgoingArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+								}
+								if (appliedEndDate) {
+									outgoingArgs.maxBlock = await timestampToBlockHeight(
+										dateToTimestamp({
+											...appliedEndDate,
+											day: appliedEndDate.day + 1,
+										})
+									);
+								}
+
+								gqlResponse = await permawebProvider.libs.getGQLData(outgoingArgs);
 								break;
 							default:
 								break;
@@ -758,6 +861,8 @@ export default function MessageList(props: {
 		setAppliedRecipient(recipient);
 		setAppliedFromAddress(fromAddress);
 		setAppliedFromAddressIsProcess(fromAddressIsProcess);
+		setAppliedStartDate(startDate);
+		setAppliedEndDate(endDate);
 
 		setToggleFilterChange((prev) => !prev);
 		setShowFilters(false);
@@ -925,6 +1030,42 @@ export default function MessageList(props: {
 									icon={ASSETS.close}
 								/>
 							)}
+							{appliedStartDate && (
+								<Button
+									type={'alt3'}
+									label={`Start: ${
+										appliedStartDate
+											? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
+											: '-'
+									}`}
+									handlePress={() => {
+										setStartDate(null);
+										setAppliedStartDate(null);
+										setToggleFilterChange((prev) => !prev);
+										handleClear();
+									}}
+									active={true}
+									disabled={loadingMessages}
+									icon={ASSETS.close}
+								/>
+							)}
+							{appliedEndDate && (
+								<Button
+									type={'alt3'}
+									label={`End: ${
+										appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
+									}`}
+									handlePress={() => {
+										setEndDate(null);
+										setAppliedEndDate(null);
+										setToggleFilterChange((prev) => !prev);
+										handleClear();
+									}}
+									active={true}
+									disabled={loadingMessages}
+									icon={ASSETS.close}
+								/>
+							)}
 							<S.FilterWrapper>
 								<Button
 									type={'alt3'}
@@ -1067,6 +1208,75 @@ export default function MessageList(props: {
 								hideErrorMessage
 							/>
 						)}
+						<S.FilterDivider />
+						<S.FilterDropdownHeader>
+							<p>Date Filter</p>
+						</S.FilterDropdownHeader>
+						<S.DateRangeWrapper>
+							<S.DateRangeSection>
+								<S.DateRangeHeader>
+									<Button
+										type={'primary'}
+										label={startDate ? `Start Date: ${formatDateLabel(startDate)}` : 'Start Date'}
+										handlePress={() => setShowStartCalendar((prev) => !prev)}
+										active={showStartCalendar}
+										height={40}
+										fullWidth
+									/>
+									{startDate && (
+										<S.ClearDateButton
+											onClick={() => {
+												setStartDate(null);
+												setShowStartCalendar(false);
+											}}
+										>
+											Clear
+										</S.ClearDateButton>
+									)}
+								</S.DateRangeHeader>
+								{showStartCalendar && (
+									<Calendar
+										selectedDate={startDate}
+										onDateSelect={(date) => {
+											setStartDate(date);
+											setShowStartCalendar(false);
+										}}
+									/>
+								)}
+							</S.DateRangeSection>
+							<S.DateRangeSection>
+								<S.DateRangeHeader>
+									<Button
+										type={'primary'}
+										label={endDate ? `End Date: ${formatDateLabel(endDate)}` : 'End Date'}
+										handlePress={() => setShowEndCalendar((prev) => !prev)}
+										active={showEndCalendar}
+										height={40}
+										fullWidth
+									/>
+									{endDate && (
+										<S.ClearDateButton
+											onClick={() => {
+												setEndDate(null);
+												setShowEndCalendar(false);
+											}}
+										>
+											Clear
+										</S.ClearDateButton>
+									)}
+								</S.DateRangeHeader>
+								{showEndCalendar && (
+									<Calendar
+										selectedDate={endDate}
+										onDateSelect={(date) => {
+											setEndDate(date);
+											setShowEndCalendar(false);
+										}}
+										minDate={startDate ? new Date(startDate.year, startDate.month - 1, startDate.day) : undefined}
+									/>
+								)}
+							</S.DateRangeSection>
+						</S.DateRangeWrapper>
 						<S.FilterDivider />
 						<FormField
 							type={'number'}

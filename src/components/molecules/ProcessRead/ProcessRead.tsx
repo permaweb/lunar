@@ -142,14 +142,17 @@ export default function ProcessRead(props: {
 			}
 			return;
 		}
-		// Reset logs when node changes
-		setReadLog([]);
-		setErrorLog([]);
-		setCurrentOutput(null);
 		if (!isFetching) {
 			fetchData();
 		}
-	}, [props.processId, props.variant, props.autoRun, toggleRead, permawebProvider.libsMainnet]);
+	}, [toggleRead]);
+
+	React.useEffect(() => {
+		// Reset logs when process/variant changes
+		setReadLog([]);
+		setErrorLog([]);
+		setCurrentOutput(null);
+	}, [props.processId, props.variant]);
 
 	return (
 		<S.Wrapper>

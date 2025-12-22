@@ -157,6 +157,14 @@ export const IconPrimary = styled.div<{
 				: props.active
 				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color};
+		fill: ${(props) =>
+			props.warning
+				? props.theme.colors.font.light1
+				: props.disabled
+				? props.theme.colors.button.primary.disabled.color
+				: props.active
+				? props.theme.colors.button.primary.active.color
+				: props.theme.colors.button.primary.color};
 	}
 `;
 

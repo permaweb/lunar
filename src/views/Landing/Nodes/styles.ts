@@ -161,7 +161,7 @@ export const NodeLine = styled.div`
 
 export const Subheader = styled.div`
 	width: fit-content;
-	padding: 2.5px 11.5px;
+	padding: 4.5px 11.5px;
 	display: flex;
 	align-items: center;
 	justify-content: center;

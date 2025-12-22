@@ -6,7 +6,6 @@ import { ViewHeader } from 'components/atoms/ViewHeader';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageVariantEnum } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
-import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import { Metrics } from './Metrics';
 import { NodeConnection } from './NodeConnection';
@@ -18,7 +17,6 @@ export default function Landing() {
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
-	const settingsProvider = useSettingsProvider();
 
 	React.useEffect(() => {
 		const header = document.getElementById('navigation-header');

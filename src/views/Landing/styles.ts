@@ -55,14 +55,26 @@ export const BodyFlexWrapper = styled.div`
 	display: flex;
 	gap: 25px;
 	margin: 0 0 30px 0;
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		flex-direction: column;
+	}
 `;
 
 export const BodyFlexMetrics = styled.div`
 	width: calc(100% - 450px);
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		width: 100%;
+	}
 `;
 
 export const BodyFlexConnection = styled.div`
 	width: 450px;
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		width: 100%;
+	}
 `;
 
 export const SectionMain = styled.div`
