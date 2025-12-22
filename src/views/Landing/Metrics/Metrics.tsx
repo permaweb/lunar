@@ -9,7 +9,7 @@ import * as S from './styles';
 const METRICS_CACHE_KEY = 'lunar-metrics-cache';
 const CACHE_DURATION = 6 * 60 * 60 * 1000;
 
-export default function Metrics() {
+export default function Metrics(props: { network: 'mainnet' | 'legacynet'; gridTemplate: number }) {
 	const [metrics, setMetrics] = React.useState<MetricDataPoint[] | null>(null);
 
 	React.useEffect(() => {
@@ -46,17 +46,21 @@ export default function Metrics() {
 	}, []);
 
 	return (
-		<S.Wrapper>
+		<S.Wrapper gridTemplate={props.gridTemplate}>
 			{metrics ? (
 				<>
 					<MetricChart dataList={metrics} metric={'txs'} totalField={'txs_roll'} chartLabel={'Total Messages'} />
-					<MetricChart dataList={metrics} metric={'transfers'} totalField={'transfers'} chartLabel={'Transfers'} />
-					<MetricChart
-						dataList={metrics}
-						metric={'active_users_over_blocks'}
-						totalField={'active_users_over_blocks'}
-						chartLabel={'Users'}
-					/>
+					{props.network === 'legacynet' && (
+						<>
+							<MetricChart dataList={metrics} metric={'transfers'} totalField={'transfers'} chartLabel={'Transfers'} />
+							<MetricChart
+								dataList={metrics}
+								metric={'active_users_over_blocks'}
+								totalField={'active_users_over_blocks'}
+								chartLabel={'Users'}
+							/>
+						</>
+					)}
 					<MetricChart
 						dataList={metrics}
 						metric={'active_processes_over_blocks'}
@@ -68,8 +72,12 @@ export default function Metrics() {
 				<>
 					<S.Placeholder className={'border-wrapper-alt4'} />
 					<S.Placeholder className={'border-wrapper-alt4'} />
-					<S.Placeholder className={'border-wrapper-alt4'} />
-					<S.Placeholder className={'border-wrapper-alt4'} />
+					{props.network === 'legacynet' && (
+						<>
+							<S.Placeholder className={'border-wrapper-alt4'} />
+							<S.Placeholder className={'border-wrapper-alt4'} />
+						</>
+					)}
 				</>
 			)}
 		</S.Wrapper>

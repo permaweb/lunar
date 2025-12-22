@@ -61,7 +61,7 @@ export default function Nodes() {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const [routerUrls] = React.useState<string[]>(['router-1.forward.computer']);
+	const [routerUrls] = React.useState<string[]>(['push.forward.computer']);
 	const [routers, setRouters] = React.useState<any[] | null>(null);
 
 	React.useEffect(() => {
@@ -70,8 +70,10 @@ export default function Nodes() {
 
 			try {
 				for (const routerUrl of routerUrls) {
-					const res = await fetch(`https://${routerUrl}/~router@1.0/routes/serialize~json@1.0`);
-					const parsed = (await res.json())['1'];
+					const res = await fetch(
+						`https://${routerUrl}/~router@1.0/routes/?require-codec=application/json&accept-bundle=true`
+					);
+					const parsed = (await res.json())['3'];
 					const groups = makeScoreGroups(parsed.nodes);
 
 					setRouters((prev) => [...(prev ?? []), { name: routerUrl, groups }]);
@@ -84,7 +86,7 @@ export default function Nodes() {
 
 	function makeScoreGroups<T>(arr: T[]): T[][] {
 		const groups: T[][] = [];
-		const rem = arr.length % 3;
+		const rem = arr.length % 2;
 		let i = 0;
 
 		if (rem !== 0) {
@@ -93,14 +95,12 @@ export default function Nodes() {
 		}
 
 		while (i < arr.length) {
-			groups.push(arr.slice(i, i + 3));
-			i += 3;
+			groups.push(arr.slice(i, i + 2));
+			i += 2;
 		}
 
 		return groups;
 	}
-
-	console.log(routers);
 
 	return (
 		<S.Wrapper>
@@ -112,17 +112,12 @@ export default function Nodes() {
 								{router.groups.map((rowNodes, rowIndex) => (
 									<S.NodeRow count={rowNodes.length} key={rowIndex}>
 										{rowNodes.map((node: any, index: number) => {
-											const nodeIndex = rowIndex * 3 + index + 1;
+											const nodeIndex = rowIndex * 2 + index + 1;
 											return <Node key={nodeIndex} index={nodeIndex} node={node} />;
 										})}
 									</S.NodeRow>
 								))}
 							</S.RouterBody>
-							<S.RouterFooter>
-								<S.Subheader>
-									<span>{router.name}</span>
-								</S.Subheader>
-							</S.RouterFooter>
 						</S.RouterWrapper>
 					);
 				})

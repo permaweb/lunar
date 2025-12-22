@@ -1,14 +1,9 @@
 import { ReactSVG } from 'react-svg';
 
-import { useLanguageProvider } from 'providers/LanguageProvider';
-
 import * as S from './styles';
 import { IProps } from './types';
 
 export default function Button(props: IProps) {
-	const languageProvider = useLanguageProvider();
-	const language = languageProvider.object[languageProvider.current];
-
 	const buttonStyle = getType();
 	const StyledButton = buttonStyle.wrapper;
 	const StyledIcon = buttonStyle.icon;
@@ -79,7 +74,7 @@ export default function Button(props: IProps) {
 						<ReactSVG src={props.icon} />
 					</StyledIcon>
 				)}
-				<span>{props.loading ? `${language.loading}...` : props.label}</span>
+				<span>{props.loading ? `Loading...` : props.label}</span>
 				{props.icon && !props.iconLeftAlign && (
 					<StyledIcon
 						warning={props.warning || false}

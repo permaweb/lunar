@@ -2,10 +2,10 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div`
+export const Wrapper = styled.div<{ gridTemplate: number }>`
 	width: 100%;
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(${(props) => props.gridTemplate}, 1fr);
 	gap: 25px;
 	position: relative;
 
@@ -15,7 +15,7 @@ export const Wrapper = styled.div`
 `;
 
 export const Placeholder = styled.div`
-	height: 250px;
+	height: 240.5px;
 	width: 100%;
 	box-shadow: none !important;
 	background: ${(props) => props.theme.colors.container.primary};

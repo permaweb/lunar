@@ -15,12 +15,6 @@ export const NetworkWrapper = styled.div`
 	flex-direction: column;
 `;
 
-export const NodesWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-`;
-
 export const MessagesWrapper = styled.div`
 	width: 100%;
 	display: flex;
@@ -56,6 +50,21 @@ export const BodyWrapper = styled.div`
 	gap: 40px;
 `;
 
+export const BodyFlexWrapper = styled.div`
+	width: 100%;
+	display: flex;
+	gap: 25px;
+	margin: 0 0 30px 0;
+`;
+
+export const BodyFlexMetrics = styled.div`
+	width: calc(100% - 450px);
+`;
+
+export const BodyFlexConnection = styled.div`
+	width: 450px;
+`;
+
 export const SectionMain = styled.div`
 	width: 100%;
 	display: flex;
@@ -72,8 +81,29 @@ export const SectionHeader = styled.div`
 	}
 `;
 
-export const ProcessReadWrapper = styled.div`
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 25px;
+export const NodesWrapper = styled.div`
+	margin: 0 0 30px 0;
+`;
+
+export const DividerWrapper = styled.div`
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	margin: 0 0 30px 0;
+
+	.landing-divider {
+		height: 1px;
+		flex: 1;
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	}
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+		text-align: center;
+		text-transform: uppercase;
+	}
 `;
