@@ -582,7 +582,7 @@ function Transaction(props: {
 		if (!TABS) return null;
 		const matchingTab = TABS.find((tab) => tab.url === currentHash);
 		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
-		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} />;
+		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy />;
 	}, [TABS, currentHash, props.tabKey]); // Keep URLTabs from recreating
 
 	function getTransaction() {
