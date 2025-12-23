@@ -46,12 +46,23 @@ export default function Calendar({ selectedDate, onDateSelect, minDate, viewDate
 	};
 
 	const isDateDisabled = (day: number): boolean => {
-		if (!minDate) return false;
 		const dateToCheck = new Date(viewDate.year, viewDate.month - 1, day);
+		const today = new Date();
+
 		// Compare only the date part, not the time
-		const minDateOnly = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
 		const dateToCheckOnly = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate());
-		return dateToCheckOnly < minDateOnly;
+		const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+		// Disable if date is in the future
+		if (dateToCheckOnly > todayOnly) return true;
+
+		// Disable if date is before minDate
+		if (minDate) {
+			const minDateOnly = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+			return dateToCheckOnly < minDateOnly;
+		}
+
+		return false;
 	};
 
 	const isSelectedDate = (day: number): boolean => {

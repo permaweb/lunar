@@ -405,6 +405,8 @@ export default function MessageList(props: {
 						action: parsed.action || null,
 						recipient: parsed.recipient || '',
 						fromAddress: parsed.fromAddress || '',
+						startDate: parsed.startDate || null,
+						endDate: parsed.endDate || null,
 					};
 				}
 			} catch (e) {
@@ -451,8 +453,12 @@ export default function MessageList(props: {
 	const [fromAddressIsProcess, setFromAddressIsProcess] = React.useState<boolean>(false);
 
 	// Time range filter states
-	const [startDate, setStartDate] = React.useState<{ year: number; month: number; day: number } | null>(null);
-	const [endDate, setEndDate] = React.useState<{ year: number; month: number; day: number } | null>(null);
+	const [startDate, setStartDate] = React.useState<{ year: number; month: number; day: number } | null>(
+		loadedFilterState?.startDate ?? null
+	);
+	const [endDate, setEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
+		loadedFilterState?.endDate ?? null
+	);
 	const [showStartCalendar, setShowStartCalendar] = React.useState<boolean>(false);
 	const [showEndCalendar, setShowEndCalendar] = React.useState<boolean>(false);
 
@@ -462,9 +468,11 @@ export default function MessageList(props: {
 	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
 	const [appliedFromAddressIsProcess, setAppliedFromAddressIsProcess] = React.useState<boolean>(false);
 	const [appliedStartDate, setAppliedStartDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		null
+		loadedFilterState?.startDate ?? null
 	);
-	const [appliedEndDate, setAppliedEndDate] = React.useState<{ year: number; month: number; day: number } | null>(null);
+	const [appliedEndDate, setAppliedEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
+		loadedFilterState?.endDate ?? null
+	);
 
 	function dateToTimestamp(date: { year: number; month: number; day: number }): number {
 		return Math.floor(new Date(date.year, date.month - 1, date.day).getTime() / 1000);
@@ -528,6 +536,8 @@ export default function MessageList(props: {
 					action: currentAction,
 					recipient: recipient,
 					fromAddress: fromAddress,
+					startDate: startDate,
+					endDate: endDate,
 				};
 				localStorage.setItem(STORAGE.messageFilter(props.txId), JSON.stringify(filterState));
 			} catch (e) {
@@ -583,7 +593,7 @@ export default function MessageList(props: {
 	// Save filter state whenever it changes
 	React.useEffect(() => {
 		saveFilterState();
-	}, [currentFilter, currentAction, recipient, fromAddress]);
+	}, [currentFilter, currentAction, recipient, fromAddress, startDate, endDate]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -987,7 +997,7 @@ export default function MessageList(props: {
 							{appliedAction && (
 								<Button
 									type={'alt3'}
-									label={appliedAction}
+									label={`Action (${appliedAction})`}
 									handlePress={() => {
 										setCurrentAction(null);
 										setAppliedAction(null);
@@ -1002,7 +1012,7 @@ export default function MessageList(props: {
 							{appliedRecipient && checkValidAddress(appliedRecipient) && (
 								<Button
 									type={'alt3'}
-									label={`To: ${formatAddress(appliedRecipient, false)}`}
+									label={`To (${formatAddress(appliedRecipient, false)})`}
 									handlePress={() => {
 										setRecipient('');
 										setAppliedRecipient('');
@@ -1017,7 +1027,7 @@ export default function MessageList(props: {
 							{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
 								<Button
 									type={'alt3'}
-									label={`From: ${formatAddress(appliedFromAddress, false)}`}
+									label={`From (${formatAddress(appliedFromAddress, false)})`}
 									handlePress={() => {
 										setFromAddress('');
 										setAppliedFromAddress('');
@@ -1033,11 +1043,11 @@ export default function MessageList(props: {
 							{appliedStartDate && (
 								<Button
 									type={'alt3'}
-									label={`Start: ${
+									label={`Start (${
 										appliedStartDate
 											? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
 											: '-'
-									}`}
+									})`}
 									handlePress={() => {
 										setStartDate(null);
 										setAppliedStartDate(null);
@@ -1052,9 +1062,9 @@ export default function MessageList(props: {
 							{appliedEndDate && (
 								<Button
 									type={'alt3'}
-									label={`End: ${
+									label={`End (${
 										appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
-									}`}
+									})`}
 									handlePress={() => {
 										setEndDate(null);
 										setAppliedEndDate(null);

@@ -7,8 +7,7 @@ import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { Notification } from 'components/atoms/Notification';
 import { Panel } from 'components/atoms/Panel';
-import { ASSETS, AO_NODE, STYLING } from 'helpers/config';
-import { validateUrl } from 'helpers/utils';
+import { AO_NODE, ASSETS, STYLING } from 'helpers/config';
 import {
 	darkTheme,
 	darkThemeAlt1,
@@ -21,6 +20,7 @@ import {
 	theme,
 } from 'helpers/themes';
 import { NotificationType } from 'helpers/types';
+import { validateUrl } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 
 import * as S from './styles';
