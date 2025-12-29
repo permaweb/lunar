@@ -302,7 +302,7 @@ export const Variant = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: ${(props) => props.theme.colors.container.alt1.background};
+	background: ${(props) => props.theme.colors.container.primary.active};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	span {
@@ -325,7 +325,7 @@ export const ActionTooltip = styled.div`
 	white-space: nowrap;
 
 	span {
-		display: block;
+		display: none; /* Removed */
 		line-height: 1.65;
 	}
 `;

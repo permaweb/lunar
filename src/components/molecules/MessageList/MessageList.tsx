@@ -99,7 +99,7 @@ function Message(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			if (!data && setShowViewData) {
+			if (!data && showViewData) {
 				try {
 					const messageFetch = await fetch(getTxEndpoint(props.element.node.id));
 					const rawMessage = await messageFetch.text();

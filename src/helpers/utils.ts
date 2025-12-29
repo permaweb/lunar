@@ -346,3 +346,9 @@ export function debugLog(level: string, context: string, ...args: any[]) {
 export function stripUrlProtocol(url: string) {
 	return url.replace(/^https?:\/\//, '');
 }
+
+export function isNumeric(value: unknown): boolean {
+	return typeof value === 'number'
+		? Number.isFinite(value)
+		: typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value));
+}
