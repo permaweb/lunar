@@ -10,10 +10,9 @@ export const Header = styled.div`
 	padding: 15px;
 	margin: 0;
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
-	gap: 20px;
+	gap: 40px;
 	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
@@ -24,8 +23,7 @@ export const Header = styled.div`
 export const HeaderMain = styled.div`
 	display: flex;
 	align-items: center;
-	flex-wrap: wrap;
-	gap: 25px;
+	gap: 20px;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
@@ -49,7 +47,6 @@ export const HeaderMain = styled.div`
 export const HeaderActions = styled.div`
 	display: flex;
 	align-items: center;
-	flex-wrap: wrap;
 	gap: 12.5px;
 `;
 

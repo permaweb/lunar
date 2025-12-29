@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { formatCount } from 'helpers/utils';
+import { getRoutesEndpoint } from 'helpers/endpoints';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -37,12 +37,12 @@ function Node(props: { index: number; node: any }) {
 		<S.NodeWrapper href={props.node.prefix} target={'_blank'} key={props.node.reference}>
 			<S.NodeHeader>
 				<p>
-					<span>{`${props.index}. `}</span>
+					<span>{`(${props.index}) `}</span>
 					{props.node.prefix}
 				</p>
 				<S.IndicatorWrapper>{getHealthStatus()}</S.IndicatorWrapper>
 			</S.NodeHeader>
-			<S.NodeBody>
+			{/* <S.NodeBody>
 				<S.NodeLine>
 					<span>Price:</span>
 					<p>{formatCount(props.node.price?.toString() ?? '0')}</p>
@@ -52,7 +52,7 @@ function Node(props: { index: number; node: any }) {
 					<span>Performance:</span>
 					<p>{formatCount(props.node.performance?.toString() ?? '0')}</p>
 				</S.NodeLine>
-			</S.NodeBody>
+			</S.NodeBody> */}
 		</S.NodeWrapper>
 	) : null;
 }
@@ -63,13 +63,11 @@ export default function Nodes() {
 
 	React.useEffect(() => {
 		(async () => {
-			if (routerUrls.length === 0) return;
+			if (routerUrls.length === 0 || routers) return;
 
 			try {
 				for (const routerUrl of routerUrls) {
-					const res = await fetch(
-						`https://${routerUrl}/~router@1.0/routes/?require-codec=application/json&accept-bundle=true`
-					);
+					const res = await fetch(getRoutesEndpoint(routerUrl));
 					const parsed = (await res.json())['3'];
 					const groups = makeScoreGroups(parsed.nodes);
 
@@ -79,7 +77,7 @@ export default function Nodes() {
 				console.error(e);
 			}
 		})();
-	}, [routerUrls]);
+	}, [routerUrls, routers]);
 
 	function makeScoreGroups<T>(arr: T[]): T[][] {
 		const groups: T[][] = [];

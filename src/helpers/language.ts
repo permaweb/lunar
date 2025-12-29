@@ -51,7 +51,7 @@ export const language = {
 		errorOccurred: `Error occurred`,
 		exitFullScreen: `Exit Full Screen`,
 		explorer: `Explorer`,
-		explorerSearchInput: `Process / Message ID or Wallet Address`,
+		explorerSearchInput: `Transaction ID or Wallet Address`,
 		fetching: `Fetching`,
 		filter: `Filter`,
 		filterByAction: `Filter By Action`,

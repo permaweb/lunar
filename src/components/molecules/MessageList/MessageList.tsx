@@ -974,7 +974,7 @@ export default function MessageList(props: {
 								</div>
 							)}
 						</S.HeaderMain>
-						<S.HeaderActions>
+						<S.HeaderActions className={'scroll-wrapper-hidden'}>
 							{props.type && props.type !== 'message' && (
 								<>
 									<Button
