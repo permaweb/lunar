@@ -14,10 +14,10 @@ import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
-import { ASSETS, DEFAULT_AO_TAGS, TAGS, URLS } from 'helpers/config';
+import { ASSETS, DEFAULT_AO_TAGS, PROCESSES, TAGS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
-import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
+import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue, isNumeric } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -70,13 +70,16 @@ function Transaction(props: {
 
 	// Memoize owner address to prevent unnecessary TABS recreation
 	const ownerAddress = React.useMemo(() => txResponse?.node?.owner?.address, [txResponse?.node?.owner?.address]);
+
 	const [hasFetched, setHasFetched] = React.useState<boolean>(false);
 	const [error, setError] = React.useState<string | null>(null);
 	const [refreshKey, setRefreshKey] = React.useState<number>(0);
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
+	const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
 
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
+	const balanceFetchedRef = React.useRef<string | null>(null);
 
 	React.useEffect(() => {
 		setInputTxId(props.txId);
@@ -95,6 +98,35 @@ function Transaction(props: {
 			})();
 		}
 	}, [props.active, hasFetched, inputTxId]);
+
+	React.useEffect(() => {
+		if (props.type === 'wallet' && inputTxId && checkValidAddress(inputTxId) && txResponse) {
+			if (balanceFetchedRef.current === inputTxId) return;
+
+			balanceFetchedRef.current = inputTxId;
+			setWalletBalance(null);
+
+			(async () => {
+				try {
+					const response = await permawebProvider.libs.readProcess({
+						processId: PROCESSES.ao,
+						action: 'Balance',
+						tags: [{ name: 'Recipient', value: inputTxId }],
+					});
+
+					if (!isNumeric(response)) {
+						setWalletBalance('Error');
+						return;
+					}
+
+					setWalletBalance(((response ?? 0) / Math.pow(10, 12)).toFixed(4));
+				} catch (e: any) {
+					console.error(e);
+					setWalletBalance('Error');
+				}
+			})();
+		}
+	}, [props.type, inputTxId, txResponse, permawebProvider.libs]);
 
 	async function handleSubmit() {
 		if (inputTxId && checkValidAddress(inputTxId)) {
@@ -390,7 +422,7 @@ function Transaction(props: {
 						case 'process':
 						case 'message':
 							return (
-								<S.MessageWrapper>
+								<S.ColumnFlexWrapper>
 									{showMessageInfo && (
 										<S.MessageHeaderWrapper>
 											<MessageInfoSection />
@@ -435,7 +467,7 @@ function Transaction(props: {
 											</S.ReadWrapper>
 										</S.InfoWrapper>
 									)}
-								</S.MessageWrapper>
+								</S.ColumnFlexWrapper>
 							);
 						case 'wallet':
 							return (
@@ -690,6 +722,13 @@ function Transaction(props: {
 								<S.UpdateWrapper>
 									<span>{props.type}</span>
 								</S.UpdateWrapper>
+								{props.type === 'wallet' && (
+									<S.UpdateWrapper>
+										<span>{`Balance:`}</span>
+										<p>{`${walletBalance ?? 'Loading...'}`}</p>
+										{isNumeric(walletBalance) && <ReactSVG src={ASSETS.ao} />}
+									</S.UpdateWrapper>
+								)}
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 									<>
 										<S.UpdateWrapper>

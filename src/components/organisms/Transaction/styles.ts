@@ -46,7 +46,7 @@ export const BodyWrapper = styled.div`
 	gap: 25px;
 `;
 
-export const MessageWrapper = styled.div`
+export const ColumnFlexWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
@@ -308,16 +308,45 @@ export const UpdateWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	gap: 5px;
 	background: ${(props) => props.theme.colors.container.alt8.background};
 	border: 1px solid ${(props) => props.theme.colors.border.alt2};
 	border-radius: ${STYLING.dimensions.radius.alt2};
+
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.light2};
+		text-align: center;
+		text-transform: uppercase;
+	}
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.xBold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
 		text-transform: uppercase;
+	}
+
+	div {
+		height: 17.5px;
+		width: 17.5px;
+		margin: 0 0 0 1.5px;
+	}
+
+	svg {
+		height: 17.5px;
+		width: 17.5px;
+		color: ${(props) => props.theme.colors.font.light1};
+		fill: ${(props) => props.theme.colors.font.light1};
+
+		path {
+			color: ${(props) => props.theme.colors.font.light1};
+			fill: ${(props) => props.theme.colors.font.light1};
+		}
 	}
 `;
 

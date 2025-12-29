@@ -8,12 +8,17 @@ export const AO_NODE = {
 
 export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
 
+export const PROCESSES = {
+	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
+};
+
 export const ASSETS = {
 	add: getTxEndpoint('RLWnDhoB0Dd_X-sLnNy4w2S7ds3l9591HcHK8nc3YRw'),
 	alignBottom: getTxEndpoint('kx2grnSUx7D7Y96EJIjTy11WJB8I8rZl4T8x3IVK3wM'),
 	alignLeft: getTxEndpoint('jHhvPhSRsf_19R9X0vza0a9J5N6n4pJKYHpCv_3r3z4'),
 	alignRight: getTxEndpoint('iaB67b8vGXFCFbupRCK4wgk_0fLSGmAuUs9ghbZLKHM'),
 	alignTop: getTxEndpoint('ipK9O_qhzkDCa1E0iCn_rt3g9TSxkmHZzYcywsx8tNw'),
+	ao: getTxEndpoint('AzM59q2tcYzkySUUZUN1HCwfKGVHi--71UdoIk5gPUE'),
 	app: getTxEndpoint('WzomcwfXZ_4hhUvDso1wsyJpNBHGeHezFZQv3V706Hw'),
 	arconnect: getTxEndpoint('-A1IutbyzVDJHi91QwRDQ_mpNa9Jbz-Tapu4YDVsCrc'),
 	arrow: getTxEndpoint('ghFL1fzQ2C1eEAnqSVvfAMP5Jikx7NKSPP5neoNPALw'),
