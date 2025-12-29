@@ -180,11 +180,12 @@ export const GlobalStyle = createGlobalStyle`
     background: ${(props) => props.theme.colors.container.alt1.background};
     border: 1px solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
+		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
   }
 
 	.border-wrapper-alt4 {
     background: ${(props) => props.theme.colors.container.primary.background};
-    border: 1px solid ${(props) => props.theme.colors.border.alt1};
+    border: 1px solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
 		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
   }

@@ -66,7 +66,7 @@ export const NodeWrapper = styled.a`
 	flex-direction: column;
 	gap: 25px;
 	padding: 17.5px;
-	background: ${(props) => props.theme.colors.container.primary.background};
+	background: ${(props) => props.theme.colors.container.alt1.background};
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
@@ -85,7 +85,7 @@ export const NodeHeader = styled.div`
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.link.primary};
+		color: ${(props) => props.theme.colors.font.primary};
 	}
 
 	span {
@@ -161,7 +161,7 @@ export const NodeLine = styled.div`
 
 export const Subheader = styled.div`
 	width: fit-content;
-	padding: 2.5px 11.5px;
+	padding: 4.5px 11.5px;
 	display: flex;
 	align-items: center;
 	justify-content: center;

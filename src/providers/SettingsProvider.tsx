@@ -2,8 +2,12 @@ import React from 'react';
 import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
+import { Button } from 'components/atoms/Button';
+import { FormField } from 'components/atoms/FormField';
+import { IconButton } from 'components/atoms/IconButton';
 import { Notification } from 'components/atoms/Notification';
-import { AO_NODE, STYLING } from 'helpers/config';
+import { Panel } from 'components/atoms/Panel';
+import { AO_NODE, ASSETS, STYLING } from 'helpers/config';
 import {
 	darkTheme,
 	darkThemeAlt1,
@@ -16,7 +20,10 @@ import {
 	theme,
 } from 'helpers/themes';
 import { NotificationType } from 'helpers/types';
+import { validateUrl } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
+
+import * as S from './styles';
 
 type ThemeType =
 	| 'light-primary'
@@ -54,6 +61,8 @@ interface SettingsContextState {
 	addNode: (node: Omit<NodeConfig, 'active' | 'authority'>) => void;
 	removeNode: (url: string) => void;
 	setActiveNode: (url: string) => void;
+	showNodeSettings: boolean;
+	setShowNodeSettings: (show: boolean) => void;
 }
 
 interface SettingsProviderProps {
@@ -80,6 +89,8 @@ const SettingsContext = React.createContext<SettingsContextState>({
 	addNode: () => {},
 	removeNode: () => {},
 	setActiveNode: () => {},
+	showNodeSettings: false,
+	setShowNodeSettings: () => {},
 });
 
 export function useSettingsProvider(): SettingsContextState {
@@ -124,6 +135,8 @@ export function SettingsProvider(props: SettingsProviderProps) {
 
 	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings());
 	const [settingsUpdateResponse, setSettingsUpdateResponse] = React.useState<NotificationType | null>(null);
+	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
+	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
 
 	const handleWindowResize = React.useCallback(() => {
 		const newIsDesktop = checkWindowCutoff(parseInt(STYLING.cutoffs.desktop));
@@ -259,6 +272,8 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				status: 'success',
 				message: `Connected to ${node.url}`,
 			});
+
+			setNewNodeUrl('');
 		} catch (e: any) {
 			console.error(e);
 
@@ -300,6 +315,15 @@ export function SettingsProvider(props: SettingsProviderProps) {
 			localStorage.setItem('settings', JSON.stringify(newSettings));
 			return newSettings;
 		});
+
+		// Close the panel
+		setShowNodeSettings(false);
+
+		// Show notification
+		setSettingsUpdateResponse({
+			status: 'success',
+			message: `Switched to ${url}`,
+		});
 	};
 
 	function getTheme() {
@@ -325,8 +349,24 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		}
 	}
 
+	function handleAddNode() {
+		if (newNodeUrl) {
+			addNode({ url: newNodeUrl });
+		}
+	}
+
+	function handleRemoveNode(url: string) {
+		removeNode(url);
+	}
+
+	function handleSetActiveNode(url: string) {
+		setActiveNode(url);
+	}
+
 	return (
-		<SettingsContext.Provider value={{ settings, updateSettings, addNode, removeNode, setActiveNode }}>
+		<SettingsContext.Provider
+			value={{ settings, updateSettings, addNode, removeNode, setActiveNode, showNodeSettings, setShowNodeSettings }}
+		>
 			<ThemeProvider theme={getTheme()}>
 				{props.children}
 				{settingsUpdateResponse && (
@@ -338,6 +378,67 @@ export function SettingsProvider(props: SettingsProviderProps) {
 						}}
 					/>
 				)}
+				<Panel
+					open={showNodeSettings}
+					width={500}
+					header={'Node Configuration'}
+					handleClose={() => setShowNodeSettings(false)}
+				>
+					<S.MWrapper className={'modal-wrapper'}>
+						<S.NodeSection>
+							<S.NodeSectionHeader>
+								<p>Node Configuration</p>
+							</S.NodeSectionHeader>
+							<S.NodeList>
+								{settings.nodes.map((node) => (
+									<S.NodeItem key={node.url} active={node.active} onClick={() => handleSetActiveNode(node.url)}>
+										<S.NodeInfo>
+											<S.Indicator active={node.active} />
+											<S.NodeDetails>
+												<p>{node.url}</p>
+											</S.NodeDetails>
+										</S.NodeInfo>
+										{settings.nodes.length > 1 && (
+											<S.NodeRemove>
+												<IconButton
+													type={'alt1'}
+													src={ASSETS.close}
+													handlePress={() => handleRemoveNode(node.url)}
+													dimensions={{
+														wrapper: 20,
+														icon: 11.5,
+													}}
+												/>
+											</S.NodeRemove>
+										)}
+									</S.NodeItem>
+								))}
+							</S.NodeList>
+							<S.NodeDivider>
+								<div className={'node-divider'} />
+								<span>Add a node</span>
+								<div className={'node-divider'} />
+							</S.NodeDivider>
+							<S.NodeAddSection>
+								<FormField
+									placeholder={'http://localhost:8734'}
+									value={newNodeUrl}
+									onChange={(e) => setNewNodeUrl(e.target.value)}
+									invalid={{ status: newNodeUrl ? !validateUrl(newNodeUrl) : false, message: null }}
+									disabled={false}
+								/>
+								<Button
+									type={'alt1'}
+									label={'Add Node'}
+									handlePress={handleAddNode}
+									disabled={!newNodeUrl || !validateUrl(newNodeUrl)}
+									height={45}
+									fullWidth
+								/>
+							</S.NodeAddSection>
+						</S.NodeSection>
+					</S.MWrapper>
+				</Panel>
 			</ThemeProvider>
 		</SettingsContext.Provider>
 	);

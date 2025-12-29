@@ -10,10 +10,9 @@ export const Header = styled.div`
 	padding: 15px;
 	margin: 0;
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
-	gap: 20px;
+	gap: 40px;
 	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
@@ -24,8 +23,7 @@ export const Header = styled.div`
 export const HeaderMain = styled.div`
 	display: flex;
 	align-items: center;
-	flex-wrap: wrap;
-	gap: 25px;
+	gap: 20px;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
@@ -49,7 +47,6 @@ export const HeaderMain = styled.div`
 export const HeaderActions = styled.div`
 	display: flex;
 	align-items: center;
-	flex-wrap: wrap;
 	gap: 12.5px;
 `;
 
@@ -97,6 +94,53 @@ export const FilterDropdownActionSelect = styled.div`
 
 export const FilterApply = styled.div`
 	margin: 15px 0 0 0;
+`;
+
+export const DateRangeWrapper = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+`;
+
+export const DateRangeSection = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+`;
+
+export const DateRangeHeader = styled.div`
+	display: flex;
+	align-items: flex-end;
+	flex-direction: column;
+	gap: 15px;
+	width: 100%;
+
+	button {
+		border-radius: ${STYLING.dimensions.radius.primary} !important;
+	}
+`;
+
+export const DateLabel = styled.div`
+	font-size: ${(props) => props.theme.typography.size.xSmall};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	color: ${(props) => props.theme.colors.font.primary};
+`;
+
+export const ClearDateButton = styled.button`
+	background: ${(props) => props.theme.colors.button.alt1.background};
+	color: ${(props) => props.theme.colors.button.alt1.color};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	padding: 5px 10px;
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	cursor: pointer;
+	width: fit-content;
+
+	&:hover {
+		background: ${(props) => props.theme.colors.button.alt1.active.background};
+	}
 `;
 
 export const Divider = styled.div`

@@ -9,10 +9,13 @@ import { Notification } from 'components/atoms/Notification';
 import { Select } from 'components/atoms/Select';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
+import { Editor } from 'components/molecules/Editor';
+import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { ASSETS, DEFAULT_AO_TAGS, TAGS, URLS } from 'helpers/config';
+import { getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
@@ -231,7 +234,7 @@ function Transaction(props: {
 			txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
 
 		return (
-			<S.TagsSection className={'border-wrapper-alt3'}>
+			<S.Section className={'border-wrapper-alt3'}>
 				<S.SectionHeader>
 					<p>{language.tags}</p>
 				</S.SectionHeader>
@@ -276,8 +279,92 @@ function Transaction(props: {
 						</S.OverviewLine>
 					)}
 				</S.OverviewWrapper>
-			</S.TagsSection>
+			</S.Section>
 		);
+	};
+
+	const DataSection = () => {
+		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
+		const [data, setData] = React.useState<any>(null);
+		const [loading, setLoading] = React.useState<boolean>(false);
+
+		const contentType = txResponse?.node?.tags ? getTagValue(txResponse.node.tags, 'Content-Type') : null;
+
+		React.useEffect(() => {
+			(async function () {
+				if (checkValidAddress(inputTxId)) {
+					setLoading(true);
+					try {
+						const messageFetch = await fetch(getTxEndpoint(inputTxId));
+						const rawMessage = await messageFetch.text();
+
+						const raw = rawMessage ?? '';
+						const trimmed = raw.trim();
+
+						if (trimmed === '') {
+							setData(language.noData);
+						} else {
+							try {
+								const parsed = JSON.parse(trimmed);
+
+								const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
+								const isEmptyObject =
+									parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0;
+
+								if (isEmptyArray || isEmptyObject) {
+									setData(language.noData);
+								} else {
+									setData(parsed);
+								}
+							} catch {
+								setData(trimmed);
+							}
+						}
+					} catch (e: any) {
+						console.error(e);
+						setData(language.errorFetchingData || 'Error Fetching Data');
+					}
+					setLoading(false);
+				}
+			})();
+		}, [inputTxId]);
+
+		function getDataContent() {
+			if (loading) return null;
+			if (!data) return null;
+
+			// Render HTML directly
+			if (contentType === 'text/html') {
+				return (
+					<S.Section className={'border-wrapper-alt3'}>
+						<S.SectionHeader>
+							<p>{language.data}</p>
+						</S.SectionHeader>
+						<div dangerouslySetInnerHTML={{ __html: data }} />
+					</S.Section>
+				);
+			}
+
+			// Render images
+			if (contentType && contentType.startsWith('image/')) {
+				return (
+					<S.DataSection>
+						{/* <S.SectionHeader>
+							<p>{language.data}</p>
+						</S.SectionHeader> */}
+						<img src={getTxEndpoint(inputTxId)} alt="Transaction data" style={{ maxWidth: '100%', height: 'auto' }} />
+					</S.DataSection>
+				);
+			}
+
+			if (typeof data === 'object') {
+				return <JSONReader data={data} header={language.data} maxHeight={600} />;
+			}
+
+			return <Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} />;
+		}
+
+		return <>{getDataContent()}</>;
 	};
 
 	const TABS = React.useMemo(() => {
@@ -328,12 +415,14 @@ function Transaction(props: {
 											</S.TagsWrapper>
 											<S.ReadWrapper>
 												{props.type === 'process' && (
-													<ProcessRead
-														key={refreshKey}
-														processId={inputTxId}
-														variant={getTagValue(txResponse?.node?.tags, 'Variant') as MessageVariantEnum}
-														autoRun={true}
-													/>
+													<>
+														<ProcessRead
+															key={refreshKey}
+															processId={inputTxId}
+															variant={getTagValue(txResponse?.node?.tags, 'Variant') as MessageVariantEnum}
+															autoRun={true}
+														/>
+													</>
 												)}
 												{props.type === 'message' && (
 													<MessageResult
@@ -363,6 +452,17 @@ function Transaction(props: {
 										/>
 									)}
 								</>
+							);
+						default:
+							return (
+								<S.InfoWrapper>
+									<S.TagsWrapper>
+										<TagsSection />
+									</S.TagsWrapper>
+									<S.ReadWrapper>
+										<DataSection />
+									</S.ReadWrapper>
+								</S.InfoWrapper>
 							);
 					}
 				},
@@ -431,6 +531,15 @@ function Transaction(props: {
 					},
 				},
 				{
+					label: language.data || 'Data',
+					icon: ASSETS.data,
+					disabled: false,
+					url: URLS.explorerData(inputTxId),
+					view: () => {
+						return <DataSection />;
+					},
+				},
+				{
 					label: language.source,
 					icon: ASSETS.code,
 					disabled: false,
@@ -473,7 +582,7 @@ function Transaction(props: {
 		if (!TABS) return null;
 		const matchingTab = TABS.find((tab) => tab.url === currentHash);
 		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
-		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} />;
+		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy />;
 	}, [TABS, currentHash, props.tabKey]); // Keep URLTabs from recreating
 
 	function getTransaction() {

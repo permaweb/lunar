@@ -73,7 +73,7 @@ export const BodyWrapper = styled.div`
 `;
 
 export const ChartWrapper = styled.div`
-	height: 200px;
+	height: 240.5px;
 	width: 100%;
 	position: relative;
 	cursor: crosshair;

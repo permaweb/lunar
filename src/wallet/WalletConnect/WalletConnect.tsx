@@ -2,10 +2,7 @@ import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { Avatar } from 'components/atoms/Avatar';
-import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
-import { FormField } from 'components/atoms/FormField';
-import { IconButton } from 'components/atoms/IconButton';
 import { Panel } from 'components/atoms/Panel';
 import { ASSETS } from 'helpers/config';
 import {
@@ -18,7 +15,7 @@ import {
 	lightThemeAlt2,
 	lightThemeHighContrast,
 } from 'helpers/themes';
-import { formatAddress, validateUrl } from 'helpers/utils';
+import { formatAddress } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -33,16 +30,14 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const { settings, updateSettings, addNode, removeNode, setActiveNode } = useSettingsProvider();
+	const { settings, updateSettings, setShowNodeSettings } = useSettingsProvider();
 
 	const [showWallet, setShowWallet] = React.useState<boolean>(false);
 	const [showWalletDropdown, setShowWalletDropdown] = React.useState<boolean>(false);
 	const [showThemeSelector, setShowThemeSelector] = React.useState<boolean>(false);
-	const [showSettings, setShowSettings] = React.useState<boolean>(false);
 	const [copied, setCopied] = React.useState<boolean>(false);
 
 	const [label, setLabel] = React.useState<string | null>(null);
-	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
 
 	React.useEffect(() => {
 		setTimeout(() => {
@@ -87,21 +82,6 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 	function handleDisconnect() {
 		arProvider.handleDisconnect();
 		setShowWalletDropdown(false);
-	}
-
-	function handleAddNode() {
-		if (newNodeUrl) {
-			addNode({ url: newNodeUrl });
-			setNewNodeUrl('');
-		}
-	}
-
-	function handleRemoveNode(url: string) {
-		removeNode(url);
-	}
-
-	function handleSetActiveNode(url: string) {
-		setActiveNode(url);
 	}
 
 	const THEMES = {
@@ -199,7 +179,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									<ReactSVG src={ASSETS.write} />
 									{language.profile}
 								</li>
-								<li onClick={() => setShowSettings(true)}>
+								<li onClick={() => setShowNodeSettings(true)}>
 									<ReactSVG src={ASSETS.settings} />
 									{language.settings}
 								</li>
@@ -266,62 +246,6 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 							</S.ThemeSectionBody>
 						</S.ThemeSection>
 					))}
-				</S.MWrapper>
-			</Panel>
-			<Panel open={showSettings} width={500} header={language.settings} handleClose={() => setShowSettings(false)}>
-				<S.MWrapper className={'modal-wrapper'}>
-					<S.NodeSection>
-						<S.NodeSectionHeader>
-							<p>Node Configuration</p>
-						</S.NodeSectionHeader>
-						<S.NodeList>
-							{settings.nodes.map((node) => (
-								<S.NodeItem key={node.url} active={node.active} onClick={() => handleSetActiveNode(node.url)}>
-									<S.NodeInfo>
-										<S.Indicator active={node.active} />
-										<S.NodeDetails>
-											<p>{node.url}</p>
-										</S.NodeDetails>
-									</S.NodeInfo>
-									{settings.nodes.length > 1 && (
-										<S.NodeRemove>
-											<IconButton
-												type={'alt1'}
-												src={ASSETS.close}
-												handlePress={() => handleRemoveNode(node.url)}
-												dimensions={{
-													wrapper: 20,
-													icon: 11.5,
-												}}
-											/>
-										</S.NodeRemove>
-									)}
-								</S.NodeItem>
-							))}
-						</S.NodeList>
-						<S.NodeDivider>
-							<div className={'node-divider'} />
-							<span>Add a node</span>
-							<div className={'node-divider'} />
-						</S.NodeDivider>
-						<S.NodeAddSection>
-							<FormField
-								placeholder={'http://localhost:8734'}
-								value={newNodeUrl}
-								onChange={(e) => setNewNodeUrl(e.target.value)}
-								invalid={{ status: newNodeUrl ? !validateUrl(newNodeUrl) : false, message: null }}
-								disabled={false}
-							/>
-							<Button
-								type={'alt1'}
-								label={'Add Node'}
-								handlePress={handleAddNode}
-								disabled={!newNodeUrl || !validateUrl(newNodeUrl)}
-								height={45}
-								fullWidth
-							/>
-						</S.NodeAddSection>
-					</S.NodeSection>
 				</S.MWrapper>
 			</Panel>
 		</>

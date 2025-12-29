@@ -26,6 +26,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	const tabsRef = React.useRef<HTMLDivElement>(null);
 	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
 	const callbacksRef = React.useRef<Map<string, (newTx: Types.GQLNodeResponseType) => void>>(new Map());
+	const isDeletingRef = React.useRef<boolean>(false);
 
 	const storageKey = `${props.type}-transactions`;
 
@@ -53,7 +54,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	React.useEffect(() => {
 		const { txId, subPath } = extractTxDetailsFromPath(location.pathname);
 
-		if (txId && !transactions.some((tab) => tab.id === txId)) {
+		if (txId && !transactions.some((tab) => tab.id === txId) && !isDeletingRef.current) {
 			if (transactions.length === 1 && transactions[0].id === '') {
 				setTransactions((prev) => {
 					const updated = [...prev];
@@ -153,12 +154,18 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 			setTransactions((prev) => {
 				const updated = [...prev];
 				if (updated[tabIndex]) {
+					const isBlankTab = updated[tabIndex].id === '';
 					updated[tabIndex] = {
 						...updated[tabIndex],
 						id: newTx.node.id,
 						label: name ?? newTx.node.id,
 						type: type ? (type.toLowerCase() as any) : 'message',
 					};
+
+					// Navigate if this was a blank tab being filled in and it's the active tab
+					if (isBlankTab && tabIndex === activeTabIndex) {
+						navigate(`${URLS[props.type]}${newTx.node.id}`);
+					}
 				} else {
 					updated.push({
 						id: newTx.node.id,
@@ -169,7 +176,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 				return updated;
 			});
 		},
-		[props.type, navigate]
+		[props.type, navigate, activeTabIndex]
 	);
 
 	const handleTabRedirect = (index: number) => {
@@ -211,6 +218,8 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	);
 
 	const handleDeleteTab = (deletedIndex: number) => {
+		isDeletingRef.current = true;
+
 		const updatedTransactions = transactions.filter((_, i) => i !== deletedIndex);
 
 		let newActiveIndex: number;
@@ -254,6 +263,11 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		} else {
 			handleClearTabs();
 		}
+
+		// Reset flag after navigation completes
+		setTimeout(() => {
+			isDeletingRef.current = false;
+		}, 100);
 	};
 
 	const handleClearTabs = () => {

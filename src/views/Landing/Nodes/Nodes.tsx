@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { formatCount } from 'helpers/utils';
+import { getRoutesEndpoint } from 'helpers/endpoints';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -37,12 +37,12 @@ function Node(props: { index: number; node: any }) {
 		<S.NodeWrapper href={props.node.prefix} target={'_blank'} key={props.node.reference}>
 			<S.NodeHeader>
 				<p>
-					<span>{`${props.index}. `}</span>
+					<span>{`(${props.index}) `}</span>
 					{props.node.prefix}
 				</p>
 				<S.IndicatorWrapper>{getHealthStatus()}</S.IndicatorWrapper>
 			</S.NodeHeader>
-			<S.NodeBody>
+			{/* <S.NodeBody>
 				<S.NodeLine>
 					<span>Price:</span>
 					<p>{formatCount(props.node.price?.toString() ?? '0')}</p>
@@ -52,26 +52,23 @@ function Node(props: { index: number; node: any }) {
 					<span>Performance:</span>
 					<p>{formatCount(props.node.performance?.toString() ?? '0')}</p>
 				</S.NodeLine>
-			</S.NodeBody>
+			</S.NodeBody> */}
 		</S.NodeWrapper>
 	) : null;
 }
 
 export default function Nodes() {
-	const languageProvider = useLanguageProvider();
-	const language = languageProvider.object[languageProvider.current];
-
-	const [routerUrls] = React.useState<string[]>(['router-1.forward.computer']);
+	const [routerUrls] = React.useState<string[]>(['push.forward.computer']);
 	const [routers, setRouters] = React.useState<any[] | null>(null);
 
 	React.useEffect(() => {
 		(async () => {
-			if (routerUrls.length === 0) return;
+			if (routerUrls.length === 0 || routers) return;
 
 			try {
 				for (const routerUrl of routerUrls) {
-					const res = await fetch(`https://${routerUrl}/~router@1.0/routes/serialize~json@1.0`);
-					const parsed = (await res.json())['1'];
+					const res = await fetch(getRoutesEndpoint(routerUrl));
+					const parsed = (await res.json())['3'];
 					const groups = makeScoreGroups(parsed.nodes);
 
 					setRouters((prev) => [...(prev ?? []), { name: routerUrl, groups }]);
@@ -80,11 +77,11 @@ export default function Nodes() {
 				console.error(e);
 			}
 		})();
-	}, [routerUrls]);
+	}, [routerUrls, routers]);
 
 	function makeScoreGroups<T>(arr: T[]): T[][] {
 		const groups: T[][] = [];
-		const rem = arr.length % 3;
+		const rem = arr.length % 2;
 		let i = 0;
 
 		if (rem !== 0) {
@@ -93,14 +90,12 @@ export default function Nodes() {
 		}
 
 		while (i < arr.length) {
-			groups.push(arr.slice(i, i + 3));
-			i += 3;
+			groups.push(arr.slice(i, i + 2));
+			i += 2;
 		}
 
 		return groups;
 	}
-
-	console.log(routers);
 
 	return (
 		<S.Wrapper>
@@ -112,17 +107,17 @@ export default function Nodes() {
 								{router.groups.map((rowNodes, rowIndex) => (
 									<S.NodeRow count={rowNodes.length} key={rowIndex}>
 										{rowNodes.map((node: any, index: number) => {
-											const nodeIndex = rowIndex * 3 + index + 1;
+											const nodeIndex = rowIndex * 2 + index + 1;
 											return <Node key={nodeIndex} index={nodeIndex} node={node} />;
 										})}
 									</S.NodeRow>
 								))}
 							</S.RouterBody>
-							<S.RouterFooter>
+							{/* <S.RouterFooter>
 								<S.Subheader>
 									<span>{router.name}</span>
 								</S.Subheader>
-							</S.RouterFooter>
+							</S.RouterFooter> */}
 						</S.RouterWrapper>
 					);
 				})

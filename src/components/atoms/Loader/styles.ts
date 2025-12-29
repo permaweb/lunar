@@ -20,7 +20,7 @@ export const Container = styled.div<{ relative: boolean; noPosition?: boolean }>
 	left: ${(props) => (props.noPosition ? 'auto' : props.relative ? 'auto' : '50%')};
 	transform: ${(props) => (props.noPosition ? 'none' : props.relative ? 'translate(0, 0)' : 'translate(-50%, -50%)')};
 	margin: ${(props) => (props.noPosition ? '7.5px 0 0 0' : props.relative ? 'auto' : '0')};
-	z-index: 3;
+	z-index: 2147483647;
 `;
 
 export const Blade = styled.div<{ noPosition?: boolean }>`

@@ -205,12 +205,25 @@ export const Section = styled.div`
 	flex: 1;
 	padding: 15px;
 
+	img,
+	video {
+		max-height: calc(100vh - 275px);
+		margin: 0 auto;
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border-radius: ${STYLING.dimensions.radius.primary};
+		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	}
+
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
 	}
 `;
 
-export const TagsSection = styled(Section)``;
+export const DataSection = styled(Section)`
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+`;
 
 export const SectionFull = styled.div`
 	width: 100%;

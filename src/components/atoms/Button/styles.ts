@@ -157,6 +157,14 @@ export const IconPrimary = styled.div<{
 				: props.active
 				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color};
+		fill: ${(props) =>
+			props.warning
+				? props.theme.colors.font.light1
+				: props.disabled
+				? props.theme.colors.button.primary.disabled.color
+				: props.active
+				? props.theme.colors.button.primary.active.color
+				: props.theme.colors.button.primary.color};
 	}
 `;
 
@@ -410,7 +418,7 @@ export const Alt4 = styled(Primary)`
 				: props.theme.colors.button.alt1.border};
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxxxSmall} !important;
+		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		color: ${(props) =>
 			props.warning

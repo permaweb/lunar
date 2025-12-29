@@ -3,15 +3,12 @@ import React from 'react';
 import { IconButton } from 'components/atoms/IconButton';
 import { Portal } from 'components/atoms/Portal';
 import { ASSETS, DOM } from 'helpers/config';
-import { useLanguageProvider } from 'providers/LanguageProvider';
 import { CloseHandler } from 'wrappers/CloseHandler';
 
 import * as S from './styles';
 import { IProps } from './types';
 
 export default function Panel(props: IProps) {
-	const languageProvider = useLanguageProvider();
-	const language = languageProvider.object[languageProvider.current];
 	const bodyRef = React.useRef<HTMLDivElement>(null);
 	const [hasOverflow, setHasOverflow] = React.useState(false);
 	const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -108,7 +105,7 @@ export default function Panel(props: IProps) {
 												wrapper: 32.5,
 												icon: 16.5,
 											}}
-											tooltip={language.close}
+											tooltip={'Close'}
 										/>
 									</S.Close>
 								)}
