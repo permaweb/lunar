@@ -19,7 +19,15 @@ export default function Select(props: IProps) {
 						<span>{props.label}</span>
 					</S.Label>
 				)}
-				<S.Dropdown active={active} disabled={props.disabled} onClick={() => setActive(!active)}>
+				<S.Dropdown
+					active={active}
+					disabled={props.disabled}
+					onClick={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						setActive(!active);
+					}}
+				>
 					<span>{props.activeOption.label}</span>
 					<ReactSVG src={ASSETS.arrow} />
 				</S.Dropdown>
@@ -30,7 +38,8 @@ export default function Select(props: IProps) {
 								<S.Option
 									key={index}
 									active={option.id === props.activeOption.id}
-									onClick={() => {
+									onClick={(e) => {
+										e.stopPropagation();
 										props.setActiveOption(option);
 										setActive(false);
 									}}

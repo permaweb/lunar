@@ -139,7 +139,6 @@ export const MINT_ACTIONS = {
 };
 
 export const DEFAULT_AO_TAGS = [{ name: 'Data-Protocol', values: ['ao'] }];
-
 export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...DEFAULT_AO_TAGS];
 
 export const DOM = {

@@ -14,8 +14,12 @@ function Node(props: { index: number; node: any }) {
 	React.useEffect(() => {
 		(async function () {
 			if (props.node) {
-				const result = await fetch(`${props.node.prefix}/~meta@1.0/info/address`);
-				setHealthy(result.status === 200);
+				try {
+					const result = await fetch(`${props.node.prefix}/~meta@1.0/info/address`);
+					setHealthy(result.status === 200);
+				} catch (e: any) {
+					setHealthy(false);
+				}
 			}
 		})();
 	}, [props.node]);
@@ -28,7 +32,7 @@ function Node(props: { index: number; node: any }) {
 		return (
 			<>
 				<span>{healthy ? language.healthy : language.unhealthy}</span>
-				<S.Indicator />
+				<S.Indicator healthy={healthy} />
 			</>
 		);
 	}
