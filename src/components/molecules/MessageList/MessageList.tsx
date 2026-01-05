@@ -597,8 +597,9 @@ export default function MessageList(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			let tags = [...DEFAULT_MESSAGE_TAGS];
+			let tags = [];
 			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+
 			if (props.txId) {
 				try {
 					// Build incoming query args
@@ -662,7 +663,7 @@ export default function MessageList(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			let tags = [...DEFAULT_MESSAGE_TAGS];
+			let tags = [];
 			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
 
 			setLoadingMessages(true);
@@ -790,6 +791,8 @@ export default function MessageList(props: {
 			} else {
 				const arweaveResponse = await fetch(arweaveEndpoint);
 				const currentBlock = (await arweaveResponse.json()).height;
+
+				tags = [...DEFAULT_MESSAGE_TAGS];
 
 				const gqlResponse = await permawebProvider.libs.getGQLData({
 					tags: tags,

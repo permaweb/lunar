@@ -665,6 +665,13 @@ function Transaction(props: {
 		}
 	}, []);
 
+	const handleNodeChange = React.useCallback(
+		(option) => {
+			settingsProvider.setActiveNode(option.id);
+		},
+		[settingsProvider]
+	);
+
 	return (
 		<>
 			<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
@@ -754,9 +761,7 @@ function Transaction(props: {
 										activeOption={nodeOptions.find(
 											(option) => option.id === settingsProvider.settings.nodes.find((node) => node.active)?.url
 										)}
-										setActiveOption={(option) => {
-											settingsProvider.setActiveNode(option.id);
-										}}
+										setActiveOption={handleNodeChange}
 										options={nodeOptions}
 										disabled={false}
 									/>
