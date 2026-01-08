@@ -738,8 +738,6 @@ export default function MessageList(props: {
 						setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
 					} else {
 						if (props.recipient) {
-							console.log('Getting message list result response...');
-
 							try {
 								const deps = resolveLibDeps({
 									variant: props.variant,
@@ -758,7 +756,7 @@ export default function MessageList(props: {
 									message: messageId,
 								});
 
-								if (resultResponse && !resultResponse.error) {
+								if (resultResponse && !resultResponse.error && resultResponse.Messages.length > 0) {
 									tags.push(
 										{ name: 'From-Process', values: [props.recipient] },
 										{ name: 'Variant', values: [props.variant] },

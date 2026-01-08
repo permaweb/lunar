@@ -247,7 +247,6 @@ export default function GraphQLPlayground(props: {
 							parsedVariables = JSON.parse(variables);
 							// Only include if it's a non-empty object
 							if (parsedVariables && typeof parsedVariables === 'object' && Object.keys(parsedVariables).length > 0) {
-								console.log('Including variables:', parsedVariables);
 							} else {
 								parsedVariables = undefined;
 							}

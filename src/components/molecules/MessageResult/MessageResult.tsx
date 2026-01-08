@@ -50,8 +50,6 @@ export default function MessageResult(props: { processId: string; messageId: str
 						}
 					}
 
-					console.log('Getting message result...');
-
 					const deps = resolveLibDeps({
 						variant: props.variant,
 						permawebProvider: permawebProvider,
