@@ -292,7 +292,7 @@ export async function resolveMessageId(args: {
 	target: string;
 	permawebProvider: any;
 }) {
-	let messageIdToUse = args.messageId;
+	let idToUse = args.messageId;
 
 	switch (args.variant) {
 		case MessageVariantEnum.Legacynet:
@@ -301,15 +301,26 @@ export async function resolveMessageId(args: {
 			const schedulerUrl = args.schedulerUrl ?? DEFAULT_SCHEDULER_URL;
 
 			try {
-				const schedulerResponse = await fetch(
-					`${schedulerUrl}/~scheduler@1.0/schedule?target=${args.target}&accept=application/aos-2`
-				);
-				const parsedSchedulerResponse = args.permawebProvider.libs.mapFromProcessCase(await schedulerResponse.json());
-				const currentElement = parsedSchedulerResponse?.edges?.find(
-					(element) => element.node?.message?.id === args.messageId
-				);
+				const gqlResponse = await args.permawebProvider.libs.getGQLData({
+					tags: [{ name: 'body+link', values: [args.messageId] }],
+				});
 
-				messageIdToUse = currentElement.cursor;
+				const node = gqlResponse?.data?.[0].node;
+				const slot = getTagValue(node.tags, 'slot');
+
+				if (slot) {
+					idToUse = slot;
+				} else {
+					const schedulerResponse = await fetch(
+						`${schedulerUrl}/~scheduler@1.0/schedule?target=${args.target}&accept=application/aos-2`
+					);
+					const parsedSchedulerResponse = args.permawebProvider.libs.mapFromProcessCase(await schedulerResponse.json());
+					const currentElement = parsedSchedulerResponse?.edges?.find(
+						(element) => element.node?.message?.id === args.messageId
+					);
+
+					idToUse = currentElement.cursor;
+				}
 			} catch (e: any) {
 				console.error(e);
 			}
@@ -317,7 +328,7 @@ export async function resolveMessageId(args: {
 			break;
 	}
 
-	return messageIdToUse;
+	return idToUse;
 }
 
 export const capitalize = (str: string) => (str ? str.charAt(0).toUpperCase() + str.slice(1) : '-');
