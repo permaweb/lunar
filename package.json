@@ -14,8 +14,8 @@
 		"test:verbose": "npm test -- --verbose",
 		"test:coverage": "CI=true npm test -- --env=jsdom --coverage",
 		"build": "NODE_ENV=production vite build",
-		"deploy:main": "npm run build && permaweb-deploy --arns-name lunar --ttl-seconds 60",
-		"deploy:staging": "npm run build && permaweb-deploy --arns-name lunar --ttl-seconds 60 --undername staging",
+		"deploy:main": "npm run build && permaweb-deploy deploy --arns-name lunar --ttl-seconds 60",
+		"deploy:staging": "npm run build && permaweb-deploy deploy --arns-name lunar --ttl-seconds 60 --undername staging",
 		"prepare": "husky install"
 	},
 	"dependencies": {
