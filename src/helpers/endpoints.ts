@@ -19,7 +19,6 @@ export function getRendererEndpoint(renderWith: string, tx: string) {
 }
 
 export function getMetricsEndpoint(days: number, network: 'mainnet' | 'legacynet') {
-	console.log(`https://atlas-server.decent.land/${network === 'mainnet' ? 'mainnet/' : ''}explorer/days?limit=${days}`);
 	return `https://atlas-server.decent.land/${network === 'mainnet' ? 'mainnet/' : ''}explorer/days?limit=${days}`;
 }
 

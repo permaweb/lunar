@@ -77,6 +77,7 @@ function Transaction(props: {
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
 	const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
+	const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
 
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const balanceFetchedRef = React.useRef<string | null>(null);
@@ -99,34 +100,41 @@ function Transaction(props: {
 		}
 	}, [props.active, hasFetched, inputTxId]);
 
+	const fetchBalance = React.useCallback(async () => {
+		if (!inputTxId || !checkValidAddress(inputTxId)) return;
+
+		setLoadingBalance(true);
+		setWalletBalance(null);
+
+		try {
+			const response = await permawebProvider.libs.readProcess({
+				processId: PROCESSES.ao,
+				action: 'Balance',
+				tags: [{ name: 'Recipient', value: inputTxId }],
+			});
+
+			if (!isNumeric(response)) {
+				setWalletBalance('Error');
+				return;
+			}
+
+			setWalletBalance(((response ?? 0) / Math.pow(10, 12)).toFixed(4));
+		} catch (e: any) {
+			console.error(e);
+			setWalletBalance('Error');
+		} finally {
+			setLoadingBalance(false);
+		}
+	}, [inputTxId, permawebProvider.libs]);
+
 	React.useEffect(() => {
 		if (props.type === 'wallet' && inputTxId && checkValidAddress(inputTxId) && txResponse) {
 			if (balanceFetchedRef.current === inputTxId) return;
 
 			balanceFetchedRef.current = inputTxId;
-			setWalletBalance(null);
-
-			(async () => {
-				try {
-					const response = await permawebProvider.libs.readProcess({
-						processId: PROCESSES.ao,
-						action: 'Balance',
-						tags: [{ name: 'Recipient', value: inputTxId }],
-					});
-
-					if (!isNumeric(response)) {
-						setWalletBalance('Error');
-						return;
-					}
-
-					setWalletBalance(((response ?? 0) / Math.pow(10, 12)).toFixed(4));
-				} catch (e: any) {
-					console.error(e);
-					setWalletBalance('Error');
-				}
-			})();
+			fetchBalance();
 		}
-	}, [props.type, inputTxId, txResponse, permawebProvider.libs]);
+	}, [props.type, inputTxId, txResponse, fetchBalance]);
 
 	async function handleSubmit() {
 		if (inputTxId && checkValidAddress(inputTxId)) {
@@ -733,7 +741,27 @@ function Transaction(props: {
 									<S.UpdateWrapper>
 										<span>{`Balance:`}</span>
 										<p>{`${walletBalance ?? 'Loading...'}`}</p>
-										{isNumeric(walletBalance) && <ReactSVG src={ASSETS.ao} />}
+										{isNumeric(walletBalance) && (
+											<S.Logo>
+												<ReactSVG src={ASSETS.ao} />
+											</S.Logo>
+										)}
+										<S.Refresh>
+											<IconButton
+												type={'primary'}
+												handlePress={() => {
+													balanceFetchedRef.current = null;
+													fetchBalance();
+												}}
+												src={ASSETS.refresh}
+												dimensions={{
+													wrapper: 20,
+													icon: 12.5,
+												}}
+												disabled={loadingBalance}
+												tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
+											/>
+										</S.Refresh>
 									</S.UpdateWrapper>
 								)}
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (

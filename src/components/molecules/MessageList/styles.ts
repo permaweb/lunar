@@ -306,7 +306,7 @@ export const Variant = styled.div`
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	span {
-		color: ${(props) => props.theme.colors.font.primary};
+		color: ${(props) => props.theme.colors.font.primary} !important;
 		text-transform: uppercase;
 	}
 `;

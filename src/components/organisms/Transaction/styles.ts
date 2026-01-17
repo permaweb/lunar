@@ -330,7 +330,9 @@ export const UpdateWrapper = styled.div`
 		text-align: center;
 		text-transform: uppercase;
 	}
+`;
 
+export const Logo = styled.div`
 	div {
 		height: 17.5px;
 		width: 17.5px;
@@ -346,6 +348,21 @@ export const UpdateWrapper = styled.div`
 		path {
 			color: ${(props) => props.theme.colors.font.light1};
 			fill: ${(props) => props.theme.colors.font.light1};
+		}
+	}
+`;
+
+export const Refresh = styled.div`
+	margin: 0 0 0 7.5px;
+
+	svg {
+		color: ${(props) => props.theme.colors.font.light1};
+		fill: ${(props) => props.theme.colors.font.light1};
+	}
+
+	button {
+		&:hover {
+			background: ${(props) => props.theme.colors.font.dark1};
 		}
 	}
 `;
