@@ -207,11 +207,12 @@ export const GlobalStyle = createGlobalStyle`
     border-radius: ${STYLING.dimensions.radius.alt2};
     animation: ${open} ${transition2};
     span {
-      color: ${(props) => props.theme.colors.contrast.color};
-      font-family: ${(props) => props.theme.typography.family.primary};
-      font-size: ${(props) => props.theme.typography.size.xxxxSmall};
-      font-weight: ${(props) => props.theme.typography.weight.bold};
-      white-space: nowrap;
+      color: ${(props) => props.theme.colors.contrast.color} !important;
+      font-family: ${(props) => props.theme.typography.family.primary} !important;
+      font-size: ${(props) => props.theme.typography.size.xxxxSmall} !important;
+      font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+			text-transform: none !important;
+      white-space: nowrap !important;
 	  }
   }
 
