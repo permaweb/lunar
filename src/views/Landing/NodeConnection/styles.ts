@@ -61,19 +61,5 @@ export const Indicator = styled.div<{ isOnline: boolean }>`
 	width: 11.5px;
 	margin: -0.15px 0 0 0;
 	border-radius: 50%;
-
-	animation: ${(props) => (props.isOnline ? 'pulse 1.075s infinite' : 'none')};
 	background: ${(props) => (props.isOnline ? props.theme.colors.indicator.active : props.theme.colors.warning.primary)};
-
-	@keyframes pulse {
-		0%,
-		100% {
-			background: ${(props) => props.theme.colors.indicator.active};
-			transform: scale(1);
-		}
-		50% {
-			background: ${(props) => props.theme.colors.indicator.primary};
-			transform: scale(1.15);
-		}
-	}
 `;

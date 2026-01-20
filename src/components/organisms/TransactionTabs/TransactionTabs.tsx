@@ -26,6 +26,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	const tabsRef = React.useRef<HTMLDivElement>(null);
 	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
 	const callbacksRef = React.useRef<Map<string, (newTx: Types.GQLNodeResponseType) => void>>(new Map());
+	const loadingCallbacksRef = React.useRef<Map<string, (loading: boolean) => void>>(new Map());
 	const isDeletingRef = React.useRef<boolean>(false);
 
 	const storageKey = `${props.type}-transactions`;
@@ -50,6 +51,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 	const [activeTabIndex, setActiveTabIndex] = React.useState<number>(getInitialIndex());
 	const [showClearConfirmation, setShowClearConfirmation] = React.useState<boolean>(false);
 	const [visitedTabs, setVisitedTabs] = React.useState<Set<number>>(() => new Set([getInitialIndex()]));
+	const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
 
 	React.useEffect(() => {
 		const { txId, subPath } = extractTxDetailsFromPath(location.pathname);
@@ -179,6 +181,18 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		[props.type, navigate, activeTabIndex]
 	);
 
+	const handleLoadingChangeByKey = React.useCallback((tabKey: string, loading: boolean) => {
+		setLoadingStates((prev) => {
+			const updated = new Map(prev);
+			updated.set(tabKey, loading);
+			return updated;
+		});
+	}, []);
+
+	const isAnyTransactionLoading = React.useMemo(() => {
+		return Array.from(loadingStates.values()).some((loading) => loading);
+	}, [loadingStates]);
+
 	const handleTabRedirect = (index: number) => {
 		setActiveTabIndex(index);
 		setVisitedTabs((prev) => new Set(prev).add(index));
@@ -301,6 +315,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 												handleDeleteTab(index);
 											}}
 											dimensions={{ wrapper: 10, icon: 10 }}
+											disabled={isAnyTransactionLoading}
 										/>
 									</div>
 								</div>
@@ -316,7 +331,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 				<S.Placeholder />
 			</S.TabsContent>
 		);
-	}, [transactions, activeTabIndex, language]);
+	}, [transactions, activeTabIndex, language, isAnyTransactionLoading]);
 
 	return (
 		<>
@@ -361,6 +376,14 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 							}
 							const onTxChange = callbacksRef.current.get(tx.tabKey!)!;
 
+							// Create or get stable loading callback for this tab
+							if (!loadingCallbacksRef.current.has(tx.tabKey!)) {
+								loadingCallbacksRef.current.set(tx.tabKey!, (loading: boolean) => {
+									handleLoadingChangeByKey(tx.tabKey!, loading);
+								});
+							}
+							const onLoadingChange = loadingCallbacksRef.current.get(tx.tabKey!)!;
+
 							const isActive = index === activeTabIndex;
 							const hasBeenVisited = visitedTabs.has(index);
 
@@ -381,6 +404,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 											onTxChange={onTxChange}
 											handleMessageOpen={handleAddTab}
 											tabKey={tx.tabKey}
+											onLoadingChange={onLoadingChange}
 										/>
 									) : (
 										<AOS

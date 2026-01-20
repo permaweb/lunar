@@ -49,6 +49,7 @@ function Transaction(props: {
 	onTxChange?: (newTx: Types.GQLNodeResponseType) => void;
 	handleMessageOpen: (id: string) => void;
 	tabKey?: string; // Stable key from TransactionTabs to maintain component identity
+	onLoadingChange?: (loading: boolean) => void;
 }) {
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
@@ -66,6 +67,12 @@ function Transaction(props: {
 	const [inputTxId, setInputTxId] = React.useState<string>(props.txId);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
 	const [txResponse, setTxResponse] = React.useState<Types.GQLNodeResponseType | null>(null);
+
+	React.useEffect(() => {
+		if (props.onLoadingChange) {
+			props.onLoadingChange(loadingTx);
+		}
+	}, [loadingTx, props.onLoadingChange]);
 	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
 
 	// Memoize owner address to prevent unnecessary TABS recreation

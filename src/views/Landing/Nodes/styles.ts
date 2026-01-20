@@ -115,22 +115,6 @@ export const Indicator = styled.div<{ healthy: boolean }>`
 	margin: 1.5px 0 0 0;
 	border-radius: 50%;
 	background: ${(props) => (props.healthy ? props.theme.colors.indicator.active : props.theme.colors.warning.primary)};
-
-	animation: ${(props) => (props.healthy ? 'pulse 1.075s infinite' : 'none')};
-
-	@keyframes pulse {
-		0%,
-		100% {
-			background: ${(props) =>
-				props.healthy ? props.theme.colors.indicator.active : props.theme.colors.warning.primary};
-			transform: scale(1);
-		}
-		50% {
-			background: ${(props) =>
-				props.healthy ? props.theme.colors.indicator.active : props.theme.colors.warning.primary};
-			transform: scale(${(props) => (props.healthy ? 1.15 : 1)});
-		}
-	}
 `;
 
 export const NodeBody = styled.div`
