@@ -38,7 +38,7 @@ export default function Notification(props: IProps) {
 					<S.Message>{props.message}</S.Message>
 				</S.MessageWrapper>
 				<S.Close onClick={handleClose}>
-					<span>Dismiss</span>
+					<p>Dismiss</p>
 				</S.Close>
 			</S.Wrapper>
 		</Portal>

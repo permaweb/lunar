@@ -54,7 +54,7 @@ export const Icon = styled.div<{ warning: boolean | undefined }>`
 	}
 `;
 
-export const Message = styled.span`
+export const Message = styled.p`
 	display: block;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -66,14 +66,14 @@ export const Message = styled.span`
 
 export const Close = styled.button`
 	margin: 0 0 0 auto;
-	span {
+	p {
 		color: ${(props) => props.theme.colors.font.light1} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 	}
 	&:hover {
-		span {
+		p {
 			color: ${(props) => props.theme.colors.font.light1} !important;
 			opacity: 0.75;
 		}

@@ -387,8 +387,9 @@ function AOS(props: {
 		}
 	}, []);
 
-	async function handleEditorSend(currentValue?: string) {
-		const dataToSend = currentValue || editorData;
+	async function handleEditorSend(currentValue?: string | React.MouseEvent) {
+		// Handle case where this is called from a button click (event passed) vs keyboard shortcut (string passed)
+		const dataToSend = typeof currentValue === 'string' ? currentValue : editorData;
 		if (dataToSend) {
 			addResultLine(dataToSend, 'command');
 			await sendMessage(dataToSend);
