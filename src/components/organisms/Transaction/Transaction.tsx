@@ -1,5 +1,6 @@
 import React from 'react';
 import { ReactSVG } from 'react-svg';
+import JSONbig from 'json-bigint';
 
 import { Types } from '@permaweb/libs';
 
@@ -352,7 +353,7 @@ function Transaction(props: {
 							setData(language.noData);
 						} else {
 							try {
-								const parsed = JSON.parse(trimmed);
+								const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
 
 								const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
 								const isEmptyObject =

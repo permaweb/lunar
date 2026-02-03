@@ -26,6 +26,7 @@
 		"@permaweb/libs": "0.0.81",
 		"arweave": "^1.15.5",
 		"html-react-parser": "^5.1.18",
+		"json-bigint": "^1.0.0",
 		"jwt-decode": "^4.0.0",
 		"monaco-editor": "^0.52.2",
 		"react": "^18.2.0",

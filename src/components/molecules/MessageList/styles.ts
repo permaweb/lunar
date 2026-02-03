@@ -347,7 +347,7 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 
 		&:hover {
 			${ActionTooltip} {
-				display: block;
+				display: none; /* Removed */
 			}
 		}
 	}

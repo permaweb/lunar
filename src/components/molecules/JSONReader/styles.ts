@@ -95,6 +95,11 @@ export const JSONValue = styled.span`
 	display: inline;
 `;
 
+export const JSONKeyDefault = styled.span`
+	color: ${(props) => props.theme.colors.editor.alt10};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+`;
+
 export const JSONKey = styled.span`
 	color: ${(props) => props.theme.colors.editor.alt5};
 	font-weight: ${(props) => props.theme.typography.weight.bold};

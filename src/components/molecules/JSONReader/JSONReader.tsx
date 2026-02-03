@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import JSONbig from 'json-bigint';
 
 import { IconButton } from 'components/atoms/IconButton';
 import { ASSETS, URLS } from 'helpers/config';
@@ -87,7 +88,8 @@ export default function _JSONTree(props: {
 		if (typeof input === 'string') {
 			const strippedInput = stripAnsiChars(input);
 			try {
-				const parsed = JSON.parse(strippedInput);
+				// Use json-bigint to parse, which preserves large numbers as strings
+				const parsed = JSONbig({ storeAsString: true }).parse(strippedInput);
 				return parseJSON(parsed);
 			} catch (e) {
 				return strippedInput;
@@ -129,15 +131,38 @@ export default function _JSONTree(props: {
 		}, []);
 
 		const collapseAll = React.useCallback(() => {
-			setCollapsed(new Set(allPathsRef.current));
+			// Collapse everything inside top-level keys, but keep the top-level keys themselves expanded
+			const pathsToCollapse = Array.from(allPathsRef.current).filter((path) => {
+				// Always keep root expanded
+				if (path === 'root') return false;
+
+				// Keep top-level keys expanded (root.Messages, root.Output, etc)
+				const isTopLevel = path.match(/^root\.[^.[\]]+$/) || path.match(/^root\[\d+\]$/);
+				if (isTopLevel) return false;
+
+				// Collapse everything else (nested content)
+				return true;
+			});
+			setCollapsed(new Set(pathsToCollapse));
 		}, []);
 
 		const expandAll = React.useCallback(() => {
+			console.log('expandAll called, clearing collapsed set');
 			setCollapsed(new Set());
 		}, []);
 
 		const getCollapsedState = React.useCallback(() => {
-			return { isFullyCollapsed: collapsed.size > 0 && collapsed.size === allPaths.size };
+			// Check if fully expanded (no collapsed items)
+			if (collapsed.size === 0) {
+				return { isFullyCollapsed: false };
+			}
+			// Check if all collapsible paths (except top-level) are collapsed
+			const topLevelPaths = Array.from(allPaths).filter((path) => {
+				return path === 'root' || path.match(/^root\.[^.[\]]+$/) || path.match(/^root\[\d+\]$/);
+			});
+			const collapsiblePathsCount = allPaths.size - topLevelPaths.length;
+			const isFullyCollapsed = collapsed.size >= collapsiblePathsCount;
+			return { isFullyCollapsed };
 		}, [collapsed, allPaths]);
 
 		React.useImperativeHandle(
@@ -182,9 +207,32 @@ export default function _JSONTree(props: {
 				);
 			}
 			if (typeof value === 'number') {
+				// Format large numbers to avoid scientific notation
+				let displayValue: string;
+				if (Number.isInteger(value) && Math.abs(value) > 1e15) {
+					// For very large integers, use toFixed(0) to avoid scientific notation
+					displayValue = value.toFixed(0);
+				} else if (Math.abs(value) > 1e15 || (value !== 0 && Math.abs(value) < 1e-6)) {
+					// For very large or very small numbers in scientific notation
+					// Convert to string and display the full precision
+					const str = value.toString();
+					if (str.includes('e')) {
+						// Try to expand scientific notation for better readability
+						try {
+							displayValue = value.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 20 });
+						} catch {
+							displayValue = str;
+						}
+					} else {
+						displayValue = str;
+					}
+				} else {
+					displayValue = value.toString();
+				}
+
 				return (
 					<>
-						<S.JSONNumber>{value}</S.JSONNumber>
+						<S.JSONNumber>{displayValue}</S.JSONNumber>
 						{!isLast && <S.JSONComma>,</S.JSONComma>}
 					</>
 				);
@@ -284,6 +332,11 @@ export default function _JSONTree(props: {
 					allPaths.add(path);
 				}
 				const isCollapsed = collapsed.has(path);
+
+				// Check if this object has too many keys and should show collapsed ranges
+				const hasCollapsedRanges = entries.length > 1000;
+				const rangeSize = 100;
+
 				return (
 					<>
 						{isCollapsed ? (
@@ -295,31 +348,91 @@ export default function _JSONTree(props: {
 							<>
 								<S.JSONBracket>{'{'}</S.JSONBracket>
 								<S.JSONIndent>
-									{entries.map(([k, v], index) => {
-										const propPath = `${path}.${k}`;
-										const isCollapsible =
-											typeof v === 'object' &&
-											v !== null &&
-											(Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0);
-										const isCollapsed = collapsed.has(propPath);
+									{hasCollapsedRanges ? (
+										<>
+											{/* Render entries in ranges */}
+											{Array.from({ length: Math.ceil(entries.length / rangeSize) }, (_, rangeIndex) => {
+												const start = rangeIndex * rangeSize;
+												const end = Math.min(start + rangeSize, entries.length);
+												const rangeEntries = entries.slice(start, end);
+												const rangePath = `${path}.__range_${start}_${end}__`;
+												const isRangeCollapsed = collapsed.has(rangePath);
 
-										if (collectPaths && isCollapsible) {
-											allPaths.add(propPath);
-										}
+												return (
+													<React.Fragment key={`range-${start}`}>
+														<S.JSONProperty>
+															<S.CollapseArrow isCollapsed={isRangeCollapsed} onClick={() => toggleCollapse(rangePath)}>
+																›
+															</S.CollapseArrow>
+															<S.JSONKeyDefault>
+																{isRangeCollapsed
+																	? `[${start}–${end - 1}] (${rangeEntries.length} keys)`
+																	: `[${start}–${end - 1}]`}
+															</S.JSONKeyDefault>
+														</S.JSONProperty>
+														{!isRangeCollapsed &&
+															rangeEntries.map(([k, v], index) => {
+																const propPath = `${path}.${k}`;
+																const isCollapsible =
+																	typeof v === 'object' &&
+																	v !== null &&
+																	(Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0);
+																const isPropCollapsed = collapsed.has(propPath);
 
-										return (
-											<S.JSONProperty key={k}>
-												{isCollapsible && (
-													<S.CollapseArrow isCollapsed={isCollapsed} onClick={() => toggleCollapse(propPath)}>
-														›
-													</S.CollapseArrow>
-												)}
-												<S.JSONKey>"{k}"</S.JSONKey>
-												<S.JSONColon>: </S.JSONColon>
-												{renderValue(v, k, index === entries.length - 1, propPath, collectPaths)}
-											</S.JSONProperty>
-										);
-									})}
+																if (collectPaths && isCollapsible) {
+																	allPaths.add(propPath);
+																}
+
+																return (
+																	<S.JSONProperty key={k}>
+																		{isCollapsible && (
+																			<S.CollapseArrow
+																				isCollapsed={isPropCollapsed}
+																				onClick={() => toggleCollapse(propPath)}
+																			>
+																				›
+																			</S.CollapseArrow>
+																		)}
+																		<S.JSONKey>"{k}"</S.JSONKey>
+																		<S.JSONColon>: </S.JSONColon>
+																		{renderValue(v, k, start + index === entries.length - 1, propPath, collectPaths)}
+																	</S.JSONProperty>
+																);
+															})}
+													</React.Fragment>
+												);
+											})}
+										</>
+									) : (
+										<>
+											{/* Normal rendering for objects with < 1000 keys */}
+											{entries.map(([k, v], index) => {
+												const propPath = `${path}.${k}`;
+												const isCollapsible =
+													typeof v === 'object' &&
+													v !== null &&
+													(Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0);
+												const isPropCollapsed = collapsed.has(propPath);
+
+												if (collectPaths && isCollapsible) {
+													allPaths.add(propPath);
+												}
+
+												return (
+													<S.JSONProperty key={k}>
+														{isCollapsible && (
+															<S.CollapseArrow isCollapsed={isPropCollapsed} onClick={() => toggleCollapse(propPath)}>
+																›
+															</S.CollapseArrow>
+														)}
+														<S.JSONKey>"{k}"</S.JSONKey>
+														<S.JSONColon>: </S.JSONColon>
+														{renderValue(v, k, index === entries.length - 1, propPath, collectPaths)}
+													</S.JSONProperty>
+												);
+											})}
+										</>
+									)}
 								</S.JSONIndent>
 								<S.JSONBracket>{'}'}</S.JSONBracket>
 								{!isLast && <S.JSONComma>,</S.JSONComma>}
@@ -344,53 +457,111 @@ export default function _JSONTree(props: {
 			dataRef.current = data;
 
 			const paths = new Set<string>();
+			const pathsToAutoCollapse = new Set<string>();
 
-			const collectAllPaths = (value: any, path: string = 'root') => {
+			const collectAllPaths = (value: any, path: string = 'root', _parentPath?: string) => {
 				if (Array.isArray(value)) {
 					if (value.length > 0) {
 						paths.add(path);
-						value.forEach((item, index) => {
-							const itemPath = `${path}[${index}]`;
-							if (typeof item === 'object' && item !== null) {
-								const isCollapsible = Array.isArray(item) ? item.length > 0 : Object.keys(item).length > 0;
-								if (isCollapsible) {
-									paths.add(itemPath);
-									collectAllPaths(item, itemPath);
+
+						// Auto-collapse items in arrays with many elements
+						if (value.length > 1000) {
+							value.forEach((item, index) => {
+								if (typeof item === 'object' && item !== null) {
+									const itemPath = `${path}[${index}]`;
+									const isCollapsible = Array.isArray(item) ? item.length > 0 : Object.keys(item).length > 0;
+									if (isCollapsible) {
+										paths.add(itemPath);
+										collectAllPaths(item, itemPath, path);
+									}
+									// Collapse items beyond the first 100
+									if (index >= 100 && isCollapsible) {
+										pathsToAutoCollapse.add(itemPath);
+									}
 								}
-							}
-						});
+							});
+						} else {
+							value.forEach((item, index) => {
+								if (typeof item === 'object' && item !== null) {
+									const itemPath = `${path}[${index}]`;
+									const isCollapsible = Array.isArray(item) ? item.length > 0 : Object.keys(item).length > 0;
+									if (isCollapsible) {
+										paths.add(itemPath);
+										collectAllPaths(item, itemPath, path);
+									}
+								}
+							});
+						}
 					}
 				} else if (typeof value === 'object' && value !== null) {
 					const entries = Object.entries(value);
 					if (entries.length > 0) {
 						paths.add(path);
-						entries.forEach(([k, v]) => {
-							const propPath = `${path}.${k}`;
-							if (typeof v === 'object' && v !== null) {
-								const isCollapsible = Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0;
-								if (isCollapsible) {
-									paths.add(propPath);
-									collectAllPaths(v, propPath);
+
+						// Auto-collapse ranges in objects with many keys
+						if (entries.length > 1000) {
+							const rangeSize = 100;
+							const numRanges = Math.ceil(entries.length / rangeSize);
+
+							// Create range paths and auto-collapse all except the first
+							for (let rangeIndex = 0; rangeIndex < numRanges; rangeIndex++) {
+								const start = rangeIndex * rangeSize;
+								const end = Math.min(start + rangeSize, entries.length);
+								const rangePath = `${path}.__range_${start}_${end}__`;
+								paths.add(rangePath);
+
+								// Auto-collapse all ranges except the first one
+								if (rangeIndex > 0) {
+									pathsToAutoCollapse.add(rangePath);
 								}
 							}
-						});
+
+							entries.forEach(([k, v]) => {
+								const propPath = `${path}.${k}`;
+								if (typeof v === 'object' && v !== null) {
+									const isCollapsible = Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0;
+									if (isCollapsible) {
+										paths.add(propPath);
+										collectAllPaths(v, propPath, path);
+									}
+								}
+							});
+						} else {
+							entries.forEach(([k, v]) => {
+								const propPath = `${path}.${k}`;
+								if (typeof v === 'object' && v !== null) {
+									const isCollapsible = Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0;
+									if (isCollapsible) {
+										paths.add(propPath);
+										collectAllPaths(v, propPath, path);
+									}
+								}
+							});
+						}
 					}
 				}
 			};
 
 			collectAllPaths(data);
 
-			// Check if paths actually changed (but allow first initialization)
+			// Check if this is first load or if paths actually changed
+			const isFirstLoad = allPathsRef.current.size === 0;
 			const pathsChanged =
-				allPathsRef.current.size > 0 &&
+				!isFirstLoad &&
 				(paths.size !== allPathsRef.current.size || Array.from(paths).some((p) => !allPathsRef.current.has(p)));
 
 			allPathsRef.current = paths;
 			setAllPaths(paths);
 
-			// Only reset collapsed if the structure of the data actually changed (not on first load)
-			if (pathsChanged) {
+			// Apply auto-collapse on first load, or reset on structure change
+			if (isFirstLoad && pathsToAutoCollapse.size > 0) {
+				console.log('Initial auto-collapse applied');
+				setCollapsed(pathsToAutoCollapse);
+			} else if (pathsChanged) {
+				console.log('Data changed, resetting collapsed state');
 				setCollapsed(new Set());
+			} else {
+				console.log('Data unchanged, not modifying collapsed state');
 			}
 		}, [data]);
 

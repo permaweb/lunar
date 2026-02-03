@@ -1,4 +1,5 @@
 import React from 'react';
+import JSONbig from 'json-bigint';
 
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
@@ -34,7 +35,7 @@ export default function MessageResult(props: { processId: string; messageId: str
 						setData(language.noData);
 					} else {
 						try {
-							const parsed = JSON.parse(trimmed);
+							const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
 
 							const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
 							const isEmptyObject =
