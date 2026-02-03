@@ -261,7 +261,7 @@ export const OptionsHeader = styled.div`
 	margin: 10px 0 12.5px 0;
 
 	p {
-		font-size: ${(props) => props.theme.typography.size.base};
+		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.alt1};

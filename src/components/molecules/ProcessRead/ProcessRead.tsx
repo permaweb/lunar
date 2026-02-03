@@ -1,4 +1,5 @@
 import React from 'react';
+import JSONbig from 'json-bigint';
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
@@ -61,7 +62,7 @@ export default function ProcessRead(props: {
 	const safelyParseNestedJSON = (input) => {
 		if (typeof input === 'string') {
 			try {
-				const parsed = JSON.parse(input);
+				const parsed = JSONbig({ storeAsString: true }).parse(input);
 				return safelyParseNestedJSON(parsed);
 			} catch (e) {
 				return input;
@@ -108,7 +109,7 @@ export default function ProcessRead(props: {
 
 				let parsedResponse;
 				try {
-					parsedResponse = typeof response === 'string' ? JSON.parse(response) : response;
+					parsedResponse = typeof response === 'string' ? JSONbig({ storeAsString: true }).parse(response) : response;
 					parsedResponse = safelyParseNestedJSON(parsedResponse);
 				} catch (e) {
 					// If JSON parsing fails, treat it as a plain string response

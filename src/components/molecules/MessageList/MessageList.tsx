@@ -154,20 +154,14 @@ function Message(props: {
 	}
 
 	function getFrom() {
-		const from = getTagValue(props.element.node.tags, 'From-Process');
+		const from = getTagValue(props.element.node.tags, 'From-Process') ?? props.element.node.owner.address;
 
-		return (
-			<S.From>
-				<TxAddress address={from ?? props.element.node.owner.address} />
-			</S.From>
-		);
+		return <S.From>{from ? <TxAddress address={from} /> : <p>-</p>}</S.From>;
 	}
 
 	function getTo() {
 		return (
-			<S.To>
-				<TxAddress address={props.element.node.recipient} />
-			</S.To>
+			<S.To>{props.element.node.recipient ? <TxAddress address={props.element.node.recipient} /> : <p>-</p>}</S.To>
 		);
 	}
 
