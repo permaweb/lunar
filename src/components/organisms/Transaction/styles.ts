@@ -332,18 +332,34 @@ export const UpdateWrapper = styled.div`
 	}
 `;
 
-export const Logo = styled.div`
+export const BalanceWrapper = styled(UpdateWrapper)<{ isNumber: boolean }>`
+	p {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) =>
+			props.isNumber ? props.theme.typography.weight.xBold : props.theme.typography.weight.bold};
+		color: ${(props) => (props.isNumber ? props.theme.colors.font.light1 : props.theme.colors.font.light2)};
+		text-align: center;
+		text-transform: none;
+	}
+`;
+
+export const Logo = styled.div<{ dimensions: number; margin?: string }>`
+	height: ${(props) => `${props.dimensions.toString()}px`};
+	width: ${(props) => `${props.dimensions.toString()}px`};
+
 	div {
-		height: 17.5px;
-		width: 17.5px;
+		height: ${(props) => `${props.dimensions.toString()}px`};
+		width: ${(props) => `${props.dimensions.toString()}px`};
 		margin: 0 0 0 1.5px;
 	}
 
 	svg {
-		height: 17.5px;
-		width: 17.5px;
+		height: ${(props) => `${props.dimensions.toString()}px`};
+		width: ${(props) => `${props.dimensions.toString()}px`};
 		color: ${(props) => props.theme.colors.font.light1};
 		fill: ${(props) => props.theme.colors.font.light1};
+		margin: ${(props) => props.margin ?? '0'};
 
 		path {
 			color: ${(props) => props.theme.colors.font.light1};
@@ -353,7 +369,7 @@ export const Logo = styled.div`
 `;
 
 export const Refresh = styled.div`
-	margin: 0 0 0 7.5px;
+	margin: 0 -4.5px 0 4.5px;
 
 	svg {
 		color: ${(props) => props.theme.colors.font.light1};

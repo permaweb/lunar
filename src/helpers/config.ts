@@ -10,6 +10,12 @@ export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
 
 export const PROCESSES = {
 	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
+	pi: '4hXj_E-5fAKmo4E8KjgQvuDJKAFk9P2grhycVmISDLs',
+};
+
+export const TOKEN_DENOMINATIONS = {
+	ao: 12,
+	pi: 12,
 };
 
 export const ASSETS = {
@@ -69,6 +75,7 @@ export const ASSETS = {
 	navigation: getTxEndpoint('uFsSvBhbWZak9j5QWXIdeZ97ky_s0JsaIZ45KVXmD_8'),
 	newTab: getTxEndpoint('8rHxhGbWrv_jPk3Ku_mL6BvTbdTiRLvSNPwOU-neU_I'),
 	paragraph: getTxEndpoint('R18ieTzflNf8U8AGo4E__ZLUOvFjBBhOmRFUFll51Do'),
+	pi: getTxEndpoint('0jW9N_XUzzB8nDkZEFLekeiX7auRqK56k_R7LlNTkpg'),
 	plus: getTxEndpoint('v7jeKwAuE58KuolZ2a-E2AnyGWRQKnujTQtOxTyETLs'),
 	plusMinus: getTxEndpoint('5CpRM0gTrlg6cE8m_lFwduiboRFAF_pX2U-F6LtR5ow'),
 	post: getTxEndpoint('nPknvEex1uekCo-HZ-5uzsMw4u_rJzj8wZVK5QI3WKw'),

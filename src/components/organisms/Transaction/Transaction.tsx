@@ -15,7 +15,7 @@ import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
-import { ASSETS, DEFAULT_AO_TAGS, PROCESSES, TAGS, URLS } from 'helpers/config';
+import { ASSETS, DEFAULT_AO_TAGS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue, isNumeric } from 'helpers/utils';
@@ -84,11 +84,8 @@ function Transaction(props: {
 	const [refreshKey, setRefreshKey] = React.useState<number>(0);
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
-	const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
-	const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
 
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
-	const balanceFetchedRef = React.useRef<string | null>(null);
 
 	React.useEffect(() => {
 		setInputTxId(props.txId);
@@ -107,42 +104,6 @@ function Transaction(props: {
 			})();
 		}
 	}, [props.active, hasFetched, inputTxId]);
-
-	const fetchBalance = React.useCallback(async () => {
-		if (!inputTxId || !checkValidAddress(inputTxId)) return;
-
-		setLoadingBalance(true);
-		setWalletBalance(null);
-
-		try {
-			const response = await permawebProvider.libs.readProcess({
-				processId: PROCESSES.ao,
-				action: 'Balance',
-				tags: [{ name: 'Recipient', value: inputTxId }],
-			});
-
-			if (!isNumeric(response)) {
-				setWalletBalance('Error');
-				return;
-			}
-
-			setWalletBalance(((response ?? 0) / Math.pow(10, 12)).toFixed(4));
-		} catch (e: any) {
-			console.error(e);
-			setWalletBalance('Error');
-		} finally {
-			setLoadingBalance(false);
-		}
-	}, [inputTxId, permawebProvider.libs]);
-
-	React.useEffect(() => {
-		if (props.type === 'wallet' && inputTxId && checkValidAddress(inputTxId) && txResponse) {
-			if (balanceFetchedRef.current === inputTxId) return;
-
-			balanceFetchedRef.current = inputTxId;
-			fetchBalance();
-		}
-	}, [props.type, inputTxId, txResponse, fetchBalance]);
 
 	async function handleSubmit() {
 		if (inputTxId && checkValidAddress(inputTxId)) {
@@ -193,6 +154,124 @@ function Transaction(props: {
 			setTimeout(() => setIdCopied(false), 2000);
 		}
 	}, []);
+
+	const WalletBalanceSection = React.memo(
+		({
+			processId,
+			denomination,
+			walletId,
+		}: {
+			processId: string;
+			tokenName: string;
+			denomination: number;
+			walletId: string;
+		}) => {
+			const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
+			const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
+
+			const hasFetchedRef = React.useRef(false);
+			const currentWalletRef = React.useRef<string>('');
+
+			const fetchBalance = React.useCallback(async () => {
+				if (!walletId || !checkValidAddress(walletId)) return;
+
+				setLoadingBalance(true);
+				setWalletBalance(null);
+
+				try {
+					const response = await permawebProvider.libs.readProcess({
+						processId: processId,
+						action: 'Balance',
+						tags: [{ name: 'Recipient', value: walletId }],
+					});
+
+					if (!isNumeric(response)) {
+						setWalletBalance('Error');
+						return;
+					}
+
+					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(4));
+				} catch (e: any) {
+					console.error(e);
+					setWalletBalance('Error Fetching');
+				} finally {
+					setLoadingBalance(false);
+				}
+			}, [walletId, processId, denomination]);
+
+			React.useEffect(() => {
+				// Reset when wallet changes
+				if (currentWalletRef.current !== walletId) {
+					currentWalletRef.current = walletId;
+					hasFetchedRef.current = false;
+				}
+
+				if (
+					!hasFetchedRef.current &&
+					props.type === 'wallet' &&
+					walletId &&
+					checkValidAddress(walletId) &&
+					txResponse
+				) {
+					hasFetchedRef.current = true;
+					fetchBalance();
+				}
+			}, [walletId, txResponse, fetchBalance]);
+
+			let icon = null;
+			let dimensions = 15;
+			let margin = '0';
+			switch (processId) {
+				case PROCESSES.ao:
+					icon = ASSETS.ao;
+					dimensions = 17.5;
+					break;
+				case PROCESSES.pi:
+					dimensions = 10.5;
+					margin = '0 0 6.5px 0';
+					icon = ASSETS.pi;
+					break;
+			}
+
+			return (
+				<S.BalanceWrapper isNumber={isNumeric(walletBalance)}>
+					<p>{`${walletBalance ?? 'Loading...'}`}</p>
+					{icon && (
+						<>
+							<S.Logo dimensions={dimensions} margin={margin}>
+								<ReactSVG src={icon} />
+							</S.Logo>
+						</>
+					)}
+					<S.Refresh>
+						<IconButton
+							type={'primary'}
+							handlePress={() => {
+								hasFetchedRef.current = false;
+								fetchBalance();
+							}}
+							src={ASSETS.refresh}
+							dimensions={{
+								wrapper: 20,
+								icon: 12.5,
+							}}
+							disabled={loadingBalance}
+							tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
+						/>
+					</S.Refresh>
+				</S.BalanceWrapper>
+			);
+		},
+		(prevProps, nextProps) => {
+			// Only re-render if these props actually change
+			return (
+				prevProps.processId === nextProps.processId &&
+				prevProps.tokenName === nextProps.tokenName &&
+				prevProps.denomination === nextProps.denomination &&
+				prevProps.walletId === nextProps.walletId
+			);
+		}
+	);
 
 	const OverviewLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
 		const defaultRender = (v: any) => {
@@ -626,6 +705,26 @@ function Transaction(props: {
 		[txResponse, inputTxId, props.type, refreshKey]
 	);
 
+	const walletBalanceSections = React.useMemo(() => {
+		if (props.type !== 'wallet') return null;
+		return (
+			<>
+				<WalletBalanceSection
+					processId={PROCESSES.ao}
+					tokenName={'AO'}
+					denomination={TOKEN_DENOMINATIONS.ao}
+					walletId={inputTxId}
+				/>
+				<WalletBalanceSection
+					processId={PROCESSES.pi}
+					tokenName={'PI'}
+					denomination={TOKEN_DENOMINATIONS.pi}
+					walletId={inputTxId}
+				/>
+			</>
+		);
+	}, [inputTxId, props.type]);
+
 	const transactionTabs = React.useMemo(() => {
 		if (!TABS) return null;
 		const matchingTab = TABS.find((tab) => tab.url === currentHash);
@@ -745,33 +844,7 @@ function Transaction(props: {
 								<S.UpdateWrapper>
 									<span>{props.type}</span>
 								</S.UpdateWrapper>
-								{props.type === 'wallet' && (
-									<S.UpdateWrapper>
-										<span>{`Balance:`}</span>
-										<p>{`${walletBalance ?? 'Loading...'}`}</p>
-										{isNumeric(walletBalance) && (
-											<S.Logo>
-												<ReactSVG src={ASSETS.ao} />
-											</S.Logo>
-										)}
-										<S.Refresh>
-											<IconButton
-												type={'primary'}
-												handlePress={() => {
-													balanceFetchedRef.current = null;
-													fetchBalance();
-												}}
-												src={ASSETS.refresh}
-												dimensions={{
-													wrapper: 20,
-													icon: 12.5,
-												}}
-												disabled={loadingBalance}
-												tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
-											/>
-										</S.Refresh>
-									</S.UpdateWrapper>
-								)}
+								{walletBalanceSections}
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 									<>
 										<S.UpdateWrapper>
