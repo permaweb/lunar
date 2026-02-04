@@ -4,6 +4,7 @@ import JSONbig from 'json-bigint';
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { getLegacyResultsEndpoint, legacyCuEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatMs, removeCommitments, stripUrlProtocol } from 'helpers/utils';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -41,7 +42,7 @@ export default function ProcessRead(props: {
 			switch (props.variant) {
 				case MessageVariantEnum.Legacynet:
 					try {
-						const response = await fetch(`https://cu.ao-testnet.xyz/results/${props.processId}`, {
+						const response = await fetch(getLegacyResultsEndpoint(props.processId), {
 							method: 'GET',
 						});
 
@@ -49,6 +50,7 @@ export default function ProcessRead(props: {
 						setCuLocation(cu.host);
 					} catch (e: any) {
 						console.error(e);
+						setCuLocation(legacyCuEndpoint);
 					}
 					break;
 				case MessageVariantEnum.Mainnet:
@@ -131,6 +133,7 @@ export default function ProcessRead(props: {
 				cancelAnimationFrame(frameId);
 				setIsFetching(false);
 				setErrorLog((prevLog) => [...prevLog, { time: Date.now(), message: e.message || 'Unknown error' }]);
+				setCurrentOutput({ Error: e.message ?? 'No Data' });
 			}
 		}
 	};
