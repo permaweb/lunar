@@ -147,7 +147,6 @@ export default function _JSONTree(props: {
 		}, []);
 
 		const expandAll = React.useCallback(() => {
-			console.log('expandAll called, clearing collapsed set');
 			setCollapsed(new Set());
 		}, []);
 
@@ -555,13 +554,9 @@ export default function _JSONTree(props: {
 
 			// Apply auto-collapse on first load, or reset on structure change
 			if (isFirstLoad && pathsToAutoCollapse.size > 0) {
-				console.log('Initial auto-collapse applied');
 				setCollapsed(pathsToAutoCollapse);
 			} else if (pathsChanged) {
-				console.log('Data changed, resetting collapsed state');
 				setCollapsed(new Set());
-			} else {
-				console.log('Data unchanged, not modifying collapsed state');
 			}
 		}, [data]);
 

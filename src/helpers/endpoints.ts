@@ -1,5 +1,6 @@
 import { checkValidAddress } from './utils';
 
+export const legacyCuEndpoint = 'https://cu.ao-testnet.xyz';
 export const arweaveEndpoint = 'https://arweave.net';
 
 export function getARBalanceEndpoint(walletAddress: string) {
@@ -24,4 +25,8 @@ export function getMetricsEndpoint(days: number, network: 'mainnet' | 'legacynet
 
 export function getRoutesEndpoint(routerUrl: string) {
 	return `https://${routerUrl}/~router@1.0/routes/?require-codec=application/json&accept-bundle=true`;
+}
+
+export function getLegacyResultsEndpoint(processId: string) {
+	return `${legacyCuEndpoint}/results/${processId}`;
 }
