@@ -158,13 +158,16 @@ function Transaction(props: {
 	const WalletBalanceSection = React.memo(
 		({
 			processId,
+			tokenName,
 			denomination,
 			walletId,
+			shouldFetch,
 		}: {
 			processId: string;
 			tokenName: string;
 			denomination: number;
 			walletId: string;
+			shouldFetch: boolean;
 		}) => {
 			const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
 			const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
@@ -206,17 +209,11 @@ function Transaction(props: {
 					hasFetchedRef.current = false;
 				}
 
-				if (
-					!hasFetchedRef.current &&
-					props.type === 'wallet' &&
-					walletId &&
-					checkValidAddress(walletId) &&
-					txResponse
-				) {
+				if (!hasFetchedRef.current && shouldFetch && walletId && checkValidAddress(walletId)) {
 					hasFetchedRef.current = true;
 					fetchBalance();
 				}
-			}, [walletId, txResponse, fetchBalance]);
+			}, [walletId, shouldFetch, fetchBalance]);
 
 			let icon = null;
 			let dimensions = 15;
@@ -268,7 +265,8 @@ function Transaction(props: {
 				prevProps.processId === nextProps.processId &&
 				prevProps.tokenName === nextProps.tokenName &&
 				prevProps.denomination === nextProps.denomination &&
-				prevProps.walletId === nextProps.walletId
+				prevProps.walletId === nextProps.walletId &&
+				prevProps.shouldFetch === nextProps.shouldFetch
 			);
 		}
 	);
@@ -707,6 +705,7 @@ function Transaction(props: {
 
 	const walletBalanceSections = React.useMemo(() => {
 		if (props.type !== 'wallet') return null;
+		const shouldFetch = props.type === 'wallet' && !!txResponse;
 		return (
 			<>
 				<WalletBalanceSection
@@ -714,16 +713,18 @@ function Transaction(props: {
 					tokenName={'AO'}
 					denomination={TOKEN_DENOMINATIONS.ao}
 					walletId={inputTxId}
+					shouldFetch={shouldFetch}
 				/>
 				<WalletBalanceSection
 					processId={PROCESSES.pi}
 					tokenName={'PI'}
 					denomination={TOKEN_DENOMINATIONS.pi}
 					walletId={inputTxId}
+					shouldFetch={shouldFetch}
 				/>
 			</>
 		);
-	}, [inputTxId, props.type]);
+	}, [txResponse, inputTxId, props.type]);
 
 	const transactionTabs = React.useMemo(() => {
 		if (!TABS) return null;
