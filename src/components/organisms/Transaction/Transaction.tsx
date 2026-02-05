@@ -158,7 +158,6 @@ function Transaction(props: {
 	const WalletBalanceSection = React.memo(
 		({
 			processId,
-			tokenName,
 			denomination,
 			walletId,
 			shouldFetch,
@@ -193,7 +192,7 @@ function Transaction(props: {
 						return;
 					}
 
-					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(4));
+					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
 				} catch (e: any) {
 					console.error(e);
 					setWalletBalance('Error Fetching');
@@ -230,9 +229,14 @@ function Transaction(props: {
 					break;
 			}
 
+			const getBalanceDisplay = () => {
+				if (!walletBalance) return 'Loading...';
+				return isNumeric(walletBalance) ? formatCount(walletBalance.toString()) : walletBalance;
+			};
+
 			return (
 				<S.BalanceWrapper isNumber={isNumeric(walletBalance)}>
-					<p>{`${walletBalance ?? 'Loading...'}`}</p>
+					<p>{getBalanceDisplay()}</p>
 					{icon && (
 						<>
 							<S.Logo dimensions={dimensions} margin={margin}>

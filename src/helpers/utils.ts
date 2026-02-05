@@ -47,7 +47,7 @@ export function formatCount(count: string): string {
 
 		// Find the position of the last non-zero digit within the first 6 decimal places
 		let index = 0;
-		for (let i = 0; i < Math.min(parts[1].length, 6); i++) {
+		for (let i = 0; i < Math.min(parts[1].length, 12); i++) {
 			if (parts[1][i] !== '0') {
 				index = i + 1;
 			}
@@ -60,9 +60,9 @@ export function formatCount(count: string): string {
 			// Otherwise, truncate to the last non-zero digit
 			parts[1] = parts[1].substring(0, index);
 
-			// If the decimal part is longer than 2 digits, truncate to 2 digits
-			if (parts[1].length > 2 && parts[1].substring(0, 2) !== '00') {
-				parts[1] = parts[1].substring(0, 2);
+			// If the decimal part is longer than 4 digits, truncate to 4 digits
+			if (parts[1].length > 4 && parts[1].substring(0, 4) !== '0000') {
+				parts[1] = parts[1].substring(0, 4);
 			}
 		}
 
