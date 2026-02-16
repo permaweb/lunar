@@ -17,7 +17,6 @@ const common = {
 		balance: '#667eea',
 		transfer: '#eb9330',
 		creditNotice: '#28baa2',
-		// debitNotice: '#d43b7a',
 		debitNotice: '#ce3f96',
 		mint: '#3CBBAE',
 		piDelegationRecords: '#eb9330',

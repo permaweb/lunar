@@ -10,13 +10,14 @@ export const Header = styled.header<{ navigationOpen: boolean }>`
 	top: 0;
 	z-index: 4;
 	background: ${(props) => props.theme.colors.view.background};
+	border-bottom: 1px solid transparent;
 
 	&.tabs-view {
 		background: ${(props) => props.theme.colors.container.alt1.background};
 		position: relative;
 		box-shadow: inset 0px 6px 6px -6px ${(props) => props.theme.colors.shadow.primary};
 		border-top: 0.5px solid ${(props) => props.theme.colors.border.primary};
-		border-bottom: none;
+		border-bottom: 1px solid transparent !important;
 	}
 `;
 

@@ -47,7 +47,7 @@ export default function TxAddress(props: IProps) {
 				<p>{copied ? `${language.copied}!` : formatAddress(props.address, props.wrap)}</p>
 				<S.IconWrapper>
 					{!copied && (
-						<S.Tooltip className={'info'} position={'bottom'}>
+						<S.Tooltip className={'info'} position={'top-right'}>
 							<span>{language.openInNewTab}</span>
 						</S.Tooltip>
 					)}
