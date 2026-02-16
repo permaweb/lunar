@@ -167,7 +167,7 @@ export const GlobalStyle = createGlobalStyle`
   .border-wrapper-alt1 {
     background: ${(props) => props.theme.colors.container.primary.background};
     box-shadow: 0 3.5px 7.5px 0 ${(props) => props.theme.colors.shadow.primary};
-    border: 1px solid ${(props) => props.theme.colors.border.alt2};
+    border: 1px solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
   }
 
@@ -185,7 +185,7 @@ export const GlobalStyle = createGlobalStyle`
   }
 
 	.border-wrapper-alt4 {
-    background: ${(props) => props.theme.colors.container.primary.background};
+    background: ${(props) => props.theme.colors.container.alt1.background};
     border: 1px solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
 		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;

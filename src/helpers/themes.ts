@@ -60,7 +60,7 @@ export const lightTheme = {
 	neutral1: '#FFFFFF',
 	neutral2: '#F9F9F9',
 	neutral3: '#F0F0F0',
-	neutral4: '#E4E4E4',
+	neutral4: '#DFDFDF',
 	neutral5: '#D6D6D6',
 	neutral6: '#CCCCCC',
 	neutral7: '#ADADAD',
@@ -88,9 +88,9 @@ export const lightThemeHighContrast = {
 	scheme: 'light',
 	neutral1: '#FFFFFF',
 	neutral2: '#F9F9F9',
-	neutral3: '#F0F0F0',
-	neutral4: '#BDBDBD',
-	neutral5: '#8C8C8C',
+	neutral3: '#e6e6e6',
+	neutral4: '#999999',
+	neutral5: '#868686',
 	neutral6: '#757575',
 	neutral7: '#616161',
 	neutral8: '#424242',
@@ -118,7 +118,7 @@ export const lightThemeAlt1 = {
 	neutral1: '#FFFFFF',
 	neutral2: '#F9F9F9',
 	neutral3: '#F0F0F0',
-	neutral4: '#E4E4E4',
+	neutral4: '#DFDFDF',
 	neutral5: '#D6D6D6',
 	neutral6: '#CCCCCC',
 	neutral7: '#ADADAD',
@@ -147,7 +147,7 @@ export const lightThemeAlt2 = {
 	neutral1: '#FFFFFF',
 	neutral2: '#F9F9F9',
 	neutral3: '#F0F0F0',
-	neutral4: '#E4E4E4',
+	neutral4: '#DFDFDF',
 	neutral5: '#D6D6D6',
 	neutral6: '#CCCCCC',
 	neutral7: '#ADADAD',
@@ -202,10 +202,10 @@ export const darkTheme = {
 
 export const darkThemeHighContrast = {
 	scheme: 'dark',
-	neutral1: '#141414',
+	neutral1: '#0f0f0f',
 	neutral2: '#181818',
 	neutral3: '#292929',
-	neutral4: '#424242',
+	neutral4: '#8a8a8a',
 	neutral5: '#6c6c6c',
 	neutral6: '#727272',
 	neutral7: '#5E5E5E',
@@ -273,7 +273,7 @@ export const darkThemeAlt1 = {
 export const darkThemeAlt2 = {
 	scheme: 'dark',
 	neutral1: '#17191f',
-	neutral2: '#1c1f25',
+	neutral2: '#1b1d23',
 	neutral3: '#262834',
 	neutral4: '#2E2F34',
 	neutral5: '#3d3e45',
@@ -324,7 +324,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			other: currentTheme.actions.other,
 		},
 		border: {
-			primary: currentTheme.neutral6,
+			primary: currentTheme.neutral4,
 			alt1: currentTheme.neutral7,
 			alt2: currentTheme.neutral8,
 			alt3: currentTheme.neutral9,
@@ -336,7 +336,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		button: {
 			primary: {
 				background: currentTheme.neutral3,
-				border: currentTheme.neutral6,
+				border: currentTheme.neutral5,
 				color: currentTheme.neutralA1,
 				active: {
 					background: currentTheme.primary1,
@@ -406,7 +406,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 				background: currentTheme.neutral5,
 			},
 			alt5: {
-				background: currentTheme.neutral6,
+				background: currentTheme.neutral7,
 			},
 			alt6: {
 				background: currentTheme.primary1,
@@ -447,7 +447,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		},
 		form: {
 			background: currentTheme.neutral1,
-			border: currentTheme.neutral5,
+			border: currentTheme.neutral4,
 			invalid: {
 				outline: currentTheme.negative1,
 				shadow: currentTheme.negative2,

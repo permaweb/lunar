@@ -91,7 +91,7 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 
 	&[draggable='true']:active {
 		background: ${(props) => props.theme.colors.container.alt2.background};
-		border-top: 2px solid ${(props) => props.theme.colors.border.primary};
+		border-top: 2px solid ${(props) => props.theme.colors.border.alt1};
 	}
 
 	.icon-wrapper {
