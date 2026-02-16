@@ -3,4 +3,5 @@ export interface IProps {
 	wrap?: boolean;
 	view?: boolean;
 	viewIcon?: string;
+	tooltipPosition?: string;
 }
