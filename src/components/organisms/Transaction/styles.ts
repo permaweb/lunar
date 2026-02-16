@@ -310,7 +310,7 @@ export const UpdateWrapper = styled.div`
 	justify-content: center;
 	gap: 5px;
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.border.alt2};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	span {

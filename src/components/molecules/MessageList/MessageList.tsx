@@ -153,12 +153,18 @@ function Message(props: {
 	function getFrom() {
 		const from = getTagValue(props.element.node.tags, 'From-Process') ?? props.element.node.owner.address;
 
-		return <S.From>{from ? <TxAddress address={from} /> : <p>-</p>}</S.From>;
+		return <S.From>{from ? <TxAddress address={from} tooltipPosition={'right'} /> : <p>-</p>}</S.From>;
 	}
 
 	function getTo() {
 		return (
-			<S.To>{props.element.node.recipient ? <TxAddress address={props.element.node.recipient} /> : <p>-</p>}</S.To>
+			<S.To>
+				{props.element.node.recipient ? (
+					<TxAddress address={props.element.node.recipient} tooltipPosition={'right'} />
+				) : (
+					<p>-</p>
+				)}
+			</S.To>
 		);
 	}
 
@@ -227,7 +233,7 @@ function Message(props: {
 	const OverlayLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
 		const defaultRender = (v: any) => {
 			if (typeof v === 'string' && checkValidAddress(v)) {
-				return <TxAddress address={v} />;
+				return <TxAddress address={v} tooltipPosition={'right'} />;
 			}
 			return <p>{v}</p>;
 		};
@@ -271,7 +277,7 @@ function Message(props: {
 							<S.OverlayInfoLineValue>
 								<p>{`${language.message}: `}</p>
 							</S.OverlayInfoLineValue>
-							<TxAddress address={props.element.node.id} />
+							<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
 						</S.OverlayInfoLine>
 						<S.OverlayInfoLine>{getAction(false)}</S.OverlayInfoLine>
 						{showViewData && (
@@ -305,7 +311,7 @@ function Message(props: {
 			>
 				<S.ID>
 					<S.TxAddress>
-						<TxAddress address={props.element.node.id} />
+						<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
 					</S.TxAddress>
 					<S.Variant className={'info'}>
 						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant)}</span>
