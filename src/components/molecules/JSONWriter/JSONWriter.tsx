@@ -108,7 +108,7 @@ export default function JSONWriter(props: {
 			JSON.parse(v);
 			setError(null);
 		} catch {
-			setError('Invalid JSON');
+			setError(language.invalidJSON);
 		}
 	}
 
@@ -118,7 +118,7 @@ export default function JSONWriter(props: {
 			setError(null);
 			props.handleSubmit(parsed);
 		} catch {
-			setError('Invalid JSON');
+			setError(language.invalidJSON);
 		}
 	}
 

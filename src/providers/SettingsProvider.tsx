@@ -19,6 +19,7 @@ import {
 	lightThemeHighContrast,
 	theme,
 } from 'helpers/themes';
+import { language } from 'helpers/language';
 import { NotificationType } from 'helpers/types';
 import { validateUrl } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
@@ -381,13 +382,13 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				<Panel
 					open={showNodeSettings}
 					width={500}
-					header={'Node Configuration'}
+					header={language.en.nodeConfiguration}
 					handleClose={() => setShowNodeSettings(false)}
 				>
 					<S.MWrapper className={'modal-wrapper'}>
 						<S.NodeSection>
 							<S.NodeSectionHeader>
-								<p>Node Configuration</p>
+								<p>{language.en.nodeConfiguration}</p>
 							</S.NodeSectionHeader>
 							<S.NodeList>
 								{settings.nodes.map((node) => (
@@ -416,7 +417,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 							</S.NodeList>
 							<S.NodeDivider>
 								<div className={'node-divider'} />
-								<span>Add a node</span>
+								<span>{language.en.addANode}</span>
 								<div className={'node-divider'} />
 							</S.NodeDivider>
 							<S.NodeAddSection>
@@ -429,7 +430,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 								/>
 								<Button
 									type={'alt1'}
-									label={'Add Node'}
+									label={language.en.addNode}
 									handlePress={handleAddNode}
 									disabled={!newNodeUrl || !validateUrl(newNodeUrl)}
 									height={45}

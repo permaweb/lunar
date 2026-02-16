@@ -2,11 +2,14 @@ import React from 'react';
 
 import { Button } from 'components/atoms/Button';
 import { formatCount, stripUrlProtocol } from 'helpers/utils';
+import { useLanguageProvider } from 'providers/LanguageProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import * as S from './styles';
 
 export default function NodeConnection() {
+	const languageProvider = useLanguageProvider();
+	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
 	const settingsProvider = useSettingsProvider();
 
 	const uptimeRef = React.useRef<HTMLParagraphElement>(null);
@@ -169,46 +172,48 @@ export default function NodeConnection() {
 			<S.ActionWrapper>
 				<Button
 					type={'alt4'}
-					label={'Change Connection'}
+					label={language.changeConnection}
 					handlePress={() => settingsProvider.setShowNodeSettings(true)}
 				/>
 			</S.ActionWrapper>
 			<S.MetricsSection>
-				<p>Current Connection</p>
+				<p>{language.currentConnection}</p>
 				<p ref={uptimeRef} className={'metric-value'}>
 					{stripUrlProtocol(settingsProvider.settings.nodes.find((node) => node.active).url)}
 				</p>
 				<S.MetricLineFlex>
-					<span>Status: {isLoading ? 'Loading...' : isOnline ? 'Online' : 'Offline'}</span>
+					<span>
+						{language.status}: {isLoading ? `${language.loading}...` : isOnline ? language.online : language.offline}
+					</span>
 					{!isLoading && <S.Indicator isOnline={isOnline} />}
 				</S.MetricLineFlex>
 			</S.MetricsSection>
 			<S.MetricsSection>
-				<p>Uptime</p>
+				<p>{language.uptime}</p>
 				<p ref={uptimeRef} className={'metric-value'}>
 					–
 				</p>
-				<span>Seconds</span>
+				<span>{language.seconds}</span>
 			</S.MetricsSection>
 			<S.MetricsSection>
-				<p>AO-Core Executions</p>
+				<p>{language.aoCoreExecutions}</p>
 				<p className={'metric-value'}>{executions}</p>
-				<span>Executions</span>
+				<span>{language.executions}</span>
 			</S.MetricsSection>
 			<S.MetricsSection>
-				<p>System Load</p>
+				<p>{language.systemLoad}</p>
 				<p className={'metric-value'}>{systemLoad}</p>
-				<span>CPU Average</span>
+				<span>{language.cpuAverage}</span>
 			</S.MetricsSection>
 			<S.MetricsSection>
-				<p>Read Requests Handled</p>
+				<p>{language.readRequestsHandled}</p>
 				<p className={'metric-value'}>{reads}</p>
-				<span>Requests</span>
+				<span>{language.requests}</span>
 			</S.MetricsSection>
 			<S.MetricsSection>
-				<p>Write Requests Handled</p>
+				<p>{language.writeRequestsHandled}</p>
 				<p className={'metric-value'}>{writes}</p>
-				<span>Requests</span>
+				<span>{language.requests}</span>
 			</S.MetricsSection>
 		</S.Wrapper>
 	);

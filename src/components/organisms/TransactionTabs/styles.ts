@@ -36,6 +36,7 @@ export const TabsContent = styled.div`
 	overflow-x: auto;
 	overflow-y: hidden;
 	padding: 0 1px 1.5px 1px;
+	overscroll-behavior-x: none;
 `;
 
 export const TabDivider = styled.div`
@@ -67,7 +68,7 @@ export const DeleteAction = styled.div`
 	}
 `;
 
-export const TabAction = styled.div<{ active: boolean }>`
+export const TabAction = styled.div<{ active: boolean; disabled: boolean }>`
 	font-size: ${(props) => props.theme.typography.size.xSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	font-family: ${(props) => props.theme.typography.family.primary};
@@ -153,30 +154,40 @@ export const TabAction = styled.div<{ active: boolean }>`
 	&:before {
 		display: block;
 		content: '';
+		height: calc(100% + 3px);
+		width: 1px;
 		position: absolute;
 		z-index: 1;
 		left: 0;
 		transform: translate(-50%, 0);
-		top: 0;
+		top: -2px;
 		background: ${(props) => (props.active ? props.theme.colors.border.primary : 'transparent')};
-		height: 100%;
-		width: 1px;
 		pointer-events: none;
 	}
 
 	&:after {
 		display: block;
 		content: '';
+		height: calc(100% + 3px);
+		width: 1px;
 		position: absolute;
 		z-index: 1;
 		right: -1px;
 		transform: translate(-50%, 0);
-		top: 0;
+		top: -2px;
 		background: ${(props) => (props.active ? props.theme.colors.border.primary : 'transparent')};
-		height: 100%;
-		width: 1px;
 		pointer-events: none;
 	}
+`;
+
+export const TabActiveIndicator = styled.div`
+	height: 1px;
+	width: calc(100% + 1px);
+	position: absolute;
+	left: -0.5px;
+	z-index: 2;
+	top: -2px;
+	border-top: 2px solid ${(props) => props.theme.colors.border.alt5};
 `;
 
 export const NewTab = styled(TabAction)`

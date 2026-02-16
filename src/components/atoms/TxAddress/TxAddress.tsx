@@ -1,7 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
-import { ASSETS } from 'helpers/config';
+import { ASSETS, URLS } from 'helpers/config';
 import { formatAddress } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -9,6 +10,8 @@ import * as S from './styles';
 import { IProps } from './types';
 
 export default function TxAddress(props: IProps) {
+	const navigate = useNavigate();
+
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -28,11 +31,28 @@ export default function TxAddress(props: IProps) {
 		[props.address]
 	);
 
+	const openExplorer = React.useCallback(
+		(e: any) => {
+			e.stopPropagation();
+			if (props.address && !copied) {
+				navigate(`${URLS.explorer}${props.address}`);
+			}
+		},
+		[props.address, copied]
+	);
+
 	return (
 		<>
 			<S.Wrapper disabled={copied} onClick={copied ? () => {} : (e) => copyAddress(e)}>
 				<p>{copied ? `${language.copied}!` : formatAddress(props.address, props.wrap)}</p>
-				<ReactSVG src={ASSETS.copy} />
+				<S.IconWrapper>
+					{!copied && (
+						<S.Tooltip className={'info'} position={'bottom'}>
+							<span>{language.openInNewTab}</span>
+						</S.Tooltip>
+					)}
+					<ReactSVG src={ASSETS.newTab} onClick={openExplorer} />
+				</S.IconWrapper>
 			</S.Wrapper>
 		</>
 	);

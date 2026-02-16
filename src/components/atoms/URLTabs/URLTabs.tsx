@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { ASSETS } from 'helpers/config';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -54,6 +54,7 @@ function TabContent(props: ICProps) {
 export default function URLTabs(props: IUProps) {
 	const navigate = useNavigate();
 	const { id, active } = useParams() as { id: string; active: string };
+	const location = useLocation();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -61,10 +62,13 @@ export default function URLTabs(props: IUProps) {
 	const [urlCopied, setUrlCopied] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
-		if (!active) {
+		// Only navigate if this URLTabs' parent is explicitly active AND we have tabs to show
+		// Also check that the current URL matches this component's activeUrl (same transaction ID)
+		const urlMatchesThisComponent = props.activeUrl && location.pathname.includes(props.activeUrl.split('/')[2]);
+		if (!active && props.isParentActive === true && props.tabs && props.tabs.length > 0 && urlMatchesThisComponent) {
 			navigate(props.activeUrl);
 		}
-	}, [active, navigate, props.activeUrl, props.tabs]);
+	}, [active, props.isParentActive, props.activeUrl, location.pathname, props.tabs]);
 
 	const handleRedirect = (url: string) => {
 		if (active !== url) {

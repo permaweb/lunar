@@ -7,6 +7,7 @@ import { JSONReader } from 'components/molecules/JSONReader';
 import { getLegacyResultsEndpoint, legacyCuEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatMs, removeCommitments, stripUrlProtocol } from 'helpers/utils';
+import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
 
@@ -20,6 +21,9 @@ export default function ProcessRead(props: {
 }) {
 	const permawebProvider = usePermawebProvider();
 	const settingsProvider = useSettingsProvider();
+
+	const languageProvider = useLanguageProvider();
+	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
 
 	const [cuLocation, setCuLocation] = React.useState(null);
 	const [startTime, setStartTime] = React.useState(null);
@@ -167,7 +171,7 @@ export default function ProcessRead(props: {
 					</S.HeaderMain>
 					<Button
 						type={'alt3'}
-						label={isFetching ? 'Running...' : 'Run'}
+						label={isFetching ? `${language.running}...` : language.run}
 						disabled={isFetching}
 						handlePress={() => setToggleRead((prev) => !prev)}
 					/>
@@ -175,17 +179,21 @@ export default function ProcessRead(props: {
 				<S.Body>
 					<S.Section>
 						<S.SectionHeader>
-							<p>Current Run</p>
+							<p>{language.currentRun}</p>
 						</S.SectionHeader>
 						<S.SectionBody>
 							<S.Line>
-								<span>{startTime ? `Start Time: ${new Date(startTime).toLocaleTimeString()}` : 'Starting...'}</span>
+								<span>
+									{startTime
+										? `${language.startTime}: ${new Date(startTime).toLocaleTimeString()}`
+										: `${language.starting}...`}
+								</span>
 							</S.Line>
 							<S.Line>
 								<span>
 									{isFetching
-										? `Elapsed: ${formatMs(elapsed)}`
-										: `Roundtrip Time: ${roundtripTime ? formatMs(roundtripTime) : '-'}`}
+										? `${language.elapsed}: ${formatMs(elapsed)}`
+										: `${language.roundtripTime}: ${roundtripTime ? formatMs(roundtripTime) : '-'}`}
 								</span>
 							</S.Line>
 						</S.SectionBody>
@@ -193,12 +201,12 @@ export default function ProcessRead(props: {
 					{readLog.length > 0 && (
 						<S.Section>
 							<S.SectionHeader>
-								<p>Read Log</p>
+								<p>{language.readLog}</p>
 							</S.SectionHeader>
 							<S.SectionBody>
 								{readLog.length === 0 ? (
 									<S.Line>
-										<span>No reads yet</span>
+										<span>{language.noReadsYet}</span>
 									</S.Line>
 								) : (
 									readLog.map((log, index) => (
@@ -217,12 +225,12 @@ export default function ProcessRead(props: {
 					{errorLog.length > 0 && (
 						<S.Section>
 							<S.SectionHeader>
-								<p>Error Log</p>
+								<p>{language.errorLog}</p>
 							</S.SectionHeader>
 							<S.SectionBody>
 								{errorLog.length === 0 ? (
 									<S.Line>
-										<span>No errors</span>
+										<span>{language.noErrors}</span>
 									</S.Line>
 								) : (
 									errorLog.map((err, index) => (
@@ -243,7 +251,7 @@ export default function ProcessRead(props: {
 			</S.SectionWrapper>
 			{!props.hideOutput && currentOutput && (
 				<S.OutputWrapper>
-					<JSONReader data={currentOutput} header={'Info'} maxHeight={600} />
+					<JSONReader data={currentOutput} header={language.info} maxHeight={600} />
 				</S.OutputWrapper>
 			)}
 		</S.Wrapper>

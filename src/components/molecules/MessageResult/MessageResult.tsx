@@ -71,7 +71,7 @@ export default function MessageResult(props: { processId: string; messageId: str
 					setResult(removeCommitments(messageResult));
 				} catch (e: any) {
 					console.error(e);
-					setResult({ Response: e.message ?? 'Error Fetching Result' });
+					setResult({ Response: e.message ?? language.errorFetchingResult });
 				}
 			}
 		})();

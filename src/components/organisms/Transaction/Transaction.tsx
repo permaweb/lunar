@@ -195,7 +195,7 @@ function Transaction(props: {
 					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
 				} catch (e: any) {
 					console.error(e);
-					setWalletBalance('Error Fetching');
+					setWalletBalance(language.errorFetching);
 				} finally {
 					setLoadingBalance(false);
 				}
@@ -328,11 +328,11 @@ function Transaction(props: {
 						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || '-' : '-'}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
-						<span>{`Variant: `}</span>
+						<span>{`${language.variant}: `}</span>
 						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
-						<span>{`Data Protocol: `}</span>
+						<span>{`${language.dataProtocol}: `}</span>
 						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
@@ -383,15 +383,15 @@ function Transaction(props: {
 						<>
 							<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
 							<OverviewLine
-								label={'Authority'}
+								label={language.authority}
 								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Authority')}
 							/>
 							<OverviewLine
-								label={'Module'}
+								label={language.module}
 								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Module')}
 							/>
 							<OverviewLine
-								label={'Scheduler'}
+								label={language.scheduler}
 								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Scheduler')}
 							/>
 						</>
@@ -734,8 +734,8 @@ function Transaction(props: {
 		if (!TABS) return null;
 		const matchingTab = TABS.find((tab) => tab.url === currentHash);
 		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
-		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy />;
-	}, [TABS, currentHash, props.tabKey]); // Keep URLTabs from recreating
+		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy isParentActive={props.active} />;
+	}, [TABS, currentHash, props.tabKey, props.active]); // Keep URLTabs from recreating
 
 	function getTransaction() {
 		const showPlaceholder = !inputTxId || !txResponse;

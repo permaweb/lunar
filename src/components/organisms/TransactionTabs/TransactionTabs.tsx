@@ -85,7 +85,12 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		} else if (txId) {
 			// Update lastRoute for existing tab when route changes
 			const tabIndex = transactions.findIndex((tab) => tab.id === txId);
-			if (tabIndex !== -1 && tabIndex === activeTabIndex) {
+			if (tabIndex !== -1) {
+				if (tabIndex !== activeTabIndex) {
+					// Switch to the existing tab
+					setActiveTabIndex(tabIndex);
+					setVisitedTabs((prev) => new Set(prev).add(tabIndex));
+				}
 				setTransactions((prev) => {
 					const updated = [...prev];
 					updated[tabIndex] = { ...updated[tabIndex], lastRoute: location.pathname };
@@ -100,6 +105,19 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		if (!el) return;
 
 		const onWheel = (e: WheelEvent) => {
+			// Detect trackpad: trackpads provide deltaX values for horizontal gestures
+			if (e.deltaX !== 0) {
+				// Prevent elastic/rubber-band scrolling at boundaries
+				const atLeftBoundary = el.scrollLeft <= 0 && e.deltaX < 0;
+				const atRightBoundary = el.scrollLeft >= el.scrollWidth - el.clientWidth && e.deltaX > 0;
+
+				if (atLeftBoundary || atRightBoundary) {
+					e.preventDefault();
+				}
+				return;
+			}
+
+			// For vertical scroll without horizontal (mouse wheel), convert to horizontal scroll
 			if (e.deltaY !== 0) {
 				e.preventDefault();
 				el.scrollLeft += e.deltaY;
@@ -117,6 +135,36 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 		localStorage.setItem(storageKey, JSON.stringify(transactions));
 	}, [transactions]);
 
+	// On mount, ensure URL matches the active tab and scroll it into view
+	React.useEffect(() => {
+		const { txId } = extractTxDetailsFromPath(location.pathname);
+		const activeTab = transactions[activeTabIndex];
+
+		// If the URL doesn't match the active tab, navigate to the active tab's route
+		if (activeTab && activeTab.id !== txId) {
+			const route = activeTab.lastRoute || `${URLS[props.type]}${activeTab.id}`;
+			navigate(route, { replace: true });
+		}
+
+		// Scroll the active tab into view within the tabs container
+		if (tabsRef.current && activeTabIndex >= 0) {
+			setTimeout(() => {
+				const container = tabsRef.current;
+				const tabElements = container?.querySelectorAll('[data-tab-index]');
+				const activeTabElement = tabElements?.[activeTabIndex] as HTMLElement;
+
+				if (container && activeTabElement) {
+					const containerRect = container.getBoundingClientRect();
+					const tabRect = activeTabElement.getBoundingClientRect();
+					const scrollLeft =
+						tabRect.left - containerRect.left + container.scrollLeft - containerRect.width / 2 + tabRect.width / 2;
+
+					container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+				}
+			}, 100);
+		}
+	}, []); // Run only on mount
+
 	function extractTxDetailsFromPath(pathname: string) {
 		const parts = pathname.replace(/#.*/, '').split('/').filter(Boolean);
 		const txId = parts[1] || '';
@@ -127,9 +175,10 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 
 	function getInitialIndex() {
 		if (transactions.length <= 0) return 0;
-		let currentTxId = location.pathname.replace(`${URLS[props.type]}/`, '');
 
+		// Extract transaction ID from URL
 		const parts = location.pathname.split('/');
+		let currentTxId = '';
 		for (const part of parts) {
 			if (checkValidAddress(part)) {
 				currentTxId = part;
@@ -137,8 +186,17 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 			}
 		}
 
-		for (let i = 0; i < transactions.length; i++) {
-			if (transactions[i].id === currentTxId) return i;
+		// If we have a transaction ID in the URL, find its tab
+		if (currentTxId) {
+			for (let i = 0; i < transactions.length; i++) {
+				if (transactions[i].id === currentTxId) return i;
+			}
+		}
+
+		// If URL is just the base (no transaction ID), find the blank tab or first tab
+		if (location.pathname === URLS[props.type] || location.pathname === `${URLS[props.type]}/`) {
+			const blankTabIndex = transactions.findIndex((t) => t.id === '');
+			if (blankTabIndex !== -1) return blankTabIndex;
 		}
 
 		return 0;
@@ -302,7 +360,12 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 					}
 					return (
 						<React.Fragment key={index}>
-							<S.TabAction active={index === activeTabIndex} onClick={() => handleTabRedirect(index)}>
+							<S.TabAction
+								active={index === activeTabIndex}
+								onClick={() => handleTabRedirect(index)}
+								disabled={isAnyTransactionLoading}
+								data-tab-index={index}
+							>
 								<div className={'icon-wrapper'}>
 									<div className={'normal-icon'}>
 										<ReactSVG src={ASSETS[tx.type] ?? ASSETS.transaction} />
@@ -324,7 +387,7 @@ export default function TransactionTabs(props: { type: 'explorer' | 'aos' }) {
 						</React.Fragment>
 					);
 				})}
-				<S.NewTab active={false} onClick={() => handleAddTab()}>
+				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={isAnyTransactionLoading}>
 					<ReactSVG src={ASSETS.add} />
 					{language.newTab}
 				</S.NewTab>

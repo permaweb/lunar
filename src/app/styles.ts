@@ -89,6 +89,7 @@ export const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.colors.font.primary};
 		overflow-wrap: anywhere;
 		line-height: 1.25;
+		letter-spacing: 0.5px;
   }
 
 	h1 {

@@ -292,9 +292,8 @@ export const ID = styled(ElementItem)`
 `;
 
 export const TxAddress = styled.div`
-	min-width: 150px;
-	width: 150px;
-	margin: 0 0 0 7.5px;
+	min-width: 165px;
+	width: 165px;
 `;
 
 export const Variant = styled.div`
@@ -444,7 +443,6 @@ export const OverlayTagsWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 7.5px;
-	padding: 15px;
 	margin: 2.5px 0 0 0;
 `;
 

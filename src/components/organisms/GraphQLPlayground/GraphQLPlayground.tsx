@@ -270,7 +270,7 @@ export default function GraphQLPlayground(props: {
 					setResult(JSON.stringify(data, null, 2));
 				} catch (e: any) {
 					console.error(e);
-					setResult(JSON.stringify({ error: e.message || 'Failed to execute query' }, null, 2));
+					setResult(JSON.stringify({ error: e.message || language.failedToExecuteQuery }, null, 2));
 				}
 				setLoading(false);
 			}

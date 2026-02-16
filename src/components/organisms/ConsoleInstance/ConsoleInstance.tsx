@@ -248,10 +248,12 @@ function ConsoleInstance(props: {
 
 				window.addEventListener('resize', handleResize);
 
-				terminalInstance.current.write(`\x1b[32mWelcome to AOS\x1b[0m\r\n\r\n`);
-				terminalInstance.current.write(`\x1b[90mProcess ID:\x1b[0m \x1b[32m${inputProcessId}\x1b[0m\r\n\r\n`);
-				terminalInstance.current.write(`\x1b[90mToggle the editor with: (Ctrl + E) or '.editor'\x1b[0m\r\n`);
-				terminalInstance.current.write(`\r\n\x1b[32mPress Enter\x1b[0m\r\n`);
+				terminalInstance.current.write(`\x1b[32m${language.welcomeToAOS}\x1b[0m\r\n\r\n`);
+				terminalInstance.current.write(
+					`\x1b[90m${language.processId}:\x1b[0m \x1b[32m${inputProcessId}\x1b[0m\r\n\r\n`
+				);
+				terminalInstance.current.write(`\x1b[90m${language.toggleEditor}\x1b[0m\r\n`);
+				terminalInstance.current.write(`\r\n\x1b[32m${language.pressEnter}\x1b[0m\r\n`);
 
 				hideCursor();
 				terminalInstance.current.focus();
@@ -605,7 +607,7 @@ function ConsoleInstance(props: {
 					setEditorMode((prev) => !prev);
 					return;
 				default:
-					terminalInstance.current.write(`\r\n\x1b[91mCommand Not Supported\x1b[0m\r\n`);
+					terminalInstance.current.write(`\r\n\x1b[91m${language.commandNotSupported}\x1b[0m\r\n`);
 					terminalInstance.current.write('\r');
 					terminalInstance.current.write(promptRef.current);
 					return;
