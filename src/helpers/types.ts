@@ -87,6 +87,13 @@ export type NotificationType = {
 
 export type TransactionType = 'process' | 'message' | 'wallet';
 
+export interface BaseTabType {
+	id: string;
+	label: string;
+	tabKey: string;
+	untitledId?: string;
+}
+
 export type TransactionTabType = {
 	id: string;
 	label: string;

@@ -13,7 +13,6 @@ export const Tooltip = styled.div<{ position: string }>`
           bottom: 100%;
           left: 50%;
           transform: translateX(-50%);
-          margin-bottom: 5px;
         `;
 			case 'bottom':
 				return `
@@ -26,14 +25,32 @@ export const Tooltip = styled.div<{ position: string }>`
           right: 100%;
           top: 50%;
           transform: translateY(-50%);
-          margin-right: 5px;
         `;
 			case 'right':
 				return `
           left: 100%;
           top: 50%;
           transform: translateY(-50%);
-          margin-left: 5px;
+        `;
+			case 'top-left':
+				return `
+          bottom: 100%;
+          left: 0;
+        `;
+			case 'top-right':
+				return `
+          bottom: 100%;
+          right: 0;
+        `;
+			case 'bottom-left':
+				return `
+          top: 100%;
+          left: 0;
+        `;
+			case 'bottom-right':
+				return `
+          top: 100%;
+          right: 0;
         `;
 			default:
 				return `
@@ -45,10 +62,10 @@ export const Tooltip = styled.div<{ position: string }>`
 	}}
 
 	span {
-		max-width: 100%;
-		display: block;
-		line-height: 1.65;
-		overflow: visible;
+		max-width: 100% !important;
+		display: block !important;
+		line-height: 1.65 !important;
+		overflow: visible !important;
 	}
 `;
 

@@ -1,5 +1,5 @@
-import { TransactionTabs } from 'components/organisms/TransactionTabs';
+import { ExplorerTabs } from 'components/organisms/ExplorerTabs';
 
 export default function Console() {
-	return <TransactionTabs type={'aos'} />;
+	return <ExplorerTabs type={'aos'} />;
 }

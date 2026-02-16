@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { debounce } from 'lodash';
+import { useTheme } from 'styled-components';
 
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
@@ -17,6 +18,7 @@ import * as S from './styles';
 
 export default function Navigation(props: { open: boolean; toggle: () => void }) {
 	const location = useLocation();
+	const theme = useTheme();
 
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
@@ -30,6 +32,27 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
 	const [txResponse, setTxResponse] = React.useState<any | null>(null);
 	const [panelOpen, setPanelOpen] = React.useState<boolean>(false);
+
+	React.useEffect(() => {
+		const header = document.getElementById('navigation-header');
+		if (!header) return;
+
+		const handleScroll = () => {
+			if (window.scrollY > 0) {
+				header.style.borderBottom = `1px solid ${theme.colors.border.primary}`;
+			} else {
+				header.style.borderBottom = '1px solid transparent';
+			}
+		};
+
+		window.addEventListener('scroll', handleScroll);
+		handleScroll();
+
+		return () => {
+			window.removeEventListener('scroll', handleScroll);
+			header.style.borderBottom = 'none';
+		};
+	}, [theme.colors.border.primary]);
 
 	const paths = React.useMemo(() => {
 		return [

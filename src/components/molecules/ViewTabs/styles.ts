@@ -68,7 +68,7 @@ export const DeleteAction = styled.div`
 	}
 `;
 
-export const TabAction = styled.div<{ active: boolean; disabled: boolean }>`
+export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	font-size: ${(props) => props.theme.typography.size.xSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	font-family: ${(props) => props.theme.typography.family.primary};
@@ -88,6 +88,11 @@ export const TabAction = styled.div<{ active: boolean; disabled: boolean }>`
 
 	white-space: nowrap;
 	transition: all 100ms;
+
+	&[draggable='true']:active {
+		background: ${(props) => props.theme.colors.container.alt2.background};
+		border-top: 2px solid ${(props) => props.theme.colors.border.primary};
+	}
 
 	.icon-wrapper {
 		position: relative;
@@ -190,6 +195,17 @@ export const TabActiveIndicator = styled.div`
 	border-top: 2px solid ${(props) => props.theme.colors.border.alt5};
 `;
 
+export const DropIndicator = styled.div<{ side: 'left' | 'right' }>`
+	position: absolute;
+	top: -2px;
+	${(props) => (props.side === 'left' ? 'left: -2px' : 'right: -2px')};
+	height: calc(100% + 3px);
+	width: 2.5px;
+	background: ${(props) => props.theme.colors.border.alt4};
+	z-index: 3;
+	pointer-events: none;
+`;
+
 export const NewTab = styled(TabAction)`
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 
@@ -221,7 +237,7 @@ export const PlaceholderFull = styled(Placeholder)`
 	}
 `;
 
-export const TransactionWrapper = styled.div<{ active: boolean }>`
+export const ContentWrapper = styled.div<{ active: boolean }>`
 	display: block;
 	visibility: ${(props) => (props.active ? 'visible' : 'hidden')};
 	height: ${(props) => (props.active ? 'auto' : '0')};
