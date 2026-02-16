@@ -129,13 +129,13 @@ export default function MetricChart(props: {
 	const createDottedPattern = React.useCallback(() => {
 		const canvas = document.createElement('canvas');
 		const ctx = canvas.getContext('2d');
-		if (!ctx) return theme.colors.container.alt1.background;
+		if (!ctx) return theme.colors.container.alt2.background;
 
 		canvas.width = 3;
 		canvas.height = 3;
 
 		// Background color
-		ctx.fillStyle = theme.colors.container.alt1.background;
+		ctx.fillStyle = theme.colors.container.alt2.background;
 		ctx.fillRect(0, 0, 3, 3);
 
 		// Dot color
