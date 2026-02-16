@@ -86,60 +86,60 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 
 	const THEMES = {
 		light: {
-			label: 'Light themes',
+			label: language.lightThemes,
 			icon: ASSETS.light,
 			variants: [
 				{
 					id: 'light-primary',
-					name: 'Light Default',
+					name: language.lightDefault,
 					background: lightTheme.neutral1,
 					accent1: lightTheme.primary1,
 				},
 				{
 					id: 'light-high-contrast',
-					name: 'Light High Contrast',
+					name: language.lightHighContrast,
 					background: lightThemeHighContrast.neutral1,
 					accent1: lightThemeHighContrast.neutral9,
 				},
 				{
 					id: 'light-alt-1',
-					name: 'Sunlit',
+					name: language.sunlit,
 					background: lightThemeAlt1.neutral1,
 					accent1: lightThemeAlt1.primary1,
 				},
 				{
 					id: 'light-alt-2',
-					name: 'Daybreak',
+					name: language.daybreak,
 					background: lightThemeAlt2.neutral1,
 					accent1: lightThemeAlt2.primary1,
 				},
 			],
 		},
 		dark: {
-			label: 'Dark themes',
+			label: language.darkThemes,
 			icon: ASSETS.dark,
 			variants: [
 				{
 					id: 'dark-primary',
-					name: 'Dark Default',
+					name: language.darkDefault,
 					background: darkTheme.neutral1,
 					accent1: darkTheme.primary1,
 				},
 				{
 					id: 'dark-high-contrast',
-					name: 'Dark High Contrast',
+					name: language.darkHighContrast,
 					background: darkThemeHighContrast.neutral1,
 					accent1: darkThemeHighContrast.neutralA1,
 				},
 				{
 					id: 'dark-alt-1',
-					name: 'Eclipse',
+					name: language.eclipse,
 					background: darkThemeAlt1.neutral1,
 					accent1: darkThemeAlt1.primary1,
 				},
 				{
 					id: 'dark-alt-2',
-					name: 'Midnight',
+					name: language.midnight,
 					background: darkThemeAlt2.neutral1,
 					accent1: darkThemeAlt2.primary1,
 				},

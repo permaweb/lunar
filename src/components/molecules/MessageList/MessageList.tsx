@@ -1,6 +1,5 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
@@ -9,12 +8,11 @@ import { Types } from '@permaweb/libs';
 import { Button } from 'components/atoms/Button';
 import { Calendar } from 'components/atoms/Calendar';
 import { FormField } from 'components/atoms/FormField';
-import { IconButton } from 'components/atoms/IconButton';
 import { Loader } from 'components/atoms/Loader';
 import { Panel } from 'components/atoms/Panel';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, MINT_ACTIONS, STORAGE, TAGS, URLS } from 'helpers/config';
+import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, MINT_ACTIONS, STORAGE, TAGS } from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { MessageFilterType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
@@ -45,7 +43,6 @@ function Message(props: {
 	lastChild?: boolean;
 	isOverallLast?: boolean;
 }) {
-	const navigate = useNavigate();
 	const currentTheme: any = useTheme();
 
 	const permawebProvider = usePermawebProvider();
@@ -150,7 +147,7 @@ function Message(props: {
 	}
 
 	function getActionLabel() {
-		return getTagValue(props.element.node.tags, 'Action') ?? language.none;
+		return getTagValue(props.element.node.tags, 'Action') || language.none;
 	}
 
 	function getFrom() {
@@ -267,7 +264,7 @@ function Message(props: {
 		}
 
 		return (
-			<Panel open={open} width={625} header={header} handleClose={handleClose}>
+			<Panel open={open} width={800} header={header} handleClose={handleClose}>
 				<S.OverlayWrapper>
 					<S.OverlayInfo>
 						<S.OverlayInfoLine>
@@ -278,7 +275,7 @@ function Message(props: {
 						</S.OverlayInfoLine>
 						<S.OverlayInfoLine>{getAction(false)}</S.OverlayInfoLine>
 						{showViewData && (
-							<S.OverlayTagsWrapper className={'border-wrapper-alt3'}>
+							<S.OverlayTagsWrapper>
 								<S.OverlayTagsHeader>
 									<p>{language.tags}</p>
 								</S.OverlayTagsHeader>
@@ -307,21 +304,6 @@ function Message(props: {
 				lastChild={props.lastChild}
 			>
 				<S.ID>
-					<IconButton
-						type={'alt1'}
-						src={ASSETS.newTab}
-						handlePress={() =>
-							props.handleOpen
-								? props.handleOpen(props.element.node.id)
-								: navigate(`${URLS.explorer}${props.element.node.id}`)
-						}
-						dimensions={{
-							wrapper: 20,
-							icon: 11.5,
-						}}
-						tooltip={language.openInNewTab}
-						tooltipPosition={'right'}
-					/>
 					<S.TxAddress>
 						<TxAddress address={props.element.node.id} />
 					</S.TxAddress>
@@ -1215,14 +1197,14 @@ export default function MessageList(props: {
 						)}
 						<S.FilterDivider />
 						<S.FilterDropdownHeader>
-							<p>Date Filter</p>
+							<p>{language.dateFilter}</p>
 						</S.FilterDropdownHeader>
 						<S.DateRangeWrapper>
 							<S.DateRangeSection>
 								<S.DateRangeHeader>
 									<Button
 										type={'primary'}
-										label={startDate ? `Start Date: ${formatDateLabel(startDate)}` : 'Start Date'}
+										label={startDate ? `${language.startDate}: ${formatDateLabel(startDate)}` : language.startDate}
 										handlePress={() => setShowStartCalendar((prev) => !prev)}
 										active={showStartCalendar}
 										height={40}
@@ -1235,7 +1217,7 @@ export default function MessageList(props: {
 												setShowStartCalendar(false);
 											}}
 										>
-											Clear
+											{language.clear}
 										</S.ClearDateButton>
 									)}
 								</S.DateRangeHeader>
@@ -1253,7 +1235,7 @@ export default function MessageList(props: {
 								<S.DateRangeHeader>
 									<Button
 										type={'primary'}
-										label={endDate ? `End Date: ${formatDateLabel(endDate)}` : 'End Date'}
+										label={endDate ? `${language.endDate}: ${formatDateLabel(endDate)}` : language.endDate}
 										handlePress={() => setShowEndCalendar((prev) => !prev)}
 										active={showEndCalendar}
 										height={40}
@@ -1266,7 +1248,7 @@ export default function MessageList(props: {
 												setShowEndCalendar(false);
 											}}
 										>
-											Clear
+											{language.clear}
 										</S.ClearDateButton>
 									)}
 								</S.DateRangeHeader>

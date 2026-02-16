@@ -25,4 +25,5 @@ export interface IUProps {
 	useFixed?: boolean;
 	noUrlCopy?: boolean;
 	endComponent?: React.ReactNode;
+	isParentActive?: boolean;
 }

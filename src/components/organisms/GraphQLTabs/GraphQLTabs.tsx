@@ -217,6 +217,7 @@ export default function GraphQLTabs() {
 					return (
 						<React.Fragment key={tab.tabKey}>
 							<S.TabAction active={index === activeTabIndex} onClick={() => handleTabRedirect(index)}>
+								{index === activeTabIndex && <S.TabActiveIndicator />}
 								<div className={'icon-wrapper'}>
 									<div className={'normal-icon'}>
 										<ReactSVG src={ASSETS.code} />

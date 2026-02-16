@@ -244,12 +244,14 @@ export default function _JSONTree(props: {
 							<S.JSONStringIDFlex>
 								<S.JSONStringID
 									onClick={() => handleCopy(value)}
-									title={copiedValue === value ? 'Copied!' : 'Click to copy'}
+									title={copiedValue === value ? `${language.copied}!` : language.clickToCopy}
 									copied={copiedValue === value}
 								>
 									"{value}"
 								</S.JSONStringID>
-								<S.JSONStringIDOpen onClick={() => navigate(`${URLS.explorer}/${value}`)}>(Open)</S.JSONStringIDOpen>
+								<S.JSONStringIDOpen onClick={() => navigate(`${URLS.explorer}/${value}`)}>
+									({language.open})
+								</S.JSONStringIDOpen>
 							</S.JSONStringIDFlex>
 							{!isLast && <S.JSONComma>,</S.JSONComma>}
 						</>

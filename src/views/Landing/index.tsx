@@ -47,7 +47,7 @@ export default function Landing() {
 						header={language.network}
 						actions={[
 							<S.Subheader>
-								<span>AO Mainnet</span>
+								<span>{language.aoMainnet}</span>
 							</S.Subheader>,
 						]}
 					/>
@@ -65,7 +65,7 @@ export default function Landing() {
 				<ViewWrapper>
 					<S.DividerWrapper>
 						<div className={'landing-divider'} />
-						<span>{'Available Nodes'}</span>
+						<span>{language.availableNodes}</span>
 						<div className={'landing-divider'} />
 					</S.DividerWrapper>
 				</ViewWrapper>

@@ -498,10 +498,10 @@ function AOS(props: {
 			const command = data.substring(1);
 			switch (command) {
 				case 'editor':
-					addResultLine('Editor mode not available in this view', 'error');
+					addResultLine(language.editorModeNotAvailable, 'error');
 					return;
 				default:
-					addResultLine('Command Not Supported', 'error');
+					addResultLine(language.commandNotSupported, 'error');
 					return;
 			}
 		}
@@ -762,38 +762,40 @@ function AOS(props: {
 							<S.SplashScreen className={'fade-in border-wrapper-alt3'}>
 								<S.SplashScreenHeader>{`AOS`}</S.SplashScreenHeader>
 								<S.SplashScreenLine>
-									<p>Welcome to AOS: Your operating system for AO, the decentralized open access supercomputer.</p>
+									<p>{language.welcomeToAOS}</p>
 								</S.SplashScreenLine>
 								<S.SplashScreenLine>
 									<p>
-										{`Wallet Address: `}
+										{`${language.walletAddress}: `}
 										<span>{arProvider.walletAddress}</span>
 									</p>
 								</S.SplashScreenLine>
 								<S.SplashScreenDivider />
 								<S.SplashScreenLine>
 									<p>
-										{`Network: `}
+										{`${language.network}: `}
 										<span>
-											{getTagValue(txResponse?.node?.tags ?? [], 'Variant') === 'ao.N.1' ? 'Mainnet' : 'Legacynet'}
+											{getTagValue(txResponse?.node?.tags ?? [], 'Variant') === 'ao.N.1'
+												? language.mainnet
+												: language.legacynet}
 										</span>
 									</p>
 								</S.SplashScreenLine>
 								<S.SplashScreenLine>
 									<p>
-										{`Process ID: `}
+										{`${language.processId}: `}
 										<span>{txResponse?.node?.id ?? '-'}</span>
 									</p>
 								</S.SplashScreenLine>
 								<S.SplashScreenLine>
 									<p>
-										{`Node: `}
+										{`${language.node}: `}
 										<span>{settingsProvider.settings.nodes.find((node) => node.active)?.url ?? '-'}</span>
 									</p>
 								</S.SplashScreenLine>
 								<S.SplashScreenLine>
 									<p>
-										{`Scheduler: `}
+										{`${language.scheduler}: `}
 										<span>{getTagValue(txResponse?.node?.tags ?? [], 'Scheduler') ?? '-'}</span>
 									</p>
 								</S.SplashScreenLine>
@@ -844,7 +846,9 @@ function AOS(props: {
 								value={inputValue}
 								onChange={(value) => setInputValue(value)}
 								onKeyDown={handleInputKeyDown}
-								placeholder={loadingMessage ? 'Loading...' : !hasConnected ? 'Press Enter' : 'AOS Command'}
+								placeholder={
+									loadingMessage ? `${language.loading}...` : !hasConnected ? language.pressEnter : language.aosCommand
+								}
 								disabled={!hasAccess || loadingMessage}
 							/>
 							<S.InputActionsWrapper>
