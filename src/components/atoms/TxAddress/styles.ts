@@ -31,6 +31,7 @@ export const Tooltip = styled.div<{ position: string }>`
           left: 100%;
           top: 50%;
           transform: translateY(-50%);
+		  margin-left: 2.5px;
         `;
 			case 'top-left':
 				return `

@@ -103,7 +103,7 @@ export const MessageInfoHeader = styled.div`
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
-	padding: 15px;
+	padding: 12.5px 15px;
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};

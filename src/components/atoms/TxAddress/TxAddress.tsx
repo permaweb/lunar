@@ -35,6 +35,7 @@ export default function TxAddress(props: IProps) {
 		(e: any) => {
 			e.stopPropagation();
 			if (props.address && !copied) {
+				if (props.handlePress) props.handlePress();
 				navigate(`${URLS.explorer}${props.address}`);
 			}
 		},

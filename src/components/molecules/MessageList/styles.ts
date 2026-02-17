@@ -447,7 +447,9 @@ export const OverlayTagsWrapper = styled.div`
 `;
 
 export const OverlayTagsHeader = styled.div`
-	margin: 0 0 2.5px 0;
+	margin: 0 0 1.5px 0;
+	padding: 0 0 10.5px 0;
+	border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
 	p {
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-family: ${(props) => props.theme.typography.family.primary};

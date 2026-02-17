@@ -4,4 +4,5 @@ export interface IProps {
 	view?: boolean;
 	viewIcon?: string;
 	tooltipPosition?: string;
+	handlePress?: () => void;
 }
