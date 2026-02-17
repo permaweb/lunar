@@ -233,7 +233,16 @@ function Message(props: {
 	const OverlayLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
 		const defaultRender = (v: any) => {
 			if (typeof v === 'string' && checkValidAddress(v)) {
-				return <TxAddress address={v} tooltipPosition={'right'} />;
+				return (
+					<TxAddress
+						address={v}
+						tooltipPosition={'top-right'}
+						handlePress={() => {
+							setShowViewData(false);
+							setShowViewResult(false);
+						}}
+					/>
+				);
 			}
 			return <p>{v}</p>;
 		};
@@ -270,14 +279,21 @@ function Message(props: {
 		}
 
 		return (
-			<Panel open={open} width={800} header={header} handleClose={handleClose}>
+			<Panel open={open} width={750} header={header} handleClose={handleClose}>
 				<S.OverlayWrapper>
 					<S.OverlayInfo>
 						<S.OverlayInfoLine>
 							<S.OverlayInfoLineValue>
 								<p>{`${language.message}: `}</p>
 							</S.OverlayInfoLineValue>
-							<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
+							<TxAddress
+								address={props.element.node.id}
+								tooltipPosition={'bottom-right'}
+								handlePress={() => {
+									setShowViewData(false);
+									setShowViewResult(false);
+								}}
+							/>
 						</S.OverlayInfoLine>
 						<S.OverlayInfoLine>{getAction(false)}</S.OverlayInfoLine>
 						{showViewData && (
