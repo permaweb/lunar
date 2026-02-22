@@ -161,12 +161,14 @@ function Transaction(props: {
 			denomination,
 			walletId,
 			shouldFetch,
+			useNaOnError = false,
 		}: {
 			processId: string;
 			tokenName: string;
 			denomination: number;
 			walletId: string;
 			shouldFetch: boolean;
+			useNaOnError?: boolean;
 		}) => {
 			const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
 			const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
@@ -188,18 +190,18 @@ function Transaction(props: {
 					});
 
 					if (!isNumeric(response)) {
-						setWalletBalance('Error');
+						setWalletBalance(useNaOnError ? 'N/A' : 'Error');
 						return;
 					}
 
 					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
 				} catch (e: any) {
 					console.error(e);
-					setWalletBalance(language.errorFetching);
+					setWalletBalance(useNaOnError ? 'N/A' : language.errorFetching);
 				} finally {
 					setLoadingBalance(false);
 				}
-			}, [walletId, processId, denomination]);
+			}, [walletId, processId, denomination, useNaOnError]);
 
 			React.useEffect(() => {
 				// Reset when wallet changes
@@ -270,7 +272,8 @@ function Transaction(props: {
 				prevProps.tokenName === nextProps.tokenName &&
 				prevProps.denomination === nextProps.denomination &&
 				prevProps.walletId === nextProps.walletId &&
-				prevProps.shouldFetch === nextProps.shouldFetch
+				prevProps.shouldFetch === nextProps.shouldFetch &&
+				prevProps.useNaOnError === nextProps.useNaOnError
 			);
 		}
 	);
@@ -707,9 +710,10 @@ function Transaction(props: {
 		[txResponse, inputTxId, props.type, refreshKey]
 	);
 
-	const walletBalanceSections = React.useMemo(() => {
-		if (props.type !== 'wallet') return null;
-		const shouldFetch = props.type === 'wallet' && !!txResponse;
+	const balanceSections = React.useMemo(() => {
+		if (props.type !== 'wallet' && props.type !== 'process') return null;
+		const shouldFetch = !!txResponse;
+		const useNaOnError = props.type === 'process';
 		return (
 			<>
 				<WalletBalanceSection
@@ -718,6 +722,7 @@ function Transaction(props: {
 					denomination={TOKEN_DENOMINATIONS.ao}
 					walletId={inputTxId}
 					shouldFetch={shouldFetch}
+					useNaOnError={useNaOnError}
 				/>
 				<WalletBalanceSection
 					processId={PROCESSES.pi}
@@ -725,6 +730,7 @@ function Transaction(props: {
 					denomination={TOKEN_DENOMINATIONS.pi}
 					walletId={inputTxId}
 					shouldFetch={shouldFetch}
+					useNaOnError={useNaOnError}
 				/>
 			</>
 		);
@@ -849,7 +855,7 @@ function Transaction(props: {
 								<S.UpdateWrapper>
 									<span>{props.type}</span>
 								</S.UpdateWrapper>
-								{walletBalanceSections}
+								{balanceSections}
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 									<>
 										<S.UpdateWrapper>
