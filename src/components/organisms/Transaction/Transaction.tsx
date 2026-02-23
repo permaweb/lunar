@@ -855,7 +855,6 @@ function Transaction(props: {
 								<S.UpdateWrapper>
 									<span>{props.type}</span>
 								</S.UpdateWrapper>
-								{balanceSections}
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 									<>
 										<S.UpdateWrapper>
@@ -870,6 +869,7 @@ function Transaction(props: {
 										</S.UpdateWrapper>
 									</>
 								)}
+								{balanceSections}
 							</S.TxInfoWrapper>
 						)}
 						{txResponse?.node?.tags &&
