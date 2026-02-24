@@ -263,7 +263,12 @@ function Transaction(props: {
 							</S.Logo>
 						</>
 					)}
-					{!icon && <span>{tokenName}</span>}
+					{!icon && balanceSource === 'arweave' && (
+						<S.BrandMark>
+							<span className={'glyph'}>{'\u24D0'}</span>
+						</S.BrandMark>
+					)}
+					{!icon && balanceSource !== 'arweave' && <span>{tokenName}</span>}
 					<S.Refresh>
 						<IconButton
 							type={'primary'}

@@ -368,6 +368,19 @@ export const Logo = styled.div<{ dimensions: number; margin?: string }>`
 	}
 `;
 
+export const BrandMark = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	.glyph {
+		font-size: 15px;
+		line-height: 1;
+		color: ${(props) => props.theme.colors.font.light1};
+		text-transform: none;
+	}
+`;
+
 export const Refresh = styled.div`
 	margin: 0 -4.5px 0 4.5px;
 
