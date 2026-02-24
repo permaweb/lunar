@@ -16,7 +16,7 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { ASSETS, DEFAULT_AO_TAGS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
-import { getTxEndpoint } from 'helpers/endpoints';
+import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue, isNumeric } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
@@ -157,13 +157,16 @@ function Transaction(props: {
 
 	const WalletBalanceSection = React.memo(
 		({
+			balanceSource = 'process',
 			processId,
+			tokenName,
 			denomination,
 			walletId,
 			shouldFetch,
 			useNaOnError = false,
 		}: {
-			processId: string;
+			balanceSource?: 'process' | 'arweave';
+			processId?: string;
 			tokenName: string;
 			denomination: number;
 			walletId: string;
@@ -183,11 +186,25 @@ function Transaction(props: {
 				setWalletBalance(null);
 
 				try {
-					const response = await permawebProvider.libs.readProcess({
-						processId: processId,
-						action: 'Balance',
-						tags: [{ name: 'Recipient', value: walletId }],
-					});
+					let response: any = null;
+
+					if (balanceSource === 'arweave') {
+						const arResponse = await fetch(getARBalanceEndpoint(walletId));
+						if (!arResponse.ok) {
+							throw new Error(`AR balance request failed with status ${arResponse.status}`);
+						}
+						response = await arResponse.text();
+					} else {
+						if (!processId) {
+							setWalletBalance(useNaOnError ? 'N/A' : 'Error');
+							return;
+						}
+						response = await permawebProvider.libs.readProcess({
+							processId: processId,
+							action: 'Balance',
+							tags: [{ name: 'Recipient', value: walletId }],
+						});
+					}
 
 					if (!isNumeric(response)) {
 						setWalletBalance(useNaOnError ? 'N/A' : 'Error');
@@ -201,7 +218,7 @@ function Transaction(props: {
 				} finally {
 					setLoadingBalance(false);
 				}
-			}, [walletId, processId, denomination, useNaOnError]);
+			}, [walletId, balanceSource, processId, denomination, useNaOnError, language.errorFetching]);
 
 			React.useEffect(() => {
 				// Reset when wallet changes
@@ -246,6 +263,12 @@ function Transaction(props: {
 							</S.Logo>
 						</>
 					)}
+					{!icon && balanceSource === 'arweave' && (
+						<S.BrandMark>
+							<span className={'glyph'}>{'\u24D0'}</span>
+						</S.BrandMark>
+					)}
+					{!icon && balanceSource !== 'arweave' && <span>{tokenName}</span>}
 					<S.Refresh>
 						<IconButton
 							type={'primary'}
@@ -268,6 +291,7 @@ function Transaction(props: {
 		(prevProps, nextProps) => {
 			// Only re-render if these props actually change
 			return (
+				prevProps.balanceSource === nextProps.balanceSource &&
 				prevProps.processId === nextProps.processId &&
 				prevProps.tokenName === nextProps.tokenName &&
 				prevProps.denomination === nextProps.denomination &&
@@ -717,6 +741,7 @@ function Transaction(props: {
 		return (
 			<>
 				<WalletBalanceSection
+					balanceSource={'process'}
 					processId={PROCESSES.ao}
 					tokenName={'AO'}
 					denomination={TOKEN_DENOMINATIONS.ao}
@@ -725,6 +750,7 @@ function Transaction(props: {
 					useNaOnError={useNaOnError}
 				/>
 				<WalletBalanceSection
+					balanceSource={'process'}
 					processId={PROCESSES.pi}
 					tokenName={'PI'}
 					denomination={TOKEN_DENOMINATIONS.pi}
@@ -732,6 +758,15 @@ function Transaction(props: {
 					shouldFetch={shouldFetch}
 					useNaOnError={useNaOnError}
 				/>
+				{props.type === 'wallet' && (
+					<WalletBalanceSection
+						balanceSource={'arweave'}
+						tokenName={'AR'}
+						denomination={12}
+						walletId={inputTxId}
+						shouldFetch={shouldFetch}
+					/>
+				)}
 			</>
 		);
 	}, [txResponse, inputTxId, props.type]);
