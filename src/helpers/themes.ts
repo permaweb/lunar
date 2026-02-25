@@ -447,7 +447,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		},
 		form: {
 			background: currentTheme.neutral1,
-			border: currentTheme.neutral4,
+			border: currentTheme.neutral6,
 			invalid: {
 				outline: currentTheme.negative1,
 				shadow: currentTheme.negative2,

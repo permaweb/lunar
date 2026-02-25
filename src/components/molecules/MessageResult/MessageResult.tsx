@@ -4,7 +4,8 @@ import JSONbig from 'json-bigint';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { getTxEndpoint } from 'helpers/endpoints';
-import { checkValidAddress, removeCommitments, resolveLibDeps, resolveMessageId } from 'helpers/utils';
+import { MessageVariantEnum } from 'helpers/types';
+import { checkValidAddress, getTagValue, removeCommitments, resolveLibDeps, resolveMessageId } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
@@ -51,14 +52,31 @@ export default function MessageResult(props: { processId: string; messageId: str
 						}
 					}
 
+					let variant = props.variant;
+					/* Find the variant of the recipient process to handle messages between networks */
+					try {
+						const processLookup = await permawebProvider.libs.getGQLData({
+							ids: [props.processId],
+						});
+
+						if (processLookup.data?.length > 0) {
+							const node = processLookup.data[0].node;
+							const processVariant = getTagValue(node.tags, 'Variant') as MessageVariantEnum;
+
+							if (processVariant) variant = processVariant;
+						}
+					} catch (e: any) {
+						console.error(e);
+					}
+
 					const deps = resolveLibDeps({
-						variant: props.variant,
+						variant: variant,
 						permawebProvider: permawebProvider,
 					});
 
 					const messageId = await resolveMessageId({
 						messageId: props.messageId,
-						variant: props.variant,
+						variant: variant,
 						target: props.processId,
 						permawebProvider: permawebProvider,
 					});

@@ -62,9 +62,24 @@ function Message(props: {
 		(async function () {
 			if (!result && showViewResult) {
 				let processId: string = props.element.node.recipient;
+				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
 
 				if (processId) {
-					const variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
+					/* Find the variant of the recipient process to handle messages between networks */
+					try {
+						const processLookup = await permawebProvider.libs.getGQLData({
+							ids: [processId],
+						});
+
+						if (processLookup.data?.length > 0) {
+							const node = processLookup.data[0].node;
+							const processVariant = getTagValue(node.tags, 'Variant') as MessageVariantEnum;
+
+							if (processVariant) variant = processVariant;
+						}
+					} catch (e: any) {
+						console.error(e);
+					}
 
 					const deps = resolveLibDeps({
 						variant: variant,
@@ -160,7 +175,7 @@ function Message(props: {
 		return (
 			<S.To>
 				{props.element.node.recipient ? (
-					<TxAddress address={props.element.node.recipient} tooltipPosition={'right'} />
+					<TxAddress address={props.element.node.recipient} tooltipPosition={'left'} />
 				) : (
 					<p>-</p>
 				)}
