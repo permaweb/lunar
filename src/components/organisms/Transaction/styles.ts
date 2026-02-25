@@ -308,10 +308,11 @@ export const UpdateWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 5px;
+	gap: 6.5px;
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
 	border-radius: ${STYLING.dimensions.radius.alt2};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -365,19 +366,6 @@ export const Logo = styled.div<{ dimensions: number; margin?: string }>`
 			color: ${(props) => props.theme.colors.font.light1};
 			fill: ${(props) => props.theme.colors.font.light1};
 		}
-	}
-`;
-
-export const BrandMark = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-
-	.glyph {
-		font-size: 15px;
-		line-height: 1;
-		color: ${(props) => props.theme.colors.font.light1};
-		text-transform: none;
 	}
 `;
 

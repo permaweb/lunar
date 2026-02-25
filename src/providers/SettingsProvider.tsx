@@ -8,6 +8,7 @@ import { IconButton } from 'components/atoms/IconButton';
 import { Notification } from 'components/atoms/Notification';
 import { Panel } from 'components/atoms/Panel';
 import { AO_NODE, ASSETS, STYLING } from 'helpers/config';
+import { language } from 'helpers/language';
 import {
 	darkTheme,
 	darkThemeAlt1,
@@ -19,7 +20,6 @@ import {
 	lightThemeHighContrast,
 	theme,
 } from 'helpers/themes';
-import { language } from 'helpers/language';
 import { NotificationType } from 'helpers/types';
 import { validateUrl } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
@@ -388,7 +388,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 					<S.MWrapper className={'modal-wrapper'}>
 						<S.NodeSection>
 							<S.NodeSectionHeader>
-								<p>{language.en.nodeConfiguration}</p>
+								<p>{`AO Mainnet ${language.en.nodeConfiguration}`}</p>
 							</S.NodeSectionHeader>
 							<S.NodeList>
 								{settings.nodes.map((node) => (

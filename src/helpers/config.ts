@@ -32,6 +32,7 @@ export const ASSETS = {
 	arrowRight: getTxEndpoint('_AjPYp5qwvMvNbjtu5AnLulKAsMZr28JujcW8hkNvJw'),
 	arrows: getTxEndpoint('9WYuWYKP1eE6kcmrW6IPCCnwqFvKX4DtWD0hVn2RRPo'),
 	article: getTxEndpoint('upm3OCUmKcVpgCP6QCsMDspuUovC4WamRXql4iaFo9A'),
+	arweave: getTxEndpoint('LeeiCXkCDZKdh9uEfau2a13LziNGnT82anXFDW51Hgw'),
 	checkmark: getTxEndpoint('mVnNwxm-F6CV043zVtORE-EaMWfd2j8w6HHX70IcVbI'),
 	close: getTxEndpoint('BASlMnOWcLCcLUSrO2wUybQL_06231dLONeVkdTWs3o'),
 	code: getTxEndpoint('Nv6GexQXf2PpTv8zYoLzysv0DzOiUK_aguqjnNraqDg'),

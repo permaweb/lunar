@@ -132,4 +132,5 @@ export const LoadingWrapper = styled.div`
 	position: absolute;
 	bottom: 0;
 	right: 0;
+	z-index: 0;
 `;

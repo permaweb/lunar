@@ -9,6 +9,9 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
 
+const RANGE_SIZE = 100;
+const AUTO_COLLAPSE_THRESHOLD = 1000;
+
 export default function _JSONTree(props: {
 	data: any;
 	header?: string;
@@ -335,8 +338,8 @@ export default function _JSONTree(props: {
 				const isCollapsed = collapsed.has(path);
 
 				// Check if this object has too many keys and should show collapsed ranges
-				const hasCollapsedRanges = entries.length > 1000;
-				const rangeSize = 100;
+				const hasCollapsedRanges = entries.length > AUTO_COLLAPSE_THRESHOLD;
+				const rangeSize = RANGE_SIZE;
 
 				return (
 					<>
@@ -406,7 +409,7 @@ export default function _JSONTree(props: {
 										</>
 									) : (
 										<>
-											{/* Normal rendering for objects with < 1000 keys */}
+											{/* Normal rendering for objects with < AUTO_COLLAPSE_THRESHOLD keys */}
 											{entries.map(([k, v], index) => {
 												const propPath = `${path}.${k}`;
 												const isCollapsible =
@@ -466,7 +469,7 @@ export default function _JSONTree(props: {
 						paths.add(path);
 
 						// Auto-collapse items in arrays with many elements
-						if (value.length > 1000) {
+						if (value.length > AUTO_COLLAPSE_THRESHOLD) {
 							value.forEach((item, index) => {
 								if (typeof item === 'object' && item !== null) {
 									const itemPath = `${path}[${index}]`;
@@ -475,8 +478,8 @@ export default function _JSONTree(props: {
 										paths.add(itemPath);
 										collectAllPaths(item, itemPath, path);
 									}
-									// Collapse items beyond the first 100
-									if (index >= 100 && isCollapsible) {
+									// Collapse items beyond the first RANGE_SIZE
+									if (index >= RANGE_SIZE && isCollapsible) {
 										pathsToAutoCollapse.add(itemPath);
 									}
 								}
@@ -500,8 +503,8 @@ export default function _JSONTree(props: {
 						paths.add(path);
 
 						// Auto-collapse ranges in objects with many keys
-						if (entries.length > 1000) {
-							const rangeSize = 100;
+						if (entries.length > AUTO_COLLAPSE_THRESHOLD) {
+							const rangeSize = RANGE_SIZE;
 							const numRanges = Math.ceil(entries.length / rangeSize);
 
 							// Create range paths and auto-collapse all except the first

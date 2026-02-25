@@ -7,7 +7,6 @@ import { Types } from '@permaweb/libs';
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { Notification } from 'components/atoms/Notification';
-import { Select } from 'components/atoms/Select';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { Editor } from 'components/molecules/Editor';
@@ -22,7 +21,6 @@ import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagV
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
-import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import { AOS } from '../AOS';
 import { ProcessEditor } from '../ProcessEditor';
@@ -56,14 +54,8 @@ function Transaction(props: {
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
 	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
-	const settingsProvider = useSettingsProvider();
 
 	const currentHash = window.location.hash.replace('#', '');
-
-	const nodeOptions = React.useMemo(
-		() => settingsProvider.settings.nodes.map((node) => ({ id: node.url, label: node.url })),
-		[settingsProvider.settings.nodes]
-	);
 
 	const [inputTxId, setInputTxId] = React.useState<string>(props.txId);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
@@ -248,6 +240,12 @@ function Transaction(props: {
 					break;
 			}
 
+			if (balanceSource === 'arweave') {
+				dimensions = 12.5;
+				margin = '0 0 4.95px 0';
+				icon = ASSETS.arweave;
+			}
+
 			const getBalanceDisplay = () => {
 				if (!walletBalance) return 'Loading...';
 				return isNumeric(walletBalance) ? formatCount(walletBalance.toString()) : walletBalance;
@@ -263,12 +261,7 @@ function Transaction(props: {
 							</S.Logo>
 						</>
 					)}
-					{!icon && balanceSource === 'arweave' && (
-						<S.BrandMark>
-							<span className={'glyph'}>{'\u24D0'}</span>
-						</S.BrandMark>
-					)}
-					{!icon && balanceSource !== 'arweave' && <span>{tokenName}</span>}
+					{!icon && <span>{tokenName}</span>}
 					<S.Refresh>
 						<IconButton
 							type={'primary'}
@@ -826,13 +819,6 @@ function Transaction(props: {
 		}
 	}, []);
 
-	const handleNodeChange = React.useCallback(
-		(option) => {
-			settingsProvider.setActiveNode(option.id);
-		},
-		[settingsProvider]
-	);
-
 	return (
 		<>
 			<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
@@ -864,6 +850,16 @@ function Transaction(props: {
 						/>
 						<IconButton
 							type={'alt1'}
+							src={ASSETS.fullscreen}
+							handlePress={toggleFullscreen}
+							dimensions={{
+								wrapper: 32.5,
+								icon: 14.5,
+							}}
+							tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
+						/>
+						<IconButton
+							type={'alt1'}
 							src={ASSETS.refresh}
 							handlePress={() => handleSubmit()}
 							disabled={loadingTx || !checkValidAddress(inputTxId)}
@@ -872,16 +868,6 @@ function Transaction(props: {
 								icon: 14.5,
 							}}
 							tooltip={loadingTx ? `${language.loading}...` : language.refresh}
-						/>
-						<IconButton
-							type={'alt1'}
-							src={ASSETS.fullscreen}
-							handlePress={toggleFullscreen}
-							dimensions={{
-								wrapper: 32.5,
-								icon: 14.5,
-							}}
-							tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
 						/>
 					</S.SearchWrapper>
 					<S.HeaderActionsWrapper>
@@ -907,21 +893,6 @@ function Transaction(props: {
 								{balanceSections}
 							</S.TxInfoWrapper>
 						)}
-						{txResponse?.node?.tags &&
-							getTagValue(txResponse.node.tags, 'Variant') &&
-							getTagValue(txResponse.node.tags, 'Variant') === MessageVariantEnum.Mainnet && (
-								<S.NodeConnectionWrapper>
-									<Select
-										label={''}
-										activeOption={nodeOptions.find(
-											(option) => option.id === settingsProvider.settings.nodes.find((node) => node.active)?.url
-										)}
-										setActiveOption={handleNodeChange}
-										options={nodeOptions}
-										disabled={false}
-									/>
-								</S.NodeConnectionWrapper>
-							)}
 					</S.HeaderActionsWrapper>
 				</S.HeaderWrapper>
 				<S.BodyWrapper>{getTransaction()}</S.BodyWrapper>
