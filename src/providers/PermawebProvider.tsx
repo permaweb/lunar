@@ -76,6 +76,8 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 				arweave: Arweave.init({}),
 				signer: signer,
 				node: { url: nodeUrl, authority: nodeAuthority, scheduler: AO_NODE.scheduler },
+				gateway: 'http://localhost:8734/~query@1.0/graphql', // TODO: Gateway config
+				// gateway: 'https://ao-search-gateway.goldsky.com'
 			};
 
 			const dependenciesLegacy = { ao: aoLegacy, ...dependenciesShared };
@@ -177,7 +179,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			{props.children}
 			<Panel
 				open={showProfileManager}
-				header={profile && profile.id ? language.editProfile : `${language.createProfile}!`}
+				header={profile && profile.id ? language.editProfile : language.createProfile}
 				handleClose={() => setShowProfileManager(false)}
 				width={575}
 				closeHandlerDisabled

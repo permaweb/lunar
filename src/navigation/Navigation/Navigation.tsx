@@ -197,6 +197,9 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								<ReactSVG src={ASSETS.logo} />
 							</Link>
 						</S.LogoWrapper>
+						<S.InfoWrapper className={'info'}>
+							<span>AO Explorer</span>
+						</S.InfoWrapper>
 						<S.DNavWrapper>
 							{paths.map((element: { path: string; label: string; target?: '_blank' }, index: number) => {
 								const active =

@@ -175,7 +175,7 @@ function Message(props: {
 		return (
 			<S.To>
 				{props.element.node.recipient ? (
-					<TxAddress address={props.element.node.recipient} tooltipPosition={'left'} />
+					<TxAddress address={props.element.node.recipient} tooltipPosition={'right'} />
 				) : (
 					<p>-</p>
 				)}

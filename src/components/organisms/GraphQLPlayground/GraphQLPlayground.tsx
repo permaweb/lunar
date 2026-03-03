@@ -74,7 +74,8 @@ export default function GraphQLPlayground(props: {
 	const [inputGateway, setInputGateway] = React.useState<string>(() => {
 		const initial = props.initialGateway || gateways[0];
 		const gateway = gateways.includes(initial) ? initial : gateways[0];
-		return `https://${gateway}`;
+		// Preserve protocol if already present, otherwise default to https
+		return gateway.startsWith('http://') || gateway.startsWith('https://') ? gateway : `https://${gateway}`;
 	});
 	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
 	const [showVariables, setShowVariables] = React.useState<boolean>(() => {
@@ -149,10 +150,9 @@ export default function GraphQLPlayground(props: {
 	);
 
 	const activeGatewayOption: SelectOptionType = React.useMemo(() => {
-		// Only show as active if it's in the saved gateways list
-		const gateway = gateways.includes(selectedGateway) ? selectedGateway : gateways[0];
-		return { id: gateway, label: gateway };
-	}, [selectedGateway, gateways]);
+		// Use selectedGateway as-is, even if it's not in the saved list
+		return { id: selectedGateway, label: selectedGateway };
+	}, [selectedGateway]);
 
 	React.useEffect(() => {
 		if (props.initialQuery !== undefined) {
@@ -160,19 +160,27 @@ export default function GraphQLPlayground(props: {
 		}
 	}, [props.initialQuery]);
 
+	// Only sync from props on initial mount, not on every change
+	const initialGatewayRef = React.useRef(props.initialGateway);
 	React.useEffect(() => {
-		if (props.initialGateway !== undefined && gateways.includes(props.initialGateway)) {
-			setSelectedGateway(props.initialGateway);
-			setInputGateway(`https://${props.initialGateway}`);
+		if (initialGatewayRef.current !== undefined && gateways.includes(initialGatewayRef.current)) {
+			setSelectedGateway(initialGatewayRef.current);
+			const gateway = initialGatewayRef.current;
+			// Preserve protocol if already present, otherwise default to https
+			setInputGateway(gateway.startsWith('http://') || gateway.startsWith('https://') ? gateway : `https://${gateway}`);
 		}
-	}, [props.initialGateway, gateways]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []); // Only run on mount
 
+	// Debounce gateway changes to avoid infinite loops
+	const lastReportedGatewayRef = React.useRef(props.initialGateway || gateways[0]);
 	React.useEffect(() => {
-		const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
-		if (props.onGatewayChange && trimmedGateway && trimmedGateway !== (props.initialGateway || gateways[0])) {
+		const trimmedGateway = inputGateway.trim();
+		if (props.onGatewayChange && trimmedGateway && trimmedGateway !== lastReportedGatewayRef.current) {
+			lastReportedGatewayRef.current = trimmedGateway;
 			props.onGatewayChange(trimmedGateway);
 		}
-	}, [inputGateway, props.onGatewayChange, props.initialGateway, gateways]);
+	}, [inputGateway, props.onGatewayChange]);
 
 	// Extract query name from GraphQL query
 	const extractQueryName = React.useCallback((queryString: string): string | null => {
@@ -192,7 +200,8 @@ export default function GraphQLPlayground(props: {
 	}, [query, props.onQueryChange, props.initialQuery, extractQueryName]);
 
 	const saveCustomGateway = React.useCallback(() => {
-		const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
+		const trimmedGateway = inputGateway.trim();
+		// Save gateway with protocol preserved
 		if (trimmedGateway && !gateways.includes(trimmedGateway)) {
 			const updatedGateways = [...gateways, trimmedGateway];
 			setGateways(updatedGateways);
@@ -237,7 +246,12 @@ export default function GraphQLPlayground(props: {
 				setResult(null);
 				setLoading(true);
 				try {
-					const trimmedGateway = inputGateway.trim().replace(/^https?:\/\//, '');
+					const trimmedGateway = inputGateway.trim();
+					// Add protocol if not present
+					const gatewayUrl =
+						trimmedGateway.startsWith('http://') || trimmedGateway.startsWith('https://')
+							? trimmedGateway
+							: `https://${trimmedGateway}`;
 					const preparedQuery = prepareQuery(queryToExecute);
 
 					// Parse variables if they exist
@@ -255,14 +269,17 @@ export default function GraphQLPlayground(props: {
 						}
 					}
 
-					const body: any = { query: preparedQuery };
+					const body: any = { operationName: 'GetTransactions', query: preparedQuery };
 					if (parsedVariables) {
 						body.variables = parsedVariables;
 					}
 
-					const response = await fetch(`https://${trimmedGateway}/graphql`, {
+					const response = await fetch(`${gatewayUrl}/graphql`, {
 						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
+						headers: {
+							'Content-Type': 'application/json',
+							'Codec-Device': 'json@1.0',
+						},
 						body: JSON.stringify(body),
 					});
 
@@ -301,7 +318,7 @@ export default function GraphQLPlayground(props: {
 						type={'alt1'}
 						src={ASSETS.save}
 						handlePress={saveCustomGateway}
-						disabled={!inputGateway.trim() || gateways.includes(inputGateway.trim().replace(/^https?:\/\//, ''))}
+						disabled={!inputGateway.trim() || gateways.includes(inputGateway.trim())}
 						dimensions={{
 							wrapper: 32.5,
 							icon: 14.5,
@@ -333,7 +350,11 @@ export default function GraphQLPlayground(props: {
 						activeOption={activeGatewayOption}
 						setActiveOption={(option) => {
 							setSelectedGateway(option.id);
-							setInputGateway(`https://${option.id}`);
+							// Preserve protocol if already present, otherwise default to https
+							const gateway = option.id;
+							setInputGateway(
+								gateway.startsWith('http://') || gateway.startsWith('https://') ? gateway : `https://${gateway}`
+							);
 						}}
 						options={gatewayOptions}
 						disabled={false}

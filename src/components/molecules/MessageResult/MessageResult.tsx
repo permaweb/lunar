@@ -26,32 +26,6 @@ export default function MessageResult(props: { processId: string; messageId: str
 		(async function () {
 			if (!result && checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
 				try {
-					const messageFetch = await fetch(getTxEndpoint(props.messageId));
-					const rawMessage = await messageFetch.text();
-
-					const raw = rawMessage ?? '';
-					const trimmed = raw.trim();
-
-					if (trimmed === '') {
-						setData(language.noData);
-					} else {
-						try {
-							const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
-
-							const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
-							const isEmptyObject =
-								parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0;
-
-							if (isEmptyArray || isEmptyObject) {
-								setData(language.noData);
-							} else {
-								setData(parsed);
-							}
-						} catch {
-							setData(trimmed);
-						}
-					}
-
 					let variant = props.variant;
 					/* Find the variant of the recipient process to handle messages between networks */
 					try {
@@ -95,6 +69,43 @@ export default function MessageResult(props: { processId: string; messageId: str
 		})();
 	}, [result, props.processId, props.messageId]);
 
+	React.useEffect(() => {
+		(async function () {
+			if (!data && checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
+				try {
+					const messageFetch = await fetch(getTxEndpoint(props.messageId));
+					const rawMessage = await messageFetch.text();
+
+					const raw = rawMessage ?? '';
+					const trimmed = raw.trim();
+
+					if (trimmed === '') {
+						setData(language.noData);
+					} else {
+						try {
+							const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
+
+							const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
+							const isEmptyObject =
+								parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0;
+
+							if (isEmptyArray || isEmptyObject) {
+								setData(language.noData);
+							} else {
+								setData(parsed);
+							}
+						} catch {
+							setData(trimmed);
+						}
+					}
+				} catch (e: any) {
+					console.error(e);
+					setData(e.message ?? 'Error Fetching Message Data');
+				}
+			}
+		})();
+	}, [data, props.processId, props.messageId]);
+
 	function getData() {
 		if (!data) return null;
 
@@ -111,14 +122,9 @@ export default function MessageResult(props: { processId: string; messageId: str
 
 	return (
 		<S.Wrapper>
-			{result ? (
-				<>
-					{getData()}
-					<JSONReader data={result} header={language.result} maxHeight={600} />
-				</>
-			) : (
-				<Loader sm relative />
-			)}
+			{data && getData()}
+			{result && <JSONReader data={result} header={language.result} maxHeight={600} />}
+			{(!data || !result) && <Loader sm relative />}
 		</S.Wrapper>
 	);
 }

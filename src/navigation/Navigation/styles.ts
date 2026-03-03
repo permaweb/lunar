@@ -256,7 +256,7 @@ export const C1Wrapper = styled.div`
 	width: fit-content;
 	display: flex;
 	align-items: center;
-	gap: 25px;
+	gap: 15px;
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		max-width: calc(100% - 60px);
@@ -279,10 +279,28 @@ export const LogoWrapper = styled.div`
 	}
 `;
 
+export const InfoWrapper = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 5px 0 0 5px;
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+
+	span {
+		font-family: ${(props) => props.theme.typography.family.alt1} !important;
+		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+	}
+`;
+
 export const DNavWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	gap: 30px;
+	margin: 0 0 0 12.5px;
 
 	@media (max-width: ${STYLING.cutoffs.tablet}) {
 		display: none;
