@@ -586,14 +586,6 @@ function ConsoleInstance(props: {
 		}
 	}, [theme]);
 
-	React.useEffect(() => {
-		if (consoleRef.current && props.active) {
-			setTimeout(() => {
-				consoleRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			}, 10);
-		}
-	}, [props.active]);
-
 	async function handleEditorSend() {
 		if (editorData) await sendMessage(editorData);
 	}

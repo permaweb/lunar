@@ -17,6 +17,7 @@ export default function _JSONTree(props: {
 	header?: string;
 	placeholder?: string;
 	maxHeight?: number;
+	fixedHeight?: number;
 	noWrapper?: boolean;
 	noFullScreen?: boolean;
 }) {
@@ -569,6 +570,7 @@ export default function _JSONTree(props: {
 			<S.JSONViewerRoot
 				fullScreenMode={fullScreenMode}
 				maxHeight={!fullScreenMode ? props.maxHeight : undefined}
+				fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
 				className={'scroll-wrapper'}
 			>
 				{renderValue(data, undefined, true)}
@@ -595,6 +597,7 @@ export default function _JSONTree(props: {
 		<S.Wrapper
 			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}`}
 			noWrapper={props.noWrapper && !fullScreenMode}
+			fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
 			ref={readerRef}
 		>
 			<S.Header>

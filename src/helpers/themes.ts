@@ -11,12 +11,22 @@ const common = {
 	light1: '#FFFFFF',
 	light2: '#EAEAEA',
 	light3: '#C2C2C2',
+	light: {
+		overlay1: 'rgb(0, 0, 0, .45)',
+		overlay2: 'rgb(0, 0, 0, .5)',
+		shadow1: 'rgb(220, 220, 220, .05)',
+	},
+	dark: {
+		overlay1: 'rgb(0, 0, 0, .65)',
+		overlay2: 'rgb(0, 0, 0, .5)',
+		shadow1: 'rgb(0, 0, 0, .35)',
+	},
 	actions: {
 		eval: '#3CBBAE',
 		info: '#b86ac2',
 		balance: '#667eea',
 		transfer: '#eb9330',
-		creditNotice: '#28baa2',
+		creditNotice: '#38665e',
 		debitNotice: '#ce3f96',
 		mint: '#3CBBAE',
 		piDelegationRecords: '#eb9330',
@@ -73,15 +83,13 @@ export const lightTheme = {
 	neutralA5: '#525252',
 	neutralA6: '#666666',
 	neutralA7: '#707070',
-	overlay1: 'rgb(0, 0, 0, .45)',
-	overlay2: 'rgb(0, 0, 0, .5)',
-	shadow1: 'rgb(220, 220, 220, .5)',
 	primary1: '#5E66DB',
 	primary2: '#454CB0',
 	link1: '#0074E4',
 	link2: '#2f90ea',
 	editor: { ...common.editorLight },
 	...common,
+	...common.light,
 };
 
 export const lightThemeHighContrast = {
@@ -102,15 +110,13 @@ export const lightThemeHighContrast = {
 	neutralA5: '#0A0A0A',
 	neutralA6: '#9E9E9E',
 	neutralA7: '#BDBDBD',
-	overlay1: 'rgb(0, 0, 0, .45)',
-	overlay2: 'rgb(0, 0, 0, .5)',
-	shadow1: 'rgb(220, 220, 220, .5)',
 	primary1: '#5E66DB',
 	primary2: '#454CB0',
 	link1: '#0074E4',
 	link2: '#2f90ea',
 	editor: { ...common.editorLight },
 	...common,
+	...common.light,
 };
 
 export const lightThemeAlt1 = {
@@ -131,15 +137,13 @@ export const lightThemeAlt1 = {
 	neutralA5: '#525252',
 	neutralA6: '#666666',
 	neutralA7: '#707070',
-	overlay1: 'rgba(0, 0, 0, 0.4)',
-	overlay2: 'rgba(0, 0, 0, 0.55)',
-	shadow1: 'rgb(220, 220, 220, .5)',
 	primary1: '#DB5461',
 	primary2: '#D43545',
 	link1: '#0074E4',
 	link2: '#2f90ea',
 	editor: { ...common.editorLight },
 	...common,
+	...common.light,
 };
 
 export const lightThemeAlt2 = {
@@ -160,15 +164,13 @@ export const lightThemeAlt2 = {
 	neutralA5: '#525252',
 	neutralA6: '#666666',
 	neutralA7: '#707070',
-	overlay1: 'rgba(0, 0, 0, 0.4)',
-	overlay2: 'rgba(0, 0, 0, 0.55)',
-	shadow1: 'rgb(220, 220, 220, .5)',
 	primary1: '#5AB6A0',
 	primary2: '#4BAA94',
 	link1: '#0C84CB',
 	link2: '#2274A5',
 	editor: { ...common.editorLight },
 	...common,
+	...common.light,
 };
 
 export const darkTheme = {
@@ -189,15 +191,13 @@ export const darkTheme = {
 	neutralA5: '#CDCDCD',
 	neutralA6: '#8F8F8F',
 	neutralA7: '#707070',
-	overlay1: 'rgb(0, 0, 0, .65)',
-	overlay2: 'rgb(0, 0, 0, .5)',
-	shadow1: 'rgb(0, 0, 0, .35)',
 	primary1: '#5E66DB',
 	primary2: '#454CB0',
 	link1: '#4DA8FF',
 	link2: '#0074E4',
 	editor: { ...common.editorDark },
 	...common,
+	...common.dark,
 };
 
 export const darkThemeHighContrast = {
@@ -218,15 +218,13 @@ export const darkThemeHighContrast = {
 	neutralA5: '#FFFFFF',
 	neutralA6: '#929292',
 	neutralA7: '#767676',
-	overlay1: 'rgba(0, 0, 0, 0.65)',
-	overlay2: 'rgba(0, 0, 0, 0.75)',
-	shadow1: 'rgba(0, 0, 0, 0.4)',
 	primary1: '#5E66DB',
 	primary2: '#454CB0',
 	link1: '#009AF7',
 	link2: '#0074E4',
 	editor: { ...common.editorDark },
 	...common,
+	...common.dark,
 };
 
 export const darkThemeAlt1 = {
@@ -247,9 +245,6 @@ export const darkThemeAlt1 = {
 	neutralA5: '#CFCFCF',
 	neutralA6: '#8F8F8F',
 	neutralA7: '#707070',
-	overlay1: 'rgb(0, 0, 0, .65)',
-	overlay2: 'rgb(0, 0, 0, .5)',
-	shadow1: '#17191f85',
 	primary1: '#DB5461',
 	primary2: '#D43545',
 	link1: '#4DA8FF',
@@ -268,6 +263,7 @@ export const darkThemeAlt1 = {
 		alt10: '#BFBFBF',
 	},
 	...common,
+	...common.dark,
 };
 
 export const darkThemeAlt2 = {
@@ -288,15 +284,13 @@ export const darkThemeAlt2 = {
 	neutralA5: '#CFCFCF',
 	neutralA6: '#8F8F8F',
 	neutralA7: '#707070',
-	overlay1: 'rgb(0, 0, 0, .65)',
-	overlay2: 'rgb(0, 0, 0, .5)',
-	shadow1: '#17191f85',
 	primary1: '#5AB6A0',
 	primary2: '#4BAA94',
 	link1: '#00B1CC',
 	link2: '#00ccbf',
 	editor: { ...common.editorDark },
 	...common,
+	...common.dark,
 };
 
 export const theme = (currentTheme: any): DefaultTheme => ({
@@ -335,8 +329,8 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		},
 		button: {
 			primary: {
-				background: currentTheme.neutral3,
-				border: currentTheme.neutral5,
+				background: currentTheme.neutral2,
+				border: currentTheme.neutral6,
 				color: currentTheme.neutralA1,
 				active: {
 					background: currentTheme.primary1,
@@ -555,7 +549,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			lg: '18px',
 			xLg: '24px',
 			xxLg: '28px',
-			xxxLg: 'clamp(28px, 2vw, 36px)',
+			xxxLg: 'clamp(28px, 2.25vw, 36px)',
 			h1: 'clamp(36px, 3.5vw, 56px)',
 			h2: 'clamp(32px, 3.25vw, 50px)',
 			h4: 'clamp(28px, 3vw, 42px)',

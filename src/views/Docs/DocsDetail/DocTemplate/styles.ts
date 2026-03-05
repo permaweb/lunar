@@ -1,19 +1,82 @@
 import styled from 'styled-components';
 
-import { open, transition2 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div<{ isView: boolean }>`
-	width: ${(props) => (props.isView ? `calc(100% - ${STYLING.dimensions.nav.width})` : '100%')};
-	padding: ${(props) => (props.isView ? '20px 40px 20px 30px' : '0')};
-	animation: ${open} ${transition2};
-	margin: 0 0 0 auto;
+export const Container = styled.div`
+	width: 100%;
+	display: flex;
+	gap: 40px;
+	position: relative;
+`;
 
-	@media (max-width: ${STYLING.cutoffs.initial}) {
-		width: 100%;
-		padding: 20px;
-		margin: 50px 0 0 0;
+export const TableOfContents = styled.aside`
+	height: fit-content;
+	width: 240px;
+	position: sticky;
+	top: 100px;
+	align-self: flex-start;
+	max-height: calc(100vh - 120px);
+	overflow-y: auto;
+	order: 2;
+	padding: 0 0 0 15px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+
+	@media (max-width: 1024px) {
+		display: none;
 	}
+`;
+
+export const TOCTitle = styled.h4`
+	font-size: ${(props) => props.theme.typography.size.base} !important;
+	font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+	font-family: ${(props) => props.theme.typography.family.alt1} !important;
+	color: ${(props) => props.theme.colors.font.alt1} !important;
+	margin: 0 0 15px 0 !important;
+	padding: 0 0 15px 0;
+	border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
+	color: ${(props) => props.theme.colors.font.primary} !important;
+`;
+
+export const TOCList = styled.ul`
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0 !important;
+	padding: 0 !important;
+`;
+
+export const TOCItem = styled.li<{ $active?: boolean }>`
+	list-style: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+
+	&::before {
+		content: none !important;
+	}
+
+	a {
+		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		font-family: ${(props) => props.theme.typography.family.primary} !important;
+		color: ${(props) => (props.$active ? props.theme.colors.font.alt5 : props.theme.colors.font.alt1)} !important;
+		text-decoration: none !important;
+		line-height: 1.65 !important;
+		display: block;
+		transition: all 0.2s ease;
+
+		&:hover {
+			color: ${(props) => props.theme.colors.font.primary} !important;
+			border-left-color: ${(props) => props.theme.colors.font.primary.alt4};
+		}
+	}
+`;
+
+export const Wrapper = styled.div`
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 25px;
+	order: 1;
 
 	h1,
 	h2,
@@ -22,7 +85,7 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 	h5,
 	h6 {
 		font-size: clamp(32px, 3.75vw, 44px) !important;
-		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		font-weight: ${(props) => props.theme.typography.weight.xBold} !important;
 		font-family: ${(props) => props.theme.typography.family.alt1} !important;
 		color: ${(props) => props.theme.colors.font.primary} !important;
 		margin: 0 0 5px 0;
@@ -33,11 +96,11 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 	h4,
 	h5,
 	h6 {
-		margin: 50px 0 10px 0;
 	}
 
 	h2 {
 		font-size: clamp(22px, 3.15vw, 38px) !important;
+		font-family: ${(props) => props.theme.typography.family.alt1} !important;
 		scroll-margin-top: 100px;
 		a {
 			font-size: clamp(22px, 3.05vw, 34px) !important;
@@ -54,7 +117,6 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 		font-size: clamp(16px, 1.95vw, 22px) !important;
 		color: ${(props) => props.theme.colors.font.alt1} !important;
 		border-bottom: 1px solid transparent;
-		margin: 35px 0 0 0;
 
 		a {
 			font-size: clamp(16px, 1.95vw, 22px) !important;
@@ -68,6 +130,7 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 
 	strong,
 	b {
+		color: ${(props) => props.theme.colors.font.primary} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 	}
 
@@ -76,7 +139,7 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 	li,
 	div,
 	pre {
-		font-size: ${(props) => props.theme.typography.size.base} !important;
+		font-size: ${(props) => props.theme.typography.size.small} !important;
 		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		color: ${(props) => props.theme.colors.font.alt1} !important;
@@ -84,7 +147,7 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 	}
 
 	a {
-		font-size: ${(props) => props.theme.typography.size.base} !important;
+		font-size: ${(props) => props.theme.typography.size.small} !important;
 		text-decoration: underline;
 	}
 
@@ -93,13 +156,18 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 		display: flex;
 		flex-direction: column;
 		gap: 7.5px;
-		margin: 7.5px 0 0 0;
+		margin: -17.5px 0 0 0;
 
 		li {
 			list-style-type: none;
 			padding: 0 0 0 20px;
 			margin: 0 0 0 10px;
 			position: relative;
+		}
+
+		ol,
+		ul {
+			margin: 7.5px 0 0 0;
 		}
 	}
 
@@ -135,12 +203,12 @@ export const Wrapper = styled.div<{ isView: boolean }>`
 	}
 
 	code {
-		padding: 2.5px 10px !important;
+		padding: 2.5px 5.5px !important;
 		background: ${(props) => props.theme.colors.container.alt3.background} !important;
-		border-radius: ${STYLING.dimensions.radius.primary} !important;
-		color: ${(props) => props.theme.colors.font.primary.alt1} !important;
-		font-weight: ${(props) => props.theme.typography.weight.regular} !important;
-		font-size: ${(props) => props.theme.typography.size.small} !important;
+		border-radius: ${STYLING.dimensions.radius.alt3} !important;
+		color: ${(props) => props.theme.colors.font.alt1} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 	}
 
 	pre {

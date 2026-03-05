@@ -11,8 +11,7 @@ export const Wrapper = styled.div<{
 	height: ${(props) => `${props.dimensions.wrapper.toString()}px`};
 	width: ${(props) => `${props.dimensions.wrapper.toString()}px`};
 	background: ${(props) =>
-		props.hasOwner ? props.theme.colors.container.primary.background : props.theme.colors.icon.alt1.fill};
-	background: transparent;
+		props.hasOwner ? props.theme.colors.container.alt1.background : props.theme.colors.container.alt1.background};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: 50%;
 	overflow: hidden;
@@ -31,8 +30,9 @@ export const Wrapper = styled.div<{
 		height: ${(props) => `${props.dimensions.icon.toString()}px`};
 		width: ${(props) => `${props.dimensions.icon.toString()}px`};
 		padding: 2.5px 0 0 0px;
-		color: ${(props) => props.theme.colors.font.alt1};
-		fill: ${(props) => props.theme.colors.font.alt1};
+		color: ${(props) => props.theme.colors.font.primary};
+		color: ${(props) => (props.hasOwner ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};
+		fill: ${(props) => (props.hasOwner ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};
 	}
 
 	pointer-events: none;

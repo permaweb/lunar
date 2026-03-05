@@ -14,6 +14,8 @@ const mdLoaders = (import.meta as any).glob('../MD/**/*.md', {
 
 export default function DocTemplate(props: { doc?: string; id?: string }) {
 	const [markdown, setMarkdown] = React.useState<string>('');
+	const [headings, setHeadings] = React.useState<{ id: string; text: string }[]>([]);
+	const [activeHash, setActiveHash] = React.useState<string>('');
 
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -25,12 +27,20 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 	React.useEffect(() => {
 		const handleHashChange = () => {
 			setHashState(window.location.href);
+			const hash = window.location.hash.replace('#', '');
+			setActiveHash(hash);
 		};
 
 		window.addEventListener('popstate', handleHashChange);
+		window.addEventListener('hashchange', handleHashChange);
+
+		// Set initial hash
+		const hash = window.location.hash.replace('#', '');
+		setActiveHash(hash);
 
 		return () => {
 			window.removeEventListener('popstate', handleHashChange);
+			window.removeEventListener('hashchange', handleHashChange);
 		};
 	}, []);
 
@@ -90,7 +100,28 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 		}
 
 		loader()
-			.then((content) => setMarkdown(content))
+			.then((content) => {
+				setMarkdown(content);
+
+				// Extract h4 and h2 headings from markdown
+				const headingRegex = /^####\s+(.+?)$/gm;
+				const extracted: { id: string; text: string }[] = [];
+				let match;
+
+				while ((match = headingRegex.exec(content)) !== null) {
+					const text = match[1];
+					const id = text
+						.toLowerCase()
+						.replace(/\s+/g, '-')
+						.replace(/[^\w-]/g, '');
+					extracted.push({
+						text,
+						id,
+					});
+				}
+
+				setHeadings(extracted);
+			})
 			.catch((err) => console.error('Error loading markdown:', err));
 	}, [props.doc, active]);
 
@@ -108,6 +139,17 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 			} else {
 				return <h2>{children}</h2>;
 			}
+		},
+		h4: (props: any) => {
+			const { children } = props;
+			const text = typeof children === 'string' ? children : children?.[0];
+			const id = text
+				? text
+						.toLowerCase()
+						.replace(/\s+/g, '-')
+						.replace(/[^\w-]/g, '')
+				: '';
+			return <h4 id={id}>{children}</h4>;
 		},
 		link: (props: any) => {
 			const { href, children } = props;
@@ -130,15 +172,50 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 	};
 
 	return markdown ? (
-		<S.Wrapper isView={!props.doc}>
-			<ReactMarkdown
-				children={markdown}
-				components={{
-					link: renderers.link,
-					h2: renderers.h2,
-				}}
-			/>
-		</S.Wrapper>
+		<S.Container>
+			<S.Wrapper>
+				<ReactMarkdown
+					children={markdown}
+					components={{
+						link: renderers.link,
+						h2: renderers.h2,
+						h4: renderers.h4,
+					}}
+				/>
+			</S.Wrapper>
+			{headings.length > 0 && (
+				<S.TableOfContents>
+					<S.TOCTitle>On this page</S.TOCTitle>
+					<S.TOCList>
+						{headings.map((heading) => (
+							<S.TOCItem key={heading.id} $active={activeHash === heading.id}>
+								<Link
+									to={`#${heading.id}`}
+									onClick={(e) => {
+										e.preventDefault();
+										const element = document.getElementById(heading.id);
+										if (element) {
+											const offset = 95;
+											const elementPosition = element.getBoundingClientRect().top;
+											const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+											window.scrollTo({
+												top: offsetPosition,
+												behavior: 'smooth',
+											});
+											window.history.pushState(null, '', `#${location.pathname}#${heading.id}`);
+											setActiveHash(heading.id);
+										}
+									}}
+								>
+									{heading.text}
+								</Link>
+							</S.TOCItem>
+						))}
+					</S.TOCList>
+				</S.TableOfContents>
+			)}
+		</S.Container>
 	) : (
 		<Loader />
 	);

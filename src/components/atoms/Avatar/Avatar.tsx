@@ -24,7 +24,7 @@ export default function Avatar(props: IProps) {
 			onClick={props.callback ? props.callback : () => {}}
 			dimensions={props.dimensions}
 			hasCallback={props.callback !== null}
-			hasOwner={props.owner !== null}
+			hasOwner={props.owner !== null || props.isConnected}
 			hasImage={hasImage}
 		>
 			{thumbnail}

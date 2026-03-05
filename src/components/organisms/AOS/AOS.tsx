@@ -9,7 +9,7 @@ import { IconButton } from 'components/atoms/IconButton';
 import { Loader } from 'components/atoms/Loader';
 import { Panel } from 'components/atoms/Panel';
 import { Editor } from 'components/molecules/Editor';
-import { AO_NODE, ASSETS, TAGS } from 'helpers/config';
+import { ASSETS, DEFAULT_AO_NODE, TAGS } from 'helpers/config';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatAddress, getTagValue, resolveLibDeps, resolveLibs } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
@@ -222,14 +222,6 @@ function AOS(props: {
 			})
 		);
 	}, [theme, ansiToHtml]);
-
-	React.useEffect(() => {
-		if (wrapperRef.current && props.active) {
-			setTimeout(() => {
-				wrapperRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-			}, 10);
-		}
-	}, [props.active]);
 
 	// Load process data or list of processes
 	React.useEffect(() => {
@@ -472,7 +464,7 @@ function AOS(props: {
 						tags: [
 							{ name: 'Type', value: 'Process' },
 							{ name: 'Variant', value: MessageVariantEnum.Mainnet },
-							{ name: 'Scheduler', value: AO_NODE.scheduler },
+							{ name: 'Scheduler', value: DEFAULT_AO_NODE.scheduler },
 							{ name: 'Name', value: name },
 						],
 						owner: {

@@ -1,4 +1,5 @@
 import { DocsNavigation } from './DocsNavigation';
+import { DocsNavigationFooter } from './DocsNavigationFooter';
 import { DocTemplate } from './DocTemplate';
 import * as S from './styles';
 
@@ -7,7 +8,10 @@ export default function DocsDetail() {
 		<S.Wrapper>
 			<S.BodyWrapper>
 				<DocsNavigation />
-				<DocTemplate />
+				<S.ContentWrapper>
+					<DocTemplate />
+					<DocsNavigationFooter />
+				</S.ContentWrapper>
 			</S.BodyWrapper>
 		</S.Wrapper>
 	);

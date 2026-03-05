@@ -14,10 +14,18 @@ import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
-import { ASSETS, DEFAULT_AO_TAGS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
+import { ASSETS, DEFAULT_GATEWAYS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
-import { checkValidAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue, isNumeric } from 'helpers/utils';
+import {
+	checkValidAddress,
+	formatCount,
+	formatDate,
+	getByteSizeDisplay,
+	getTagValue,
+	isNumeric,
+	normalizeGqlResponse,
+} from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -103,10 +111,18 @@ function Transaction(props: {
 			setHasFetched(false);
 			setRefreshKey((prev) => prev + 1);
 			try {
-				const response = await permawebProvider.libs.getGQLData({
-					ids: [inputTxId],
-					tags: [...DEFAULT_AO_TAGS],
+				let response = await permawebProvider.libs.getGQLData({
+					id: [inputTxId],
 				});
+
+				if (!response.data?.length || response.data?.length <= 0) {
+					response = await permawebProvider.libs.getGQLData({
+						gateway: DEFAULT_GATEWAYS.fallback,
+						id: [inputTxId],
+					});
+					response = normalizeGqlResponse(response);
+				}
+
 				const responseData = response?.data?.[0];
 				setTxResponse(responseData ?? null);
 				if (responseData) {
@@ -330,14 +346,14 @@ function Transaction(props: {
 						<TxAddress
 							address={
 								txResponse
-									? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse.node.owner.address
+									? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse?.node?.owner?.address
 									: undefined
 							}
 						/>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`${language.to}: `}</span>
-						<TxAddress address={txResponse?.node?.recipient} />
+						<TxAddress address={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')} />
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`${language.owner}: `}</span>
@@ -501,7 +517,7 @@ function Transaction(props: {
 						{/* <S.SectionHeader>
 							<p>{language.data}</p>
 						</S.SectionHeader> */}
-						<img src={getTxEndpoint(inputTxId)} alt="Transaction data" style={{ maxWidth: '100%', height: 'auto' }} />
+						<img src={getTxEndpoint(inputTxId)} alt={'Transaction data'} style={{ maxWidth: '100%', height: 'auto' }} />
 					</S.DataSection>
 				);
 			}
@@ -519,8 +535,10 @@ function Transaction(props: {
 	const TABS = React.useMemo(() => {
 		if (!inputTxId) return null;
 
-		const showMessageInfo = props.type === 'message';
-		const showTagsAndRead = props.type === 'process' || props.type === 'message';
+		const showOverview = props.type === 'message';
+		const showMessages = props.type === 'message';
+		const showTags = props.type === 'process';
+		const showRead = props.type === 'process' || props.type === 'message';
 
 		const tabs = [
 			{
@@ -540,29 +558,15 @@ function Transaction(props: {
 						case 'message':
 							return (
 								<S.ColumnFlexWrapper>
-									{showMessageInfo && (
-										<S.MessageHeaderWrapper>
-											<MessageInfoSection />
-											{checkValidAddress(inputTxId) && (
-												<MessageList
-													key={refreshKey}
-													header={language.resultingMessages}
-													txId={inputTxId}
-													variant={variant}
-													type={props.type}
-													recipient={txResponse?.node?.recipient}
-													parentId={inputTxId}
-													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
-												/>
-											)}
-										</S.MessageHeaderWrapper>
-									)}
-									{showTagsAndRead && (
+									{showOverview && <MessageInfoSection />}
+									{showRead && (
 										<S.InfoWrapper>
-											<S.TagsWrapper>
-												<TagsSection />
-											</S.TagsWrapper>
-											<S.ReadWrapper>
+											{showTags && (
+												<S.TagsWrapper>
+													<TagsSection />
+												</S.TagsWrapper>
+											)}
+											<S.ReadWrapper fullWidth={!showTags}>
 												{props.type === 'process' && (
 													<>
 														<ProcessRead
@@ -576,13 +580,30 @@ function Transaction(props: {
 												{props.type === 'message' && (
 													<MessageResult
 														key={refreshKey}
-														processId={txResponse?.node?.recipient}
+														processId={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 														messageId={inputTxId}
 														variant={variant}
+														tags={txResponse?.node?.tags ?? null}
 													/>
 												)}
 											</S.ReadWrapper>
 										</S.InfoWrapper>
+									)}
+									{showMessages && (
+										<S.MessageHeaderWrapper>
+											{checkValidAddress(inputTxId) && (
+												<MessageList
+													key={refreshKey}
+													header={language.resultingMessages}
+													txId={inputTxId}
+													variant={variant}
+													type={props.type}
+													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
+													parentId={inputTxId}
+													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
+												/>
+											)}
+										</S.MessageHeaderWrapper>
 									)}
 								</S.ColumnFlexWrapper>
 							);
@@ -595,7 +616,7 @@ function Transaction(props: {
 											txId={inputTxId}
 											variant={MessageVariantEnum.Legacynet}
 											type={props.type}
-											recipient={txResponse?.node?.recipient}
+											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 											parentId={inputTxId}
 											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 										/>
@@ -608,7 +629,7 @@ function Transaction(props: {
 									<S.TagsWrapper>
 										<TagsSection />
 									</S.TagsWrapper>
-									<S.ReadWrapper>
+									<S.ReadWrapper fullWidth={false}>
 										<DataSection />
 									</S.ReadWrapper>
 								</S.InfoWrapper>
@@ -641,7 +662,7 @@ function Transaction(props: {
 											txId={inputTxId}
 											variant={variant}
 											type={props.type}
-											recipient={txResponse?.node?.recipient}
+											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 											parentId={inputTxId}
 											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 										/>
@@ -755,7 +776,7 @@ function Transaction(props: {
 					<WalletBalanceSection
 						balanceSource={'arweave'}
 						tokenName={'AR'}
-						denomination={12}
+						denomination={TOKEN_DENOMINATIONS.ar}
 						walletId={inputTxId}
 						shouldFetch={shouldFetch}
 					/>

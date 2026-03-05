@@ -6,7 +6,7 @@ import PermawebLibs, { Types } from '@permaweb/libs';
 
 import { Panel } from 'components/atoms/Panel';
 import { ProfileManager } from 'components/organisms/ProfileManager';
-import { AO_NODE, STORAGE } from 'helpers/config';
+import { DEFAULT_AO_NODE, DEFAULT_GATEWAYS, STORAGE } from 'helpers/config';
 
 import { useArweaveProvider } from './ArweaveProvider';
 import { useLanguageProvider } from './LanguageProvider';
@@ -64,10 +64,10 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			const aoLegacy = connect({ MODE: 'legacy' });
 
 			const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
-			const nodeUrl = activeNode?.url || AO_NODE.url;
-			const nodeAuthority = activeNode?.authority || AO_NODE.authority;
+			const nodeUrl = activeNode?.url || DEFAULT_AO_NODE.url;
+			const nodeAuthority = activeNode?.authority || DEFAULT_AO_NODE.authority;
 
-			const configMainnet: any = { MODE: 'mainnet', URL: nodeUrl, SCHEDULER: AO_NODE.scheduler };
+			const configMainnet: any = { MODE: 'mainnet', URL: nodeUrl, SCHEDULER: DEFAULT_AO_NODE.scheduler };
 
 			if (signer) configMainnet.signer = signer;
 			const aoMainnet = connect(configMainnet);
@@ -75,7 +75,8 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			const dependenciesShared = {
 				arweave: Arweave.init({}),
 				signer: signer,
-				node: { url: nodeUrl, authority: nodeAuthority, scheduler: AO_NODE.scheduler },
+				node: { url: nodeUrl, authority: nodeAuthority, scheduler: DEFAULT_AO_NODE.scheduler },
+				gateway: DEFAULT_GATEWAYS.legacy,
 			};
 
 			const dependenciesLegacy = { ao: aoLegacy, ...dependenciesShared };
@@ -177,7 +178,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			{props.children}
 			<Panel
 				open={showProfileManager}
-				header={profile && profile.id ? language.editProfile : `${language.createProfile}!`}
+				header={profile && profile.id ? language.editProfile : language.createProfile}
 				handleClose={() => setShowProfileManager(false)}
 				width={575}
 				closeHandlerDisabled

@@ -79,8 +79,8 @@ export const TagsWrapper = styled.div`
 	}
 `;
 
-export const ReadWrapper = styled.div`
-	width: calc(100% - 475px);
+export const ReadWrapper = styled.div<{ fullWidth: boolean }>`
+	width: ${(props) => (props.fullWidth ? '100%' : 'calc(100% - 475px)')};
 	display: flex;
 	flex-direction: column;
 	gap: 25px;

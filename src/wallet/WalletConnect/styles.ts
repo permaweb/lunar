@@ -65,9 +65,8 @@ export const Dropdown = styled.div`
 	padding: 11.5px 10px;
 	position: absolute;
 	z-index: 1;
-	top: 47.5px;
+	top: 42.5px;
 	right: -1.5px;
-	background: ${(props) => props.theme.colors.container.alt1.background} !important;
 `;
 
 export const DHeaderWrapper = styled.div`
@@ -105,6 +104,92 @@ export const DHeader = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
+	}
+`;
+
+export const DBalanceWrapper = styled.div`
+	width: 100%;
+	padding: 12.5px 0;
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+
+	> * {
+		&:not(:last-child) {
+			padding: 0 7.5px 12.5px 7.5px;
+			border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
+		}
+	}
+`;
+
+export const BalanceWrapper = styled.div<{ isNumber: boolean }>`
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.5px;
+	padding: 0 7.5px;
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) =>
+			props.isNumber ? props.theme.typography.weight.xBold : props.theme.typography.weight.bold};
+		color: ${(props) => (props.isNumber ? props.theme.colors.font.primary : props.theme.colors.font.primary)};
+		text-align: left;
+		text-transform: none;
+	}
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+		text-align: center;
+		text-transform: uppercase;
+	}
+`;
+
+export const LogoWrapper = styled.div`
+	width: 30px;
+`;
+
+export const Logo = styled.div<{ dimensions: number; margin?: string }>`
+	height: ${(props) => `${props.dimensions.toString()}px`};
+	width: ${(props) => `${props.dimensions.toString()}px`};
+
+	div {
+		height: ${(props) => `${props.dimensions.toString()}px`};
+		width: ${(props) => `${props.dimensions.toString()}px`};
+		margin: 0 0 0 1.5px;
+	}
+
+	svg {
+		height: ${(props) => `${props.dimensions.toString()}px`};
+		width: ${(props) => `${props.dimensions.toString()}px`};
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+		margin: ${(props) => props.margin ?? '0'};
+
+		path {
+			color: ${(props) => props.theme.colors.font.primary};
+			fill: ${(props) => props.theme.colors.font.primary};
+		}
+	}
+`;
+
+export const Refresh = styled.div`
+	margin: 0 0 0 auto;
+
+	svg {
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+	}
+
+	button {
+		&:hover {
+			background: ${(props) => props.theme.colors.container.primary.active.background};
+		}
 	}
 `;
 

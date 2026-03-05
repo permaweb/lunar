@@ -31,7 +31,7 @@ export const Tooltip = styled.div<{ position: string }>`
           left: 100%;
           top: 50%;
           transform: translateY(-50%);
-		  margin-left: 2.5px;
+		  margin-left: 5px;
         `;
 			case 'top-left':
 				return `
@@ -106,10 +106,16 @@ export const Wrapper = styled.div<{ disabled: boolean }>`
 		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
 		p {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+			text-decoration: ${(props) => (props.disabled ? 'none' : 'underline')};
+			text-decoration-thickness: 1.25px;
 		}
 		svg {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
 			fill: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+		}
+
+		${Tooltip} {
+			display: block;
 		}
 	}
 `;

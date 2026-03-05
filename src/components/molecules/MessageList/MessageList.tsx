@@ -12,7 +12,15 @@ import { Loader } from 'components/atoms/Loader';
 import { Panel } from 'components/atoms/Panel';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS, DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS, MINT_ACTIONS, STORAGE, TAGS } from 'helpers/config';
+import {
+	ASSETS,
+	DEFAULT_ACTIONS,
+	DEFAULT_GATEWAYS,
+	DEFAULT_MESSAGE_TAGS,
+	MINT_ACTIONS,
+	STORAGE,
+	TAGS,
+} from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { MessageFilterType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
@@ -22,6 +30,7 @@ import {
 	getRelativeDate,
 	getTagValue,
 	lowercaseTagKeys,
+	normalizeGqlResponse,
 	removeCommitments,
 	resolveLibDeps,
 	resolveMessageId,
@@ -175,7 +184,7 @@ function Message(props: {
 		return (
 			<S.To>
 				{props.element.node.recipient ? (
-					<TxAddress address={props.element.node.recipient} tooltipPosition={'left'} />
+					<TxAddress address={props.element.node.recipient} tooltipPosition={'right'} />
 				) : (
 					<p>-</p>
 				)}
@@ -783,9 +792,45 @@ export default function MessageList(props: {
 										tags = lowercaseTagKeys(tags);
 									}
 
-									const gqlResponse = await permawebProvider.libs.getGQLData({
+									let gqlResponse = await permawebProvider.libs.getGQLData({
 										tags: [...tags],
 									});
+
+									/* Need multiple single queries here
+									   multivalue_tag_search_not_supported in fallback nodes
+									*/
+									if (!gqlResponse.data?.length || gqlResponse.data?.length <= 0) {
+										/* Create an aggregated response */
+										let fallbackGqlResponse = { data: [] };
+
+										const references = resultResponse.Messages.map((result) =>
+											getTagValue(result.Tags, 'Reference')
+										).filter((ref) => ref);
+
+										if (references?.length > 0) {
+											for (const reference of references) {
+												const referenceLookup = await permawebProvider.libs.getGQLData({
+													gateway: DEFAULT_GATEWAYS.fallback,
+													tags: [
+														{ name: 'From-Process', values: [props.recipient] },
+														{ name: 'Variant', values: [props.variant] },
+														{
+															name: 'Reference',
+															values: [reference],
+														},
+													],
+												});
+
+												if (referenceLookup?.data?.length > 0) {
+													fallbackGqlResponse.data.push(referenceLookup.data[0]);
+												}
+											}
+
+											fallbackGqlResponse = normalizeGqlResponse(fallbackGqlResponse);
+										}
+
+										if (fallbackGqlResponse.data.length > 0) gqlResponse = fallbackGqlResponse;
+									}
 
 									setCurrentData(gqlResponse.data);
 								} else {
