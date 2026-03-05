@@ -20,6 +20,7 @@ export default function _Editor(props: {
 	handleSubmit?: (currentValue?: string) => void;
 	header?: string;
 	useFixedHeight?: boolean;
+	fixedHeight?: number;
 	loading: boolean;
 }) {
 	const currentTheme: any = useTheme();
@@ -29,6 +30,7 @@ export default function _Editor(props: {
 
 	const editorRef = React.useRef(null);
 	const monacoRef = React.useRef<typeof import('monaco-editor') | null>(null);
+	const editorInstanceRef = React.useRef<any>(null);
 	const themeName = currentTheme.scheme === 'dark' ? 'editorDark' : 'editorLight';
 
 	const [height, setHeight] = React.useState(0);
@@ -133,6 +135,19 @@ export default function _Editor(props: {
 	}, [fullScreenMode, toggleFullscreen]);
 
 	React.useEffect(() => {
+		const handleResize = () => {
+			if (editorInstanceRef.current) {
+				editorInstanceRef.current.layout();
+			}
+		};
+
+		window.addEventListener('resize', handleResize);
+		return () => {
+			window.removeEventListener('resize', handleResize);
+		};
+	}, []);
+
+	React.useEffect(() => {
 		const monaco = monacoRef.current;
 		if (!monaco) return;
 
@@ -154,6 +169,8 @@ export default function _Editor(props: {
 	}, [currentTheme, themeName]);
 
 	const handleEditorMount: OnMount = (editor, monaco) => {
+		editorInstanceRef.current = editor;
+
 		// Add keyboard shortcut for submit (Cmd+Enter or Ctrl+Enter)
 		if (props.handleSubmit) {
 			editor.onKeyDown((e) => {
@@ -167,11 +184,20 @@ export default function _Editor(props: {
 		}
 
 		// Handle content size changes for dynamic height
-		if (!props.useFixedHeight) {
+		if (!props.useFixedHeight && !props.fixedHeight) {
 			const disp = editor.onDidContentSizeChange((e) => {
 				setHeight(e.contentHeight);
 			});
+			// Force initial layout to ensure content is visible
+			requestAnimationFrame(() => {
+				editor.layout();
+			});
 			return () => disp.dispose();
+		} else {
+			// Force initial layout for fixed height editors
+			requestAnimationFrame(() => {
+				editor.layout();
+			});
 		}
 	};
 
@@ -184,9 +210,13 @@ export default function _Editor(props: {
 			)}
 			<S.EditorWrapper
 				ref={editorRef}
-				style={{ width: '100%', height: props.useFixedHeight ? '100%' : `${height}px`, overflow: 'hidden' }}
+				style={{
+					width: '100%',
+					height: props.useFixedHeight ? '100%' : props.fixedHeight ? `${props.fixedHeight}px` : `${height}px`,
+					overflow: 'hidden',
+				}}
 				useFixedHeight={props.useFixedHeight}
-				className={'border-wrapper-alt2 scroll-wrapper'}
+				className={'border-wrapper-alt3 scroll-wrapper'}
 			>
 				<S.Editor>
 					<Editor
@@ -200,7 +230,7 @@ export default function _Editor(props: {
 						loading={null}
 						options={{
 							readOnly: props.loading || props.readOnly,
-							automaticLayout: true,
+							automaticLayout: false,
 							tabSize: 4,
 							formatOnPaste: true,
 							formatOnType: true,

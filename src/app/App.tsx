@@ -81,7 +81,7 @@ export default function App() {
 	}
 
 	function getRoute(path: string, element: React.ReactNode) {
-		const baseRoutes = [URLS.docs, `URLS.docs/*`, `${URLS.docs}:active/*`, URLS.notFound, '*'];
+		const baseRoutes = [URLS.notFound, '*'];
 
 		if (baseRoutes.includes(path)) {
 			return <Route path={path} element={element} />;
@@ -98,14 +98,13 @@ export default function App() {
 								{language.app} {new Date().getFullYear()}
 							</p>
 							<p>
-								Built on{' '}
+								<a href={LINKS.ao} target={'_blank'}>
+									AO
+								</a>{' '}
+								Explorer built on{' '}
 								<a href={LINKS.arweave} target={'_blank'}>
 									Arweave
 								</a>{' '}
-								and{' '}
-								<a href={LINKS.ao} target={'_blank'}>
-									AO
-								</a>
 							</p>
 						</S.Footer>
 					</S.ViewWrapper>
@@ -131,8 +130,6 @@ export default function App() {
 						{getRoute(URLS.aos, <Console />)}
 						{getRoute(`${URLS.aos}:txid`, <Console />)}
 						{getRoute(URLS.graphql, <GraphQL />)}
-						{getRoute(URLS.docs, <Docs />)}
-						{getRoute(`${URLS.docs}:active/*`, <Docs />)}
 						{getRoute(URLS.notFound, <NotFound />)}
 						{getRoute(`*`, <NotFound />)}
 					</Routes>

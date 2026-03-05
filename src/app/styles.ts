@@ -270,6 +270,7 @@ export const GlobalStyle = createGlobalStyle`
 
   .scroll-wrapper {
     overflow: auto;
+		overscroll-behavior: none;
     
     scrollbar-color: transparent transparent;
     ::-webkit-scrollbar {
@@ -298,6 +299,8 @@ export const GlobalStyle = createGlobalStyle`
 
 	.scroll-wrapper-hidden {
 			overflow: auto;
+			overscroll-behavior: none;
+
 			::-webkit-scrollbar {
 				display: none;
 			}

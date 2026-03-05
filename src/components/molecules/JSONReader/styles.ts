@@ -1,12 +1,14 @@
 import styled from 'styled-components';
 
-export const Wrapper = styled.div<{ noWrapper?: boolean }>`
+export const Wrapper = styled.div<{ noWrapper?: boolean; fixedHeight?: number }>`
 	padding: ${(props) => (props.noWrapper ? '0' : '15px')};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	letter-spacing: 0;
 	position: relative;
+	min-width: 0;
+	${(props) => props.fixedHeight && `height: ${props.fixedHeight}px;`}
 
 	ul {
 		margin: 0 0 0 1.5px !important;
@@ -52,13 +54,15 @@ export const ActionsWrapper = styled.div`
 	}
 `;
 
-export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight: number }>`
-	height: calc(100% - 32.5px);
-	max-height: ${(props) => (props.maxHeight ? `${props.maxHeight.toString()}px` : 'none')};
+export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight?: number; fixedHeight?: number }>`
+	height: ${(props) => (props.fixedHeight ? `calc(${props.fixedHeight}px - 32.5px - 30px)` : 'calc(100% - 32.5px)')};
+	max-height: ${(props) => (props.maxHeight ? `calc(${props.maxHeight.toString()}px - 32.5px - 30px)` : 'none')};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	line-height: 1.6;
 	color: ${(props) => props.theme.colors.editor.primary};
+	min-width: 0;
+	overflow-x: auto;
 `;
 
 export const JSONIndent = styled.div`

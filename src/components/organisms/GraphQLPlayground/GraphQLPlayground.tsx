@@ -95,6 +95,27 @@ export default function GraphQLPlayground(props: {
 		}
 	});
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
+	const layoutTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+	// Trigger layout recalculation when tab becomes active
+	React.useEffect(() => {
+		if (props.active) {
+			// Clear any pending layout timeout
+			if (layoutTimeoutRef.current) {
+				clearTimeout(layoutTimeoutRef.current);
+			}
+			// Trigger layout after a short delay to ensure the display change has taken effect
+			// Dispatch a resize event to trigger Monaco's layout recalculation
+			layoutTimeoutRef.current = setTimeout(() => {
+				window.dispatchEvent(new Event('resize'));
+			}, 50);
+		}
+		return () => {
+			if (layoutTimeoutRef.current) {
+				clearTimeout(layoutTimeoutRef.current);
+			}
+		};
+	}, [props.active]);
 
 	const toggleFullscreen = React.useCallback(async () => {
 		if (!document.fullscreenElement) {
@@ -269,7 +290,7 @@ export default function GraphQLPlayground(props: {
 						}
 					}
 
-					const body: any = { operationName: 'GetTransactions', query: preparedQuery };
+					const body: any = { query: preparedQuery };
 					if (parsedVariables) {
 						body.variables = parsedVariables;
 					}

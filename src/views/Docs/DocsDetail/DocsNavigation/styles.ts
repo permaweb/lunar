@@ -3,10 +3,10 @@ import styled from 'styled-components';
 import { STYLING } from 'helpers/config';
 
 export const NWrapper = styled.div`
-	height: 100vh;
+	min-height: calc(100vh - ${STYLING.dimensions.nav.height});
 	width: ${STYLING.dimensions.nav.width};
 	position: fixed;
-	top: 0;
+	top: ${STYLING.dimensions.nav.height};
 	left: 0;
 	z-index: 4;
 
@@ -14,9 +14,14 @@ export const NWrapper = styled.div`
 	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
+		min-height: 0;
 		height: auto;
-		width: 100%;
+		width: calc(100% - 30px);
+		top: 15px;
+		left: 50%;
+		transform: translate(-50%, 0);
 		position: absolute;
+		border-right: none;
 	}
 `;
 
@@ -24,7 +29,7 @@ export const NContent = styled.div`
 	height: 100%;
 	width: 100%;
 	z-index: 1;
-	padding: 15px 20px;
+	padding: 25px;
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		position: relative;
 		top: auto;
@@ -42,6 +47,7 @@ export const NTitle = styled.div`
 	justify-content: flex-start;
 	align-items: center;
 	margin: 0 0 20px 0;
+	display: none;
 	p {
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-size: 22px !important;
@@ -127,10 +133,12 @@ export const NSubHeader = styled(NTitle)`
 	border-top-left-radius: 0;
 	border-top-right-radius: 0;
 	margin: 0 0 10px 0;
+	display: block;
 	p {
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-size: ${(props) => props.theme.typography.size.small} !important;
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-size: ${(props) => props.theme.typography.size.base} !important;
 		color: ${(props) => props.theme.colors.font.primary} !important;
+		letter-spacing: 0.85px;
 	}
 `;
 

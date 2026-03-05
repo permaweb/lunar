@@ -9,7 +9,6 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 import * as S from './styles';
 import { IProps } from './types';
 
-// TODO
 export default function TxAddress(props: IProps) {
 	const navigate = useNavigate();
 
@@ -74,9 +73,6 @@ export default function TxAddress(props: IProps) {
 	return (
 		<>
 			<S.Wrapper disabled={copied} onClick={handleClick}>
-				{/* <S.IconWrapper>
-					<ReactSVG src={ASSETS.copy} onClick={copied ? () => {} : (e) => copyAddress(e)} />
-				</S.IconWrapper> */}
 				<p>{copied ? `${language.copied}!` : formatAddress(props.address, props.wrap)}</p>
 				<S.IconWrapper>
 					{!copied && (

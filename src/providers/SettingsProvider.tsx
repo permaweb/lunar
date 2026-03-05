@@ -7,7 +7,7 @@ import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
 import { Notification } from 'components/atoms/Notification';
 import { Panel } from 'components/atoms/Panel';
-import { AO_NODE, ASSETS, STYLING } from 'helpers/config';
+import { ASSETS, DEFAULT_AO_NODE, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
 import {
 	darkTheme,
@@ -81,7 +81,7 @@ const defaultSettings: Settings = {
 	showCategoryAction: false,
 	showTopicAction: false,
 	showLinkAction: false,
-	nodes: [{ url: AO_NODE.url, authority: AO_NODE.authority, active: true }],
+	nodes: [{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true }],
 };
 
 const SettingsContext = React.createContext<SettingsContextState>({
@@ -120,7 +120,9 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				syncWithSystem: parsedSettings.syncWithSystem ?? true,
 				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
 				preferredDarkTheme: parsedSettings.preferredDarkTheme ?? 'dark-primary',
-				nodes: parsedSettings.nodes ?? [{ url: AO_NODE.url, authority: AO_NODE.authority, active: true }],
+				nodes: parsedSettings.nodes ?? [
+					{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true },
+				],
 			};
 		} else {
 			settings = {

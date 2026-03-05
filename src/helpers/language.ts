@@ -62,6 +62,7 @@ export const language = {
 		disconnect: `Disconnect`,
 		dismiss: `Dismiss`,
 		done: `Done`,
+		docs: `Docs`,
 		download: `Download`,
 		eclipse: `Eclipse`,
 		edit: `Edit`,

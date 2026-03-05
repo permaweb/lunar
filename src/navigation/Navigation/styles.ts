@@ -13,11 +13,16 @@ export const Header = styled.header<{ navigationOpen: boolean }>`
 	border-bottom: 1px solid transparent;
 
 	&.tabs-view {
-		background: ${(props) => props.theme.colors.container.alt1.background};
 		position: relative;
+		background: ${(props) => props.theme.colors.container.alt1.background};
 		box-shadow: inset 0px 6px 6px -6px ${(props) => props.theme.colors.shadow.primary};
-		border-top: 0.5px solid ${(props) => props.theme.colors.border.primary};
 		border-bottom: 1px solid transparent !important;
+	}
+
+	&.docs-view {
+		background: ${(props) => props.theme.colors.container.primary.background};
+		box-shadow: inset 0px 6px 6px -6px ${(props) => props.theme.colors.shadow.primary};
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 	}
 `;
 
@@ -169,6 +174,7 @@ export const SearchInputWrapper = styled.div`
 	input {
 		background: transparent;
 		padding: 10px 10px 10px 43.5px !important;
+		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	}
 
 	svg {
@@ -284,15 +290,19 @@ export const InfoWrapper = styled.div`
 	align-items: center;
 	justify-content: center;
 	margin: 5px 0 0 5px;
-	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
-	border-radius: ${STYLING.dimensions.radius.alt2};
+	background: ${(props) => props.theme.colors.container.alt2.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	pointer-events: none;
+	padding: 1px 7.5px 1.5px 7.5px !important;
 
 	span {
+		color: ${(props) => props.theme.colors.font.primary} !important;
 		font-family: ${(props) => props.theme.typography.family.alt1} !important;
 		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		text-transform: uppercase !important;
 	}
 `;
 
@@ -399,7 +409,8 @@ export const PWrapper = styled.div`
 	right: 10px;
 	transition: width 50ms ease-out;
 	animation: ${openRight} 200ms;
-	border-radius: ${STYLING.dimensions.radius.primary};
+	background: ${(props) => props.theme.colors.container.alt1.background};
+	border-radius: ${STYLING.dimensions.radius.alt1};
 `;
 
 export const PMenu = styled.div``;

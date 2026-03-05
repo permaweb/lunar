@@ -292,13 +292,23 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 			>
 				<S.Wrapper>
 					<S.PWrapper>
-						<Avatar owner={permawebProvider.profile} dimensions={{ wrapper: 35, icon: 21.5 }} callback={handlePress} />
+						<Avatar
+							owner={permawebProvider.profile}
+							isConnected={!!arProvider.walletAddress}
+							dimensions={{ wrapper: 35, icon: 21.5 }}
+							callback={handlePress}
+						/>
 					</S.PWrapper>
 					{showWalletDropdown && (
 						<S.Dropdown className={'border-wrapper-alt1 fade-in scroll-wrapper-hidden'}>
 							<S.DHeaderWrapper>
 								<S.DHeaderFlex>
-									<Avatar owner={permawebProvider.profile} dimensions={{ wrapper: 32.5, icon: 19.5 }} callback={null} />
+									<Avatar
+										owner={permawebProvider.profile}
+										isConnected={!!arProvider.walletAddress}
+										dimensions={{ wrapper: 32.5, icon: 19.5 }}
+										callback={null}
+									/>
 									<S.DHeader>
 										<p>{label}</p>
 									</S.DHeader>
@@ -317,7 +327,11 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									tokenName={'PI'}
 									denomination={TOKEN_DENOMINATIONS.pi}
 								/>
-								<WalletBalanceSection balanceSource={'arweave'} tokenName={'AR'} denomination={12} />
+								<WalletBalanceSection
+									balanceSource={'arweave'}
+									tokenName={'AR'}
+									denomination={TOKEN_DENOMINATIONS.ar}
+								/>
 							</S.DBalanceWrapper>
 							<S.DBodyWrapper>
 								<li onClick={() => copyAddress(arProvider.walletAddress)}>

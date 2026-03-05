@@ -1,10 +1,10 @@
 import React from 'react';
 import JSONbig from 'json-bigint';
 
-import { Loader } from 'components/atoms/Loader';
+import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { getTxEndpoint } from 'helpers/endpoints';
-import { MessageVariantEnum } from 'helpers/types';
+import { MessageVariantEnum, TagType } from 'helpers/types';
 import { checkValidAddress, getTagValue, removeCommitments, resolveLibDeps, resolveMessageId } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -13,7 +13,14 @@ import { Editor } from '../Editor';
 
 import * as S from './styles';
 
-export default function MessageResult(props: { processId: string; messageId: string; variant: any }) {
+const WRAPPER_HEIGHT = 600;
+
+export default function MessageResult(props: {
+	processId: string;
+	messageId: string;
+	variant: any;
+	tags: TagType[] | null;
+}) {
 	const permawebProvider = usePermawebProvider();
 
 	const languageProvider = useLanguageProvider();
@@ -27,6 +34,7 @@ export default function MessageResult(props: { processId: string; messageId: str
 			if (!result && checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
 				try {
 					let variant = props.variant;
+
 					/* Find the variant of the recipient process to handle messages between networks */
 					try {
 						const processLookup = await permawebProvider.libs.getGQLData({
@@ -106,25 +114,87 @@ export default function MessageResult(props: { processId: string; messageId: str
 		})();
 	}, [data, props.processId, props.messageId]);
 
+	const TagLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
+		const defaultRender = (v: any) => {
+			if (typeof v === 'string' && checkValidAddress(v)) {
+				return <TxAddress address={v} />;
+			}
+			return <p>{v}</p>;
+		};
+
+		const renderContent = render || defaultRender;
+
+		return (
+			<S.TagLine>
+				<span>{label}</span>
+				{value ? renderContent(value) : <p>-</p>}
+			</S.TagLine>
+		);
+	};
+
+	function getTags() {
+		if (!props.tags || props.tags?.length <= 0) return null;
+
+		return (
+			<S.TagsBody>
+				{props.tags.map((tag: { name: string; value: string }, index: number) => (
+					<TagLine key={index} label={tag.name} value={tag.value} />
+				))}
+			</S.TagsBody>
+		);
+	}
+
 	function getData() {
-		if (!data) return null;
+		if (!data) {
+			return (
+				<S.Editor>
+					<Editor
+						initialData={'Loading Input Data...'}
+						header={null}
+						language={'html'}
+						readOnly
+						loading={true}
+						fixedHeight={WRAPPER_HEIGHT / 2}
+					/>
+				</S.Editor>
+			);
+		}
 
 		if (typeof data === 'object') {
-			return <JSONReader data={data} header={language.data} maxHeight={600} />;
+			return <JSONReader data={data} header={null} maxHeight={WRAPPER_HEIGHT / 2} />;
 		}
 
 		return (
 			<S.Editor>
-				<Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} />
+				<Editor
+					initialData={data}
+					header={null}
+					language={'lua'}
+					readOnly
+					loading={false}
+					fixedHeight={WRAPPER_HEIGHT / 2}
+				/>
 			</S.Editor>
 		);
 	}
 
+	function getResult() {
+		return <JSONReader data={result ?? { Result: 'Loading…' }} header={language.result} fixedHeight={WRAPPER_HEIGHT} />;
+	}
+
 	return (
 		<S.Wrapper>
-			{data && getData()}
-			{result && <JSONReader data={result} header={language.result} maxHeight={600} />}
-			{(!data || !result) && <Loader sm relative />}
+			<S.InputWrapper>
+				<S.TagsWrapper className={'border-wrapper-alt3'}>
+					<S.TagsHeader>
+						<p>{language.input}</p>
+						<span>(Tags)</span>
+					</S.TagsHeader>
+					{getTags()}
+				</S.TagsWrapper>
+				<S.DataWrapper>{getData()}</S.DataWrapper>
+			</S.InputWrapper>
+			<S.ResultWrapper>{getResult()}</S.ResultWrapper>
 		</S.Wrapper>
 	);
 }

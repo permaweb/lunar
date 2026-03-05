@@ -1,12 +1,17 @@
 import { getTxEndpoint } from './endpoints';
 
-export const AO_NODE = {
+export const DEFAULT_AO_NODE = {
 	url: 'https://push.forward.computer',
 	authority: 'YUsEnCSlxvOMxRd1qG6rkaPwMgi3xOorfDfYJoMDndA',
 	scheduler: 'n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo',
 };
 
 export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
+
+export const DEFAULT_GATEWAYS = {
+	legacy: 'https://ao-search-gateway.goldsky.com',
+	fallback: 'https://cache.forward.computer/~query@1.0/graphql',
+};
 
 export const PROCESSES = {
 	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
@@ -16,6 +21,7 @@ export const PROCESSES = {
 export const TOKEN_DENOMINATIONS = {
 	ao: 12,
 	pi: 12,
+	ar: 12,
 };
 
 export const ASSETS = {
@@ -148,6 +154,10 @@ export const MINT_ACTIONS = {
 
 export const DEFAULT_AO_TAGS = [{ name: 'Data-Protocol', values: ['ao'] }];
 export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...DEFAULT_AO_TAGS];
+
+export const FLAGS = {
+	CLIENT_SIDE_PAGINATION: false,
+};
 
 export const DOM = {
 	loader: 'loader',

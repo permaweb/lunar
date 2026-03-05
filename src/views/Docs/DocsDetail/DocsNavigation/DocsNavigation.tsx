@@ -69,7 +69,7 @@ export default function DocsNavigation() {
 			<S.NWrapper>
 				<S.NContent>
 					<Title onClick={desktop ? () => {} : () => setOpen(!open)} open={open}>
-						<p>{`[${language.app}]`}</p>
+						<p>{`${language.app}`}</p>
 						{!desktop && <ReactSVG src={ASSETS.arrow} />}
 					</Title>
 					<S.NList>{open && renderNavItems(desktop ? null : () => setOpen(false))}</S.NList>

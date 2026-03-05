@@ -6,8 +6,8 @@ import { useTheme } from 'styled-components';
 
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
-import { ASSETS, STYLING, URLS } from 'helpers/config';
-import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
+import { ASSETS, DEFAULT_GATEWAYS, STYLING, URLS } from 'helpers/config';
+import { checkValidAddress, formatAddress, getTagValue, normalizeGqlResponse } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -103,10 +103,18 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				setTxOutputOpen(true);
 				setLoadingTx(true);
 				try {
-					const response = await permawebProvider.libs.getGQLData({
-						ids: [inputTxId],
-						tags: [{ name: 'Data-Protocol', values: ['ao'] }],
+					let response = await permawebProvider.libs.getGQLData({
+						id: [inputTxId],
 					});
+
+					if (!response.data?.length || response.data?.length <= 0) {
+						response = await permawebProvider.libs.getGQLData({
+							gateway: DEFAULT_GATEWAYS.fallback,
+							id: [inputTxId],
+						});
+						response = normalizeGqlResponse(response);
+					}
+
 					const responseData = response?.data?.[0];
 					setTxResponse(responseData ?? { node: { id: inputTxId, tags: [] } });
 				} catch (e: any) {
@@ -187,9 +195,15 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		location.pathname.startsWith(URLS.aos) ||
 		location.pathname.startsWith(URLS.graphql);
 
+	const isDocsView = location.pathname.startsWith(URLS.docs);
+
 	return (
 		<>
-			<S.Header id={'navigation-header'} navigationOpen={props.open} className={`${isTabsView ? ' tabs-view' : ''}`}>
+			<S.Header
+				id={'navigation-header'}
+				navigationOpen={props.open}
+				className={`${isTabsView ? ' tabs-view' : isDocsView ? ' docs-view' : ''}`}
+			>
 				<S.Content>
 					<S.C1Wrapper>
 						<S.LogoWrapper>
@@ -197,9 +211,6 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								<ReactSVG src={ASSETS.logo} />
 							</Link>
 						</S.LogoWrapper>
-						<S.InfoWrapper className={'info'}>
-							<span>AO Explorer</span>
-						</S.InfoWrapper>
 						<S.DNavWrapper>
 							{paths.map((element: { path: string; label: string; target?: '_blank' }, index: number) => {
 								const active =

@@ -285,6 +285,35 @@ export function lowercaseTagKeys(tags: { name: string; values: string[] }[]): { 
 	}));
 }
 
+export function normalizeGqlResponse(response: any) {
+	if (response?.data) {
+		response.data = response.data.map((item: any) => {
+			if (item?.node?.tags) {
+				return {
+					...item,
+					node: {
+						...item.node,
+						recipient: item.node.recipient ?? getTagValue(item.node.tags, 'Target'),
+						tags: normalizeTagKeys(item.node.tags),
+					},
+				};
+			}
+			return item;
+		});
+	}
+	return response;
+}
+
+export function normalizeTagKeys(tags: { name: string; values: string[] }[]): { name: string; values: string[] }[] {
+	return tags.map((tag) => ({
+		...tag,
+		name: tag.name
+			.split('-')
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+			.join('-'),
+	}));
+}
+
 export async function resolveMessageId(args: {
 	messageId: string;
 	variant: MessageVariantEnum;
