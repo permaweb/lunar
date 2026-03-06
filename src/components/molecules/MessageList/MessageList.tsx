@@ -766,6 +766,12 @@ export default function MessageList(props: {
 								// Use the result prop if provided, otherwise fetch it (unless skipResultFetch is true)
 								let resultResponse = props.result;
 
+								// If skipResultFetch is true and props.result is not yet available, keep loading
+								if (!props.result && props.skipResultFetch) {
+									// Don't set currentData to empty - keep loading state
+									return;
+								}
+
 								if (!props.result && !props.skipResultFetch) {
 									const deps = resolveLibDeps({
 										variant: props.variant,
@@ -799,16 +805,13 @@ export default function MessageList(props: {
 										tags = lowercaseTagKeys(tags);
 									}
 
-									// TODO
 									let gqlResponse = await permawebProvider.libs.getGQLData({
 										tags: [...tags],
 									});
 
-									// let gqlResponse = null
-
 									/* Need multiple single queries here
-									   multivalue_tag_search_not_supported in fallback nodes
-									*/
+   multivalue_tag_search_not_supported in fallback nodes
+*/
 									if (!gqlResponse?.data?.length || gqlResponse?.data?.length <= 0) {
 										/* Create an aggregated response */
 										let fallbackGqlResponse = { data: [] };
@@ -840,6 +843,19 @@ export default function MessageList(props: {
 										}
 
 										if (fallbackGqlResponse.data.length > 0) gqlResponse = fallbackGqlResponse;
+									}
+
+									if (gqlResponse?.data?.length) {
+										const unique = new Map();
+
+										for (const edge of gqlResponse.data) {
+											const reference = getTagValue(edge.node?.tags || edge.tags, 'Reference');
+											if (reference && !unique.has(reference)) {
+												unique.set(reference, edge);
+											}
+										}
+
+										gqlResponse.data = Array.from(unique.values());
 									}
 
 									setCurrentData(gqlResponse.data);
@@ -879,6 +895,7 @@ export default function MessageList(props: {
 		props.txId,
 		props.variant,
 		props.recipient,
+		props.result,
 		currentFilter,
 		toggleFilterChange,
 		pageCursor,
