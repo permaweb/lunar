@@ -25,6 +25,9 @@ import {
 	getTagValue,
 	isNumeric,
 	normalizeGqlResponse,
+	removeCommitments,
+	resolveLibDeps,
+	resolveMessageId,
 } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -82,6 +85,7 @@ function Transaction(props: {
 	const [hasFetched, setHasFetched] = React.useState<boolean>(false);
 	const [error, setError] = React.useState<string | null>(null);
 	const [refreshKey, setRefreshKey] = React.useState<number>(0);
+	const [messageResult, setMessageResult] = React.useState<any>(null);
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
 
@@ -94,6 +98,7 @@ function Transaction(props: {
 	React.useEffect(() => {
 		setHasFetched(false);
 		setTxResponse(null);
+		setMessageResult(null);
 	}, [inputTxId]);
 
 	React.useEffect(() => {
@@ -108,8 +113,8 @@ function Transaction(props: {
 	async function handleSubmit() {
 		if (inputTxId && checkValidAddress(inputTxId)) {
 			setLoadingTx(true);
-			setHasFetched(false);
 			setRefreshKey((prev) => prev + 1);
+			setMessageResult(null);
 			try {
 				let response = await permawebProvider.libs.getGQLData({
 					id: [inputTxId],
@@ -127,6 +132,58 @@ function Transaction(props: {
 				setTxResponse(responseData ?? null);
 				if (responseData) {
 					if (props.onTxChange) props.onTxChange(responseData);
+
+					// Fetch message result if this is a message type
+					// Check both props.type and the actual transaction tags to determine if it's a message
+					const txType = getTagValue(responseData.node.tags, 'Type');
+					const isMessage = props.type === 'message' || txType === 'Message';
+
+					if (isMessage) {
+						try {
+							let variant = getTagValue(responseData.node.tags, 'Variant') as MessageVariantEnum;
+							const recipient = responseData.node?.recipient ?? getTagValue(responseData.node?.tags, 'Target');
+
+							if (recipient && checkValidAddress(recipient)) {
+								// Find the variant of the recipient process to handle messages between networks
+								try {
+									const processLookup = await permawebProvider.libs.getGQLData({
+										ids: [recipient],
+									});
+
+									if (processLookup.data?.length > 0) {
+										const node = processLookup.data[0].node;
+										const processVariant = getTagValue(node.tags, 'Variant') as MessageVariantEnum;
+
+										if (processVariant) variant = processVariant;
+									}
+								} catch (e: any) {
+									console.error(e);
+								}
+
+								const deps = resolveLibDeps({
+									variant: variant,
+									permawebProvider: permawebProvider,
+								});
+
+								const messageId = await resolveMessageId({
+									messageId: inputTxId,
+									variant: variant,
+									target: recipient,
+									permawebProvider: permawebProvider,
+								});
+
+								const resultResponse = await deps.ao.result({
+									process: recipient,
+									message: messageId,
+								});
+
+								setMessageResult(removeCommitments(resultResponse));
+							}
+						} catch (e: any) {
+							console.error('Error fetching message result:', e);
+							setMessageResult({ Response: e.message ?? 'Error Getting Result' });
+						}
+					}
 				} else {
 					/* No response found, create a wallet type */
 					const walletResponse = {
@@ -584,6 +641,8 @@ function Transaction(props: {
 														messageId={inputTxId}
 														variant={variant}
 														tags={txResponse?.node?.tags ?? null}
+														result={messageResult}
+														skipResultFetch={true}
 													/>
 												)}
 											</S.ReadWrapper>
@@ -601,6 +660,8 @@ function Transaction(props: {
 													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 													parentId={inputTxId}
 													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
+													result={messageResult}
+													skipResultFetch={true}
 												/>
 											)}
 										</S.MessageHeaderWrapper>
@@ -741,7 +802,7 @@ function Transaction(props: {
 		}
 
 		return tabs;
-	}, [props.type, inputTxId, arProvider.walletAddress, ownerAddress, language]);
+	}, [props.type, inputTxId, arProvider.walletAddress, ownerAddress, language, messageResult]);
 
 	const contextValue = React.useMemo(
 		() => ({ txResponse, inputTxId, type: props.type, refreshKey }),
