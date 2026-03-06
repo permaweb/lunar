@@ -20,6 +20,8 @@ export default function MessageResult(props: {
 	messageId: string;
 	variant: any;
 	tags: TagType[] | null;
+	result?: any;
+	skipResultFetch?: boolean;
 }) {
 	const permawebProvider = usePermawebProvider();
 
@@ -29,9 +31,44 @@ export default function MessageResult(props: {
 	const [data, setData] = React.useState<any>(null);
 	const [result, setResult] = React.useState<any>(null);
 
+	const resultFetchedRef = React.useRef<boolean>(false);
+	const dataFetchedRef = React.useRef<boolean>(false);
+	const prevProcessIdRef = React.useRef<string>(props.processId);
+	const prevMessageIdRef = React.useRef<string>(props.messageId);
+
+	// Reset refs when processId or messageId changes (for refresh)
+	// Don't clear the data/result state to avoid flicker - keep showing old data until new data arrives
 	React.useEffect(() => {
+		if (prevProcessIdRef.current !== props.processId || prevMessageIdRef.current !== props.messageId) {
+			resultFetchedRef.current = false;
+			dataFetchedRef.current = false;
+			prevProcessIdRef.current = props.processId;
+			prevMessageIdRef.current = props.messageId;
+		}
+	}, [props.processId, props.messageId]);
+
+	React.useEffect(() => {
+		if (resultFetchedRef.current) {
+			// If props.result changes and is different from current result, update it
+			if (props.result && props.result !== result) {
+				setResult(props.result);
+			}
+			return;
+		}
+
+		if (props.result) {
+			setResult(props.result);
+			resultFetchedRef.current = true;
+			return;
+		}
+
+		if (props.skipResultFetch) {
+			return;
+		}
+
 		(async function () {
-			if (!result && checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
+			if (checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
+				resultFetchedRef.current = true;
 				try {
 					let variant = props.variant;
 
@@ -75,11 +112,17 @@ export default function MessageResult(props: {
 				}
 			}
 		})();
-	}, [result, props.processId, props.messageId]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [props.result, props.skipResultFetch, props.processId, props.messageId, result]);
 
 	React.useEffect(() => {
+		if (dataFetchedRef.current) {
+			return;
+		}
+
 		(async function () {
-			if (!data && checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
+			if (checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
+				dataFetchedRef.current = true;
 				try {
 					const messageFetch = await fetch(getTxEndpoint(props.messageId));
 					const rawMessage = await messageFetch.text();
@@ -112,7 +155,7 @@ export default function MessageResult(props: {
 				}
 			}
 		})();
-	}, [data, props.processId, props.messageId]);
+	}, [props.processId, props.messageId]);
 
 	const TagLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
 		const defaultRender = (v: any) => {
@@ -149,11 +192,11 @@ export default function MessageResult(props: {
 			return (
 				<S.Editor>
 					<Editor
-						initialData={'Loading Input Data...'}
+						initialData={language.noData}
 						header={null}
 						language={'html'}
 						readOnly
-						loading={true}
+						loading={false}
 						fixedHeight={WRAPPER_HEIGHT / 2}
 					/>
 				</S.Editor>
@@ -179,7 +222,9 @@ export default function MessageResult(props: {
 	}
 
 	function getResult() {
-		return <JSONReader data={result ?? { Result: 'Loading…' }} header={language.result} fixedHeight={WRAPPER_HEIGHT} />;
+		return (
+			<JSONReader data={result} placeholder={'Loading Result…'} header={language.result} fixedHeight={WRAPPER_HEIGHT} />
+		);
 	}
 
 	return (
