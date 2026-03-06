@@ -406,6 +406,8 @@ export default function MessageList(props: {
 	handleMessageOpen?: (id: string) => void;
 	childList?: boolean;
 	isOverallLast?: boolean;
+	result?: any;
+	skipResultFetch?: boolean;
 }) {
 	const permawebProvider = usePermawebProvider();
 
@@ -761,24 +763,29 @@ export default function MessageList(props: {
 					} else {
 						if (props.recipient) {
 							try {
-								const deps = resolveLibDeps({
-									variant: props.variant,
-									permawebProvider: permawebProvider,
-								});
+								// Use the result prop if provided, otherwise fetch it (unless skipResultFetch is true)
+								let resultResponse = props.result;
 
-								const messageId = await resolveMessageId({
-									messageId: props.txId,
-									variant: props.variant,
-									target: props.recipient,
-									permawebProvider: permawebProvider,
-								});
+								if (!props.result && !props.skipResultFetch) {
+									const deps = resolveLibDeps({
+										variant: props.variant,
+										permawebProvider: permawebProvider,
+									});
 
-								const resultResponse = await deps.ao.result({
-									process: props.recipient,
-									message: messageId,
-								});
+									const messageId = await resolveMessageId({
+										messageId: props.txId,
+										variant: props.variant,
+										target: props.recipient,
+										permawebProvider: permawebProvider,
+									});
 
-								if (resultResponse && !resultResponse.error && resultResponse.Messages.length > 0) {
+									resultResponse = await deps.ao.result({
+										process: props.recipient,
+										message: messageId,
+									});
+								}
+
+								if (resultResponse && !resultResponse.error && resultResponse.Messages?.length > 0) {
 									tags.push(
 										{ name: 'From-Process', values: [props.recipient] },
 										{ name: 'Variant', values: [props.variant] },
@@ -792,14 +799,17 @@ export default function MessageList(props: {
 										tags = lowercaseTagKeys(tags);
 									}
 
+									// TODO
 									let gqlResponse = await permawebProvider.libs.getGQLData({
 										tags: [...tags],
 									});
 
+									// let gqlResponse = null
+
 									/* Need multiple single queries here
 									   multivalue_tag_search_not_supported in fallback nodes
 									*/
-									if (!gqlResponse.data?.length || gqlResponse.data?.length <= 0) {
+									if (!gqlResponse?.data?.length || gqlResponse?.data?.length <= 0) {
 										/* Create an aggregated response */
 										let fallbackGqlResponse = { data: [] };
 

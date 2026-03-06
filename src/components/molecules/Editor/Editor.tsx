@@ -59,6 +59,14 @@ export default function _Editor(props: {
 			{ token: 'delimiter', foreground: strip(theme.colors.editor.alt1) },
 			{ token: 'operator', foreground: strip(theme.colors.editor.alt8) },
 			{ token: 'variable', foreground: strip(theme.colors.editor.alt4) },
+			{ token: 'tag', foreground: strip(theme.colors.editor.alt1) },
+			{ token: 'tag.html', foreground: strip(theme.colors.editor.alt1) },
+			{ token: 'delimiter.html', foreground: strip(theme.colors.editor.alt5) },
+			{ token: 'attribute.name.html', foreground: strip(theme.colors.editor.alt8) },
+			{ token: 'attribute.value.html', foreground: strip(theme.colors.editor.primary) },
+			{ token: 'string.html', foreground: strip(theme.colors.editor.primary) },
+			{ token: 'metatag.html', foreground: strip(theme.colors.editor.alt2) },
+			{ token: 'metatag.content.html', foreground: strip(theme.colors.editor.primary) },
 		];
 	}
 
