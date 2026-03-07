@@ -19,7 +19,7 @@ export const InputWrapper = styled.div`
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: 23.5px;
 `;
 
 export const TagsWrapper = styled.div`

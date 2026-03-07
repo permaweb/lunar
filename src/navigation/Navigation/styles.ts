@@ -10,11 +10,13 @@ export const Header = styled.header<{ navigationOpen: boolean }>`
 	top: 0;
 	z-index: 4;
 	background: ${(props) => props.theme.colors.view.background};
+	border-top: 0.5px solid transparent;
 	border-bottom: 1px solid transparent;
 
 	&.tabs-view {
 		position: relative;
 		background: ${(props) => props.theme.colors.container.alt1.background};
+		border-top: 0.5px solid ${(props) => props.theme.colors.border.primary};
 		box-shadow: inset 0px 6px 6px -6px ${(props) => props.theme.colors.shadow.primary};
 		border-bottom: 1px solid transparent !important;
 	}
@@ -309,7 +311,7 @@ export const InfoWrapper = styled.div`
 export const DNavWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 30px;
+	gap: 25px;
 	margin: 0 0 0 12.5px;
 
 	@media (max-width: ${STYLING.cutoffs.tablet}) {
@@ -321,7 +323,7 @@ export const DNavLink = styled.div<{ active: boolean }>`
 	a {
 		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${(props) => props.theme.typography.size.small};
+		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		text-transform: uppercase;
 		letter-spacing: 0.35px;

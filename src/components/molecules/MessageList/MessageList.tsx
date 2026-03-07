@@ -870,16 +870,11 @@ export default function MessageList(props: {
 					console.error(e);
 				}
 			} else {
-				const arweaveResponse = await fetch(arweaveEndpoint);
-				const currentBlock = (await arweaveResponse.json()).height;
-
 				tags = [...DEFAULT_MESSAGE_TAGS];
 
 				const gqlResponse = await permawebProvider.libs.getGQLData({
 					tags: tags,
 					paginator: perPage,
-					minBlock: currentBlock - 20,
-					maxBlock: currentBlock,
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
 				});
