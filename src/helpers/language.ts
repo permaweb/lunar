@@ -19,7 +19,7 @@ export const language = {
 		authority: `Authority`,
 		availableNodes: `Available Nodes`,
 		bio: `Bio`,
-		blockHeight: `Block Height`,
+		blockHeight: `Scheduled Block Height`,
 		cancel: `Cancel`,
 		changeConnection: `Change Connection`,
 		checking: `Checking`,
