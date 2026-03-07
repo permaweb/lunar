@@ -98,8 +98,8 @@ export const lightThemeHighContrast = {
 	neutral2: '#F9F9F9',
 	neutral3: '#E6E6E6',
 	neutral4: '#999999',
-	neutral5: '#868686',
-	neutral6: '#757575',
+	neutral5: '#757575',
+	neutral6: '#868686',
 	neutral7: '#616161',
 	neutral8: '#424242',
 	neutral9: '#212121',
@@ -206,8 +206,8 @@ export const darkThemeHighContrast = {
 	neutral2: '#111111',
 	neutral3: '#292929',
 	neutral4: '#393939',
-	neutral5: '#909090',
-	neutral6: '#979797',
+	neutral5: '#979797',
+	neutral6: '#909090',
 	neutral7: '#5E5E5E',
 	neutral8: '#6A6A6A',
 	neutral9: '#767676',
@@ -249,6 +249,8 @@ export const darkThemeAlt1 = {
 	primary2: '#D43545',
 	link1: '#4DA8FF',
 	link2: '#0074E4',
+	...common,
+	...common.dark,
 	editor: {
 		primary: '#ff83a6',
 		alt1: '#A3DEE2',
@@ -262,8 +264,22 @@ export const darkThemeAlt1 = {
 		alt9: '#6D909E',
 		alt10: '#BFBFBF',
 	},
-	...common,
-	...common.dark,
+	actions: {
+		eval: '#7EB3B9',
+		info: '#918DA4',
+		balance: '#5F53AD',
+		transfer: '#CF9070',
+		creditNotice: '#5A9AAF',
+		debitNotice: '#C47AA7',
+		mint: '#82B3B9',
+		piDelegationRecords: '#CF9070',
+		reportMint: '#918DA4',
+		setPiIndexWeights: '#5A9AAF',
+		saveDelegationSummary: '#CF9070',
+		nextPiDelegationPage: '#5F53AD',
+		none: '#33353B',
+		other: '#4C8EAD',
+	},
 };
 
 export const darkThemeAlt2 = {
@@ -318,7 +334,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			other: currentTheme.actions.other,
 		},
 		border: {
-			primary: currentTheme.neutral6,
+			primary: currentTheme.neutral5,
 			alt1: currentTheme.neutral7,
 			alt2: currentTheme.neutral8,
 			alt3: currentTheme.neutral9,
@@ -330,7 +346,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		button: {
 			primary: {
 				background: currentTheme.neutral2,
-				border: currentTheme.neutral6,
+				border: currentTheme.neutral5,
 				color: currentTheme.neutralA1,
 				active: {
 					background: currentTheme.primary1,
@@ -441,7 +457,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		},
 		form: {
 			background: currentTheme.neutral1,
-			border: currentTheme.neutral6,
+			border: currentTheme.neutral5,
 			invalid: {
 				outline: currentTheme.negative1,
 				shadow: currentTheme.negative2,

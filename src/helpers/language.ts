@@ -5,7 +5,7 @@ export const language = {
 		addNode: `Add Node`,
 		aoLegacynet: `AO Legacynet`,
 		aoMainnet: `AO Mainnet`,
-		aoCoreExecutions: `AO-Core Executions`,
+		aoCoreExecutions: `AO Core Executions`,
 		aos: `AOS`,
 		aosCommand: `AOS Command`,
 		app: `Lunar`,
