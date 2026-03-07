@@ -123,7 +123,7 @@ export const language = {
 		newTab: `New Tab`,
 		next: `Next`,
 		noData: `No Data`,
-		noDataToDisplay: `No data to display`,
+		noDataToDisplay: `No Data To Display`,
 		noErrors: `No errors`,
 		noReadsYet: `No reads yet`,
 		node: `Node`,

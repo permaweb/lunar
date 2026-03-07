@@ -1,5 +1,5 @@
-import { DEFAULT_SCHEDULER_URL } from './config';
-import { MessageVariantEnum } from './types';
+import { DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL } from './config';
+import { DefaultGQLResponseType, GQLNodeResponseType, MessageVariantEnum, TagType } from './types';
 
 export function checkValidAddress(address: string | null) {
 	if (!address) return false;
@@ -285,26 +285,52 @@ export function lowercaseTagKeys(tags: { name: string; values: string[] }[]): { 
 	}));
 }
 
-export function normalizeGqlResponse(response: any) {
+async function resolveMessageBlock(edge: GQLNodeResponseType) {
+	if (!edge.node?.block && getTagValue(edge.node.tags, 'Variant') === MessageVariantEnum.Legacynet) {
+		try {
+			const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
+			const response = await fetch(`${DEFAULT_LEGACY_SCHEDULER_URL}/${edge.node.id}?process-id=${recipient}`);
+			const parsed = await response.json();
+
+			return {
+				height: getTagValue(parsed.assignment.tags, 'Block-Height')?.replace(/^0+/, ''),
+				timestamp: parseInt(getTagValue(parsed.assignment.tags, 'Timestamp')) / 1000,
+			};
+		} catch (e) {
+			console.error(e);
+			return edge.node.block;
+		}
+	}
+
+	return edge.node.block;
+}
+
+export async function normalizeGqlResponse(response: DefaultGQLResponseType) {
 	if (response?.data) {
-		response.data = response.data.map((item: any) => {
-			if (item?.node?.tags) {
-				return {
-					...item,
-					node: {
-						...item.node,
-						recipient: item.node.recipient ?? getTagValue(item.node.tags, 'Target'),
-						tags: normalizeTagKeys(item.node.tags),
-					},
-				};
-			}
-			return item;
-		});
+		(response as any).data = await Promise.all(
+			response.data.map(async (edge: GQLNodeResponseType) => {
+				if (edge?.node?.tags) {
+					const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
+					const block = await resolveMessageBlock(edge);
+
+					return {
+						...edge,
+						node: {
+							...edge.node,
+							recipient: recipient,
+							tags: normalizeTagKeys(edge.node.tags),
+							block: block,
+						},
+					};
+				}
+				return edge;
+			})
+		);
 	}
 	return response;
 }
 
-export function normalizeTagKeys(tags: { name: string; values: string[] }[]): { name: string; values: string[] }[] {
+export function normalizeTagKeys(tags: TagType[]): TagType[] {
 	return tags.map((tag) => ({
 		...tag,
 		name: tag.name

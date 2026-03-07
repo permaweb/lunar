@@ -131,7 +131,7 @@ export default function MessageResult(props: {
 					const trimmed = raw.trim();
 
 					if (trimmed === '') {
-						setData(language.noData);
+						setData(language.noDataToDisplay);
 					} else {
 						try {
 							const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
@@ -141,12 +141,13 @@ export default function MessageResult(props: {
 								parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0;
 
 							if (isEmptyArray || isEmptyObject) {
-								setData(language.noData);
+								setData(language.noDataToDisplay);
 							} else {
 								setData(parsed);
 							}
 						} catch {
-							setData(trimmed);
+							if (messageFetch.ok) setData(trimmed);
+							else setData(language.noDataToDisplay);
 						}
 					}
 				} catch (e: any) {
@@ -192,7 +193,7 @@ export default function MessageResult(props: {
 			return (
 				<S.Editor>
 					<Editor
-						initialData={language.noData}
+						initialData={language.noDataToDisplay}
 						header={null}
 						language={'html'}
 						readOnly
