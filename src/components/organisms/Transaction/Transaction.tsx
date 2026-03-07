@@ -125,7 +125,7 @@ function Transaction(props: {
 						gateway: DEFAULT_GATEWAYS.fallback,
 						id: [inputTxId],
 					});
-					response = normalizeGqlResponse(response);
+					response = await normalizeGqlResponse(response);
 				}
 
 				const responseData = response?.data?.[0];

@@ -810,8 +810,7 @@ export default function MessageList(props: {
 									});
 
 									/* Need multiple single queries here
-   multivalue_tag_search_not_supported in fallback nodes
-*/
+									   multivalue_tag_search_not_supported in fallback nodes */
 									if (!gqlResponse?.data?.length || gqlResponse?.data?.length <= 0) {
 										/* Create an aggregated response */
 										let fallbackGqlResponse = { data: [] };
@@ -839,7 +838,7 @@ export default function MessageList(props: {
 												}
 											}
 
-											fallbackGqlResponse = normalizeGqlResponse(fallbackGqlResponse);
+											fallbackGqlResponse = await normalizeGqlResponse(fallbackGqlResponse as any);
 										}
 
 										if (fallbackGqlResponse.data.length > 0) gqlResponse = fallbackGqlResponse;

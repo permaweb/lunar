@@ -25,6 +25,7 @@ export type GQLNodeResponseType = {
 	cursor: string | null;
 	node: {
 		id: string;
+		recipient?: string;
 		tags: TagType[];
 		data: {
 			size: string;
