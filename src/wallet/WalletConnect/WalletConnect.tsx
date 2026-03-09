@@ -26,6 +26,150 @@ import { CloseHandler } from 'wrappers/CloseHandler';
 
 import * as S from './styles';
 
+const WalletBalanceSection = React.memo(
+	({
+		balanceSource = 'process',
+		processId,
+		tokenName,
+		denomination,
+		walletAddress,
+		libs,
+		errorFetching,
+		loading,
+		refresh,
+	}: {
+		balanceSource?: 'process' | 'arweave';
+		processId?: string;
+		tokenName: string;
+		denomination: number;
+		walletAddress: string | null;
+		libs: any;
+		errorFetching: string;
+		loading: string;
+		refresh: string;
+	}) => {
+		const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
+		const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
+
+		const hasFetchedRef = React.useRef(false);
+
+		const fetchBalance = React.useCallback(async () => {
+			if (!walletAddress || !checkValidAddress(walletAddress)) return;
+
+			setLoadingBalance(true);
+			setWalletBalance(null);
+
+			try {
+				let response: any = null;
+
+				if (balanceSource === 'arweave') {
+					const arResponse = await fetch(getARBalanceEndpoint(walletAddress));
+					if (!arResponse.ok) {
+						throw new Error(`AR balance request failed with status ${arResponse.status}`);
+					}
+					response = await arResponse.text();
+				} else {
+					if (!processId) {
+						setWalletBalance('Error');
+						return;
+					}
+					response = await libs.readProcess({
+						processId: processId,
+						action: 'Balance',
+						tags: [{ name: 'Recipient', value: walletAddress }],
+					});
+				}
+
+				if (!isNumeric(response)) {
+					setWalletBalance('Error');
+					return;
+				}
+
+				setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
+			} catch (e: any) {
+				console.error(e);
+				setWalletBalance(errorFetching);
+			} finally {
+				setLoadingBalance(false);
+			}
+		}, [balanceSource, processId, denomination, walletAddress, libs, errorFetching]);
+
+		React.useEffect(() => {
+			if (!hasFetchedRef.current && walletAddress && checkValidAddress(walletAddress)) {
+				hasFetchedRef.current = true;
+				fetchBalance();
+			}
+		}, [walletAddress, fetchBalance]);
+
+		let icon = null;
+		let dimensions = 15;
+		let margin = '0';
+		switch (processId) {
+			case PROCESSES.ao:
+				icon = ASSETS.ao;
+				dimensions = 17.5;
+				break;
+			case PROCESSES.pi:
+				dimensions = 10.5;
+				margin = '0 0 6.5px 0';
+				icon = ASSETS.pi;
+				break;
+		}
+
+		if (balanceSource === 'arweave') {
+			dimensions = 12.5;
+			margin = '0 0 4.95px 0';
+			icon = ASSETS.arweave;
+		}
+
+		const getBalanceDisplay = () => {
+			if (!walletBalance) return 'Loading...';
+			return isNumeric(walletBalance) ? formatCount(walletBalance.toString()) : walletBalance;
+		};
+
+		return (
+			<S.BalanceWrapper isNumber={isNumeric(walletBalance)}>
+				{icon && (
+					<S.LogoWrapper>
+						<S.Logo dimensions={dimensions} margin={margin}>
+							<ReactSVG src={icon} />
+						</S.Logo>
+					</S.LogoWrapper>
+				)}
+				<p>{getBalanceDisplay()}</p>
+				{!icon && <span>{tokenName}</span>}
+				<S.Refresh>
+					<IconButton
+						type={'primary'}
+						handlePress={() => {
+							hasFetchedRef.current = false;
+							fetchBalance();
+						}}
+						src={ASSETS.refresh}
+						dimensions={{
+							wrapper: 20,
+							icon: 12.5,
+						}}
+						disabled={loadingBalance}
+						tooltip={loadingBalance ? `${loading}...` : refresh}
+						tooltipPosition={'bottom-right'}
+					/>
+				</S.Refresh>
+			</S.BalanceWrapper>
+		);
+	},
+	(prevProps, nextProps) => {
+		return (
+			prevProps.balanceSource === nextProps.balanceSource &&
+			prevProps.processId === nextProps.processId &&
+			prevProps.tokenName === nextProps.tokenName &&
+			prevProps.denomination === nextProps.denomination &&
+			prevProps.walletAddress === nextProps.walletAddress &&
+			prevProps.libs === nextProps.libs
+		);
+	}
+);
+
 export default function WalletConnect(_props: { callback?: () => void }) {
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
@@ -85,138 +229,6 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 		arProvider.handleDisconnect();
 		setShowWalletDropdown(false);
 	}
-
-	const WalletBalanceSection = React.memo(
-		({
-			balanceSource = 'process',
-			processId,
-			tokenName,
-			denomination,
-		}: {
-			balanceSource?: 'process' | 'arweave';
-			processId?: string;
-			tokenName: string;
-			denomination: number;
-		}) => {
-			const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
-			const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
-
-			const hasFetchedRef = React.useRef(false);
-
-			const fetchBalance = React.useCallback(async () => {
-				if (!arProvider.walletAddress || !checkValidAddress(arProvider.walletAddress)) return;
-
-				setLoadingBalance(true);
-				setWalletBalance(null);
-
-				try {
-					let response: any = null;
-
-					if (balanceSource === 'arweave') {
-						const arResponse = await fetch(getARBalanceEndpoint(arProvider.walletAddress));
-						if (!arResponse.ok) {
-							throw new Error(`AR balance request failed with status ${arResponse.status}`);
-						}
-						response = await arResponse.text();
-					} else {
-						if (!processId) {
-							setWalletBalance('Error');
-							return;
-						}
-						response = await permawebProvider.libs.readProcess({
-							processId: processId,
-							action: 'Balance',
-							tags: [{ name: 'Recipient', value: arProvider.walletAddress }],
-						});
-					}
-
-					if (!isNumeric(response)) {
-						setWalletBalance('Error');
-						return;
-					}
-
-					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
-				} catch (e: any) {
-					console.error(e);
-					setWalletBalance(language.errorFetching);
-				} finally {
-					setLoadingBalance(false);
-				}
-			}, [balanceSource, processId, denomination]);
-
-			React.useEffect(() => {
-				if (!hasFetchedRef.current && arProvider.walletAddress && checkValidAddress(arProvider.walletAddress)) {
-					hasFetchedRef.current = true;
-					fetchBalance();
-				}
-			}, [arProvider.walletAddress, fetchBalance]);
-
-			let icon = null;
-			let dimensions = 15;
-			let margin = '0';
-			switch (processId) {
-				case PROCESSES.ao:
-					icon = ASSETS.ao;
-					dimensions = 17.5;
-					break;
-				case PROCESSES.pi:
-					dimensions = 10.5;
-					margin = '0 0 6.5px 0';
-					icon = ASSETS.pi;
-					break;
-			}
-
-			if (balanceSource === 'arweave') {
-				dimensions = 12.5;
-				margin = '0 0 4.95px 0';
-				icon = ASSETS.arweave;
-			}
-
-			const getBalanceDisplay = () => {
-				if (!walletBalance) return 'Loading...';
-				return isNumeric(walletBalance) ? formatCount(walletBalance.toString()) : walletBalance;
-			};
-
-			return (
-				<S.BalanceWrapper isNumber={isNumeric(walletBalance)}>
-					{icon && (
-						<S.LogoWrapper>
-							<S.Logo dimensions={dimensions} margin={margin}>
-								<ReactSVG src={icon} />
-							</S.Logo>
-						</S.LogoWrapper>
-					)}
-					<p>{getBalanceDisplay()}</p>
-					{!icon && <span>{tokenName}</span>}
-					<S.Refresh>
-						<IconButton
-							type={'primary'}
-							handlePress={() => {
-								hasFetchedRef.current = false;
-								fetchBalance();
-							}}
-							src={ASSETS.refresh}
-							dimensions={{
-								wrapper: 20,
-								icon: 12.5,
-							}}
-							disabled={loadingBalance}
-							tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
-							tooltipPosition={'bottom-right'}
-						/>
-					</S.Refresh>
-				</S.BalanceWrapper>
-			);
-		},
-		(prevProps, nextProps) => {
-			return (
-				prevProps.balanceSource === nextProps.balanceSource &&
-				prevProps.processId === nextProps.processId &&
-				prevProps.tokenName === nextProps.tokenName &&
-				prevProps.denomination === nextProps.denomination
-			);
-		}
-	);
 
 	const THEMES = {
 		light: {
@@ -320,17 +332,32 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									processId={PROCESSES.ao}
 									tokenName={'AO'}
 									denomination={TOKEN_DENOMINATIONS.ao}
+									walletAddress={arProvider.walletAddress}
+									libs={permawebProvider.libs}
+									errorFetching={language.errorFetching}
+									loading={language.loading}
+									refresh={language.refresh}
 								/>
 								<WalletBalanceSection
 									balanceSource={'process'}
 									processId={PROCESSES.pi}
 									tokenName={'PI'}
 									denomination={TOKEN_DENOMINATIONS.pi}
+									walletAddress={arProvider.walletAddress}
+									libs={permawebProvider.libs}
+									errorFetching={language.errorFetching}
+									loading={language.loading}
+									refresh={language.refresh}
 								/>
 								<WalletBalanceSection
 									balanceSource={'arweave'}
 									tokenName={'AR'}
 									denomination={TOKEN_DENOMINATIONS.ar}
+									walletAddress={arProvider.walletAddress}
+									libs={permawebProvider.libs}
+									errorFetching={language.errorFetching}
+									loading={language.loading}
+									refresh={language.refresh}
 								/>
 							</S.DBalanceWrapper>
 							<S.DBodyWrapper>
