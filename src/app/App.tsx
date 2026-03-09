@@ -130,6 +130,8 @@ export default function App() {
 						{getRoute(URLS.aos, <Console />)}
 						{getRoute(`${URLS.aos}:txid`, <Console />)}
 						{getRoute(URLS.graphql, <GraphQL />)}
+						{getRoute(URLS.docs, <Docs />)}
+						{getRoute(`${URLS.docs}:active/*`, <Docs />)}
 						{getRoute(URLS.notFound, <NotFound />)}
 						{getRoute(`*`, <NotFound />)}
 					</Routes>
