@@ -66,32 +66,6 @@ export default defineConfig({
 					},
 				},
 			],
-			output: {
-				manualChunks: (id: string) => {
-					if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-						return 'vendor';
-					}
-					if (id.includes('@permaweb/aoconnect')) {
-						return 'ao-connect';
-					}
-					if (id.includes('@permaweb/libs') || id.includes('arweave')) {
-						return 'permaweb-libs';
-					}
-					if (id.includes('@stripe/')) {
-						return 'stripe';
-					}
-					if (
-						id.includes('html-react-parser') ||
-						id.includes('react-markdown') ||
-						id.includes('react-svg') ||
-						id.includes('webfontloader')
-					) {
-						return 'utils';
-					}
-
-					return undefined;
-				},
-			},
 		},
 	},
 	server: {
