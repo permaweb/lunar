@@ -2,6 +2,20 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
+		<script>
+			(function () {
+				const path = window.location.pathname || '/';
+				const basePath =
+					path === '/'
+						? '/'
+						: /\.[^/]+$/.test(path)
+						? path.replace(/[^/]*$/, '') || '/'
+						: `${path.replace(/\/+$/, '')}/`;
+				const base = document.createElement('base');
+				base.href = basePath;
+				document.head.appendChild(base);
+			})();
+		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 		<link rel="icon" href="favicon.svg" />
@@ -136,9 +150,9 @@
 		<script type="module" src="/src/index.tsx"></script>
 		<script
 			async
-			src="https://ackee.frogfishsolutions.io/tracker.js"
-			data-ackee-server="https://ackee.frogfishsolutions.io"
-			data-ackee-domain-id="78be6b29-a8f0-4210-9dfd-ad232909d50a"
+			src="https://analytics.forward.computer/tracker.js"
+			data-ackee-server="https://analytics.forward.computer"
+			data-ackee-domain-id="80a10310-19e3-40a7-a953-a17c6282c1f8"
 		></script>
 	</body>
 </html>
