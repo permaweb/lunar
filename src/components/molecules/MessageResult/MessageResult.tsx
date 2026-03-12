@@ -22,6 +22,7 @@ export default function MessageResult(props: {
 	tags: TagType[] | null;
 	result?: any;
 	skipResultFetch?: boolean;
+	active: boolean;
 }) {
 	const permawebProvider = usePermawebProvider();
 

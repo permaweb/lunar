@@ -286,7 +286,10 @@ export function lowercaseTagKeys(tags: { name: string; values: string[] }[]): { 
 }
 
 async function resolveMessageBlock(edge: GQLNodeResponseType) {
-	if (getTagValue(edge.node.tags, 'Variant') === MessageVariantEnum.Legacynet) {
+	if (
+		getTagValue(edge.node.tags, 'Variant') === MessageVariantEnum.Legacynet &&
+		getTagValue(edge.node.tags, 'Type') === 'Message'
+	) {
 		try {
 			const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
 			const response = await fetch(`${DEFAULT_LEGACY_SCHEDULER_URL}/${edge.node.id}?process-id=${recipient}`);

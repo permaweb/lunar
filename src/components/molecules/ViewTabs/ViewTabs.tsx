@@ -12,6 +12,32 @@ import { BaseTabType } from 'helpers/types';
 import * as S from './styles';
 import { TabsContainerProps } from './types';
 
+// Render a single tab pane and avoid recalculating heavy children when inactive
+const TabPane = React.memo(
+	function TabPane<T>({
+		tab,
+		index,
+		isActive,
+		renderContent,
+	}: {
+		tab: T;
+		index: number;
+		isActive: boolean;
+		renderContent: (tab: T, index: number, isActive: boolean) => React.ReactNode;
+	}) {
+		const content = React.useMemo(() => renderContent(tab, index, isActive), [tab, index, isActive, renderContent]);
+
+		return (
+			<S.ContentWrapper active={isActive} data-tab-key={(tab as any).tabKey ?? index}>
+				{content}
+			</S.ContentWrapper>
+		);
+	},
+	(prev, next) => {
+		return prev.tab === next.tab && prev.isActive === next.isActive && prev.index === next.index;
+	}
+);
+
 export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProps<T>) {
 	const tabsRef = React.useRef<HTMLDivElement>(null);
 	const [showClearConfirmation, setShowClearConfirmation] = React.useState<boolean>(false);
@@ -373,9 +399,13 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 							}
 
 							return (
-								<S.ContentWrapper key={tab.tabKey} active={isActive}>
-									{props.renderContent(tab, index, isActive)}
-								</S.ContentWrapper>
+								<TabPane
+									key={tab.tabKey}
+									tab={tab}
+									index={index}
+									isActive={isActive}
+									renderContent={props.renderContent}
+								/>
 							);
 						})}
 					</>
