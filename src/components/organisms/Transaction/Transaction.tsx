@@ -644,6 +644,7 @@ function Transaction(props: {
 														tags={txResponse?.node?.tags ?? null}
 														result={messageResult}
 														skipResultFetch={true}
+														active={props.active}
 													/>
 												)}
 											</S.ReadWrapper>

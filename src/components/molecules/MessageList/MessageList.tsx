@@ -42,6 +42,8 @@ import { Editor } from '../Editor';
 
 import * as S from './styles';
 
+// TODO: Fix paganation
+
 function Message(props: {
 	element: Types.GQLNodeResponseType;
 	type: TransactionType;

@@ -238,12 +238,11 @@ export const PlaceholderFull = styled(Placeholder)`
 `;
 
 export const ContentWrapper = styled.div<{ active: boolean }>`
-	display: block;
-	visibility: ${(props) => (props.active ? 'visible' : 'hidden')};
-	height: ${(props) => (props.active ? 'auto' : '0')};
-	overflow: ${(props) => (props.active ? 'visible' : 'hidden')};
-	position: ${(props) => (props.active ? 'relative' : 'absolute')};
-	pointer-events: ${(props) => (props.active ? 'auto' : 'none')};
+	display: ${(props) => (props.active ? 'block' : 'none')};
+	position: relative;
+	width: 100%;
+	/* Avoid expensive painting on hidden tabs while keeping active tab fully sized */
+	contain: layout paint style;
 `;
 
 export const ModalWrapper = styled.div`

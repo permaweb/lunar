@@ -11,7 +11,8 @@ export const DEFAULT_LEGACY_SCHEDULER_URL = 'https://su-router.ao-testnet.xyz';
 
 export const DEFAULT_GATEWAYS = {
 	legacy: 'https://ao-search-gateway.goldsky.com',
-	fallback: 'https://cache.forward.computer/~query@1.0/graphql',
+	// fallback: 'https://cache.forward.computer/~query@1.0/graphql', // TODO
+	fallback: 'http://localhost:8734/~query@1.0/graphql',
 };
 
 export const PROCESSES = {
