@@ -4,7 +4,6 @@ import { Types } from '@permaweb/libs';
 export const ADD_TRANSACTION = 'ADD_TRANSACTION';
 export const GET_TRANSACTION = 'GET_TRANSACTION';
 
-// Action interfaces
 interface AddTransactionAction {
 	type: typeof ADD_TRANSACTION;
 	payload: {
@@ -20,14 +19,12 @@ interface GetTransactionAction {
 
 export type TransactionActionTypes = AddTransactionAction | GetTransactionAction;
 
-// State interface
 export interface TransactionState {
 	[id: string]: Types.GQLNodeResponseType;
 }
 
 const initialState: TransactionState = {};
 
-// Reducer
 export default function transactionReducer(state = initialState, action: TransactionActionTypes): TransactionState {
 	switch (action.type) {
 		case ADD_TRANSACTION:
@@ -40,7 +37,6 @@ export default function transactionReducer(state = initialState, action: Transac
 	}
 }
 
-// Action creators
 export const addTransaction = (id: string, data: Types.GQLNodeResponseType): AddTransactionAction => ({
 	type: ADD_TRANSACTION,
 	payload: { id, data },
@@ -51,7 +47,6 @@ export const getTransaction = (id: string): GetTransactionAction => ({
 	payload: id,
 });
 
-// Selector
 export const selectTransaction = (state: { transactions: TransactionState }, id: string) => {
 	return state.transactions[id] || null;
 };
