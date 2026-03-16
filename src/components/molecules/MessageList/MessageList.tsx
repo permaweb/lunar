@@ -1,5 +1,6 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
+import { useDispatch } from 'react-redux';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
@@ -11,6 +12,7 @@ import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Panel } from 'components/atoms/Panel';
 import { TxAddress } from 'components/atoms/TxAddress';
+import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
 import {
 	ASSETS,
@@ -22,6 +24,7 @@ import {
 	TAGS,
 } from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { searchTxById } from 'helpers/search';
 import { MessageFilterType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
 	checkValidAddress,
@@ -37,8 +40,7 @@ import {
 } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
-
-import { Editor } from '../Editor';
+import { store } from 'store';
 
 import * as S from './styles';
 
@@ -251,7 +253,9 @@ function Message(props: {
 			return <JSONReader data={data} header={language.data} maxHeight={600} noFullScreen />;
 		}
 
-		return <Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} />;
+		return (
+			<Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} fixedHeight={450} />
+		);
 	}
 
 	const OverlayLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
@@ -312,6 +316,19 @@ function Message(props: {
 							</S.OverlayInfoLineValue>
 							<TxAddress
 								address={props.element.node.id}
+								tooltipPosition={'bottom-right'}
+								handlePress={() => {
+									setShowViewData(false);
+									setShowViewResult(false);
+								}}
+							/>
+						</S.OverlayInfoLine>
+						<S.OverlayInfoLine>
+							<S.OverlayInfoLineValue>
+								<p>{`${language.owner}: `}</p>
+							</S.OverlayInfoLineValue>
+							<TxAddress
+								address={props.element.node.owner?.address ?? '-'}
 								tooltipPosition={'bottom-right'}
 								handlePress={() => {
 									setShowViewData(false);
@@ -407,8 +424,11 @@ export default function MessageList(props: {
 	childList?: boolean;
 	isOverallLast?: boolean;
 	result?: any;
+	authority?: string;
 	skipResultFetch?: boolean;
 }) {
+	const dispatch = useDispatch();
+
 	const permawebProvider = usePermawebProvider();
 
 	const languageProvider = useLanguageProvider();
@@ -536,14 +556,15 @@ export default function MessageList(props: {
 
 	async function checkIsProcess(address: string): Promise<boolean> {
 		try {
-			const response = await permawebProvider.libs.getGQLData({
-				ids: [address],
+			const response = await searchTxById({
+				txId: address,
+				getGQLData: permawebProvider.libs.getGQLData,
+				store: store,
+				dispatch: dispatch,
 			});
 
-			if (response?.data?.length) {
-				const type = getTagValue(response.data[0].node.tags, 'Type');
-				return type === 'Process';
-			}
+			const type = getTagValue(response.node?.tags, 'Type');
+			return type === 'Process';
 
 			return false;
 		} catch (e) {
@@ -570,7 +591,7 @@ export default function MessageList(props: {
 		}
 	}
 
-	function getOutgoingGQLArgs(outgoingTags) {
+	async function getOutgoingGQLArgs(outgoingTags) {
 		switch (props.type) {
 			case 'process':
 			case 'message':
@@ -582,7 +603,10 @@ export default function MessageList(props: {
 					tags = lowercaseTagKeys(tags);
 				}
 
-				return { tags: [...tags] };
+				return {
+					tags: [...tags],
+					owners: [props.authority ?? ''],
+				};
 			case 'wallet':
 				return {
 					tags: [...outgoingTags],
@@ -656,7 +680,7 @@ export default function MessageList(props: {
 
 					let outgoingQueryArgs: any = {
 						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
-						...getOutgoingGQLArgs(tags),
+						...(await getOutgoingGQLArgs(tags)),
 					};
 
 					// Add time range filters for outgoing
@@ -737,7 +761,7 @@ export default function MessageList(props: {
 										: {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
-									...getOutgoingGQLArgs(tags),
+									...(await getOutgoingGQLArgs(tags)),
 								};
 
 								// Add time range filters
@@ -758,6 +782,7 @@ export default function MessageList(props: {
 							default:
 								break;
 						}
+
 						setCurrentData(gqlResponse.data);
 						setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
 					} else {
@@ -807,6 +832,7 @@ export default function MessageList(props: {
 
 									let gqlResponse = await permawebProvider.libs.getGQLData({
 										tags: [...tags],
+										owners: [props.authority ?? ''],
 									});
 
 									/* Need multiple single queries here

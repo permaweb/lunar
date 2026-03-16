@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { Link, useLocation } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { debounce } from 'lodash';
@@ -6,17 +7,20 @@ import { useTheme } from 'styled-components';
 
 import { FormField } from 'components/atoms/FormField';
 import { IconButton } from 'components/atoms/IconButton';
-import { ASSETS, DEFAULT_GATEWAYS, STYLING, URLS } from 'helpers/config';
-import { checkValidAddress, formatAddress, getTagValue, normalizeGqlResponse } from 'helpers/utils';
+import { ASSETS, STYLING, URLS } from 'helpers/config';
+import { searchTxById } from 'helpers/search';
+import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
+import { store } from 'store';
 import { WalletConnect } from 'wallet/WalletConnect';
 import { CloseHandler } from 'wrappers/CloseHandler';
 
 import * as S from './styles';
 
 export default function Navigation(props: { open: boolean; toggle: () => void }) {
+	const dispatch = useDispatch();
 	const location = useLocation();
 	const theme = useTheme();
 
@@ -103,22 +107,17 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				setTxOutputOpen(true);
 				setLoadingTx(true);
 				try {
-					let response = await permawebProvider.libs.getGQLData({
-						id: [inputTxId],
+					const response = await searchTxById({
+						txId: inputTxId,
+						getGQLData: permawebProvider.libs.getGQLData,
+						store: store,
+						dispatch: dispatch,
 					});
 
-					if (!response.data?.length || response.data?.length <= 0) {
-						response = await permawebProvider.libs.getGQLData({
-							gateway: DEFAULT_GATEWAYS.fallback,
-							id: [inputTxId],
-						});
-						response = await normalizeGqlResponse(response);
-					}
-
-					const responseData = response?.data?.[0];
-					setTxResponse(responseData ?? { node: { id: inputTxId, tags: [] } });
+					setTxResponse(response ?? { node: { id: inputTxId, tags: [] } });
 				} catch (e: any) {
 					console.error(e);
+					setTxResponse(null);
 				}
 				setLoadingTx(false);
 			} else {

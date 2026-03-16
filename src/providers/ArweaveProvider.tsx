@@ -4,7 +4,6 @@ import { Modal } from 'components/atoms/Modal';
 import { ASSETS, LINKS, STORAGE } from 'helpers/config';
 import { getARBalanceEndpoint } from 'helpers/endpoints';
 import { WalletEnum } from 'helpers/types';
-import Othent from 'helpers/wallet';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -117,17 +116,14 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 		}
 	}
 
-	async function handleConnect(walletType: WalletEnum.arConnect | WalletEnum.othent) {
+	async function handleConnect(walletType: WalletEnum.wander) {
 		let walletObj: any = null;
 		switch (walletType) {
-			case WalletEnum.arConnect:
+			case WalletEnum.wander:
 				handleArConnect();
 				break;
-			case WalletEnum.othent:
-				handleOthent();
-				break;
 			default:
-				if (window.arweaveWallet || walletType === WalletEnum.arConnect) {
+				if (window.arweaveWallet || walletType === WalletEnum.wander) {
 					handleArConnect();
 					break;
 				}
@@ -143,23 +139,14 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 					await global.window?.arweaveWallet?.connect(WALLET_PERMISSIONS as any);
 					setWalletAddress(await global.window.arweaveWallet.getActiveAddress());
 					setWallet(window.arweaveWallet);
-					setWalletType(WalletEnum.arConnect);
+					setWalletType(WalletEnum.wander);
 					setWalletModalVisible(false);
-					localStorage.setItem(STORAGE.walletType, WalletEnum.arConnect);
+					localStorage.setItem(STORAGE.walletType, WalletEnum.wander);
 				} catch (e: any) {
 					console.error(e);
 				}
 			}
 		}
-	}
-
-	async function handleOthent() {
-		Othent.init();
-		await window.arweaveWallet.connect(WALLET_PERMISSIONS as any);
-		setWallet(window.arweaveWallet);
-		setWalletAddress(Othent.getUserInfo().walletAddress);
-		setWalletType(WalletEnum.othent);
-		localStorage.setItem(STORAGE.walletType, WalletEnum.othent);
 	}
 
 	async function handleDisconnect() {
