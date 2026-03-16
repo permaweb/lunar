@@ -196,7 +196,7 @@ export default function MessageResult(props: {
 					<Editor
 						initialData={language.noDataToDisplay}
 						header={null}
-						language={'html'}
+						language={'lua'}
 						readOnly
 						loading={false}
 						fixedHeight={WRAPPER_HEIGHT / 2}

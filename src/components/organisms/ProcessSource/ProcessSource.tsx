@@ -72,7 +72,7 @@ export default function ProcessSource(props: { processId: string; onBoot?: strin
 
 	return src ? (
 		<S.Wrapper ref={editorRef}>
-			<Editor initialData={src} language={'lua'} readOnly loading={!src} />
+			<Editor initialData={src} language={'lua'} readOnly loading={!src} fixedHeight={900} />
 		</S.Wrapper>
 	) : (
 		<Loader sm relative />
