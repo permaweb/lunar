@@ -896,14 +896,29 @@ export default function MessageList(props: {
 					console.error(e);
 				}
 			} else {
-				tags = [...DEFAULT_MESSAGE_TAGS];
+				tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
 
-				const gqlResponse = await permawebProvider.libs.getGQLData({
+				let globalQueryArgs: any = {
 					tags: tags,
 					paginator: perPage,
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
-				});
+				};
+
+				// Add time range filters
+				if (appliedStartDate) {
+					globalQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+				}
+				if (appliedEndDate) {
+					globalQueryArgs.maxBlock = await timestampToBlockHeight(
+						dateToTimestamp({
+							...appliedEndDate,
+							day: appliedEndDate.day + 1,
+						})
+					);
+				}
+
+				const gqlResponse = await permawebProvider.libs.getGQLData(globalQueryArgs);
 
 				setTotalCount(gqlResponse.count);
 				setCurrentData(gqlResponse.data);
