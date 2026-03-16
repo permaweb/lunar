@@ -116,7 +116,7 @@ export const DateRangeHeader = styled.div`
 	width: 100%;
 
 	button {
-		border-radius: ${STYLING.dimensions.radius.primary} !important;
+		border-radius: ${STYLING.dimensions.radius.alt2} !important;
 	}
 `;
 
@@ -303,6 +303,7 @@ export const Variant = styled.div`
 	justify-content: center;
 	background: ${(props) => props.theme.colors.container.primary.active};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt3} !important;
 
 	span {
 		color: ${(props) => props.theme.colors.font.primary} !important;

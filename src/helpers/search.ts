@@ -8,9 +8,15 @@ import { getTagValue, normalizeGqlResponse } from './utils';
 
 const MAX_DEPTH = 10;
 
-function cacheTransaction(response: Types.GQLNodeResponseType, args: SearchTxArgs) {
-	if (response?.node?.block && args.store && args.dispatch) {
-		args.dispatch(addTransaction(args.txId, response));
+function cacheTransaction(
+	response: Types.GQLNodeResponseType,
+	args: SearchTxArgs,
+	opts?: { skipBlockHeightCheck: boolean }
+) {
+	if (args.store && args.dispatch) {
+		if (opts?.skipBlockHeightCheck || response?.node?.block) {
+			args.dispatch(addTransaction(args.txId, response));
+		}
 	}
 }
 
@@ -37,6 +43,35 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 		const responseData = response?.data?.[0];
 
 		if (!responseData) {
+			/* Check if this is a wallet based on activity */
+			try {
+				const activityResponse = await args.getGQLData({
+					owners: [args.txId],
+				});
+
+				if (activityResponse?.data?.length > 0) {
+					const walletResponse = {
+						cursor: null,
+						node: {
+							id: args.txId,
+							tags: [{ name: 'Type', value: 'Wallet' }],
+							data: null,
+							owner: {
+								address: null,
+							},
+							block: {
+								height: null,
+								timestamp: null,
+							},
+						},
+					};
+
+					cacheTransaction(walletResponse as Types.GQLNodeResponseType, args, { skipBlockHeightCheck: true });
+				}
+			} catch (e: any) {
+				console.error(e);
+			}
+
 			return null;
 		}
 

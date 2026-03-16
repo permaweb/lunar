@@ -138,6 +138,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 
 		if (txResponse) {
 			const name = getTagValue(txResponse.node.tags, 'Name');
+			const type = getTagValue(txResponse.node.tags, 'Type');
 
 			return (
 				<S.SearchResult>
@@ -150,7 +151,10 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							setSearchOpen(false);
 						}}
 					>
-						{name || formatAddress(txResponse.node.id, false)}
+						<S.SearchResultInfo>
+							<ReactSVG src={ASSETS[type?.toLowerCase()] ?? ASSETS.transaction} />
+							{`${name || formatAddress(txResponse.node.id, false)}`}
+						</S.SearchResultInfo>
 						<ReactSVG src={ASSETS.go} />
 					</Link>
 				</S.SearchResult>
