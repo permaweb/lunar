@@ -8,11 +8,16 @@ import { getTagValue, normalizeGqlResponse } from './utils';
 
 const MAX_DEPTH = 10;
 
+function cacheTransaction(response: Types.GQLNodeResponseType, args: SearchTxArgs) {
+	if (response?.node?.block && args.store && args.dispatch) {
+		args.dispatch(addTransaction(args.txId, response));
+	}
+}
+
 export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<Types.GQLNodeResponseType> {
 	if (args.store) {
 		const cached = selectTransaction(args.store.getState(), args.txId);
 		if (cached) {
-			console.log('Using cached');
 			return cached;
 		}
 	}
@@ -30,7 +35,10 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 		}
 
 		const responseData = response?.data?.[0];
-		if (!responseData) return null;
+
+		if (!responseData) {
+			return null;
+		}
 
 		/* Filter pushed messages by checking the authority */
 		const fromProcess = getTagValue(responseData.node?.tags, 'From-Process');
@@ -38,11 +46,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 
 		// No authority check needed
 		if (!fromProcess || !messageOwner) {
-			// Cache transaction if it has a block (only confirmed transactions)
-			if (responseData.node?.block && args.store && args.dispatch) {
-				args.dispatch(addTransaction(args.txId, responseData));
-			}
-
+			cacheTransaction(responseData, args);
 			return responseData;
 		}
 
@@ -70,11 +74,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 				return null;
 			}
 
-			// Cache transaction if it has a block (only confirmed transactions)
-			if (responseData.node?.block && args.store && args.dispatch) {
-				args.dispatch(addTransaction(args.txId, responseData));
-			}
-
+			cacheTransaction(responseData, args);
 			return responseData;
 		} catch (e: any) {
 			console.error(e);

@@ -67,6 +67,7 @@ export const Dropdown = styled.div`
 	z-index: 1;
 	top: 42.5px;
 	right: -1.5px;
+	overscroll-behavior: none;
 `;
 
 export const DHeaderWrapper = styled.div`

@@ -29,8 +29,9 @@ export default function ProcessEditor(props: {
 
 	React.useEffect(() => {
 		if (editorRef.current) {
+			const element = editorRef.current;
 			setTimeout(() => {
-				editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			}, 10);
 		}
 	}, []);
