@@ -569,19 +569,16 @@ function Transaction(props: {
 			if (contentType && contentType.startsWith('image/')) {
 				return (
 					<S.DataSection>
-						{/* <S.SectionHeader>
-							<p>{language.data}</p>
-						</S.SectionHeader> */}
 						<img src={getTxEndpoint(inputTxId)} alt={'Transaction data'} style={{ maxWidth: '100%', height: 'auto' }} />
 					</S.DataSection>
 				);
 			}
 
 			if (typeof data === 'object') {
-				return <JSONReader data={data} header={language.data} maxHeight={600} />;
+				return <JSONReader data={data} header={null} maxHeight={600} />;
 			}
 
-			return <Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} />;
+			return <Editor initialData={data} header={null} language={'lua'} readOnly loading={false} fixedHeight={600} />;
 		}
 
 		return <>{getDataContent()}</>;

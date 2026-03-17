@@ -13,6 +13,7 @@ export const Wrapper = styled.div<{
 	background: ${(props) =>
 		props.hasOwner ? props.theme.colors.container.alt1.background : props.theme.colors.container.alt1.background};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	border-radius: 50%;
 	overflow: hidden;
 	display: flex;
