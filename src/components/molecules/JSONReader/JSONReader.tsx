@@ -22,6 +22,7 @@ export default function _JSONTree(props: {
 	fixedHeight?: number;
 	noWrapper?: boolean;
 	noFullScreen?: boolean;
+	filename?: string;
 }) {
 	const navigate = useNavigate();
 
@@ -81,7 +82,7 @@ export default function _JSONTree(props: {
 			const url = URL.createObjectURL(blob);
 			const link = document.createElement('a');
 			link.href = url;
-			link.download = 'data.json';
+			link.download = props.filename ? `${props.filename}.json` : 'result.json';
 			document.body.appendChild(link);
 			link.click();
 			document.body.removeChild(link);
@@ -770,6 +771,7 @@ export default function _JSONTree(props: {
 								wrapper: 25,
 								icon: 12.5,
 							}}
+							padding={'3.95px 0 0 0'}
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'bottom-right'}
 						/>
@@ -783,6 +785,7 @@ export default function _JSONTree(props: {
 							wrapper: 25,
 							icon: 12.5,
 						}}
+						padding={'3.5px 0 0 0'}
 						tooltip={language.downloadJSON ?? 'Download JSON'}
 						tooltipPosition={'bottom-right'}
 					/>
