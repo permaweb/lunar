@@ -464,7 +464,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			},
 			valid: {
 				outline: currentTheme.primary1,
-				shadow: currentTheme.primary2,
+				shadow: currentTheme.shadow1,
 			},
 			disabled: {
 				background: currentTheme.neutral2,

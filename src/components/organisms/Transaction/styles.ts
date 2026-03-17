@@ -257,12 +257,14 @@ export const SectionFullUpdateWrapper = styled.div`
 `;
 
 export const SearchWrapper = styled.div`
+	height: 38.5px;
 	max-width: 100%;
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: 15px;
 	position: relative;
+	padding: 0 0 0 0.5px;
 `;
 
 export const SearchInputWrapper = styled.div`

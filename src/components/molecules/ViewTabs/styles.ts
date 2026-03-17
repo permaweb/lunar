@@ -72,7 +72,8 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	font-size: ${(props) => props.theme.typography.size.xSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	font-family: ${(props) => props.theme.typography.family.primary};
-	color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt3)};
+	color: ${(props) =>
+		props.active && !props.disabled ? props.theme.colors.font.primary : props.theme.colors.font.alt3};
 	cursor: pointer;
 	position: relative;
 	z-index: 1;
@@ -85,6 +86,7 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	background: ${(props) => (props.active ? props.theme.colors.view.background : 'transparent')};
 	border-bottom: 1px solid ${(props) => (props.active ? 'transparent' : props.theme.colors.border.primary)};
 	border-top: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
+	cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
 
 	white-space: nowrap;
 	transition: all 100ms;
@@ -122,11 +124,11 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	}
 
 	&:hover .normal-icon {
-		display: none;
+		display: ${(props) => (props.disabled ? 'block' : 'none')};
 	}
 
 	&:hover .delete-icon {
-		display: block;
+		display: ${(props) => (props.disabled ? 'none' : 'block')};
 
 		button {
 			background: transparent !important;
@@ -143,16 +145,18 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	svg {
 		height: 12.5px;
 		width: 12.5px;
-		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt3)};
-		fill: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt3)};
+		color: ${(props) =>
+			props.active && !props.disabled ? props.theme.colors.font.primary : props.theme.colors.font.alt3};
+		fill: ${(props) =>
+			props.active && !props.disabled ? props.theme.colors.font.primary : props.theme.colors.font.alt3};
 	}
 
 	&:hover {
-		color: ${(props) => props.theme.colors.font.primary};
+		color: ${(props) => (props.disabled ? props.theme.colors.font.alt3 : props.theme.colors.font.primary)};
 
 		svg {
-			color: ${(props) => props.theme.colors.font.primary};
-			fill: ${(props) => props.theme.colors.font.primary};
+			color: ${(props) => (props.disabled ? props.theme.colors.font.alt3 : props.theme.colors.font.primary)};
+			fill: ${(props) => (props.disabled ? props.theme.colors.font.alt3 : props.theme.colors.font.primary)};
 		}
 	}
 

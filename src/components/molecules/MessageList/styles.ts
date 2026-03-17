@@ -606,3 +606,13 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		text-transform: uppercase;
 	}
 `;
+
+export const InfoWrapper = styled.div`
+	p {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.alt1};
+		text-transform: uppercase;
+	}
+`;
