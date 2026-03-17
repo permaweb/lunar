@@ -304,6 +304,8 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 	}, [props.loadingStates]);
 
 	const tabElements = React.useMemo(() => {
+		const disabled = isAnyLoading;
+
 		return (
 			<S.TabsContent ref={tabsRef} className={'scroll-wrapper-hidden'}>
 				{props.tabs.map((tab, index) => {
@@ -314,17 +316,14 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						<React.Fragment key={tab.tabKey}>
 							<S.TabAction
 								active={index === props.activeTabIndex}
-								onMouseDown={handleMouseDown}
-								onClick={(e) => handleTabClick(e, index)}
-								disabled={isAnyLoading}
+								onMouseDown={disabled ? () => {} : handleMouseDown}
+								onClick={(e) => (disabled ? () => {} : handleTabClick(e, index))}
+								disabled={disabled}
 								data-tab-index={index}
-								draggable={!isAnyLoading}
-								onDragStart={(e) => handleDragStart(e, index)}
-								onDragOver={(e) => handleDragOver(e, index)}
-								onDragEnd={handleDragEnd}
-								style={{
-									cursor: isAnyLoading ? 'default' : 'pointer',
-								}}
+								draggable={!disabled}
+								onDragStart={(e) => (disabled ? () => {} : handleDragStart(e, index))}
+								onDragOver={(e) => (disabled ? () => {} : handleDragOver(e, index))}
+								onDragEnd={disabled ? () => {} : handleDragEnd}
 							>
 								{showLeftIndicator && <S.DropIndicator side={'left'} />}
 								{showRightIndicator && <S.DropIndicator side={'right'} />}
@@ -341,7 +340,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 												handleDeleteTab(index);
 											}}
 											dimensions={{ wrapper: 10, icon: 10 }}
-											disabled={isAnyLoading}
+											disabled={disabled}
 										/>
 									</div>
 								</div>
@@ -350,7 +349,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						</React.Fragment>
 					);
 				})}
-				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={isAnyLoading}>
+				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={disabled}>
 					<ReactSVG src={ASSETS.add} />
 					{props.languageLabels.newTab}
 				</S.NewTab>

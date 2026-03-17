@@ -18,6 +18,7 @@ import {
 	ASSETS,
 	DEFAULT_ACTIONS,
 	DEFAULT_GATEWAYS,
+	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
 	MINT_ACTIONS,
 	STORAGE,
@@ -68,10 +69,21 @@ function Message(props: {
 
 	const [result, setResult] = React.useState<any>(null);
 	const [showViewResult, setShowViewResult] = React.useState<boolean>(false);
+	const [filterMessage, setFilterMessage] = React.useState<boolean>(false);
+
+	React.useEffect(() => {
+		if (props.element && props.variant === MessageVariantEnum.Legacynet) {
+			const fromProcess = getTagValue(props.element.node?.tags, 'From-Process');
+
+			if (fromProcess && props.element.node?.owner?.address !== DEFAULT_LEGACY_AUTHORITY) {
+				setFilterMessage(true);
+			}
+		}
+	}, [props.element]);
 
 	React.useEffect(() => {
 		(async function () {
-			if (!result && showViewResult) {
+			if (!result && showViewResult && !filterMessage) {
 				let processId: string = props.element.node.recipient;
 				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
 
@@ -118,11 +130,11 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [result, showViewResult, props.currentFilter]);
+	}, [result, showViewResult, props.currentFilter, filterMessage]);
 
 	React.useEffect(() => {
 		(async function () {
-			if (!data && showViewData) {
+			if (!data && showViewData && !filterMessage) {
 				try {
 					const messageFetch = await fetch(getTxEndpoint(props.element.node.id));
 					const rawMessage = await messageFetch.text();
@@ -154,7 +166,7 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [data, showViewData]);
+	}, [data, showViewData, filterMessage]);
 
 	const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
 	const filteredTags =
@@ -357,7 +369,20 @@ function Message(props: {
 		);
 	}
 
-	return (
+	return filterMessage ? (
+		<S.ElementWrapper
+			key={props.element.node.id}
+			className={'message-list-element'}
+			onClick={() => {}}
+			open={false}
+			lastChild={props.lastChild}
+			style={{ pointerEvents: 'none' }}
+		>
+			<S.InfoWrapper>
+				<p>Message marked as spam</p>
+			</S.InfoWrapper>
+		</S.ElementWrapper>
+	) : (
 		<>
 			<S.ElementWrapper
 				key={props.element.node.id}
@@ -371,7 +396,7 @@ function Message(props: {
 						<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
 					</S.TxAddress>
 					<S.Variant className={'info'}>
-						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant)}</span>
+						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant) ?? 'No Variant'}</span>
 					</S.Variant>
 				</S.ID>
 				{getAction(true)}

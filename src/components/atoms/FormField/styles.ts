@@ -59,15 +59,16 @@ export const Input = styled.input<{
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		opacity: 1;
 	}
+
 	&:focus {
 		outline: 0;
 		border: 1px solid
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.valid.outline)};
 		outline: 0.5px solid
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.valid.outline)};
-		box-shadow: 0 0 0.5px
+		box-shadow: 1px 1px 5.5px
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.shadow : props.theme.colors.form.valid.shadow)};
-		transition: box-shadow, border, outline 225ms ease-in-out;
+		transition: box-shadow, border, outline 325ms ease-in-out;
 	}
 	&:disabled {
 		background: ${(props) => props.theme.colors.form.disabled.background};
