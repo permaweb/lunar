@@ -206,7 +206,7 @@ export default function MessageResult(props: {
 		}
 
 		if (typeof data === 'object') {
-			return <JSONReader data={data} header={null} maxHeight={WRAPPER_HEIGHT / 2} />;
+			return <JSONReader data={data} header={null} maxHeight={WRAPPER_HEIGHT / 2} filename={props.messageId} />;
 		}
 
 		return (
@@ -225,7 +225,13 @@ export default function MessageResult(props: {
 
 	function getResult() {
 		return (
-			<JSONReader data={result} placeholder={'Loading Result…'} header={language.result} fixedHeight={WRAPPER_HEIGHT} />
+			<JSONReader
+				data={result}
+				placeholder={'Loading Result…'}
+				header={language.result}
+				fixedHeight={WRAPPER_HEIGHT}
+				filename={`${props.messageId}-result`}
+			/>
 		);
 	}
 

@@ -15,8 +15,10 @@ export default function ProcessSource(props: { processId: string; onBoot?: strin
 	const permawebProvider = usePermawebProvider();
 
 	const editorRef = React.useRef(null);
+	const wrapperRef = React.useRef<HTMLDivElement>(null);
 
 	const [src, setSrc] = React.useState<string | null>(null);
+	const [editorKey, setEditorKey] = React.useState(0);
 
 	React.useEffect(() => {
 		(async function () {
@@ -70,9 +72,32 @@ export default function ProcessSource(props: { processId: string; onBoot?: strin
 		return () => clearTimeout(id);
 	}, [src]);
 
+	// Force editor to remount when it becomes visible
+	React.useEffect(() => {
+		if (!src || !wrapperRef.current) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting) {
+						// Component became visible, force editor to remount
+						setEditorKey((prev) => prev + 1);
+					}
+				});
+			},
+			{ threshold: 0.1 }
+		);
+
+		observer.observe(wrapperRef.current);
+
+		return () => observer.disconnect();
+	}, [src]);
+
 	return src ? (
-		<S.Wrapper ref={editorRef}>
-			<Editor initialData={src} language={'lua'} readOnly loading={!src} fixedHeight={900} />
+		<S.Wrapper ref={wrapperRef}>
+			<div ref={editorRef}>
+				<Editor key={editorKey} initialData={src} language={'lua'} readOnly loading={!src} fixedHeight={900} />
+			</div>
 		</S.Wrapper>
 	) : (
 		<Loader sm relative />
