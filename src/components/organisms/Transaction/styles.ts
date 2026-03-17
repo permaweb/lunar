@@ -314,7 +314,6 @@ export const UpdateWrapper = styled.div`
 	background: ${(props) => props.theme.colors.container.alt8.background};
 	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
 	border-radius: ${STYLING.dimensions.radius.alt2};
-	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};

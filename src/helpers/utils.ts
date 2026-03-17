@@ -421,3 +421,46 @@ export function isNumeric(value: unknown): boolean {
 		? Number.isFinite(value)
 		: typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value));
 }
+
+export async function withRetries<T>(
+	fn: () => Promise<T>,
+	maxRetries: number = 10,
+	baseDelay: number = 1000
+): Promise<T> {
+	let lastResult: any;
+
+	for (let attempt = 0; attempt < maxRetries; attempt++) {
+		try {
+			const result = await fn();
+
+			// Check if result indicates compute is still in progress
+			const isInProgress =
+				(result as any)?.message?.includes('Compute in progress') ||
+				(result as any)?.message?.includes('slot(s) remaining');
+
+			if (isInProgress) {
+				lastResult = result;
+
+				if (attempt < maxRetries - 1) {
+					const delay = baseDelay * Math.pow(2, attempt);
+					await new Promise((resolve) => setTimeout(resolve, delay));
+					continue;
+				}
+			}
+
+			return result;
+		} catch (error: any) {
+			lastResult = error;
+			console.log(`Retry attempt ${attempt + 1}/${maxRetries}, error:`, error);
+
+			if (attempt < maxRetries - 1) {
+				const delay = baseDelay * Math.pow(2, attempt);
+				console.log(`Waiting ${delay}ms before retry...`);
+				await new Promise((resolve) => setTimeout(resolve, delay));
+			}
+		}
+	}
+
+	console.log('All retries exhausted');
+	throw lastResult;
+}

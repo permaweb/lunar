@@ -608,6 +608,14 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 `;
 
 export const InfoWrapper = styled.div`
+	height: 100%;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	position: absolute;
+	left: 0;
+	padding: 0 15px;
+	background: ${(props) => props.theme.colors.container.alt1.background};
 	p {
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
