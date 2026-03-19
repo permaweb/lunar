@@ -40,6 +40,7 @@ export const Tab = styled.div<{ active: boolean }>`
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.primary} !important;
+		box-shadow: none !important;
 		flex: 1;
 	}
 `;

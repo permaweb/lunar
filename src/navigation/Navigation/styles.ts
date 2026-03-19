@@ -241,8 +241,8 @@ export const SearchResult = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 
 		svg {
-			height: 23.5px;
-			width: 23.5px;
+			height: 20.5px;
+			width: 20.5px;
 			padding: 5.5px 0 0 0;
 			color: ${(props) => props.theme.colors.link.color};
 			fill: ${(props) => props.theme.colors.link.color};
@@ -257,6 +257,20 @@ export const SearchResult = styled.div`
 				fill: ${(props) => props.theme.colors.link.active};
 			}
 		}
+	}
+`;
+
+export const SearchResultInfo = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 12.5px;
+
+	svg {
+		height: 19.5px !important;
+		width: 19.5px !important;
+		padding: 5.5px 0 0 0;
+		color: ${(props) => props.theme.colors.link.color};
+		fill: ${(props) => props.theme.colors.link.color};
 	}
 `;
 

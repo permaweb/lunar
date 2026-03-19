@@ -12,6 +12,7 @@ export const NWrapper = styled.div`
 
 	background: ${(props) => props.theme.colors.container.alt1.background};
 	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		min-height: 0;
@@ -21,7 +22,10 @@ export const NWrapper = styled.div`
 		left: 50%;
 		transform: translate(-50%, 0);
 		position: absolute;
+		z-index: 0;
+		background: transparent;
 		border-right: none;
+		box-shadow: none;
 	}
 `;
 
@@ -35,7 +39,7 @@ export const NContent = styled.div`
 		top: auto;
 		padding: 0 15px;
 		max-height: none;
-		background: ${(props) => props.theme.colors.container.alt3.background};
+		background: ${(props) => props.theme.colors.container.alt1.background};
 		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -93,11 +97,12 @@ export const NList = styled.ul`
 	overflow: auto;
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
+	gap: 4.5px;
 	a {
 		width: fit-content;
 		text-decoration: none;
 		display: block;
+		width: 100%;
 		&:hover {
 			color: ${(props) => props.theme.colors.font.alt1} !important;
 		}
@@ -105,26 +110,49 @@ export const NList = styled.ul`
 `;
 
 export const NListItem = styled.li<{ disabled: boolean; active: boolean }>`
+	width: 100%;
 	pointer-events: ${(props) => (props.disabled ? 'none' : 'default')};
 	text-align: center;
 	display: flex;
 	align-items: center;
 	cursor: pointer;
-	font-size: ${(props) => props.theme.typography.size.xSmall};
-	color: ${(props) => (props.active ? props.theme.colors.font.alt5 : props.theme.colors.font.alt1)};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	color: ${(props) =>
+		props.active ? props.theme.colors.button.primary.active.color : props.theme.colors.button.primary.color};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	margin: 0 0 7.5px 0;
+	margin: 0 0 8.5px 0;
 	line-height: 1.75;
 	text-align: left;
-	border-radius: ${STYLING.dimensions.radius.primary};
-	background: transparent;
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	border: 1px solid
+		${(props) =>
+			props.active ? props.theme.colors.button.primary.active.border : props.theme.colors.button.primary.border};
+	background: ${(props) =>
+		props.active ? props.theme.colors.button.primary.active.background : props.theme.colors.button.primary.background};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	padding: 5px 10.5px 4.75px 10.5px;
+	transition: all 100ms;
 
 	&:hover {
-		color: ${(props) => (props.active ? props.theme.colors.font.alt5 : props.theme.colors.font.primary)};
+		color: ${(props) =>
+			props.active ? props.theme.colors.button.primary.active.color : props.theme.colors.button.primary.active.color};
+		background: ${(props) =>
+			props.active
+				? props.theme.colors.button.primary.active.background
+				: props.theme.colors.button.primary.active.background};
+		border: 1px solid
+			${(props) =>
+				props.active
+					? props.theme.colors.button.primary.active.border
+					: props.theme.colors.button.primary.active.border};
 	}
 `;
 
-export const NGroup = styled.div``;
+export const NGroup = styled.div`
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		margin: 0 0 12.5px 0;
+	}
+`;
 
 export const NSubHeader = styled(NTitle)`
 	height: auto;
@@ -135,9 +163,9 @@ export const NSubHeader = styled(NTitle)`
 	margin: 0 0 10px 0;
 	display: block;
 	p {
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${(props) => props.theme.typography.size.base} !important;
-		color: ${(props) => props.theme.colors.font.primary} !important;
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
+		color: ${(props) => props.theme.colors.font.alt1} !important;
 		letter-spacing: 0.85px;
 	}
 `;

@@ -8,6 +8,7 @@ export const DEFAULT_AO_NODE = {
 
 export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
 export const DEFAULT_LEGACY_SCHEDULER_URL = 'https://su-router.ao-testnet.xyz';
+export const DEFAULT_LEGACY_AUTHORITY = 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY';
 
 export const DEFAULT_GATEWAYS = {
 	legacy: 'https://ao-search-gateway.goldsky.com',
@@ -177,7 +178,7 @@ export const STYLING = {
 	cutoffs: {
 		desktop: '1200px',
 		initial: '1024px',
-		max: '2000px',
+		max: '1800px',
 		tablet: '840px',
 		tabletSecondary: '768px',
 		secondary: '540px',
@@ -192,7 +193,7 @@ export const STYLING = {
 			max: '45px',
 		},
 		nav: {
-			height: '70px',
+			height: '71.5px',
 			width: '260px',
 		},
 		radius: {

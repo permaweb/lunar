@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import JSONbig from 'json-bigint';
 
+import { Button } from 'components/atoms/Button';
 import { IconButton } from 'components/atoms/IconButton';
 import { ASSETS, URLS } from 'helpers/config';
 import { checkValidAddress, stripAnsiChars } from 'helpers/utils';
@@ -9,8 +10,9 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
 
-const RANGE_SIZE = 100;
-const AUTO_COLLAPSE_THRESHOLD = 1000;
+const RANGE_SIZE = 2500;
+const AUTO_COLLAPSE_THRESHOLD = 2500;
+const INITIAL_RENDER_THRESHOLD = 25;
 
 export default function _JSONTree(props: {
 	data: any;
@@ -20,6 +22,7 @@ export default function _JSONTree(props: {
 	fixedHeight?: number;
 	noWrapper?: boolean;
 	noFullScreen?: boolean;
+	filename?: string;
 }) {
 	const navigate = useNavigate();
 
@@ -60,6 +63,30 @@ export default function _JSONTree(props: {
 			await navigator.clipboard.writeText(textToCopy);
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
+		}
+	}, [data]);
+
+	const downloadData = React.useCallback(() => {
+		if (data) {
+			let textToDownload;
+			if (typeof data === 'object' && data !== null && 'result' in data && Object.keys(data).length === 1) {
+				// If it's our wrapped string object, download just the string value
+				textToDownload = data.result;
+			} else if (typeof data === 'string') {
+				textToDownload = data;
+			} else {
+				textToDownload = JSON.stringify(data, null, 4);
+			}
+
+			const blob = new Blob([textToDownload], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = props.filename ? `${props.filename}.json` : 'result.json';
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			URL.revokeObjectURL(url);
 		}
 	}, [data]);
 
@@ -115,6 +142,41 @@ export default function _JSONTree(props: {
 		const [allPaths, setAllPaths] = React.useState<Set<string>>(new Set());
 		const allPathsRef = React.useRef<Set<string>>(new Set());
 		const dataRef = React.useRef<any>(null);
+
+		// Calculate initial render limits synchronously before first render
+		const initialRenderLimits = React.useMemo(() => {
+			const limits = new Map<string, number>();
+			const findLargeStructures = (value: any, path: string = 'root') => {
+				if (Array.isArray(value)) {
+					if (value.length > INITIAL_RENDER_THRESHOLD) {
+						limits.set(path, INITIAL_RENDER_THRESHOLD);
+					}
+					// Only traverse the first batch to avoid performance issues during initialization
+					const itemsToCheck = Math.min(value.length, INITIAL_RENDER_THRESHOLD);
+					for (let i = 0; i < itemsToCheck; i++) {
+						const item = value[i];
+						if (typeof item === 'object' && item !== null) {
+							findLargeStructures(item, `${path}[${i}]`);
+						}
+					}
+				} else if (typeof value === 'object' && value !== null) {
+					const entries = Object.entries(value);
+					if (entries.length > INITIAL_RENDER_THRESHOLD) {
+						limits.set(path, INITIAL_RENDER_THRESHOLD);
+					}
+					// Check all object properties
+					for (const [k, v] of entries) {
+						if (typeof v === 'object' && v !== null) {
+							findLargeStructures(v, `${path}.${k}`);
+						}
+					}
+				}
+			};
+			findLargeStructures(data);
+			return limits;
+		}, [data]);
+
+		const [renderLimits, setRenderLimits] = React.useState<Map<string, number>>(initialRenderLimits);
 
 		const handleCopy = React.useCallback(async (value: string) => {
 			await navigator.clipboard.writeText(value);
@@ -177,6 +239,34 @@ export default function _JSONTree(props: {
 			}),
 			[collapseAll, expandAll, getCollapsedState]
 		);
+
+		const getDataSize = (value: any, maxDepth: number = 10, currentDepth: number = 0): number => {
+			// Stop recursion after maxDepth to avoid performance issues
+			if (currentDepth >= maxDepth) {
+				return 0;
+			}
+
+			if (Array.isArray(value)) {
+				let totalSize = value.length;
+				// Add sizes of nested structures
+				for (const item of value) {
+					if (typeof item === 'object' && item !== null) {
+						totalSize += getDataSize(item, maxDepth, currentDepth + 1);
+					}
+				}
+				return totalSize;
+			} else if (typeof value === 'object' && value !== null) {
+				let totalSize = Object.keys(value).length;
+				// Add sizes of nested structures
+				for (const v of Object.values(value)) {
+					if (typeof v === 'object' && v !== null) {
+						totalSize += getDataSize(v, maxDepth, currentDepth + 1);
+					}
+				}
+				return totalSize;
+			}
+			return 0;
+		};
 
 		const renderValue = (
 			value: any,
@@ -281,6 +371,12 @@ export default function _JSONTree(props: {
 					allPaths.add(path);
 				}
 				const isCollapsed = collapsed.has(path);
+
+				// Apply render limit to any large arrays
+				const currentLimit = renderLimits.get(path);
+				const shouldLimitRender = currentLimit !== undefined && value.length > currentLimit;
+				const itemsToRender = shouldLimitRender ? value.slice(0, currentLimit) : value;
+
 				return (
 					<>
 						{isCollapsed ? (
@@ -292,7 +388,7 @@ export default function _JSONTree(props: {
 							<>
 								<S.JSONBracket>[</S.JSONBracket>
 								<S.JSONIndent>
-									{value.map((item, index) => {
+									{itemsToRender.map((item, index) => {
 										const itemPath = `${path}[${index}]`;
 										const isCollapsible =
 											typeof item === 'object' &&
@@ -315,6 +411,24 @@ export default function _JSONTree(props: {
 											</S.JSONArrayItem>
 										);
 									})}
+									{shouldLimitRender && (
+										<S.LoadMoreItem>
+											<Button
+												type={'alt4'}
+												label={`Load ${Math.min(
+													INITIAL_RENDER_THRESHOLD,
+													value.length - (currentLimit ?? 0)
+												)} more items (${value.length - (currentLimit ?? 0)} remaining)`}
+												handlePress={() => {
+													setRenderLimits((prev) => {
+														const newLimits = new Map(prev);
+														newLimits.set(path, (currentLimit ?? 0) + INITIAL_RENDER_THRESHOLD);
+														return newLimits;
+													});
+												}}
+											/>
+										</S.LoadMoreItem>
+									)}
 								</S.JSONIndent>
 								<S.JSONBracket>]</S.JSONBracket>
 								{!isLast && <S.JSONComma>,</S.JSONComma>}
@@ -338,8 +452,13 @@ export default function _JSONTree(props: {
 				}
 				const isCollapsed = collapsed.has(path);
 
+				// Apply render limit to any large objects
+				const currentLimit = renderLimits.get(path);
+				const shouldLimitRender = currentLimit !== undefined && entries.length > currentLimit;
+				const entriesToRender = shouldLimitRender ? entries.slice(0, currentLimit) : entries;
+
 				// Check if this object has too many keys and should show collapsed ranges
-				const hasCollapsedRanges = entries.length > AUTO_COLLAPSE_THRESHOLD;
+				const hasCollapsedRanges = entriesToRender.length > AUTO_COLLAPSE_THRESHOLD;
 				const rangeSize = RANGE_SIZE;
 
 				return (
@@ -356,10 +475,10 @@ export default function _JSONTree(props: {
 									{hasCollapsedRanges ? (
 										<>
 											{/* Render entries in ranges */}
-											{Array.from({ length: Math.ceil(entries.length / rangeSize) }, (_, rangeIndex) => {
+											{Array.from({ length: Math.ceil(entriesToRender.length / rangeSize) }, (_, rangeIndex) => {
 												const start = rangeIndex * rangeSize;
-												const end = Math.min(start + rangeSize, entries.length);
-												const rangeEntries = entries.slice(start, end);
+												const end = Math.min(start + rangeSize, entriesToRender.length);
+												const rangeEntries = entriesToRender.slice(start, end);
 												const rangePath = `${path}.__range_${start}_${end}__`;
 												const isRangeCollapsed = collapsed.has(rangePath);
 
@@ -400,7 +519,13 @@ export default function _JSONTree(props: {
 																		)}
 																		<S.JSONKey>"{k}"</S.JSONKey>
 																		<S.JSONColon>: </S.JSONColon>
-																		{renderValue(v, k, start + index === entries.length - 1, propPath, collectPaths)}
+																		{renderValue(
+																			v,
+																			k,
+																			start + index === entriesToRender.length - 1,
+																			propPath,
+																			collectPaths
+																		)}
 																	</S.JSONProperty>
 																);
 															})}
@@ -411,7 +536,7 @@ export default function _JSONTree(props: {
 									) : (
 										<>
 											{/* Normal rendering for objects with < AUTO_COLLAPSE_THRESHOLD keys */}
-											{entries.map(([k, v], index) => {
+											{entriesToRender.map(([k, v], index) => {
 												const propPath = `${path}.${k}`;
 												const isCollapsible =
 													typeof v === 'object' &&
@@ -432,11 +557,29 @@ export default function _JSONTree(props: {
 														)}
 														<S.JSONKey>"{k}"</S.JSONKey>
 														<S.JSONColon>: </S.JSONColon>
-														{renderValue(v, k, index === entries.length - 1, propPath, collectPaths)}
+														{renderValue(v, k, index === entriesToRender.length - 1, propPath, collectPaths)}
 													</S.JSONProperty>
 												);
 											})}
 										</>
+									)}
+									{shouldLimitRender && (
+										<S.LoadMoreItem>
+											<Button
+												type={'alt4'}
+												label={`Load ${Math.min(
+													INITIAL_RENDER_THRESHOLD,
+													entries.length - (currentLimit ?? 0)
+												)} more keys (${entries.length - (currentLimit ?? 0)} remaining)`}
+												handlePress={() => {
+													setRenderLimits((prev) => {
+														const newLimits = new Map(prev);
+														newLimits.set(path, (currentLimit ?? 0) + INITIAL_RENDER_THRESHOLD);
+														return newLimits;
+													});
+												}}
+											/>
+										</S.LoadMoreItem>
 									)}
 								</S.JSONIndent>
 								<S.JSONBracket>{'}'}</S.JSONBracket>
@@ -460,6 +603,9 @@ export default function _JSONTree(props: {
 				return;
 			}
 			dataRef.current = data;
+
+			// Sync render limits when data changes
+			setRenderLimits(initialRenderLimits);
 
 			const paths = new Set<string>();
 			const pathsToAutoCollapse = new Set<string>();
@@ -625,10 +771,24 @@ export default function _JSONTree(props: {
 								wrapper: 25,
 								icon: 12.5,
 							}}
+							padding={'3.95px 0 0 0'}
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'bottom-right'}
 						/>
 					)}
+					<IconButton
+						type={'alt1'}
+						src={ASSETS.save}
+						handlePress={downloadData}
+						disabled={!data}
+						dimensions={{
+							wrapper: 25,
+							icon: 12.5,
+						}}
+						padding={'3.5px 0 0 0'}
+						tooltip={language.downloadJSON ?? 'Download JSON'}
+						tooltipPosition={'bottom-right'}
+					/>
 					<IconButton
 						type={'alt1'}
 						src={ASSETS.copy}

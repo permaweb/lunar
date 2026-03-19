@@ -22,6 +22,7 @@ export default function MessageResult(props: {
 	tags: TagType[] | null;
 	result?: any;
 	skipResultFetch?: boolean;
+	active: boolean;
 }) {
 	const permawebProvider = usePermawebProvider();
 
@@ -195,7 +196,7 @@ export default function MessageResult(props: {
 					<Editor
 						initialData={language.noDataToDisplay}
 						header={null}
-						language={'html'}
+						language={'lua'}
 						readOnly
 						loading={false}
 						fixedHeight={WRAPPER_HEIGHT / 2}
@@ -205,7 +206,7 @@ export default function MessageResult(props: {
 		}
 
 		if (typeof data === 'object') {
-			return <JSONReader data={data} header={null} maxHeight={WRAPPER_HEIGHT / 2} />;
+			return <JSONReader data={data} header={null} maxHeight={WRAPPER_HEIGHT / 2} filename={props.messageId} />;
 		}
 
 		return (
@@ -224,7 +225,13 @@ export default function MessageResult(props: {
 
 	function getResult() {
 		return (
-			<JSONReader data={result} placeholder={'Loading Result…'} header={language.result} fixedHeight={WRAPPER_HEIGHT} />
+			<JSONReader
+				data={result}
+				placeholder={'Loading Result…'}
+				header={language.result}
+				fixedHeight={WRAPPER_HEIGHT}
+				filename={`${props.messageId}-result`}
+			/>
 		);
 	}
 

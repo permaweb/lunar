@@ -23,12 +23,12 @@ For reference, some processes you can inspect in Lunar are:
 
 When you open a process in Explorer, the main elements available for inspection are:
 
-- process ID and owner
-- module, scheduler, and authority references
-- protocol and custom tags
-- source/on-boot code (where available)
-- related incoming and outgoing messages
-- read/write interfaces for process interaction
+- Process ID and Owner
+- Module, Scheduler, and Authority References
+- Protocol and Custom Tags
+- Source/On-Boot code (where available)
+- Related incoming and outgoing messages
+- Read/Write interfaces for process interaction
 
 Together, these provide both identity (what this process is) and behavior (what this process does over time).
 
@@ -41,9 +41,9 @@ A simple example -- getting info about a process:
 2. The process matches an `Info` handler.
 3. The handler returns process metadata as output.
 4. Lunar shows:
-   - the input message in `Messages`
-   - the output payload in message details
-   - any resulting messages, if emitted
+   - The input message in `Messages`
+   - The output payload in Message details
+   - Any resulting messages, if emitted
 
 In Lunar, this is exposed over the `/explorer/<id>/info` path.
 
@@ -54,7 +54,7 @@ A transfer action follows the same shape with different side effects:
 3. Output confirms or errors
 4. Resulting messages may include `Debit-Notice` / `Credit-Notice`
 
-#### Source and handlers
+#### Source and Handlers
 
 ![Handler diagram](handler-diagram.png)
 
@@ -92,9 +92,9 @@ An `Info` flow in Lunar usually looks like:
 
 When this works, you can validate the handler contract end-to-end:
 
-- expected action name (`Info`)
-- expected response shape (fields present)
-- consistency with what Source advertises
+- Expected action name (`Info`)
+- Expected response shape (fields present)
+- Consistency with what Source advertises
 
 In Lunar, the process Source tab provides the handler definition, while Messages/Read show whether real calls are matching and returning as expected.
 

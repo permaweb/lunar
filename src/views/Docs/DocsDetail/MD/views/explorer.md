@@ -167,25 +167,6 @@ Execute read-only operations on the process:
 - Collapsible sections
 - Copy result option
 
-**Common Read Operations:**
-
-```lua
--- View full state
-return State
-
--- Check specific variable
-return State.Balance
-
--- Query balances
-return State.Balances
-
--- Get process info
-return {
-  Name = State.Name,
-  Version = State.Version
-}
-```
-
 #### Write Tab
 
 Send state-changing messages to the process:
@@ -234,9 +215,8 @@ Send state-changing messages to the process:
 **Common Write Operations:**
 
 ```lua
--- Simple eval
+-- Simple Eval
 State.Counter = (State.Counter or 0) + 1
-return State.Counter
 ```
 
 For **Transfer**, use tags:

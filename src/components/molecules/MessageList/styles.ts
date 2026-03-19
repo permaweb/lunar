@@ -116,7 +116,7 @@ export const DateRangeHeader = styled.div`
 	width: 100%;
 
 	button {
-		border-radius: ${STYLING.dimensions.radius.primary} !important;
+		border-radius: ${STYLING.dimensions.radius.alt2} !important;
 	}
 `;
 
@@ -303,6 +303,7 @@ export const Variant = styled.div`
 	justify-content: center;
 	background: ${(props) => props.theme.colors.container.primary.active};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt3} !important;
 
 	span {
 		color: ${(props) => props.theme.colors.font.primary} !important;
@@ -602,6 +603,24 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
+		text-transform: uppercase;
+	}
+`;
+
+export const InfoWrapper = styled.div`
+	height: 100%;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	position: absolute;
+	left: 0;
+	padding: 0 15px;
+	background: ${(props) => props.theme.colors.container.alt1.background};
+	p {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.alt1};
 		text-transform: uppercase;
 	}
 `;

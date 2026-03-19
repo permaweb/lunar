@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { ReactSVG } from 'react-svg';
 import JSONbig from 'json-bigint';
 
@@ -14,8 +15,9 @@ import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
-import { ASSETS, DEFAULT_GATEWAYS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
+import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { searchTxById } from 'helpers/search';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
 	checkValidAddress,
@@ -24,7 +26,6 @@ import {
 	getByteSizeDisplay,
 	getTagValue,
 	isNumeric,
-	normalizeGqlResponse,
 	removeCommitments,
 	resolveLibDeps,
 	resolveMessageId,
@@ -32,6 +33,7 @@ import {
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
+import { store } from 'store';
 
 import { AOS } from '../AOS';
 import { ProcessEditor } from '../ProcessEditor';
@@ -61,6 +63,7 @@ function Transaction(props: {
 	tabKey?: string; // Stable key from TransactionTabs to maintain component identity
 	onLoadingChange?: (loading: boolean) => void;
 }) {
+	const dispatch = useDispatch();
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
@@ -116,19 +119,14 @@ function Transaction(props: {
 			setRefreshKey((prev) => prev + 1);
 			setMessageResult(null);
 			try {
-				let response = await permawebProvider.libs.getGQLData({
-					id: [inputTxId],
+				const response = await searchTxById({
+					txId: inputTxId,
+					getGQLData: permawebProvider.libs.getGQLData,
+					store: store,
+					dispatch: dispatch,
 				});
 
-				if (!response.data?.length || response.data?.length <= 0) {
-					response = await permawebProvider.libs.getGQLData({
-						gateway: DEFAULT_GATEWAYS.fallback,
-						id: [inputTxId],
-					});
-					response = await normalizeGqlResponse(response);
-				}
-
-				const responseData = response?.data?.[0];
+				const responseData = response;
 				setTxResponse(responseData ?? null);
 				if (responseData) {
 					if (props.onTxChange) props.onTxChange(responseData);
@@ -571,19 +569,16 @@ function Transaction(props: {
 			if (contentType && contentType.startsWith('image/')) {
 				return (
 					<S.DataSection>
-						{/* <S.SectionHeader>
-							<p>{language.data}</p>
-						</S.SectionHeader> */}
 						<img src={getTxEndpoint(inputTxId)} alt={'Transaction data'} style={{ maxWidth: '100%', height: 'auto' }} />
 					</S.DataSection>
 				);
 			}
 
 			if (typeof data === 'object') {
-				return <JSONReader data={data} header={language.data} maxHeight={600} />;
+				return <JSONReader data={data} header={null} maxHeight={600} />;
 			}
 
-			return <Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} />;
+			return <Editor initialData={data} header={null} language={'lua'} readOnly loading={false} fixedHeight={600} />;
 		}
 
 		return <>{getDataContent()}</>;
@@ -643,6 +638,7 @@ function Transaction(props: {
 														tags={txResponse?.node?.tags ?? null}
 														result={messageResult}
 														skipResultFetch={true}
+														active={props.active}
 													/>
 												)}
 											</S.ReadWrapper>
@@ -725,6 +721,7 @@ function Transaction(props: {
 											type={props.type}
 											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 											parentId={inputTxId}
+											authority={getTagValue(txResponse?.node?.tags, 'Authority')}
 											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 										/>
 									)}

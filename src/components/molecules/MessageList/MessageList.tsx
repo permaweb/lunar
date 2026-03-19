@@ -1,5 +1,6 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
+import { useDispatch } from 'react-redux';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
@@ -11,17 +12,20 @@ import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Panel } from 'components/atoms/Panel';
 import { TxAddress } from 'components/atoms/TxAddress';
+import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
 import {
 	ASSETS,
 	DEFAULT_ACTIONS,
 	DEFAULT_GATEWAYS,
+	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
 	MINT_ACTIONS,
 	STORAGE,
 	TAGS,
 } from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { searchTxById } from 'helpers/search';
 import { MessageFilterType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
 	checkValidAddress,
@@ -37,8 +41,7 @@ import {
 } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
-
-import { Editor } from '../Editor';
+import { store } from 'store';
 
 import * as S from './styles';
 
@@ -66,10 +69,21 @@ function Message(props: {
 
 	const [result, setResult] = React.useState<any>(null);
 	const [showViewResult, setShowViewResult] = React.useState<boolean>(false);
+	const [filterMessage, setFilterMessage] = React.useState<boolean>(false);
+
+	React.useEffect(() => {
+		if (props.element && props.variant === MessageVariantEnum.Legacynet) {
+			const fromProcess = getTagValue(props.element.node?.tags, 'From-Process');
+
+			if (fromProcess && props.element.node?.owner?.address !== DEFAULT_LEGACY_AUTHORITY) {
+				setFilterMessage(true);
+			}
+		}
+	}, [props.element]);
 
 	React.useEffect(() => {
 		(async function () {
-			if (!result && showViewResult) {
+			if (!result && showViewResult && !filterMessage) {
 				let processId: string = props.element.node.recipient;
 				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
 
@@ -116,11 +130,11 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [result, showViewResult, props.currentFilter]);
+	}, [result, showViewResult, props.currentFilter, filterMessage]);
 
 	React.useEffect(() => {
 		(async function () {
-			if (!data && showViewData) {
+			if (!data && showViewData && !filterMessage) {
 				try {
 					const messageFetch = await fetch(getTxEndpoint(props.element.node.id));
 					const rawMessage = await messageFetch.text();
@@ -152,7 +166,7 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [data, showViewData]);
+	}, [data, showViewData, filterMessage]);
 
 	const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
 	const filteredTags =
@@ -251,7 +265,9 @@ function Message(props: {
 			return <JSONReader data={data} header={language.data} maxHeight={600} noFullScreen />;
 		}
 
-		return <Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} />;
+		return (
+			<Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} fixedHeight={450} />
+		);
 	}
 
 	const OverlayLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
@@ -319,6 +335,19 @@ function Message(props: {
 								}}
 							/>
 						</S.OverlayInfoLine>
+						<S.OverlayInfoLine>
+							<S.OverlayInfoLineValue>
+								<p>{`${language.owner}: `}</p>
+							</S.OverlayInfoLineValue>
+							<TxAddress
+								address={props.element.node.owner?.address ?? '-'}
+								tooltipPosition={'bottom-right'}
+								handlePress={() => {
+									setShowViewData(false);
+									setShowViewResult(false);
+								}}
+							/>
+						</S.OverlayInfoLine>
 						<S.OverlayInfoLine>{getAction(false)}</S.OverlayInfoLine>
 						{showViewData && (
 							<S.OverlayTagsWrapper>
@@ -340,7 +369,20 @@ function Message(props: {
 		);
 	}
 
-	return (
+	return filterMessage ? (
+		<S.ElementWrapper
+			key={props.element.node.id}
+			className={'message-list-element'}
+			onClick={() => {}}
+			open={false}
+			lastChild={props.lastChild}
+			style={{ pointerEvents: 'none' }}
+		>
+			<S.InfoWrapper>
+				<p>Message marked as spam</p>
+			</S.InfoWrapper>
+		</S.ElementWrapper>
+	) : (
 		<>
 			<S.ElementWrapper
 				key={props.element.node.id}
@@ -354,7 +396,7 @@ function Message(props: {
 						<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
 					</S.TxAddress>
 					<S.Variant className={'info'}>
-						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant)}</span>
+						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant) ?? 'No Variant'}</span>
 					</S.Variant>
 				</S.ID>
 				{getAction(true)}
@@ -407,8 +449,11 @@ export default function MessageList(props: {
 	childList?: boolean;
 	isOverallLast?: boolean;
 	result?: any;
+	authority?: string;
 	skipResultFetch?: boolean;
 }) {
+	const dispatch = useDispatch();
+
 	const permawebProvider = usePermawebProvider();
 
 	const languageProvider = useLanguageProvider();
@@ -536,14 +581,15 @@ export default function MessageList(props: {
 
 	async function checkIsProcess(address: string): Promise<boolean> {
 		try {
-			const response = await permawebProvider.libs.getGQLData({
-				ids: [address],
+			const response = await searchTxById({
+				txId: address,
+				getGQLData: permawebProvider.libs.getGQLData,
+				store: store,
+				dispatch: dispatch,
 			});
 
-			if (response?.data?.length) {
-				const type = getTagValue(response.data[0].node.tags, 'Type');
-				return type === 'Process';
-			}
+			const type = getTagValue(response.node?.tags, 'Type');
+			return type === 'Process';
 
 			return false;
 		} catch (e) {
@@ -570,7 +616,7 @@ export default function MessageList(props: {
 		}
 	}
 
-	function getOutgoingGQLArgs(outgoingTags) {
+	async function getOutgoingGQLArgs(outgoingTags) {
 		switch (props.type) {
 			case 'process':
 			case 'message':
@@ -582,7 +628,10 @@ export default function MessageList(props: {
 					tags = lowercaseTagKeys(tags);
 				}
 
-				return { tags: [...tags] };
+				return {
+					tags: [...tags],
+					owners: [props.authority ?? ''],
+				};
 			case 'wallet':
 				return {
 					tags: [...outgoingTags],
@@ -656,7 +705,7 @@ export default function MessageList(props: {
 
 					let outgoingQueryArgs: any = {
 						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
-						...getOutgoingGQLArgs(tags),
+						...(await getOutgoingGQLArgs(tags)),
 					};
 
 					// Add time range filters for outgoing
@@ -737,7 +786,7 @@ export default function MessageList(props: {
 										: {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
-									...getOutgoingGQLArgs(tags),
+									...(await getOutgoingGQLArgs(tags)),
 								};
 
 								// Add time range filters
@@ -758,6 +807,7 @@ export default function MessageList(props: {
 							default:
 								break;
 						}
+
 						setCurrentData(gqlResponse.data);
 						setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
 					} else {
@@ -807,6 +857,7 @@ export default function MessageList(props: {
 
 									let gqlResponse = await permawebProvider.libs.getGQLData({
 										tags: [...tags],
+										owners: [props.authority ?? ''],
 									});
 
 									/* Need multiple single queries here
@@ -870,14 +921,29 @@ export default function MessageList(props: {
 					console.error(e);
 				}
 			} else {
-				tags = [...DEFAULT_MESSAGE_TAGS];
+				tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
 
-				const gqlResponse = await permawebProvider.libs.getGQLData({
+				let globalQueryArgs: any = {
 					tags: tags,
 					paginator: perPage,
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
-				});
+				};
+
+				// Add time range filters
+				if (appliedStartDate) {
+					globalQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+				}
+				if (appliedEndDate) {
+					globalQueryArgs.maxBlock = await timestampToBlockHeight(
+						dateToTimestamp({
+							...appliedEndDate,
+							day: appliedEndDate.day + 1,
+						})
+					);
+				}
+
+				const gqlResponse = await permawebProvider.libs.getGQLData(globalQueryArgs);
 
 				setTotalCount(gqlResponse.count);
 				setCurrentData(gqlResponse.data);

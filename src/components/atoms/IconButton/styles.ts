@@ -93,13 +93,14 @@ export const Primary = styled.button<{
 	warning: boolean | undefined;
 	disabled: boolean | undefined;
 	active: boolean | undefined;
+	padding?: string;
 }>`
 	height: ${(props) => (props.dimensions ? `${props.dimensions.wrapper.toString()}px` : `42.5px`)};
 	width: ${(props) => (props.dimensions ? `${props.dimensions.wrapper.toString()}px` : `42.5px`)};
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	padding: 4.5px 0 0 0 !important;
+	padding: ${(props) => (props.padding ? props.padding : '4.5px 0 0 0')} !important;
 	pointer-events: ${(props) => (props.disabled ? 'none' : 'all')};
 	border-radius: 50%;
 	cursor: ${(props) => (props.disabled ? 'not-allowed' : 'pointer')} !important;
@@ -139,6 +140,7 @@ export const Alt1 = styled(Primary)`
 				: props.disabled
 				? props.theme.colors.button.primary.disabled.border
 				: props.theme.colors.button.primary.border};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	svg {
 		height: ${(props) => (props.dimensions ? `${props.dimensions.icon.toString()}px` : `24.5px`)};
 		width: ${(props) => (props.dimensions ? `${props.dimensions.icon.toString()}px` : `24.5px`)};

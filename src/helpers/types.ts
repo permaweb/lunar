@@ -56,8 +56,6 @@ export type DefaultGQLResponseType = {
 export type BatchAGQLResponseType = { [queryKey: string]: DefaultGQLResponseType };
 
 export enum WalletEnum {
-	arConnect = 'arconnect',
-	othent = 'othent',
 	wander = 'wander',
 }
 
@@ -123,4 +121,11 @@ export type MessageFilterType = 'incoming' | 'outgoing';
 export enum MessageVariantEnum {
 	Legacynet = 'ao.TN.1',
 	Mainnet = 'ao.N.1',
+}
+
+export interface SearchTxArgs {
+	txId: string;
+	getGQLData: (args: any) => Promise<any>;
+	store?: any;
+	dispatch?: any;
 }

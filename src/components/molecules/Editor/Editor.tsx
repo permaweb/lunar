@@ -53,8 +53,8 @@ export default function _Editor(props: {
 			{ token: 'number', foreground: strip(theme.colors.editor.alt2) },
 			{ token: 'keyword', foreground: strip(theme.colors.editor.alt1) },
 			{ token: 'string.quoted.double.json', foreground: strip(theme.colors.editor.primary) },
-			{ token: 'string.key.json', foreground: strip(theme.colors.editor.primary) },
-			{ token: 'string.value.json', foreground: strip(theme.colors.editor.alt1) },
+			{ token: 'string.key.json', foreground: strip(theme.colors.editor.alt5) },
+			{ token: 'string.value.json', foreground: strip(theme.colors.editor.primary) },
 			{ token: 'comment', foreground: strip(theme.colors.editor.alt10) },
 			{ token: 'delimiter', foreground: strip(theme.colors.editor.alt1) },
 			{ token: 'operator', foreground: strip(theme.colors.editor.alt8) },
@@ -206,6 +206,15 @@ export default function _Editor(props: {
 			requestAnimationFrame(() => {
 				editor.layout();
 			});
+			// Use ResizeObserver to handle layout when container becomes visible
+			const editorContainer = editorRef.current;
+			if (editorContainer) {
+				const resizeObserver = new ResizeObserver(() => {
+					editor.layout();
+				});
+				resizeObserver.observe(editorContainer);
+				return () => resizeObserver.disconnect();
+			}
 		}
 	};
 

@@ -1,7 +1,5 @@
 # Welcome to Lunar
 
-![](home.png)
-
 Lunar is an interface for exploring and interacting with AO processes, messages and entities.
 
 It centers on entities and relationships you can inspect directly: processes, messages, wallets, and transaction-linked data. In practice, Lunar is useful when you need to move from an ID to context: what this entity is, what it is connected to, and what happened around it.

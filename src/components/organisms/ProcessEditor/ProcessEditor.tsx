@@ -3,7 +3,7 @@ import React from 'react';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { JSONWriter } from 'components/molecules/JSONWriter';
 import { MessageVariantEnum } from 'helpers/types';
-import { removeCommitments, resolveLibDeps } from 'helpers/utils';
+import { removeCommitments, resolveLibDeps, withRetries } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -29,8 +29,9 @@ export default function ProcessEditor(props: {
 
 	React.useEffect(() => {
 		if (editorRef.current) {
+			const element = editorRef.current;
 			setTimeout(() => {
-				editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			}, 10);
 		}
 	}, []);
@@ -65,10 +66,12 @@ export default function ProcessEditor(props: {
 					setOutput(removeCommitments(response));
 					break;
 				case 'write':
-					const result = await deps.ao.result({
-						process: messageToSend.process,
-						message: response,
-					});
+					const result = await withRetries(() =>
+						deps.ao.result({
+							process: messageToSend.process,
+							message: response,
+						})
+					);
 					setOutput(removeCommitments(result));
 					break;
 			}

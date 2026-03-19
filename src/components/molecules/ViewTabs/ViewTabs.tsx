@@ -12,6 +12,32 @@ import { BaseTabType } from 'helpers/types';
 import * as S from './styles';
 import { TabsContainerProps } from './types';
 
+// Render a single tab pane and avoid recalculating heavy children when inactive
+const TabPane = React.memo(
+	function TabPane<T>({
+		tab,
+		index,
+		isActive,
+		renderContent,
+	}: {
+		tab: T;
+		index: number;
+		isActive: boolean;
+		renderContent: (tab: T, index: number, isActive: boolean) => React.ReactNode;
+	}) {
+		const content = React.useMemo(() => renderContent(tab, index, isActive), [tab, index, isActive, renderContent]);
+
+		return (
+			<S.ContentWrapper active={isActive} data-tab-key={(tab as any).tabKey ?? index}>
+				{content}
+			</S.ContentWrapper>
+		);
+	},
+	(prev, next) => {
+		return prev.tab === next.tab && prev.isActive === next.isActive && prev.index === next.index;
+	}
+);
+
 export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProps<T>) {
 	const tabsRef = React.useRef<HTMLDivElement>(null);
 	const [showClearConfirmation, setShowClearConfirmation] = React.useState<boolean>(false);
@@ -278,6 +304,8 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 	}, [props.loadingStates]);
 
 	const tabElements = React.useMemo(() => {
+		const disabled = isAnyLoading;
+
 		return (
 			<S.TabsContent ref={tabsRef} className={'scroll-wrapper-hidden'}>
 				{props.tabs.map((tab, index) => {
@@ -288,17 +316,14 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						<React.Fragment key={tab.tabKey}>
 							<S.TabAction
 								active={index === props.activeTabIndex}
-								onMouseDown={handleMouseDown}
-								onClick={(e) => handleTabClick(e, index)}
-								disabled={isAnyLoading}
+								onMouseDown={disabled ? () => {} : handleMouseDown}
+								onClick={(e) => (disabled ? () => {} : handleTabClick(e, index))}
+								disabled={disabled}
 								data-tab-index={index}
-								draggable={!isAnyLoading}
-								onDragStart={(e) => handleDragStart(e, index)}
-								onDragOver={(e) => handleDragOver(e, index)}
-								onDragEnd={handleDragEnd}
-								style={{
-									cursor: isAnyLoading ? 'default' : 'pointer',
-								}}
+								draggable={!disabled}
+								onDragStart={(e) => (disabled ? () => {} : handleDragStart(e, index))}
+								onDragOver={(e) => (disabled ? () => {} : handleDragOver(e, index))}
+								onDragEnd={disabled ? () => {} : handleDragEnd}
 							>
 								{showLeftIndicator && <S.DropIndicator side={'left'} />}
 								{showRightIndicator && <S.DropIndicator side={'right'} />}
@@ -315,7 +340,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 												handleDeleteTab(index);
 											}}
 											dimensions={{ wrapper: 10, icon: 10 }}
-											disabled={isAnyLoading}
+											disabled={disabled}
 										/>
 									</div>
 								</div>
@@ -324,7 +349,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						</React.Fragment>
 					);
 				})}
-				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={isAnyLoading}>
+				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={disabled}>
 					<ReactSVG src={ASSETS.add} />
 					{props.languageLabels.newTab}
 				</S.NewTab>
@@ -373,9 +398,13 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 							}
 
 							return (
-								<S.ContentWrapper key={tab.tabKey} active={isActive}>
-									{props.renderContent(tab, index, isActive)}
-								</S.ContentWrapper>
+								<TabPane
+									key={tab.tabKey}
+									tab={tab}
+									index={index}
+									isActive={isActive}
+									renderContent={props.renderContent}
+								/>
 							);
 						})}
 					</>

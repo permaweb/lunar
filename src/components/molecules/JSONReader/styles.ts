@@ -48,10 +48,6 @@ export const ActionsWrapper = styled.div`
 	width: fit-content;
 	display: flex;
 	gap: 15px;
-
-	button {
-		padding: 5px 0 0 0 !important;
-	}
 `;
 
 export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight?: number; fixedHeight?: number }>`
@@ -63,6 +59,7 @@ export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight?: 
 	color: ${(props) => props.theme.colors.editor.primary};
 	min-width: 0;
 	overflow-x: auto;
+	overflow-y: auto;
 `;
 
 export const JSONIndent = styled.div`
@@ -208,4 +205,9 @@ export const JSONObject = styled.span`
 
 export const JSONArray = styled.span`
 	color: ${(props) => props.theme.colors.font.alt1};
+`;
+
+export const LoadMoreItem = styled.div`
+	display: block;
+	margin: 10px 0;
 `;
