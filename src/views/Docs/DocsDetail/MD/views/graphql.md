@@ -1,6 +1,12 @@
 # GraphQL Playground
 
+![](gql.png)
+
 The GraphQL Playground provides an interactive interface for querying Arweave and AO network data. Use it to build custom queries, explore transaction data, and extract information for analysis.
+
+Lunar exposes a simple interface for testing GraphQL queries without needing to use cURL or code.
+
+For full documentation on using GraphQL to query the permaweb, refer to the [cookbook](https://cookbook.arweave.net/guides/graphql/index.html).
 
 #### Overview
 
@@ -27,47 +33,11 @@ The GraphQL Playground allows you to:
 
 GraphQL queries are read-only and don't require wallet connection or transaction fees.
 
-#### Interface Components
-
-**Query Editor:**
-
-- **Monaco Editor**: Full-featured code editor
-- **Syntax Highlighting**: GraphQL-specific colors
-- **Auto-completion**: Suggests fields and types
-- **Error Detection**: Highlights syntax errors
-- **Line Numbers**: Easy reference
-
-**Variables Panel:**
-
-- **JSON Editor**: Define query variables
-- **Syntax Validation**: Checks JSON format
-- **Toggle**: Show/hide variables panel
-- **Persistence**: Saves per tab
-
-**Response Viewer:**
-
-- **Formatted JSON**: Pretty-printed results
-- **Syntax Highlighting**: Color-coded output
-- **Collapsible Sections**: Expand/collapse data
-- **Copy**: Copy entire response
-- **Error Display**: Shows query errors
-
-**Gateway Selector:**
-
-- **Predefined Gateways**: Popular AO and Arweave gateways
-- **Custom Gateways**: Add your own URLs
-- **Protocol Support**: HTTP and HTTPS
-- **Persistence**: Remembers selections
-
 #### Gateway Configuration
 
 **Available Gateways:**
 
-Default gateways include:
-
-- `ao-search-gateway.goldsky.com` - AO network data
-- `arweave-search.goldsky.com` - Arweave general data
-- `arweave.net` - Official Arweave gateway
+`arweave.net` is the default Arweave gateway supported in Lunar GraphQL.
 
 **Adding Custom Gateway:**
 
@@ -75,13 +45,6 @@ Default gateways include:
 2. Enter gateway URL
 3. Include protocol (https://)
 4. Save and select
-
-**Gateway Features:**
-
-- Switch between gateways easily
-- Test same query on different gateways
-- Compare response times
-- Fallback options
 
 #### Basic GraphQL Syntax
 
@@ -349,13 +312,6 @@ block: {
 
 #### Using Variables
 
-**Why Variables:**
-
-- Reusable queries
-- Cleaner syntax
-- Dynamic values
-- Type safety
-
 **Defining Variables:**
 
 In query:
@@ -387,30 +343,6 @@ In variables panel:
 - `Boolean` - true/false
 - `[String]` - Array of strings
 - `String!` - Required (non-null)
-
-#### Tab Management
-
-**Multiple Tabs:**
-
-- Open multiple queries simultaneously
-- Each tab has independent query and variables
-- Tabs persist across sessions
-- Named based on query name
-
-**Tab Features:**
-
-**Auto-Naming:**
-
-- Tabs named after query name
-- Unnamed queries show as "Untitled"
-- Example: `query GetProcesses` → tab named "GetProcesses"
-
-**Tab Actions:**
-
-- **+** button to add tab
-- **X** to close tab
-- Drag to reorder (where supported)
-- Clear all tabs option
 
 #### Response Analysis
 
@@ -712,5 +644,3 @@ query UserActivity($wallet: String!) {
 - Use pagination
 - Try different gateway
 - Avoid requesting all fields
-
-Remember: The GraphQL Playground is a powerful tool for exploring and analyzing AO network data. Master query building to extract exactly the information you need efficiently.
