@@ -22,7 +22,10 @@ export const NWrapper = styled.div`
 		left: 50%;
 		transform: translate(-50%, 0);
 		position: absolute;
+		z-index: 0;
+		background: transparent;
 		border-right: none;
+		box-shadow: none;
 	}
 `;
 
@@ -36,7 +39,7 @@ export const NContent = styled.div`
 		top: auto;
 		padding: 0 15px;
 		max-height: none;
-		background: ${(props) => props.theme.colors.container.alt3.background};
+		background: ${(props) => props.theme.colors.container.alt1.background};
 		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -145,7 +148,11 @@ export const NListItem = styled.li<{ disabled: boolean; active: boolean }>`
 	}
 `;
 
-export const NGroup = styled.div``;
+export const NGroup = styled.div`
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		margin: 0 0 12.5px 0;
+	}
+`;
 
 export const NSubHeader = styled(NTitle)`
 	height: auto;

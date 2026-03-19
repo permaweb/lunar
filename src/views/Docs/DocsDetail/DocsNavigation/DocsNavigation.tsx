@@ -46,6 +46,7 @@ function renderNavItems(handleClick: any, path = '', docs: any = docsOrder) {
 export default function DocsNavigation() {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
+	const location = useLocation();
 
 	const [open, setOpen] = React.useState(windowUtils.checkWindowCutoff(parseInt(STYLING.cutoffs.initial)));
 	const [desktop, setDesktop] = React.useState(windowUtils.checkWindowCutoff(parseInt(STYLING.cutoffs.initial)));
@@ -69,6 +70,26 @@ export default function DocsNavigation() {
 		}
 	};
 
+	function getCurrentDocName() {
+		const currentPath = location.pathname.replace(URLS.docs, '').replace(/^\//, '').replace(/\/$/, '');
+
+		function findDoc(docs: any, path = ''): string | null {
+			for (const doc of docs) {
+				const fullPath = path ? `${path}/${doc.path}` : doc.path;
+				if (fullPath === currentPath && doc.name) {
+					return doc.name;
+				}
+				if (doc.children) {
+					const found = findDoc(doc.children, fullPath);
+					if (found) return found;
+				}
+			}
+			return null;
+		}
+
+		return findDoc(docsOrder) || language.app;
+	}
+
 	function getNav() {
 		const Title: any = desktop ? S.NTitle : S.NTitleMobile;
 
@@ -76,7 +97,7 @@ export default function DocsNavigation() {
 			<S.NWrapper>
 				<S.NContent>
 					<Title onClick={desktop ? () => {} : () => setOpen(!open)} open={open}>
-						<p>{`${language.app}`}</p>
+						<p>{getCurrentDocName()}</p>
 						{!desktop && <ReactSVG src={ASSETS.arrow} />}
 					</Title>
 					<S.NList>{open && renderNavItems(handleNavClick)}</S.NList>

@@ -106,6 +106,14 @@ export const Wrapper = styled.div`
 	gap: 25px;
 	order: 1;
 
+	* {
+		overflow-wrap: anywhere !important;
+	}
+
+	@media (max-width: 1024px) {
+		max-width: 100%;
+	}
+
 	h1,
 	h2,
 	h3,
