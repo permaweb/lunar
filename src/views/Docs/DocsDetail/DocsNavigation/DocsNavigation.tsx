@@ -62,6 +62,13 @@ export default function DocsNavigation() {
 
 	windowUtils.checkWindowResize(handleWindowResize);
 
+	const handleNavClick = () => {
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+		if (!desktop) {
+			setOpen(false);
+		}
+	};
+
 	function getNav() {
 		const Title: any = desktop ? S.NTitle : S.NTitleMobile;
 
@@ -72,7 +79,7 @@ export default function DocsNavigation() {
 						<p>{`${language.app}`}</p>
 						{!desktop && <ReactSVG src={ASSETS.arrow} />}
 					</Title>
-					<S.NList>{open && renderNavItems(desktop ? null : () => setOpen(false))}</S.NList>
+					<S.NList>{open && renderNavItems(handleNavClick)}</S.NList>
 				</S.NContent>
 			</S.NWrapper>
 		);

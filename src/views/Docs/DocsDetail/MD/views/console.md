@@ -570,7 +570,7 @@ The Console works seamlessly with Explorer:
 1. Create process in Console
 2. Copy process ID
 3. Open in Explorer to inspect
-4. Use AOS tab for continued development
+4. Use AOS Tab for continued development
 5. Share process ID with others
 
 Remember: The Console is your development environment for AO. Master it to build sophisticated processes efficiently with immediate feedback and powerful debugging capabilities.

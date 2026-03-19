@@ -1,10 +1,8 @@
-# AOS (Actor Oriented System)
+# AOS
 
-AOS is the interactive development environment for the AO network. It provides a Lua-based programming interface for creating and controlling processes. Understanding AOS is essential for building applications on AO.
+AOS (AO Operating System) is the interactive development environment for the AO network. It provides a Lua-based programming interface for creating and controlling processes. Understanding AOS is essential for building applications on AO.
 
 AOS is available as a CLI, a package with JavaScript bindings (aoconnect), and inside Lunar as a browser-based tool.
-
-// insert img here
 
 #### What is AOS?
 

@@ -364,7 +364,7 @@ export default function GraphQLPlayground(props: {
 						handlePress={() => setShowVariables((prev) => !prev)}
 						active={showVariables}
 						icon={showVariables ? ASSETS.close : null}
-						height={35.5}
+						height={37.5}
 					/>
 					<Select
 						label={''}

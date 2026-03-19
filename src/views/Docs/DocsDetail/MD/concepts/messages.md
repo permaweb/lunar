@@ -31,9 +31,9 @@ Lunar makes message flow inspectable:
 
 In practice, message analysis in Lunar usually uses three relationship views:
 
-- incoming messages to a process
-- outgoing messages emitted by a process
-- resulting messages created during a given execution
+- Incoming messages to a process
+- Outgoing messages emitted by a process
+- Resulting messages created during a given execution
 
 This allows you to move from a single message to the surrounding interaction graph without leaving Lunar.
 
@@ -55,10 +55,10 @@ Process implementations define what is accepted. In Lunar, Source plus historica
 
 For a specific message, Lunar exposes:
 
-- message identity and routing metadata
-- input payload and full tag set
-- output payload or error details
-- resulting messages and linked follow-on calls
+- Message identity and routing metadata
+- Input payload and full tag set
+- Output payload or error details
+- Resulting messages and linked follow-on calls
 
 For process-level analysis, message list filters (action, sender, recipient, date range, pagination) are useful for isolating a specific execution path in high-volume streams.
 
@@ -66,9 +66,9 @@ For process-level analysis, message list filters (action, sender, recipient, dat
 
 Message output in Lunar commonly falls into three broad states:
 
-- success output (returned values or structured payload)
-- error output (validation/handler/runtime failure)
-- empty output (no explicit return payload)
+- Success output (returned values or structured payload)
+- Error output (validation/handler/runtime failure)
+- Empty output (no explicit return payload)
 
 Resulting messages are often needed to interpret side effects, especially for action types that trigger secondary notices or process-to-process calls.
 

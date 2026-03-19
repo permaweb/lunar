@@ -193,7 +193,7 @@ export const STYLING = {
 			max: '45px',
 		},
 		nav: {
-			height: '70px',
+			height: '71.5px',
 			width: '260px',
 		},
 		radius: {
