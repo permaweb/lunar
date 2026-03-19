@@ -2,63 +2,24 @@
 
 Wallets are essential for interacting with the AO network through Lunar. They enable you to sign transactions, create processes, send messages, and prove ownership. This guide covers everything you need to know about using wallets with Lunar.
 
-#### Supported Wallets
+#### Supported Wallet
 
-Lunar supports three wallet types:
-
-**ArConnect:**
+**Wander**
 
 - Browser extension wallet for Chrome, Firefox, Brave
-- Most popular Arweave wallet
-- Full feature support
-- Local key storage
-- Download: [arconnect.io](https://arconnect.io)
-
-**Othent:**
-
-- Email-based authentication
-- No extension required
-- Lower barrier to entry
-- Managed key service
-- Website: [othent.io](https://othent.io)
-
-**Wander:**
-
-- Mobile wallet app
 - iOS and Android support
-- QR code connection
-- Mobile-first experience
-- Download from app stores
+- Most popular Arweave wallet
+- Local key storage
+- Download: [wander.app](https://wander.app)
 
 #### Connecting Your Wallet
 
-**ArConnect:**
-
-1. Install ArConnect browser extension
-2. Create or import wallet
-3. Click **Connect Wallet** in Lunar
-4. Select **ArConnect**
-5. Approve connection in popup
-6. Wallet address appears in header
-
-**Othent:**
-
-1. Click **Connect Wallet** in Lunar
-2. Select **Othent**
-3. Enter email address
-4. Check email for verification code
-5. Enter code to complete connection
-6. Wallet address appears in header
-
-**Wander:**
-
-1. Install Wander app on mobile device
+1. Install Wander browser extension
 2. Create or import wallet
 3. Click **Connect Wallet** in Lunar
 4. Select **Wander**
-5. Scan QR code with app
-6. Approve connection
-7. Wallet address appears in header
+5. Approve connection in popup
+6. Wallet address appears in header
 
 #### Wallet-Required Features
 
@@ -115,24 +76,6 @@ When connecting, Lunar requests these permissions:
 - Sign transactions without approval
 - Transfer funds without consent
 - Modify wallet settings
-
-#### Security Best Practices
-
-**Wallet Security:**
-
-- Never share private keys or seed phrases
-- Use strong passwords
-- Enable 2FA where available
-- Keep wallet software updated
-- Backup seed phrases securely
-
-**Transaction Verification:**
-
-- Always review transaction details before signing
-- Verify recipient addresses
-- Check transaction amounts
-- Understand what you're signing
-- Cancel suspicious requests
 
 **Using Lunar Safely:**
 
@@ -250,30 +193,6 @@ Lunar displays multiple token balances:
 - Check process status
 - Monitor process activity
 
-#### Managing Multiple Wallets
-
-**Switching Wallets:**
-
-ArConnect:
-
-1. Click wallet address in Lunar header
-2. Select **Switch Account** in ArConnect
-3. Choose different account
-4. Lunar updates automatically
-
-Othent:
-
-1. Disconnect current wallet
-2. Connect again with different email
-3. Enter new verification code
-
-**Use Cases:**
-
-- Testing with different accounts
-- Separating personal and development
-- Managing multiple projects
-- Security isolation
-
 #### Disconnecting Wallet
 
 **Manual Disconnect:**
@@ -282,21 +201,6 @@ Othent:
 2. Select **Disconnect** option
 3. Wallet connection removed
 4. Wallet-required features disabled
-
-**When to Disconnect:**
-
-- Finished with write operations
-- Leaving computer unattended
-- Switching to different wallet
-- Security concerns
-
-**After Disconnecting:**
-
-- Read operations still work
-- Cannot write to processes
-- Cannot create processes
-- Cannot sign transactions
-- Can reconnect anytime
 
 #### Common Issues
 
@@ -326,7 +230,7 @@ Othent:
 
 **Wrong Network:**
 
-- ArConnect supports mainnet only
+- Wander supports mainnet only
 - Ensure wallet is on correct network
 - Check Lunar network setting
 - Processes must match network
@@ -341,24 +245,15 @@ Othent:
 
 #### Getting AR Tokens
 
-**For Testing (Testnet):**
-
-- Use Arweave faucet: [faucet.arweave.net](https://faucet.arweave.net)
-- Provides small amount for testing
-- Free but limited
-- Good for development
-
 **For Production (Mainnet):**
 
 - Purchase from cryptocurrency exchange
 - Transfer to your wallet
-- Use DEX for direct swaps
 - Ensure sufficient balance for fees
 
 **How Much AR Needed:**
 
 - Typical transaction: 0.0001-0.001 AR
-- Process creation: ~0.001-0.01 AR
 - Depends on data size
 - Keep small balance for regular use
 
@@ -401,71 +296,9 @@ Send({
 })
 ```
 
-#### Best Practices Summary
+#### Getting Help with Wander wallet
 
-**Security:**
-
-- ✅ Always verify transaction details
-- ✅ Keep private keys secure
-- ✅ Use hardware wallet for large amounts
-- ✅ Enable all available security features
-- ❌ Never share seed phrases
-- ❌ Don't sign suspicious transactions
-
-**Usage:**
-
-- ✅ Keep sufficient AR balance
-- ✅ Test with small amounts first
-- ✅ Verify recipient addresses
-- ✅ Disconnect when not needed
-- ❌ Don't rush through signing
-- ❌ Don't ignore warnings
-
-**Development:**
-
-- ✅ Use separate wallet for testing
-- ✅ Document required permissions
-- ✅ Handle rejection gracefully
-- ✅ Provide clear error messages
-- ❌ Don't hardcode wallet addresses
-- ❌ Don't assume wallet is connected
-
-#### Wallet Comparison
-
-| Feature          | ArConnect         | Othent    | Wander       |
-| ---------------- | ----------------- | --------- | ------------ |
-| Platform         | Browser Extension | Web-based | Mobile App   |
-| Key Storage      | Local             | Managed   | Local        |
-| Setup Difficulty | Medium            | Easy      | Easy         |
-| Best For         | Power Users       | Beginners | Mobile Users |
-| Offline Support  | Yes               | No        | Yes          |
-| Custom Tokens    | Yes               | Limited   | Yes          |
-
-#### Getting Help
-
-**ArConnect Issues:**
-
-- Discord: ArConnect community
-- Documentation: arconnect.io/docs
-- GitHub: ArConnect repo
-
-**Othent Issues:**
-
-- Support: othent.io/support
-- Documentation: othent.io/docs
-- Discord: Othent community
-
-**Wander Issues:**
-
-- Support: In-app help
-- Documentation: wander.app/docs
-- Discord: Wander community
-
-**Lunar Wallet Issues:**
-
-- Check Lunar docs first
-- Verify wallet connection
-- Try different wallet
-- Report bugs on GitHub
+- [Wander knowledge base](https://www.wander.app/help)
+- [Wander Discord community](https://discord.com/invite/YGXJbuz44K)
 
 Remember: Your wallet is your identity on the AO network. Protect it carefully, verify all transactions, and never share private keys. With proper wallet security, you can safely build and interact with decentralized processes on AO.

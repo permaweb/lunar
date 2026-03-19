@@ -1,262 +1,135 @@
 # Processes
 
-Processes are the fundamental building blocks of the AO network. They are autonomous actors that maintain state, execute code, and communicate through messages. Think of processes as decentralized programs that run permanently on the Arweave blockchain.
+Processes are the 'computer programs' of AO - the core logic you inspect in Lunar.
 
-#### What is a Process?
+In AO, a process is an actor that receives messages, executes logic, and can emit further messages. In Lunar, process pages expose the evidence of that behavior through metadata, source, state interfaces, and message history.
 
-A process in AO is similar to a smart contract, but with key differences:
+#### Processes in AO and Lunar
 
-- **Permanent State**: Process state is stored on Arweave forever
-- **Lua Execution**: Processes run Lua code via the AOS environment
-- **Message-Driven**: Processes respond to incoming messages
-- **Autonomous**: Processes can initiate actions independently
-- **Owned**: Each process has an owner who controls it
+![](process.png)
 
-#### Process Components
+The AO cookbook describes [processes](https://cookbook_ao.arweave.net/concepts/processes.html) as follows:
 
-Every process consists of several key components:
+> "Processes possess the capability to engage in communication via message passing, both receiving and dispatching messages within the network. Additionally, they hold the potential to instantiate further processes, enhancing the network's computational fabric. This dynamic method of data dissemination and interaction within the network is referred to as a 'holographic state', underpinning the shared and persistent state of the network."
 
-**Module:**
+For reference, some processes you can inspect in Lunar are:
 
-- Defines the process behavior and capabilities
-- Contains the core execution logic
-- Determines what handlers are available
-- Immutable once set
+- [AO token](/explorer/0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc/info)
+- [Apus fair launch process](/explorer/jHZBsy0SalZ6I5BmYKRUt0AtLsn-FCFhqf_n6AgwGlc/info)
+- [Redstone oracle relayer](/explorer/mTnbGv_OlWLS6KJlTqN2s1qlLqinkDwzQ8VnctQ0b0o/info)
+- [wAR token](/explorer/xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10/info)
 
-**Scheduler:**
+#### Process anatomy in Lunar
 
-- Coordinates message delivery to the process
-- Ensures message ordering and execution
-- Manages process lifecycle
-- Examples: `n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo`
+When you open a process in Explorer, the main elements available for inspection are:
 
-**Authority:**
+- process ID and owner
+- module, scheduler, and authority references
+- protocol and custom tags
+- source/on-boot code (where available)
+- related incoming and outgoing messages
+- read/write interfaces for process interaction
 
-- Validates and signs process operations
-- Ensures security and authenticity
-- Controls write permissions
-- Examples: `YUsEnCSlxvOMxRd1qG6rkaPwMgi3xOorfDfYJoMDndA`
+Together, these provide both identity (what this process is) and behavior (what this process does over time).
 
-**Owner:**
+#### Process execution
 
-- Arweave wallet that created the process
-- Has special permissions and access
-- Can modify process configuration
-- Receives process notifications
+A simple example -- getting info about a process:
 
-#### Process Lifecycle
+1. A message is sent to a process with tags such as:
+   - `Action: Info`
+2. The process matches an `Info` handler.
+3. The handler returns process metadata as output.
+4. Lunar shows:
+   - the input message in `Messages`
+   - the output payload in message details
+   - any resulting messages, if emitted
 
-**Creation:**
+In Lunar, this is exposed over the `/explorer/<id>/info` path.
 
-1. User sends a spawn message with module and scheduler
-2. Network validates the spawn request
-3. Process is assigned a unique transaction ID
-4. Initial state is created on Arweave
-5. Process begins accepting messages
+A transfer action follows the same shape with different side effects:
 
-**Execution:**
+1. Message with `Action: Transfer`, `Recipient`, `Quantity`
+2. Process validates and updates state
+3. Output confirms or errors
+4. Resulting messages may include `Debit-Notice` / `Credit-Notice`
 
-1. Process receives incoming message
-2. Scheduler orders and validates messages
-3. Module executes handler for message action
-4. Process updates internal state
-5. Process may send outgoing messages
+#### Source and handlers
 
-**Inspection:**
+![Handler diagram](handler-diagram.png)
 
-- Anyone can read process state (no wallet required)
-- Anyone can view process messages and history
-- Anyone can query process data via GraphQL
-- Only owner can write without restrictions
+AO cookbook also captures the handler-oriented model:
 
-#### Process State
+> "When building a Process with `aos` you have the ability to add `handlers`, these handlers can be added by calling the `Handlers.add` function, passing a \"name\", a \"match\" function, and a \"handle\" function."
 
-Processes maintain internal state that persists across message executions:
+An `Info` flow in Lunar usually looks like:
 
-**State Components:**
+1. In `Read`, send a request with `Action: Info`.
+2. The process handler matches on `Info`.
+3. The response returns metadata, for example:
 
-- **Variables**: Data stored by the process (balances, config, etc.)
-- **Handlers**: Functions that respond to message actions
-- **OnBoot**: Initialization code run when process starts
-- **Memory**: Accumulated data from all messages
+```json
+{
+	"Data-Protocol": "ao",
+	"Variant": "ao.TN.1",
+	"Type": "Message",
+	"Reference": 20335813,
+	"TotalSupply": "129769196913862835",
+	"MinBurnAmt": 500000000000,
+	"BurnFee": 300000000000,
+	"X-Origin": null,
+	"X-Reference": null,
+	"Ticker": "wAR",
+	"Denomination": 12,
+	"BridgeProcessId": "MysFttDUI1YJKcFwYIyqVWGfFGnetcCp_5TGjdhVgS4",
+	"FeeRecipient": "4S58xCqS6uKcrvqb2JlrCWllC2VIBs7qxU15QbWa3ZI",
+	"MintFee": 0,
+	"Logo": "L99jaxRKQKJt9CqoJtPaieGPEhJD3wNhR4iGqc8amXs",
+	"HolderNum": 43018,
+	"Name": "Wrapped AR"
+}
+```
 
-**Reading State:**
+When this works, you can validate the handler contract end-to-end:
 
-- Use the Explorer's **Read** tab
-- Send Eval action: `return State`
-- Query specific variables: `return Balance`
-- No wallet or transaction required
+- expected action name (`Info`)
+- expected response shape (fields present)
+- consistency with what Source advertises
 
-**Modifying State:**
+In Lunar, the process Source tab provides the handler definition, while Messages/Read show whether real calls are matching and returning as expected.
 
-- Use the Explorer's **Write** tab
-- Send message with specific action
-- Requires connected wallet
-- Transaction fees apply
+#### Process metadata and tags
 
-#### Common Process Types
+Process tags combine AO protocol identifiers with process-specific metadata. Typical protocol-level tags include:
 
-**Token Processes:**
+- `Data-Protocol`
+- `Type`
+- `Variant`
+- `Module`
+- `Scheduler`
+- `OnBoot`
 
-- Manage fungible token balances
-- Support Transfer, Balance, Mint actions
-- Track holders and supply
-- Examples: AO token, PI token
+Custom tags (such as `Name`, `Description`, or version markers) provide additional application context when present.
 
-**Data Storage:**
+#### State and Interaction Surfaces
 
-- Store arbitrary data on-chain
-- Provide retrieval handlers
-- Version control and updates
-- Content addressing
+Lunar exposes process interaction across multiple surfaces:
 
-**Application Logic:**
+- `Overview`: metadata and reference information
+- `Messages`: incoming/outgoing message history
+- `Read`: non-state-changing queries
+- `Write`: state-changing message submission
+- `Data`: raw attached data inspection
+- `Source`: process code and handler definitions
+- `AOS`: interactive owner-oriented process session
 
-- Implement business rules
-- Coordinate multiple processes
-- Handle complex workflows
-- User interactions
+These surfaces represent different views of the same process lifecycle and can be used together to form a complete picture.
 
-**Registries:**
+#### Related AO Reading
 
-- Track collections of items
-- Provide lookup services
-- Maintain directories
-- Name services
+For deeper protocol-level details on processes and execution flow:
 
-#### Process Tags
-
-Processes include tags that provide metadata:
-
-**Standard Tags:**
-
-- `Data-Protocol`: "ao" - identifies AO processes
-- `Type`: "Process" - distinguishes from messages
-- `Variant`: Network variant (ao.N.1, ao.TN.1)
-- `Module`: Module transaction ID
-- `Scheduler`: Scheduler address
-- `OnBoot`: OnBoot handler transaction ID
-
-**Custom Tags:**
-
-- `Name`: Human-readable process name
-- `Description`: Process purpose
-- `Version`: Process version number
-- Application-specific tags
-
-#### Inspecting Processes in Lunar
-
-**Overview Tab:**
-
-- View all process tags and metadata
-- See module, scheduler, and authority
-- Check owner and creation date
-- Read current process state
-
-**Messages Tab:**
-
-- View all incoming and outgoing messages
-- Filter by action, sender, recipient, date
-- Inspect message inputs and outputs
-- Track message flow
-
-**Read Tab:**
-
-- Execute read-only operations
-- Query process state
-- Test handlers without transactions
-- No wallet required
-
-**Write Tab:**
-
-- Send messages to modify state
-- Execute state-changing actions
-- Requires wallet connection
-- Transaction fees apply
-
-**Data Tab:**
-
-- View raw process data
-- Support for multiple formats (JSON, Lua, HTML, images)
-- Download data locally
-- Inspect content type
-
-**Source Tab:**
-
-- View process source code
-- See OnBoot initialization
-- Understand handlers
-- Copy code for reference
-
-**AOS Tab** (owners only):
-
-- Interactive Lua console
-- Direct process communication
-- Real-time execution
-- Full control access
-
-#### Best Practices
-
-**When Reading Processes:**
-
-- Use the Read tab for queries to avoid transaction fees
-- Check process state before writing
-- Verify process owner and tags
-- Review recent messages for activity
-
-**When Writing to Processes:**
-
-- Always read state first to understand current values
-- Check required action format in process source
-- Verify you have sufficient balance for transactions
-- Test with small amounts first
-
-**When Creating Processes:**
-
-- Choose appropriate module for your needs
-- Use standard scheduler unless specific requirements
-- Set clear name and description tags
-- Document your process handlers
-
-**Security Considerations:**
-
-- Verify process owner before trusting
-- Check process source code for malicious behavior
-- Review message history for suspicious activity
-- Be cautious with unknown processes
-
-#### Common Actions
-
-**Eval:**
-
-- Execute Lua code on the process
-- Return values from process state
-- Used for queries and calculations
-- Example: `return Balance`
-
-**Info:**
-
-- Request process information
-- Returns process metadata
-- Often includes name, version, description
-
-**Balance:**
-
-- Query token balance
-- For specific address or total supply
-- Returns numeric value
-
-**Transfer:**
-
-- Send tokens to another address
-- Requires Recipient and Quantity
-- Updates sender and recipient balances
-
-**Custom Actions:**
-
-- Defined by process module
-- Specific to process functionality
-- Check source code for available actions
-- May require specific parameters
-
-Remember: Processes are the core of the AO network. Understanding how they work, how to inspect them, and how to interact with them safely is essential for using Lunar effectively.
+- Processes: [https://cookbook_ao.arweave.net/concepts/processes.html](https://cookbook_ao.arweave.net/concepts/processes.html)
+- How it Works: [https://cookbook_ao.arweave.net/concepts/how-it-works.html](https://cookbook_ao.arweave.net/concepts/how-it-works.html)
+- Messages: [https://cookbook_ao.arweave.net/concepts/messages.html](https://cookbook_ao.arweave.net/concepts/messages.html)
+- Concepts index: [https://cookbook_ao.arweave.net/concepts/index.html](https://cookbook_ao.arweave.net/concepts/index.html)
