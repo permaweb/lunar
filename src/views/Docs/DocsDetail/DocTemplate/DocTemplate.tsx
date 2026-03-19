@@ -11,6 +11,10 @@ const mdLoaders = (import.meta as any).glob('../MD/**/*.md', {
 	query: '?raw',
 	import: 'default',
 });
+const docsAssets = (import.meta as any).glob('../**/*.{png,jpg,jpeg,svg,gif,webp}', {
+	eager: true,
+	import: 'default',
+});
 
 export default function DocTemplate(props: { doc?: string; id?: string }) {
 	const [markdown, setMarkdown] = React.useState<string>('');
@@ -169,6 +173,23 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 				</a>
 			);
 		},
+		img: (props: any) => {
+			const { src, alt } = props;
+			if (!src) {
+				return <img {...props} />;
+			}
+
+			let resolvedSrc = src;
+			const filename = src.split('/').pop();
+			if (filename) {
+				const match = Object.entries(docsAssets).find(([key]) => key.endsWith(`/${filename}`));
+				if (match) {
+					resolvedSrc = match[1] as string;
+				}
+			}
+
+			return <img src={resolvedSrc} alt={alt || ''} />;
+		},
 	};
 
 	return markdown ? (
@@ -178,6 +199,7 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 					children={markdown}
 					components={{
 						link: renderers.link,
+						img: renderers.img,
 						h2: renderers.h2,
 						h4: renderers.h4,
 					}}

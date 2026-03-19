@@ -1,5 +1,7 @@
 # Explorer
 
+![](list.png)
+
 The Explorer is Lunar's most comprehensive view, providing deep inspection and interaction capabilities for processes, messages, and wallets on the AO network. It features a multi-tab interface that lets you explore multiple transactions simultaneously.
 
 #### Overview
@@ -26,7 +28,7 @@ The Explorer allows you to:
 
 - 43 characters (Arweave transaction ID)
 - Alphanumeric with dashes and underscores
-- Example: `process-id-would-be-43-characters-long-here`
+- Example: `0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc`
 
 **Auto-Detection:**
 
@@ -35,29 +37,6 @@ Lunar automatically detects the transaction type:
 - **Process**: Shows process inspection tabs
 - **Message**: Shows message details
 - **Wallet**: Shows wallet balances and messages
-
-#### Tab Management
-
-**Multiple Tabs:**
-
-- Open multiple transactions simultaneously
-- Click **+** button to add new tab
-- Click **X** on tab to close it
-- Drag tabs to reorder (where supported)
-
-**Tab Features:**
-
-- Persistent across sessions (stored in localStorage)
-- Auto-named based on transaction
-- Color-coded by type
-- Fullscreen mode per tab
-
-**Tab Actions:**
-
-- **Clear All**: Remove all tabs at once
-- **Refresh**: Reload current transaction data
-- **Fullscreen**: Expand tab to full window
-- **Copy ID**: Copy transaction ID to clipboard
 
 #### Process Inspection
 
@@ -427,40 +406,6 @@ When viewing a wallet address, you see:
 - Process interactions
 - Complete history
 
-#### Best Practices
-
-**Efficient Exploration:**
-
-- Open related processes in separate tabs
-- Use filters to focus on specific messages
-- Read before writing to understand state
-- Copy transaction IDs for reference
-- Fullscreen for detailed analysis
-
-**Safety Tips:**
-
-- Verify process owner before trusting
-- Check process source for malicious code
-- Start with Read tab to test queries
-- Use small amounts for test transfers
-- Double-check recipient addresses
-
-**Performance:**
-
-- Close unused tabs
-- Limit results per page for faster loading
-- Use date filters for large message sets
-- Clear all tabs periodically
-- Refresh data when needed
-
-**Navigation:**
-
-- Click addresses to navigate to them
-- Use browser back/forward buttons
-- Open links in new tabs (Ctrl/Cmd+Click)
-- Bookmark important processes
-- Copy IDs for later reference
-
 #### Common Workflows
 
 **Investigating a Token:**
@@ -494,5 +439,3 @@ When viewing a wallet address, you see:
 3. Track message flow between processes
 4. Export data for further analysis
 5. Monitor for patterns
-
-Remember: The Explorer is your window into the AO network. Master its features to effectively inspect, analyze, and interact with decentralized processes and messages.
