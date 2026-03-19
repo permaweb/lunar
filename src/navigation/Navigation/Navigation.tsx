@@ -80,6 +80,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				icon: ASSETS.code,
 				label: language.graphql,
 			},
+			{
+				path: URLS.docs,
+				icon: ASSETS.docs,
+				label: language.docs,
+			},
 		];
 	}, []);
 

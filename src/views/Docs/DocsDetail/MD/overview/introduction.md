@@ -1,177 +1,64 @@
 # Welcome to Lunar
 
-Lunar is a decentralized explorer application that provides a comprehensive interface for discovering, inspecting, and interacting with messages and processes across the [AO network](https://ao.arweave.net). Built on [Arweave](https://arweave.org), Lunar improves traceability for users and provides essential developer utilities for building permaweb applications.
+Lunar is an interface for exploring and interacting with AO processes, messages and entities.
 
-#### What Makes Lunar Unique
+It centers on entities and relationships you can inspect directly: processes, messages, wallets, and transaction-linked data. In practice, Lunar is useful when you need to move from an ID to context: what this entity is, what it is connected to, and what happened around it.
 
-**Network Transparency:**
+#### What Lunar Is
 
-- Real-time visibility into AO network activity
-- Comprehensive process and message inspection
-- Network metrics and health monitoring
-- Support for both Mainnet and Legacynet
+Lunar provides:
 
-**Developer Tools:**
+- Explorer-based inspection of process, message, and wallet records
+- Read and write surfaces for process interaction
+- Console access for interactive AOS workflows
+- GraphQL querying for broader AO/Arweave data retrieval
 
-- Interactive AOS console for Lua development
-- GraphQL playground for querying network data
-- Process state inspection and modification
-- Message filtering and analysis
+#### Exploring AO
 
-**Decentralized Benefits:**
+AO is a decentralized hyperparallel computer built around message flow and process execution. The core framing from the [cookbook](https://cookbook_ao.arweave.net) is:
 
-- Direct interaction with AO network nodes
-- No intermediary services required
-- Open-source and transparent operation
-- Permanent data storage on Arweave
+> "The `ao` computer takes messages and sends them to Processes in which those Processes can output messages that can be sent to other Processes. The result is a complex system built on simple modular logic containers."
 
-#### Key Features
+AO is built on a few fundamental principles that form its foundation:
 
-This documentation will guide you through every aspect of Lunar. You'll learn how to:
+- **Two core types**: Messages and Processes - the basic building blocks of the AO ecosystem
+- **No shared state, only Holographic State** - a unique approach to distributed computing
+- **Decentralized Computer** - enabling truly distributed applications
 
-**Network Exploration:**
+That maps directly to Lunar's data model. Most screens in Lunar are effectively different ways to inspect either a process, a message, or the relationships between them.
 
-- View network metrics and health status
-- Monitor message flow across processes
-- Track token transfers and balances
-- Analyze network activity trends
+In Lunar, what you see in Explorer and GraphQL is not static data; it is a permanent log of message-driven computation over time.
 
-**Process Interaction:**
+#### Main Views
 
-- Inspect process state and metadata
-- Read process data without transactions
-- Write messages to modify process state
-- View process source code and handlers
+- **Explorer**: inspect process, message, and wallet data, including linked history
+- **Console**: interactive AOS terminal and process session management
+- **GraphQL**: query editor and response viewer for AO/Arweave gateways
 
-**AOS Development:**
+#### What You Can Inspect in Lunar
 
-- Access interactive Lua console
-- Create and manage AOS processes
-- Execute commands and scripts
-- Stream real-time output
+- Process metadata, source, message history, read/write interfaces
+- Message input, tags, output, and resulting messages
+- Wallet balances and observed transaction participation
+- Network-oriented data through configured GraphQL gateways
 
-**Data Querying:**
+**Processes**
 
-- Use GraphQL to query network data
-- Filter transactions by tags and owners
-- Build custom queries for specific data
-- Export results for analysis
+![](intro-process.png)
 
-**Wallet Integration:**
+> Processes possess the capability to engage in communication via message passing, both receiving and dispatching messages within the network. Additionally, they hold the potential to instantiate further processes, enhancing the network's computational fabric. This dynamic method of data dissemination and interaction within the network is referred to as a 'holographic state', underpinning the shared and persistent state of the network.
 
-- Connect Arweave wallets
-- View token balances (AO, PI, AR)
-- Sign and send transactions
-- Monitor wallet activity
+**Messages**
 
-#### Getting Started
+![](intro-message.png)
 
-**First Steps:**
+> In ao, every process runs in parallel, creating a highly scalable environment. Traditional direct function calls between processes aren't feasible because each process operates independently and asynchronously. Messaging addresses this by enabling asynchronous communication. Processes send and receive messages rather than directly invoking functions on each other. This method allows for flexible and efficient interaction, where processes can respond to messages, enhancing the system's scalability and responsiveness.
 
-1. **Explore the Landing Page**: View network metrics and health status for AO Mainnet and Legacynet
-2. **Connect Your Wallet**: Use ArConnect, Othent, or Wander to enable write operations
-3. **Open the Explorer**: Search for any process, message, or wallet by transaction ID
-4. **Try the Console**: Create or connect to an AOS process for interactive development
-5. **Query with GraphQL**: Use the playground to explore network data
+#### Related AO Reading
 
-#### Understanding Lunar's Views
+For protocol-level details, these AO cookbook sections are the relevant companions to Lunar docs:
 
-Lunar is organized into five main views, accessible from the sidebar navigation:
-
-**Landing:**
-
-- Network overview dashboard
-- Mainnet and Legacynet metrics
-- Node connection status and health
-- Recent network messages
-- Available AO nodes list
-
-**Explorer:**
-
-- Multi-tab interface for browsing transactions
-- Process inspection (info, messages, read, write, data, source, AOS)
-- Message inspection (sender, recipient, action, data, results)
-- Wallet inspection (balances, transaction history)
-- Advanced message filtering
-
-**Console:**
-
-- Interactive AOS terminal
-- Process creation and management
-- Lua script execution
-- Code editor mode
-- Command history and auto-completion
-
-**GraphQL:**
-
-- Interactive query playground
-- Multiple gateway support
-- Query and variables editors
-- Response visualization
-- Multi-tab workspace
-
-**Docs:**
-
-- In-app documentation (you are here!)
-- Feature guides and tutorials
-- Concept explanations
-- Best practices and tips
-
-#### Understanding the AO Network
-
-**What is AO?**
-
-AO (Actor Oriented computer) is a decentralized computing network built on Arweave. It enables:
-
-- **Processes**: Autonomous actors that store state and execute code
-- **Messages**: Communication between processes and users
-- **Permanent Storage**: All data stored immutably on Arweave
-- **Lua Execution**: Processes run Lua code via the AOS environment
-
-**Network Variants:**
-
-- **Mainnet (ao.N.1)**: Production network for live applications
-- **Legacynet (ao.TN.1)**: Legacy test network for historical data
-
-**Key Components:**
-
-- **Nodes**: Servers that execute process logic and route messages
-- **Schedulers**: Coordinate message delivery and process execution
-- **Modules**: Define process behavior and capabilities
-- **Gateways**: Provide GraphQL interfaces for querying data
-
-#### Wallet Requirements
-
-Some Lunar features require an Arweave wallet:
-
-**Wallet-Required Features:**
-
-- Writing messages to processes
-- Creating new AOS processes
-- Sending transactions
-- Process ownership verification
-
-**Wallet-Free Features:**
-
-- Viewing network metrics
-- Reading process state
-- Inspecting messages
-- GraphQL queries
-- Most explorer functionality
-
-**Supported Wallets:**
-
-- ArConnect (browser extension)
-- Othent (email-based)
-- Wander (mobile app)
-
-#### Navigation Tips
-
-- **Sidebar**: Click the menu icon to toggle the navigation sidebar
-- **Tabs**: Explorer, Console, and GraphQL support multiple tabs
-- **Search**: Use the explorer search to find any transaction by ID
-- **Shortcuts**: Many views support keyboard shortcuts
-- **Fullscreen**: Most views can expand to fullscreen mode
-- **Settings**: Access network and node configuration via settings panel
-
-This documentation will walk through each component of Lunar to ensure you have all the information needed to explore and build on the AO network. Whether you're a developer building applications, a researcher analyzing network activity, or a user exploring decentralized processes, Lunar provides the tools you need.
+- Concepts index: [https://cookbook_ao.arweave.net/concepts/index.html](https://cookbook_ao.arweave.net/concepts/index.html)
+- How messaging works: [https://cookbook_ao.arweave.net/concepts/how-it-works.html](https://cookbook_ao.arweave.net/concepts/how-it-works.html)
+- Processes: [https://cookbook_ao.arweave.net/concepts/processes.html](https://cookbook_ao.arweave.net/concepts/processes.html)
+- Messages: [https://cookbook_ao.arweave.net/concepts/messages.html](https://cookbook_ao.arweave.net/concepts/messages.html)

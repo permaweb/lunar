@@ -38,13 +38,17 @@ export default function DocsNavigationFooter() {
 		<S.Wrapper>
 			{prevPage && (
 				<Link to={`/docs/${prevPage.path}`} id={'docs-previous'} onClick={handleClick}>
-					<span>Previous page</span>
+					<span>
+						<i>‹</i> Previous Page
+					</span>
 					<p>{prevPage.name}</p>
 				</Link>
 			)}
 			{nextPage && (
 				<Link to={`/docs/${nextPage.path}`} id={'docs-next'} onClick={handleClick}>
-					<span>Next page</span>
+					<span>
+						Next Page <i>›</i>
+					</span>
 					<p>{nextPage.name}</p>
 				</Link>
 			)}

@@ -19,7 +19,7 @@ export const BodyWrapper = styled.div`
 export const ContentWrapper = styled.div`
 	width: calc(100% - ${STYLING.dimensions.nav.width});
 	max-width: 1200px;
-	padding: 45px 80px 25px 80px;
+	padding: 45px 25px 25px 25px;
 	display: flex;
 	flex-direction: column;
 	left: calc(${STYLING.dimensions.nav.width} - 120px);

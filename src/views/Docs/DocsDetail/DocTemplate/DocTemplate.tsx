@@ -11,6 +11,10 @@ const mdLoaders = (import.meta as any).glob('../MD/**/*.md', {
 	query: '?raw',
 	import: 'default',
 });
+const docsAssets = (import.meta as any).glob('../**/*.{png,jpg,jpeg,svg,gif,webp}', {
+	eager: true,
+	import: 'default',
+});
 
 export default function DocTemplate(props: { doc?: string; id?: string }) {
 	const [markdown, setMarkdown] = React.useState<string>('');
@@ -125,6 +129,15 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 			.catch((err) => console.error('Error loading markdown:', err));
 	}, [props.doc, active]);
 
+	const highlightJSON = (code: string) => {
+		return code
+			.replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+			.replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+			.replace(/: (\d+)/g, ': <span class="json-number">$1</span>')
+			.replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+			.replace(/: (null)/g, ': <span class="json-null">$1</span>');
+	};
+
 	const renderers = {
 		h2: (props: any) => {
 			const { level, children } = props;
@@ -151,6 +164,18 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 				: '';
 			return <h4 id={id}>{children}</h4>;
 		},
+		code: (props: any) => {
+			const { inline, className, children } = props;
+			const isJSON = className === 'language-json';
+
+			if (!inline && isJSON) {
+				// Extract text content from children (could be string or array)
+				const codeText = Array.isArray(children) ? children.join('') : String(children);
+				return <code className={className} dangerouslySetInnerHTML={{ __html: highlightJSON(codeText) }} />;
+			}
+
+			return <code className={className}>{children}</code>;
+		},
 		link: (props: any) => {
 			const { href, children } = props;
 			const isAnchorLink = href && href.startsWith('#');
@@ -169,6 +194,23 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 				</a>
 			);
 		},
+		img: (props: any) => {
+			const { src, alt } = props;
+			if (!src) {
+				return <img {...props} />;
+			}
+
+			let resolvedSrc = src;
+			const filename = src.split('/').pop();
+			if (filename) {
+				const match = Object.entries(docsAssets).find(([key]) => key.endsWith(`/${filename}`));
+				if (match) {
+					resolvedSrc = match[1] as string;
+				}
+			}
+
+			return <img src={resolvedSrc} alt={alt || ''} />;
+		},
 	};
 
 	return markdown ? (
@@ -178,14 +220,16 @@ export default function DocTemplate(props: { doc?: string; id?: string }) {
 					children={markdown}
 					components={{
 						link: renderers.link,
+						img: renderers.img,
 						h2: renderers.h2,
 						h4: renderers.h4,
+						code: renderers.code,
 					}}
 				/>
 			</S.Wrapper>
 			{headings.length > 0 && (
-				<S.TableOfContents>
-					<S.TOCTitle>On this page</S.TOCTitle>
+				<S.TableOfContents className={'scroll-wrapper-hidden'}>
+					<S.TOCTitle>On This Page</S.TOCTitle>
 					<S.TOCList>
 						{headings.map((heading) => (
 							<S.TOCItem key={heading.id} $active={activeHash === heading.id}>
