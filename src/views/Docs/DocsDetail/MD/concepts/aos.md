@@ -4,6 +4,10 @@ AOS (AO Operating System) is the interactive development environment for the AO 
 
 AOS is available as a CLI, a package with JavaScript bindings (aoconnect), and inside Lunar as a browser-based tool.
 
+AOS is available as a CLI, a package with JavaScript bindings (aoconnect), and inside Lunar as a browser-based tool.
+
+// insert img here
+
 #### What is AOS?
 
 AOS is:
