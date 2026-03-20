@@ -659,6 +659,7 @@ function Transaction(props: {
 													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 													result={messageResult}
 													skipResultFetch={true}
+													showFilteredMessages={true}
 												/>
 											)}
 										</S.MessageHeaderWrapper>
