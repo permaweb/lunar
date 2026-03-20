@@ -88,7 +88,8 @@ const WalletBalanceSection = React.memo(
 				setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
 			} catch (e: any) {
 				console.error(e);
-				setWalletBalance(errorFetching);
+				const showZeroBalance = e.toString().includes('Failed to fetch');
+				setWalletBalance(showZeroBalance ? '0' : errorFetching);
 			} finally {
 				setLoadingBalance(false);
 			}

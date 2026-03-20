@@ -277,7 +277,8 @@ function Transaction(props: {
 					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
 				} catch (e: any) {
 					console.error(e);
-					setWalletBalance(useNaOnError ? 'N/A' : language.errorFetching);
+					const showZeroBalance = e.toString().includes('Failed to fetch');
+					setWalletBalance(useNaOnError ? 'N/A' : showZeroBalance ? '0' : language.errorFetching);
 				} finally {
 					setLoadingBalance(false);
 				}
@@ -809,7 +810,7 @@ function Transaction(props: {
 	const balanceSections = React.useMemo(() => {
 		if (props.type !== 'wallet' && props.type !== 'process') return null;
 		const shouldFetch = !!txResponse;
-		const useNaOnError = props.type === 'process';
+		const useNaOnError = false;
 		return (
 			<>
 				<WalletBalanceSection
