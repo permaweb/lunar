@@ -54,6 +54,7 @@ function Message(props: {
 	handleOpen: (id: string) => void;
 	lastChild?: boolean;
 	isOverallLast?: boolean;
+	showFilteredMessages?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 
@@ -75,7 +76,11 @@ function Message(props: {
 		if (props.element && props.variant === MessageVariantEnum.Legacynet) {
 			const fromProcess = getTagValue(props.element.node?.tags, 'From-Process');
 
-			if (fromProcess && props.element.node?.owner?.address !== DEFAULT_LEGACY_AUTHORITY) {
+			if (
+				!props.showFilteredMessages &&
+				fromProcess &&
+				props.element.node?.owner?.address !== DEFAULT_LEGACY_AUTHORITY
+			) {
 				setFilterMessage(true);
 			}
 		}
@@ -451,6 +456,7 @@ export default function MessageList(props: {
 	result?: any;
 	authority?: string;
 	skipResultFetch?: boolean;
+	showFilteredMessages?: boolean;
 }) {
 	const dispatch = useDispatch();
 
@@ -1283,6 +1289,7 @@ export default function MessageList(props: {
 										handleOpen={props.handleMessageOpen ? (id: string) => props.handleMessageOpen(id) : null}
 										lastChild={isLastChild}
 										isOverallLast={props.isOverallLast && isLastChild}
+										showFilteredMessages={props.showFilteredMessages}
 									/>
 								);
 							})}
