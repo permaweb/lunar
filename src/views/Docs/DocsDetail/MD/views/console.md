@@ -2,7 +2,7 @@
 
 ![](aos.png)
 
-The Console provides an interactive AOS (Actor Oriented System) terminal for real-time process interaction. It's the primary tool for developing, testing, and managing AOS processes through a Lua command-line interface.
+The Console provides an interactive AOS terminal for real-time process interaction. It's the primary tool for developing, testing, and managing AOS processes through a Lua command-line interface.
 
 #### Overview
 

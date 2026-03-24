@@ -658,6 +658,7 @@ function Transaction(props: {
 													parentId={inputTxId}
 													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 													result={messageResult}
+													timestamp={txResponse?.node?.block?.timestamp}
 													skipResultFetch={true}
 													showFilteredMessages={true}
 												/>

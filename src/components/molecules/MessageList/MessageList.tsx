@@ -54,7 +54,9 @@ function Message(props: {
 	handleOpen: (id: string) => void;
 	lastChild?: boolean;
 	isOverallLast?: boolean;
+	timestamp?: number;
 	showFilteredMessages?: boolean;
+	childList?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 
@@ -88,7 +90,7 @@ function Message(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			if (!result && showViewResult && !filterMessage) {
+			if ((open || showViewResult) && !result && !filterMessage) {
 				let processId: string = props.element.node.recipient;
 				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
 
@@ -135,7 +137,7 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [result, showViewResult, props.currentFilter, filterMessage]);
+	}, [open, result, showViewResult, props.currentFilter, filterMessage]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -374,11 +376,28 @@ function Message(props: {
 		);
 	}
 
+	function getID() {
+		if (props.element.node.id) {
+			return (
+				<S.TxAddress>
+					<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
+				</S.TxAddress>
+			);
+		}
+
+		return (
+			<S.ResultMessage>
+				<span>Result Message</span>
+			</S.ResultMessage>
+		);
+	}
+
 	return filterMessage ? (
 		<S.ElementWrapper
 			key={props.element.node.id}
 			className={'message-list-element'}
 			onClick={() => {}}
+			disabled={true}
 			open={false}
 			lastChild={props.lastChild}
 			style={{ pointerEvents: 'none' }}
@@ -392,14 +411,14 @@ function Message(props: {
 			<S.ElementWrapper
 				key={props.element.node.id}
 				className={'message-list-element'}
-				onClick={() => setOpen((prev) => !prev)}
+				onClick={() => (!props.element.node.id ? {} : setOpen((prev) => !prev))}
+				disabled={!props.element.node.id}
 				open={open}
 				lastChild={props.lastChild}
+				childList={props.childList}
 			>
 				<S.ID>
-					<S.TxAddress>
-						<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
-					</S.TxAddress>
+					{getID()}
 					<S.Variant className={'info'}>
 						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant) ?? 'No Variant'}</span>
 					</S.Variant>
@@ -408,10 +427,20 @@ function Message(props: {
 				{getFrom()}
 				{getTo()}
 				<S.Input>
-					<Button type={'alt3'} label={language.input} handlePress={(e) => handleShowViewData(e)} />
+					<Button
+						type={'alt3'}
+						label={language.input}
+						handlePress={(e) => handleShowViewData(e)}
+						disabled={!props.element.node.id}
+					/>
 				</S.Input>
 				<S.Output>
-					<Button type={'alt3'} label={language.output} handlePress={(e) => handleShowViewResult(e)} />
+					<Button
+						type={'alt3'}
+						label={language.output}
+						handlePress={(e) => handleShowViewResult(e)}
+						disabled={!props.element.node.id}
+					/>
 				</S.Output>
 				<S.Time>
 					<p>
@@ -432,6 +461,10 @@ function Message(props: {
 					currentFilter={props.currentFilter}
 					recipient={props.element.node.recipient}
 					parentId={props.parentId}
+					result={result}
+					willHaveResult={true}
+					timestamp={props.element?.node?.block?.timestamp}
+					showFilteredMessages
 					handleMessageOpen={props.handleOpen ? (id: string) => props.handleOpen(id) : null}
 					childList
 					isOverallLast={props.isOverallLast && props.lastChild}
@@ -454,6 +487,8 @@ export default function MessageList(props: {
 	childList?: boolean;
 	isOverallLast?: boolean;
 	result?: any;
+	willHaveResult?: boolean;
+	timestamp?: number;
 	authority?: string;
 	skipResultFetch?: boolean;
 	showFilteredMessages?: boolean;
@@ -822,101 +857,126 @@ export default function MessageList(props: {
 								// Use the result prop if provided, otherwise fetch it (unless skipResultFetch is true)
 								let resultResponse = props.result;
 
-								// If skipResultFetch is true and props.result is not yet available, keep loading
-								if (!props.result && props.skipResultFetch) {
-									// Don't set currentData to empty - keep loading state
-									return;
-								}
-
-								if (!props.result && !props.skipResultFetch) {
-									const deps = resolveLibDeps({
-										variant: props.variant,
-										permawebProvider: permawebProvider,
-									});
-
-									const messageId = await resolveMessageId({
-										messageId: props.txId,
-										variant: props.variant,
-										target: props.recipient,
-										permawebProvider: permawebProvider,
-									});
-
-									resultResponse = await deps.ao.result({
-										process: props.recipient,
-										message: messageId,
-									});
-								}
-
-								if (resultResponse && !resultResponse.error && resultResponse.Messages?.length > 0) {
-									tags.push(
-										{ name: 'From-Process', values: [props.recipient] },
-										{ name: 'Variant', values: [props.variant] },
-										{
-											name: 'Reference',
-											values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
-										}
-									);
-
-									if (props.variant === MessageVariantEnum.Mainnet) {
-										tags = lowercaseTagKeys(tags);
-									}
-
-									let gqlResponse = await permawebProvider.libs.getGQLData({
-										tags: [...tags],
-										owners: [props.authority ?? ''],
-									});
-
-									/* Need multiple single queries here
-									   multivalue_tag_search_not_supported in fallback nodes */
-									if (!gqlResponse?.data?.length || gqlResponse?.data?.length <= 0) {
-										/* Create an aggregated response */
-										let fallbackGqlResponse = { data: [] };
-
-										const references = resultResponse.Messages.map((result) =>
-											getTagValue(result.Tags, 'Reference')
-										).filter((ref) => ref);
-
-										if (references?.length > 0) {
-											for (const reference of references) {
-												const referenceLookup = await permawebProvider.libs.getGQLData({
-													gateway: DEFAULT_GATEWAYS.fallback,
-													tags: [
-														{ name: 'From-Process', values: [props.recipient] },
-														{ name: 'Variant', values: [props.variant] },
-														{
-															name: 'Reference',
-															values: [reference],
+								// Use result directly instead of querying from the gateway
+								if (resultResponse) {
+									const normalizedMessages = permawebProvider.libs.mapFromProcessCase(
+										(resultResponse.Messages ?? [])
+											.map((message: any) => {
+												return {
+													node: {
+														id: null,
+														recipient: message.Target,
+														tags: [...message.Tags, { name: 'From-Process', value: props.recipient }],
+														owner: {
+															address: null,
 														},
-													],
-												});
-
-												if (referenceLookup?.data?.length > 0) {
-													fallbackGqlResponse.data.push(referenceLookup.data[0]);
-												}
-											}
-
-											fallbackGqlResponse = await normalizeGqlResponse(fallbackGqlResponse as any);
-										}
-
-										if (fallbackGqlResponse.data.length > 0) gqlResponse = fallbackGqlResponse;
-									}
-
-									if (gqlResponse?.data?.length) {
-										const unique = new Map();
-
-										for (const edge of gqlResponse.data) {
-											const reference = getTagValue(edge.node?.tags || edge.tags, 'Reference');
-											if (reference && !unique.has(reference)) {
-												unique.set(reference, edge);
-											}
-										}
-
-										gqlResponse.data = Array.from(unique.values());
-									}
-
-									setCurrentData(gqlResponse.data);
+														block: {
+															timestamp: props.timestamp,
+														},
+													},
+												};
+											})
+											.filter((edge) => !!edge.node.recipient)
+									);
+									setCurrentData(normalizedMessages);
 								} else {
-									setCurrentData([]);
+									if (!props.willHaveResult) {
+										// If skipResultFetch is true and props.result is not yet available, keep loading
+										if (!props.result && props.skipResultFetch) {
+											// Don't set currentData to empty - keep loading state
+											return;
+										}
+
+										if (!props.result && !props.skipResultFetch) {
+											const deps = resolveLibDeps({
+												variant: props.variant,
+												permawebProvider: permawebProvider,
+											});
+
+											const messageId = await resolveMessageId({
+												messageId: props.txId,
+												variant: props.variant,
+												target: props.recipient,
+												permawebProvider: permawebProvider,
+											});
+
+											resultResponse = await deps.ao.result({
+												process: props.recipient,
+												message: messageId,
+											});
+										}
+
+										if (resultResponse && !resultResponse.error && resultResponse.Messages?.length > 0) {
+											tags.push(
+												{ name: 'From-Process', values: [props.recipient] },
+												{ name: 'Variant', values: [props.variant] },
+												{
+													name: 'Reference',
+													values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
+												}
+											);
+
+											if (props.variant === MessageVariantEnum.Mainnet) {
+												tags = lowercaseTagKeys(tags);
+											}
+
+											let gqlResponse = await permawebProvider.libs.getGQLData({
+												tags: [...tags],
+												owners: [props.authority ?? ''],
+											});
+
+											/* Need multiple single queries here multivalue_tag_search_not_supported in fallback nodes */
+											if (!gqlResponse?.data?.length || gqlResponse?.data?.length <= 0) {
+												/* Create an aggregated response */
+												let fallbackGqlResponse = { data: [] };
+
+												const references = resultResponse.Messages.map((result) =>
+													getTagValue(result.Tags, 'Reference')
+												).filter((ref) => ref);
+
+												if (references?.length > 0) {
+													for (const reference of references) {
+														const referenceLookup = await permawebProvider.libs.getGQLData({
+															gateway: DEFAULT_GATEWAYS.fallback,
+															tags: [
+																{ name: 'From-Process', values: [props.recipient] },
+																{ name: 'Variant', values: [props.variant] },
+																{
+																	name: 'Reference',
+																	values: [reference],
+																},
+															],
+														});
+
+														if (referenceLookup?.data?.length > 0) {
+															fallbackGqlResponse.data.push(referenceLookup.data[0]);
+														}
+													}
+
+													fallbackGqlResponse = await normalizeGqlResponse(fallbackGqlResponse as any);
+												}
+
+												if (fallbackGqlResponse.data.length > 0) gqlResponse = fallbackGqlResponse;
+											}
+
+											if (gqlResponse?.data?.length) {
+												const unique = new Map();
+
+												for (const edge of gqlResponse.data) {
+													const reference = getTagValue(edge.node?.tags || edge.tags, 'Reference');
+													if (reference && !unique.has(reference)) {
+														unique.set(reference, edge);
+													}
+												}
+
+												gqlResponse.data = Array.from(unique.values());
+											}
+
+											setCurrentData(gqlResponse.data);
+										} else {
+											setCurrentData([]);
+										}
+									}
 								}
 							} catch (e: any) {
 								setLoadingMessages(false);
@@ -962,6 +1022,7 @@ export default function MessageList(props: {
 		props.variant,
 		props.recipient,
 		props.result,
+		props.willHaveResult,
 		currentFilter,
 		toggleFilterChange,
 		pageCursor,
@@ -1068,7 +1129,7 @@ export default function MessageList(props: {
 
 	function getMessage() {
 		let message: string = language.associatedMessagesInfo;
-		if (loadingMessages) message = `${language.associatedMessagesLoading}...`;
+		if (loadingMessages || props.willHaveResult) message = `${language.associatedMessagesLoading}...`;
 		if (currentData?.length <= 0) message = language.associatedMessagesNotFound;
 		return (
 			<S.UpdateWrapper childList={props.childList}>
@@ -1126,122 +1187,128 @@ export default function MessageList(props: {
 								</div>
 							)}
 						</S.HeaderMain>
-						<S.HeaderActions className={'scroll-wrapper-hidden'}>
-							{props.type && props.type !== 'message' && (
-								<>
+						{!props.result && (
+							<S.HeaderActions className={'scroll-wrapper-hidden'}>
+								{props.type && props.type !== 'message' && (
+									<>
+										<Button
+											type={'alt3'}
+											label={`${language.outgoing}${
+												outgoingCount ? ` (${formatCount(outgoingCount.toString())})` : ''
+											}`}
+											handlePress={() => handleFilterChange('outgoing')}
+											active={currentFilter === 'outgoing'}
+											disabled={loadingMessages}
+										/>
+										<Button
+											type={'alt3'}
+											label={`${language.incoming}${
+												incomingCount ? ` (${formatCount(incomingCount.toString())})` : ''
+											}`}
+											handlePress={() => handleFilterChange('incoming')}
+											active={currentFilter === 'incoming'}
+											disabled={loadingMessages}
+										/>
+										<S.Divider />
+									</>
+								)}
+								{appliedAction && (
 									<Button
 										type={'alt3'}
-										label={`${language.outgoing}${outgoingCount ? ` (${formatCount(outgoingCount.toString())})` : ''}`}
-										handlePress={() => handleFilterChange('outgoing')}
-										active={currentFilter === 'outgoing'}
+										label={`Action (${appliedAction})`}
+										handlePress={() => {
+											setCurrentAction(null);
+											setAppliedAction(null);
+											setToggleFilterChange((prev) => !prev);
+											handleClear();
+										}}
+										active={true}
 										disabled={loadingMessages}
+										icon={ASSETS.close}
 									/>
+								)}
+								{appliedRecipient && checkValidAddress(appliedRecipient) && (
 									<Button
 										type={'alt3'}
-										label={`${language.incoming}${incomingCount ? ` (${formatCount(incomingCount.toString())})` : ''}`}
-										handlePress={() => handleFilterChange('incoming')}
-										active={currentFilter === 'incoming'}
+										label={`To (${formatAddress(appliedRecipient, false)})`}
+										handlePress={() => {
+											setRecipient('');
+											setAppliedRecipient('');
+											setToggleFilterChange((prev) => !prev);
+											handleClear();
+										}}
+										active={true}
 										disabled={loadingMessages}
+										icon={ASSETS.close}
 									/>
-									<S.Divider />
-								</>
-							)}
-							{appliedAction && (
-								<Button
-									type={'alt3'}
-									label={`Action (${appliedAction})`}
-									handlePress={() => {
-										setCurrentAction(null);
-										setAppliedAction(null);
-										setToggleFilterChange((prev) => !prev);
-										handleClear();
-									}}
-									active={true}
-									disabled={loadingMessages}
-									icon={ASSETS.close}
-								/>
-							)}
-							{appliedRecipient && checkValidAddress(appliedRecipient) && (
-								<Button
-									type={'alt3'}
-									label={`To (${formatAddress(appliedRecipient, false)})`}
-									handlePress={() => {
-										setRecipient('');
-										setAppliedRecipient('');
-										setToggleFilterChange((prev) => !prev);
-										handleClear();
-									}}
-									active={true}
-									disabled={loadingMessages}
-									icon={ASSETS.close}
-								/>
-							)}
-							{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
-								<Button
-									type={'alt3'}
-									label={`From (${formatAddress(appliedFromAddress, false)})`}
-									handlePress={() => {
-										setFromAddress('');
-										setAppliedFromAddress('');
-										setAppliedFromAddressIsProcess(false);
-										setToggleFilterChange((prev) => !prev);
-										handleClear();
-									}}
-									active={true}
-									disabled={loadingMessages}
-									icon={ASSETS.close}
-								/>
-							)}
-							{appliedStartDate && (
-								<Button
-									type={'alt3'}
-									label={`Start (${
-										appliedStartDate
-											? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
-											: '-'
-									})`}
-									handlePress={() => {
-										setStartDate(null);
-										setAppliedStartDate(null);
-										setToggleFilterChange((prev) => !prev);
-										handleClear();
-									}}
-									active={true}
-									disabled={loadingMessages}
-									icon={ASSETS.close}
-								/>
-							)}
-							{appliedEndDate && (
-								<Button
-									type={'alt3'}
-									label={`End (${
-										appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
-									})`}
-									handlePress={() => {
-										setEndDate(null);
-										setAppliedEndDate(null);
-										setToggleFilterChange((prev) => !prev);
-										handleClear();
-									}}
-									active={true}
-									disabled={loadingMessages}
-									icon={ASSETS.close}
-								/>
-							)}
-							<S.FilterWrapper>
-								<Button
-									type={'alt3'}
-									label={language.filter}
-									handlePress={() => setShowFilters((prev) => !prev)}
-									active={showFilters}
-									disabled={loadingMessages}
-									icon={ASSETS.filter}
-									iconLeftAlign
-								/>
-							</S.FilterWrapper>
-							<S.Divider />
-							{getPaginator(false)}
-						</S.HeaderActions>
+								)}
+								{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
+									<Button
+										type={'alt3'}
+										label={`From (${formatAddress(appliedFromAddress, false)})`}
+										handlePress={() => {
+											setFromAddress('');
+											setAppliedFromAddress('');
+											setAppliedFromAddressIsProcess(false);
+											setToggleFilterChange((prev) => !prev);
+											handleClear();
+										}}
+										active={true}
+										disabled={loadingMessages}
+										icon={ASSETS.close}
+									/>
+								)}
+								{appliedStartDate && (
+									<Button
+										type={'alt3'}
+										label={`Start (${
+											appliedStartDate
+												? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
+												: '-'
+										})`}
+										handlePress={() => {
+											setStartDate(null);
+											setAppliedStartDate(null);
+											setToggleFilterChange((prev) => !prev);
+											handleClear();
+										}}
+										active={true}
+										disabled={loadingMessages}
+										icon={ASSETS.close}
+									/>
+								)}
+								{appliedEndDate && (
+									<Button
+										type={'alt3'}
+										label={`End (${
+											appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
+										})`}
+										handlePress={() => {
+											setEndDate(null);
+											setAppliedEndDate(null);
+											setToggleFilterChange((prev) => !prev);
+											handleClear();
+										}}
+										active={true}
+										disabled={loadingMessages}
+										icon={ASSETS.close}
+									/>
+								)}
+								<S.FilterWrapper>
+									<Button
+										type={'alt3'}
+										label={language.filter}
+										handlePress={() => setShowFilters((prev) => !prev)}
+										active={showFilters}
+										disabled={loadingMessages}
+										icon={ASSETS.filter}
+										iconLeftAlign
+									/>
+								</S.FilterWrapper>
+								<S.Divider />
+								{getPaginator(false)}
+							</S.HeaderActions>
+						)}
 					</S.Header>
 				)}
 				{currentData?.length > 0 ? (
@@ -1249,7 +1316,7 @@ export default function MessageList(props: {
 						{!props.childList && (
 							<S.HeaderWrapper className={'fade-in'}>
 								<S.ID>
-									<p>{language.id}</p>
+									<p>{props.result ? language.type : language.id}</p>
 								</S.ID>
 								<S.Action>
 									<p>{language.action}</p>
@@ -1260,6 +1327,7 @@ export default function MessageList(props: {
 								<S.To>
 									<p>{language.to}</p>
 								</S.To>
+
 								<S.Input>
 									<p>{language.input}</p>
 								</S.Input>
@@ -1269,6 +1337,7 @@ export default function MessageList(props: {
 								<S.Time>
 									<p>{language.time}</p>
 								</S.Time>
+
 								<S.Results>
 									<p>{language.results}</p>
 								</S.Results>
@@ -1280,7 +1349,7 @@ export default function MessageList(props: {
 
 								return (
 									<Message
-										key={element.node.id}
+										key={element.node.id || `message-${index}`}
 										element={element}
 										type={props.type}
 										variant={getTagValue(element.node.tags, TAGS.keys.variant) as MessageVariantEnum}
@@ -1290,6 +1359,7 @@ export default function MessageList(props: {
 										lastChild={isLastChild}
 										isOverallLast={props.isOverallLast && isLastChild}
 										showFilteredMessages={props.showFilteredMessages}
+										childList={props.childList}
 									/>
 								);
 							})}
