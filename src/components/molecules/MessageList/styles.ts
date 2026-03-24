@@ -212,7 +212,12 @@ export const BodyWrapper = styled.div<{
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
-export const ElementWrapper = styled.div<{ open: boolean; lastChild?: boolean }>`
+export const ElementWrapper = styled.div<{
+	open: boolean;
+	disabled: boolean;
+	lastChild?: boolean;
+	childList?: boolean;
+}>`
 	height: 40px;
 	min-width: 100%;
 	width: fit-content;
@@ -222,7 +227,8 @@ export const ElementWrapper = styled.div<{ open: boolean; lastChild?: boolean }>
 	justify-content: space-between;
 	gap: 15px;
 	padding: 0 15px;
-	cursor: pointer;
+
+	cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
 	background: ${(props) => props.theme.colors.container.primary.background};
 
 	p {
@@ -236,10 +242,29 @@ export const ElementWrapper = styled.div<{ open: boolean; lastChild?: boolean }>
 	}
 
 	&:hover {
-		background: ${(props) => props.theme.colors.container.primary.active};
-		border-left: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
-		border-right: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
+		background: ${(props) =>
+			props.disabled ? props.theme.colors.container.primary : props.theme.colors.container.primary.active};
+		border-left: 1px solid
+			${(props) =>
+				props.childList
+					? props.theme.colors.border.alt4
+					: props.disabled
+					? props.theme.colors.border.primary
+					: props.theme.colors.border.alt4} !important;
+		border-right: 1px solid
+			${(props) =>
+				props.childList
+					? props.theme.colors.border.alt4
+					: props.disabled
+					? props.theme.colors.border.primary
+					: props.theme.colors.border.alt4} !important;
+		border-bottom: 1px solid
+			${(props) =>
+				props.childList && props.lastChild
+					? props.theme.colors.border.alt4
+					: props.disabled
+					? props.theme.colors.border.primary
+					: props.theme.colors.border.alt4} !important;
 	}
 
 	&:hover::after {
@@ -251,7 +276,13 @@ export const ElementWrapper = styled.div<{ open: boolean; lastChild?: boolean }>
 		left: -1px;
 		right: 0;
 		bottom: 0;
-		border-top: 1px solid ${(props) => props.theme.colors.border.alt4};
+		border-top: 1px solid
+			${(props) =>
+				props.childList
+					? props.theme.colors.border.primary
+					: props.disabled
+					? props.theme.colors.border.primary
+					: props.theme.colors.border.alt4};
 		transition: all 100ms;
 	}
 
@@ -294,6 +325,19 @@ export const ID = styled(ElementItem)`
 export const TxAddress = styled.div`
 	min-width: 165px;
 	width: 165px;
+`;
+
+export const ResultMessage = styled.div`
+	min-width: 165px;
+	width: 165px;
+
+	span {
+		color: ${(props) => props.theme.colors.font.primary};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		text-transform: uppercase;
+	}
 `;
 
 export const Variant = styled.div`
@@ -509,6 +553,8 @@ export const OverlayInfoLine = styled.div`
 
 export const OverlayInfoLineValue = styled.div`
 	p {
+		display: flex;
+		margin: 2.5px 0 0 0;
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};

@@ -85,6 +85,7 @@ export const Wrapper = styled.div<{ disabled: boolean }>`
 	display: flex;
 	align-items: center;
 	gap: 6.5px;
+	pointer-events: all !important;
 	p {
 		color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall};

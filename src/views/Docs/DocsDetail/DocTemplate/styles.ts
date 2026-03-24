@@ -75,7 +75,7 @@ export const TOCItem = styled.li<{ $active?: boolean }>`
 		background: ${(props) =>
 			props.$active
 				? props.theme.colors.button.primary.active.background
-				: props.theme.colors.button.primary.background};
+				: props.theme.colors.container.alt2.background};
 		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 		padding: 5px 10.5px 4.75px 10.5px;
 		transition: all 100ms;
