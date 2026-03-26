@@ -656,6 +656,7 @@ function Transaction(props: {
 													type={props.type}
 													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 													parentId={inputTxId}
+													authority={getTagValue(txResponse?.node?.tags, 'Authority')}
 													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 													result={messageResult}
 													timestamp={txResponse?.node?.block?.timestamp}
