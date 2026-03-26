@@ -229,6 +229,7 @@ export const ElementWrapper = styled.div<{
 	padding: 0 15px;
 
 	cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
+	pointer-events: ${(props) => (props.disabled ? 'none' : 'all')};
 	background: ${(props) => props.theme.colors.container.primary.background};
 
 	p {
@@ -241,30 +242,29 @@ export const ElementWrapper = styled.div<{
 		text-overflow: ellipsis;
 	}
 
-	&:hover {
-		background: ${(props) =>
-			props.disabled ? props.theme.colors.container.primary : props.theme.colors.container.primary.active};
-		border-left: 1px solid
-			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)} !important;
-		border-right: 1px solid
-			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)} !important;
-		border-bottom: 1px solid
-			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)} !important;
-	}
+	${(props) =>
+		!props.disabled &&
+		css`
+			&:hover {
+				background: ${props.theme.colors.container.primary.active};
+				border-left: 1px solid ${props.theme.colors.border.alt4} !important;
+				border-right: 1px solid ${props.theme.colors.border.alt4} !important;
+				border-bottom: 1px solid ${props.theme.colors.border.alt4} !important;
+			}
 
-	&:hover::after {
-		content: '';
-		position: absolute;
-		height: 1px;
-		width: calc(100% + 2px);
-		top: -1px;
-		left: -1px;
-		right: 0;
-		bottom: 0;
-		border-top: 1px solid
-			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)};
-		transition: all 100ms;
-	}
+			&:hover::after {
+				content: '';
+				position: absolute;
+				height: 1px;
+				width: calc(100% + 2px);
+				top: -1px;
+				left: -1px;
+				right: 0;
+				bottom: 0;
+				border-top: 1px solid ${props.theme.colors.border.alt4};
+				transition: all 100ms;
+			}
+		`}
 
 	${(props) =>
 		props.open &&
@@ -318,6 +318,8 @@ export const ResultMessage = styled.div<{ clickable?: boolean }>`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		max-width: 100% !important;
 		transition: all 100ms;
+		display: block;
+		width: fit-content;
 	}
 
 	&:hover {
