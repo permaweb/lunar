@@ -662,6 +662,19 @@ function Transaction(props: {
 													timestamp={txResponse?.node?.block?.timestamp}
 													skipResultFetch={true}
 													showFilteredMessages={true}
+													hydrateAoTransferNotices={
+														getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer' &&
+														variant === MessageVariantEnum.Legacynet &&
+														(txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')) ===
+															PROCESSES.ao
+													}
+													showResultMessageLabel={true}
+													clickableResultMessageLabel={
+														getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer' &&
+														variant === MessageVariantEnum.Legacynet &&
+														(txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')) ===
+															PROCESSES.ao
+													}
 												/>
 											)}
 										</S.MessageHeaderWrapper>

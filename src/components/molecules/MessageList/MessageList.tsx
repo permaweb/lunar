@@ -21,6 +21,7 @@ import {
 	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
 	MINT_ACTIONS,
+	PROCESSES,
 	STORAGE,
 	TAGS,
 } from 'helpers/config';
@@ -83,6 +84,18 @@ function getStrictNoticeAuthority(authority: string | undefined, variant: Messag
 		default:
 			return DEFAULT_LEGACY_AUTHORITY;
 	}
+}
+
+function shouldHydrateAoTransferNotices(args: {
+	action: string | null | undefined;
+	variant: MessageVariantEnum | undefined;
+	recipient: string | null | undefined;
+}) {
+	return (
+		args.action === DEFAULT_ACTIONS.transfer.name &&
+		args.variant === MessageVariantEnum.Legacynet &&
+		args.recipient === PROCESSES.ao
+	);
 }
 
 function buildSyntheticResultMessageEdge(args: {
@@ -340,6 +353,19 @@ async function resolveResultMessages(args: {
 	permawebProvider: any;
 }) {
 	const pendingNotices = collectStrictCuNoticeMessages(args.messages, args.variant);
+	if (pendingNotices.credit.length === 0 && pendingNotices.debit.length === 0) {
+		return args.messages
+			.map((message) =>
+				buildSyntheticResultMessageEdge({
+					message: message,
+					fromProcess: args.fromProcess,
+					timestamp: args.timestamp,
+					mapFromProcessCase: args.permawebProvider.libs.mapFromProcessCase,
+				})
+			)
+			.filter((edge) => !!edge?.node?.recipient);
+	}
+
 	const settledByCorrelation = checkValidAddress(args.txId)
 		? await fetchStrictSettledNoticeEdges({
 				mode: 'correlation',
@@ -418,6 +444,8 @@ function Message(props: {
 	timestamp?: number;
 	showFilteredMessages?: boolean;
 	childList?: boolean;
+	showResultMessageLabel?: boolean;
+	clickableResultMessageLabel?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 
@@ -747,20 +775,37 @@ function Message(props: {
 	}
 
 	function getID() {
-		if (props.element.node.id) {
+		if (props.showResultMessageLabel) {
 			return (
-				<S.ResultMessage clickable={true} onClick={handleResultMessageOpen}>
+				<S.ResultMessage
+					clickable={Boolean(props.element.node.id && props.clickableResultMessageLabel)}
+					onClick={props.element.node.id && props.clickableResultMessageLabel ? handleResultMessageOpen : undefined}
+				>
 					<span>Result Message</span>
 				</S.ResultMessage>
 			);
 		}
 
+		if (props.element.node.id) {
+			return (
+				<S.TxAddress>
+					<TxAddress address={props.element.node.id} tooltipPosition={'right'} />
+				</S.TxAddress>
+			);
+		}
+
 		return (
-			<S.ResultMessage clickable={false}>
+			<S.ResultMessage>
 				<span>Result Message</span>
 			</S.ResultMessage>
 		);
 	}
+
+	const hydrateNestedAoTransferNotices = shouldHydrateAoTransferNotices({
+		action: getTagValue(props.element.node.tags, 'Action'),
+		variant: props.variant,
+		recipient: props.element.node.recipient,
+	});
 
 	return filterMessage ? (
 		<S.ElementWrapper
@@ -834,7 +879,11 @@ function Message(props: {
 					result={result}
 					willHaveResult={true}
 					timestamp={props.element?.node?.block?.timestamp}
+					authority={getTagValue(props.element.node.tags, 'Authority')}
 					showFilteredMessages
+					hydrateAoTransferNotices={hydrateNestedAoTransferNotices}
+					showResultMessageLabel={true}
+					clickableResultMessageLabel={hydrateNestedAoTransferNotices}
 					handleMessageOpen={props.handleOpen ? (id: string) => props.handleOpen(id) : null}
 					childList
 					isOverallLast={props.isOverallLast && props.lastChild}
@@ -862,6 +911,9 @@ export default function MessageList(props: {
 	authority?: string;
 	skipResultFetch?: boolean;
 	showFilteredMessages?: boolean;
+	hydrateAoTransferNotices?: boolean;
+	showResultMessageLabel?: boolean;
+	clickableResultMessageLabel?: boolean;
 }) {
 	const dispatch = useDispatch();
 
@@ -1259,17 +1311,30 @@ export default function MessageList(props: {
 								}
 
 								if (resultResponse && !resultResponse.error && resultResponse.Messages?.length > 0) {
-									const resolvedMessages = await resolveResultMessages({
-										messages: resultResponse.Messages,
-										txId: props.txId,
-										fromProcess: props.recipient,
-										timestamp: props.timestamp,
-										variant: props.variant,
-										authority: props.authority,
-										permawebProvider: permawebProvider,
-									});
+									if (props.hydrateAoTransferNotices) {
+										const resolvedMessages = await resolveResultMessages({
+											messages: resultResponse.Messages,
+											txId: props.txId,
+											fromProcess: props.recipient,
+											timestamp: props.timestamp,
+											variant: props.variant,
+											authority: props.authority,
+											permawebProvider: permawebProvider,
+										});
 
-									setCurrentData(resolvedMessages.filter((edge) => !!edge?.node?.recipient));
+										setCurrentData(resolvedMessages.filter((edge) => !!edge?.node?.recipient));
+									} else {
+										const normalizedMessages = resultResponse.Messages.map((message: ResultMessageType) =>
+											buildSyntheticResultMessageEdge({
+												message: message,
+												fromProcess: props.recipient,
+												timestamp: props.timestamp,
+												mapFromProcessCase: permawebProvider.libs.mapFromProcessCase,
+											})
+										).filter((edge) => !!edge?.node?.recipient);
+
+										setCurrentData(normalizedMessages);
+									}
 								} else if (!props.willHaveResult) {
 									setCurrentData([]);
 								}
@@ -1655,6 +1720,8 @@ export default function MessageList(props: {
 										isOverallLast={props.isOverallLast && isLastChild}
 										showFilteredMessages={props.showFilteredMessages}
 										childList={props.childList}
+										showResultMessageLabel={props.showResultMessageLabel}
+										clickableResultMessageLabel={props.clickableResultMessageLabel}
 									/>
 								);
 							})}
