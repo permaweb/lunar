@@ -1,5 +1,14 @@
-import { DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL } from './config';
-import { DefaultGQLResponseType, GQLNodeResponseType, MessageVariantEnum, TagType } from './types';
+import { Types } from '@permaweb/libs';
+
+import {
+	DEFAULT_AO_NODE,
+	DEFAULT_ACTIONS,
+	DEFAULT_LEGACY_AUTHORITY,
+	DEFAULT_LEGACY_SCHEDULER_URL,
+	DEFAULT_SCHEDULER_URL,
+	PROCESSES,
+} from './config';
+import { DefaultGQLResponseType, GQLNodeResponseType, MessageVariantEnum, ResultMessageType, TagType } from './types';
 
 export function checkValidAddress(address: string | null) {
 	if (!address) return false;
@@ -283,6 +292,388 @@ export function lowercaseTagKeys(tags: { name: string; values: string[] }[]): { 
 		...tag,
 		name: tag.name.toLowerCase(),
 	}));
+}
+
+const NOTICE_ACTIONS = ['Credit-Notice', 'Debit-Notice'];
+
+function matchesIgnoreCase(value: string | null | undefined, expected: string | null | undefined) {
+	if (!value || !expected) return false;
+	return value.toLowerCase() === expected.toLowerCase();
+}
+
+function getNoticeBucket(action: string | null | undefined): 'credit' | 'debit' | null {
+	if (matchesIgnoreCase(action, 'Credit-Notice')) return 'credit';
+	if (matchesIgnoreCase(action, 'Debit-Notice')) return 'debit';
+	return null;
+}
+
+function isStrictCuNoticeMessage(message: ResultMessageType, variant: MessageVariantEnum) {
+	const tags = message.Tags ?? [];
+
+	return (
+		matchesIgnoreCase(getTagValue(tags, 'Data-Protocol'), 'ao') &&
+		matchesIgnoreCase(getTagValue(tags, 'Variant'), variant) &&
+		matchesIgnoreCase(getTagValue(tags, 'Type'), 'Message') &&
+		getNoticeBucket(getTagValue(tags, 'Action')) !== null
+	);
+}
+
+function getStrictNoticeAuthority(authority: string | undefined, variant: MessageVariantEnum) {
+	if (checkValidAddress(authority)) return authority;
+
+	switch (variant) {
+		case MessageVariantEnum.Mainnet:
+			return DEFAULT_AO_NODE.authority;
+		case MessageVariantEnum.Legacynet:
+		default:
+			return DEFAULT_LEGACY_AUTHORITY;
+	}
+}
+
+export function shouldHydrateAoTransferNotices(args: {
+	action: string | null | undefined;
+	variant: MessageVariantEnum | undefined;
+	recipient: string | null | undefined;
+}) {
+	return (
+		args.action === DEFAULT_ACTIONS.transfer.name &&
+		args.variant === MessageVariantEnum.Legacynet &&
+		args.recipient === PROCESSES.ao
+	);
+}
+
+export function buildSyntheticResultMessageEdge(args: {
+	message: ResultMessageType;
+	fromProcess?: string | null;
+	timestamp?: number;
+	mapFromProcessCase: (messages: any[]) => Types.GQLNodeResponseType[];
+}) {
+	const tags = [...(args.message.Tags ?? [])];
+
+	if (args.fromProcess && !getTagValue(tags, 'From-Process')) {
+		tags.push({ name: 'From-Process', value: args.fromProcess });
+	}
+
+	return (
+		args.mapFromProcessCase([
+			{
+				node: {
+					id: null,
+					recipient: args.message.Target,
+					tags: tags,
+					owner: {
+						address: null,
+					},
+					block: {
+						timestamp: args.timestamp,
+					},
+				},
+			},
+		])?.[0] ?? null
+	);
+}
+
+async function queryResultMessageEdges(args: {
+	tags: { name: string; values: string[] }[];
+	authority?: string;
+	variant: MessageVariantEnum;
+	permawebProvider: any;
+}) {
+	return (
+		(
+			await args.permawebProvider.libs.getGQLData({
+				tags: args.variant === MessageVariantEnum.Mainnet ? lowercaseTagKeys(args.tags) : args.tags,
+				...(args.authority ? { owners: [args.authority] } : {}),
+			})
+		)?.data ?? []
+	);
+}
+
+function hydrateResultMessageEdge(
+	fallbackEdge: Types.GQLNodeResponseType | null,
+	resolvedEdge: Types.GQLNodeResponseType | null
+) {
+	if (!fallbackEdge || !resolvedEdge) return fallbackEdge;
+
+	return {
+		...fallbackEdge,
+		node: {
+			...fallbackEdge.node,
+			id: resolvedEdge.node?.id ?? fallbackEdge.node?.id,
+			owner: resolvedEdge.node?.owner ?? fallbackEdge.node?.owner,
+			block: resolvedEdge.node?.block ?? fallbackEdge.node?.block,
+		},
+	};
+}
+
+function dedupeResultMessageEdges(edges: Types.GQLNodeResponseType[]) {
+	const seen = new Set<string>();
+	const deduped = [];
+
+	for (const edge of edges) {
+		const key = edge?.node?.id;
+		if (!key || seen.has(key)) continue;
+		seen.add(key);
+		deduped.push(edge);
+	}
+
+	return deduped;
+}
+
+function filterStrictSettledNoticeEdges(args: {
+	edges: Types.GQLNodeResponseType[];
+	fromProcess: string;
+	authority: string;
+	variant: MessageVariantEnum;
+	requireVariant: boolean;
+}) {
+	return dedupeResultMessageEdges(
+		args.edges.filter((edge) => {
+			const edgeTags = edge.node?.tags ?? [];
+			const action = getTagValue(edgeTags, 'Action');
+
+			if (getNoticeBucket(action) === null) return false;
+			if (!matchesIgnoreCase(edge.node?.owner?.address, args.authority)) return false;
+			if (!matchesIgnoreCase(getTagValue(edgeTags, 'From-Process'), args.fromProcess)) return false;
+			if (!matchesIgnoreCase(getTagValue(edgeTags, 'Data-Protocol'), 'ao')) return false;
+			if (!matchesIgnoreCase(getTagValue(edgeTags, 'Type'), 'Message')) return false;
+			if (args.requireVariant && !matchesIgnoreCase(getTagValue(edgeTags, 'Variant'), args.variant)) return false;
+
+			return true;
+		})
+	);
+}
+
+function buildStrictNoticeQueryTags(args: {
+	mode: 'correlation' | 'reference';
+	values: string[];
+	fromProcess: string;
+	variant: MessageVariantEnum;
+}) {
+	const tags = [
+		{ name: 'Action', values: NOTICE_ACTIONS },
+		{
+			name: args.mode === 'correlation' ? 'Pushed-For' : 'Reference',
+			values: args.values,
+		},
+		{ name: 'From-Process', values: [args.fromProcess] },
+		{ name: 'Data-Protocol', values: ['ao'] },
+		{ name: 'Type', values: ['Message'] },
+	];
+
+	if (args.mode === 'reference') {
+		tags.push({ name: 'Variant', values: [args.variant] });
+	}
+
+	return tags;
+}
+
+async function fetchStrictSettledNoticeEdges(args: {
+	mode: 'correlation' | 'reference';
+	values: string[];
+	fromProcess: string;
+	variant: MessageVariantEnum;
+	authority?: string;
+	permawebProvider: any;
+}) {
+	if (!args.values.length) return [];
+
+	const strictAuthority = getStrictNoticeAuthority(args.authority, args.variant);
+	const tags = buildStrictNoticeQueryTags({
+		mode: args.mode,
+		values: args.values,
+		fromProcess: args.fromProcess,
+		variant: args.variant,
+	});
+	const data = await queryResultMessageEdges({
+		tags: tags,
+		authority: strictAuthority,
+		variant: args.variant,
+		permawebProvider: args.permawebProvider,
+	});
+
+	return filterStrictSettledNoticeEdges({
+		edges: data,
+		fromProcess: args.fromProcess,
+		authority: strictAuthority,
+		variant: args.variant,
+		requireVariant: args.mode === 'reference',
+	});
+}
+
+function collectMissingNoticeReferences(args: {
+	credit: ResultMessageType[];
+	debit: ResultMessageType[];
+	missingCredit: boolean;
+	missingDebit: boolean;
+}) {
+	const references = [];
+	const seen = new Set<string>();
+
+	if (args.missingCredit) {
+		for (const message of args.credit) {
+			const reference = getTagValue(message.Tags ?? [], 'Reference');
+			if (reference && !seen.has(reference)) {
+				seen.add(reference);
+				references.push(reference);
+			}
+		}
+	}
+
+	if (args.missingDebit) {
+		for (const message of args.debit) {
+			const reference = getTagValue(message.Tags ?? [], 'Reference');
+			if (reference && !seen.has(reference)) {
+				seen.add(reference);
+				references.push(reference);
+			}
+		}
+	}
+
+	return references;
+}
+
+function collectStrictCuNoticeMessages(messages: ResultMessageType[], variant: MessageVariantEnum) {
+	const result = {
+		credit: [] as ResultMessageType[],
+		debit: [] as ResultMessageType[],
+	};
+	const seenCredit = new Set<string>();
+	const seenDebit = new Set<string>();
+
+	for (const message of messages) {
+		if (!isStrictCuNoticeMessage(message, variant)) continue;
+
+		const action = getTagValue(message.Tags ?? [], 'Action');
+		const referenceKey = getTagValue(message.Tags ?? [], 'Reference') ?? '';
+
+		if (matchesIgnoreCase(action, 'Credit-Notice')) {
+			if (seenCredit.has(referenceKey)) continue;
+			seenCredit.add(referenceKey);
+			result.credit.push(message);
+		} else if (matchesIgnoreCase(action, 'Debit-Notice')) {
+			if (seenDebit.has(referenceKey)) continue;
+			seenDebit.add(referenceKey);
+			result.debit.push(message);
+		}
+	}
+
+	return result;
+}
+
+function findSettledNoticeMatch(args: {
+	message: ResultMessageType;
+	edges: Types.GQLNodeResponseType[];
+	matchReference: boolean;
+}) {
+	const action = getTagValue(args.message.Tags ?? [], 'Action');
+	const reference = getTagValue(args.message.Tags ?? [], 'Reference');
+	const target = args.message.Target ?? getTagValue(args.message.Tags ?? [], 'Target');
+
+	return (
+		args.edges.find((edge) => {
+			const edgeTags = edge.node?.tags ?? [];
+			const edgeAction = getTagValue(edgeTags, 'Action');
+			const edgeReference = getTagValue(edgeTags, 'Reference');
+			const edgeRecipient =
+				edge.node?.recipient ?? getTagValue(edgeTags, 'Recipient') ?? getTagValue(edgeTags, 'Target');
+
+			if (!matchesIgnoreCase(edgeAction, action)) return false;
+			if (args.matchReference && reference && edgeReference !== reference) return false;
+			if (target && edgeRecipient && edgeRecipient !== target) return false;
+
+			return true;
+		}) ?? null
+	);
+}
+
+export async function resolveResultMessages(args: {
+	messages: ResultMessageType[];
+	txId: string;
+	fromProcess: string;
+	timestamp?: number;
+	variant: MessageVariantEnum;
+	authority?: string;
+	permawebProvider: any;
+}) {
+	const pendingNotices = collectStrictCuNoticeMessages(args.messages, args.variant);
+	if (pendingNotices.credit.length === 0 && pendingNotices.debit.length === 0) {
+		return args.messages
+			.map((message) =>
+				buildSyntheticResultMessageEdge({
+					message: message,
+					fromProcess: args.fromProcess,
+					timestamp: args.timestamp,
+					mapFromProcessCase: args.permawebProvider.libs.mapFromProcessCase,
+				})
+			)
+			.filter((edge) => !!edge?.node?.recipient);
+	}
+
+	const settledByCorrelation = checkValidAddress(args.txId)
+		? await fetchStrictSettledNoticeEdges({
+				mode: 'correlation',
+				values: [args.txId],
+				fromProcess: args.fromProcess,
+				variant: args.variant,
+				authority: args.authority,
+				permawebProvider: args.permawebProvider,
+		  })
+		: [];
+
+	const missingCredit = settledByCorrelation.every(
+		(edge) => !matchesIgnoreCase(getTagValue(edge.node?.tags ?? [], 'Action'), 'Credit-Notice')
+	);
+	const missingDebit = settledByCorrelation.every(
+		(edge) => !matchesIgnoreCase(getTagValue(edge.node?.tags ?? [], 'Action'), 'Debit-Notice')
+	);
+
+	const requestedReferences = collectMissingNoticeReferences({
+		credit: pendingNotices.credit,
+		debit: pendingNotices.debit,
+		missingCredit: missingCredit,
+		missingDebit: missingDebit,
+	});
+
+	const settledByReference =
+		requestedReferences.length > 0
+			? await fetchStrictSettledNoticeEdges({
+					mode: 'reference',
+					values: requestedReferences,
+					fromProcess: args.fromProcess,
+					variant: args.variant,
+					authority: args.authority,
+					permawebProvider: args.permawebProvider,
+			  })
+			: [];
+
+	return args.messages
+		.map((message) => {
+			const fallbackEdge = buildSyntheticResultMessageEdge({
+				message: message,
+				fromProcess: args.fromProcess,
+				timestamp: args.timestamp,
+				mapFromProcessCase: args.permawebProvider.libs.mapFromProcessCase,
+			});
+			const bucket = getNoticeBucket(getTagValue(message.Tags ?? [], 'Action'));
+
+			if (!bucket) return fallbackEdge;
+
+			const resolvedEdge =
+				findSettledNoticeMatch({
+					message: message,
+					edges: settledByCorrelation,
+					matchReference: false,
+				}) ??
+				findSettledNoticeMatch({
+					message: message,
+					edges: settledByReference,
+					matchReference: true,
+				});
+
+			return hydrateResultMessageEdge(fallbackEdge, resolvedEdge);
+		})
+		.filter((edge) => !!edge?.node?.recipient);
 }
 
 async function resolveMessageBlock(edge: GQLNodeResponseType) {

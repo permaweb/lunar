@@ -327,16 +327,26 @@ export const TxAddress = styled.div`
 	width: 165px;
 `;
 
-export const ResultMessage = styled.div`
+export const ResultMessage = styled.div<{ clickable?: boolean }>`
 	min-width: 165px;
 	width: 165px;
 
 	span {
-		color: ${(props) => props.theme.colors.font.primary};
+		color: ${(props) => (props.clickable ? props.theme.colors.link.color : props.theme.colors.font.primary)};
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
 		text-transform: uppercase;
+	}
+
+	&:hover {
+		cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
+
+		span {
+			color: ${(props) => (props.clickable ? props.theme.colors.link.active : props.theme.colors.font.primary)};
+			text-decoration: ${(props) => (props.clickable ? 'underline' : 'none')};
+			text-decoration-thickness: ${(props) => (props.clickable ? '1px' : '0')};
+		}
 	}
 `;
 

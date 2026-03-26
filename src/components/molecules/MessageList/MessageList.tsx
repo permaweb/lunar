@@ -17,7 +17,6 @@ import { JSONReader } from 'components/molecules/JSONReader';
 import {
 	ASSETS,
 	DEFAULT_ACTIONS,
-	DEFAULT_GATEWAYS,
 	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
 	MINT_ACTIONS,
@@ -26,18 +25,20 @@ import {
 } from 'helpers/config';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
-import { MessageFilterType, MessageVariantEnum, TransactionType } from 'helpers/types';
+import { MessageFilterType, MessageVariantEnum, ResultMessageType, TransactionType } from 'helpers/types';
 import {
+	buildSyntheticResultMessageEdge,
 	checkValidAddress,
 	formatAddress,
 	formatCount,
 	getRelativeDate,
 	getTagValue,
 	lowercaseTagKeys,
-	normalizeGqlResponse,
 	removeCommitments,
+	resolveResultMessages,
 	resolveLibDeps,
 	resolveMessageId,
+	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -57,6 +58,8 @@ function Message(props: {
 	timestamp?: number;
 	showFilteredMessages?: boolean;
 	childList?: boolean;
+	showResultMessageLabel?: boolean;
+	clickableResultMessageLabel?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 
@@ -189,6 +192,15 @@ function Message(props: {
 		e.preventDefault();
 		e.stopPropagation();
 		setShowViewResult((prev) => !prev);
+	}
+
+	function handleResultMessageOpen(e: any) {
+		e.preventDefault();
+		e.stopPropagation();
+
+		if (props.element.node.id && props.handleOpen) {
+			props.handleOpen(props.element.node.id);
+		}
 	}
 
 	function getActionLabel() {
@@ -377,6 +389,17 @@ function Message(props: {
 	}
 
 	function getID() {
+		if (props.showResultMessageLabel) {
+			return (
+				<S.ResultMessage
+					clickable={Boolean(props.element.node.id && props.clickableResultMessageLabel)}
+					onClick={props.element.node.id && props.clickableResultMessageLabel ? handleResultMessageOpen : undefined}
+				>
+					<span>Result Message</span>
+				</S.ResultMessage>
+			);
+		}
+
 		if (props.element.node.id) {
 			return (
 				<S.TxAddress>
@@ -391,6 +414,12 @@ function Message(props: {
 			</S.ResultMessage>
 		);
 	}
+
+	const hydrateNestedAoTransferNotices = shouldHydrateAoTransferNotices({
+		action: getTagValue(props.element.node.tags, 'Action'),
+		variant: props.variant,
+		recipient: props.element.node.recipient,
+	});
 
 	return filterMessage ? (
 		<S.ElementWrapper
@@ -464,7 +493,11 @@ function Message(props: {
 					result={result}
 					willHaveResult={true}
 					timestamp={props.element?.node?.block?.timestamp}
+					authority={getTagValue(props.element.node.tags, 'Authority')}
 					showFilteredMessages
+					hydrateAoTransferNotices={hydrateNestedAoTransferNotices}
+					showResultMessageLabel={true}
+					clickableResultMessageLabel={hydrateNestedAoTransferNotices}
 					handleMessageOpen={props.handleOpen ? (id: string) => props.handleOpen(id) : null}
 					childList
 					isOverallLast={props.isOverallLast && props.lastChild}
@@ -492,6 +525,9 @@ export default function MessageList(props: {
 	authority?: string;
 	skipResultFetch?: boolean;
 	showFilteredMessages?: boolean;
+	hydrateAoTransferNotices?: boolean;
+	showResultMessageLabel?: boolean;
+	clickableResultMessageLabel?: boolean;
 }) {
 	const dispatch = useDispatch();
 
@@ -857,126 +893,64 @@ export default function MessageList(props: {
 								// Use the result prop if provided, otherwise fetch it (unless skipResultFetch is true)
 								let resultResponse = props.result;
 
-								// Use result directly instead of querying from the gateway
-								if (resultResponse) {
-									const normalizedMessages = permawebProvider.libs.mapFromProcessCase(
-										(resultResponse.Messages ?? [])
-											.map((message: any) => {
-												return {
-													node: {
-														id: null,
-														recipient: message.Target,
-														tags: [...message.Tags, { name: 'From-Process', value: props.recipient }],
-														owner: {
-															address: null,
-														},
-														block: {
-															timestamp: props.timestamp,
-														},
-													},
-												};
-											})
-											.filter((edge) => !!edge.node.recipient)
-									);
-									setCurrentData(normalizedMessages);
-								} else {
-									if (!props.willHaveResult) {
-										// If skipResultFetch is true and props.result is not yet available, keep loading
-										if (!props.result && props.skipResultFetch) {
-											// Don't set currentData to empty - keep loading state
-											return;
-										}
-
-										if (!props.result && !props.skipResultFetch) {
-											const deps = resolveLibDeps({
-												variant: props.variant,
-												permawebProvider: permawebProvider,
-											});
-
-											const messageId = await resolveMessageId({
-												messageId: props.txId,
-												variant: props.variant,
-												target: props.recipient,
-												permawebProvider: permawebProvider,
-											});
-
-											resultResponse = await deps.ao.result({
-												process: props.recipient,
-												message: messageId,
-											});
-										}
-
-										if (resultResponse && !resultResponse.error && resultResponse.Messages?.length > 0) {
-											tags.push(
-												{ name: 'From-Process', values: [props.recipient] },
-												{ name: 'Variant', values: [props.variant] },
-												{
-													name: 'Reference',
-													values: resultResponse.Messages.map((result) => getTagValue(result.Tags, 'Reference')),
-												}
-											);
-
-											if (props.variant === MessageVariantEnum.Mainnet) {
-												tags = lowercaseTagKeys(tags);
-											}
-
-											let gqlResponse = await permawebProvider.libs.getGQLData({
-												tags: [...tags],
-												owners: [props.authority ?? ''],
-											});
-
-											/* Need multiple single queries here multivalue_tag_search_not_supported in fallback nodes */
-											if (!gqlResponse?.data?.length || gqlResponse?.data?.length <= 0) {
-												/* Create an aggregated response */
-												let fallbackGqlResponse = { data: [] };
-
-												const references = resultResponse.Messages.map((result) =>
-													getTagValue(result.Tags, 'Reference')
-												).filter((ref) => ref);
-
-												if (references?.length > 0) {
-													for (const reference of references) {
-														const referenceLookup = await permawebProvider.libs.getGQLData({
-															gateway: DEFAULT_GATEWAYS.fallback,
-															tags: [
-																{ name: 'From-Process', values: [props.recipient] },
-																{ name: 'Variant', values: [props.variant] },
-																{
-																	name: 'Reference',
-																	values: [reference],
-																},
-															],
-														});
-
-														if (referenceLookup?.data?.length > 0) {
-															fallbackGqlResponse.data.push(referenceLookup.data[0]);
-														}
-													}
-
-													fallbackGqlResponse = await normalizeGqlResponse(fallbackGqlResponse as any);
-												}
-
-												if (fallbackGqlResponse.data.length > 0) gqlResponse = fallbackGqlResponse;
-											}
-
-											if (gqlResponse?.data?.length) {
-												const unique = new Map();
-
-												for (const edge of gqlResponse.data) {
-													const reference = getTagValue(edge.node?.tags || edge.tags, 'Reference');
-													if (reference && !unique.has(reference)) {
-														unique.set(reference, edge);
-													}
-												}
-
-												gqlResponse.data = Array.from(unique.values());
-											}
-
-											setCurrentData(gqlResponse.data);
-										} else {
-											setCurrentData([]);
-										}
+								if (!resultResponse) {
+									if (props.willHaveResult) {
+										return;
 									}
+
+									// If skipResultFetch is true and props.result is not yet available, keep loading
+									if (!props.result && props.skipResultFetch) {
+										// Don't set currentData to empty - keep loading state
+										return;
+									}
+
+									if (!props.result && !props.skipResultFetch) {
+										const deps = resolveLibDeps({
+											variant: props.variant,
+											permawebProvider: permawebProvider,
+										});
+
+										const messageId = await resolveMessageId({
+											messageId: props.txId,
+											variant: props.variant,
+											target: props.recipient,
+											permawebProvider: permawebProvider,
+										});
+
+										resultResponse = await deps.ao.result({
+											process: props.recipient,
+											message: messageId,
+										});
+									}
+								}
+
+								if (resultResponse && !resultResponse.error && resultResponse.Messages?.length > 0) {
+									if (props.hydrateAoTransferNotices) {
+										const resolvedMessages = await resolveResultMessages({
+											messages: resultResponse.Messages,
+											txId: props.txId,
+											fromProcess: props.recipient,
+											timestamp: props.timestamp,
+											variant: props.variant,
+											authority: props.authority,
+											permawebProvider: permawebProvider,
+										});
+
+										setCurrentData(resolvedMessages.filter((edge) => !!edge?.node?.recipient));
+									} else {
+										const normalizedMessages = resultResponse.Messages.map((message: ResultMessageType) =>
+											buildSyntheticResultMessageEdge({
+												message: message,
+												fromProcess: props.recipient,
+												timestamp: props.timestamp,
+												mapFromProcessCase: permawebProvider.libs.mapFromProcessCase,
+											})
+										).filter((edge) => !!edge?.node?.recipient);
+
+										setCurrentData(normalizedMessages);
+									}
+								} else if (!props.willHaveResult) {
+									setCurrentData([]);
 								}
 							} catch (e: any) {
 								setLoadingMessages(false);
@@ -1360,6 +1334,8 @@ export default function MessageList(props: {
 										isOverallLast={props.isOverallLast && isLastChild}
 										showFilteredMessages={props.showFilteredMessages}
 										childList={props.childList}
+										showResultMessageLabel={props.showResultMessageLabel}
+										clickableResultMessageLabel={props.clickableResultMessageLabel}
 									/>
 								);
 							})}

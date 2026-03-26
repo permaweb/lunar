@@ -29,6 +29,7 @@ import {
 	removeCommitments,
 	resolveLibDeps,
 	resolveMessageId,
+	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -605,6 +606,11 @@ function Transaction(props: {
 					const variant = txResponse
 						? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
 						: undefined;
+					const hydrateAoTransferNotices = shouldHydrateAoTransferNotices({
+						action: getTagValue(txResponse?.node?.tags, 'Action'),
+						variant: variant,
+						recipient: txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target'),
+					});
 
 					switch (props.type) {
 						case 'process':
@@ -656,11 +662,15 @@ function Transaction(props: {
 													type={props.type}
 													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 													parentId={inputTxId}
+													authority={getTagValue(txResponse?.node?.tags, 'Authority')}
 													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
 													result={messageResult}
 													timestamp={txResponse?.node?.block?.timestamp}
 													skipResultFetch={true}
 													showFilteredMessages={true}
+													hydrateAoTransferNotices={hydrateAoTransferNotices}
+													showResultMessageLabel={true}
+													clickableResultMessageLabel={hydrateAoTransferNotices}
 												/>
 											)}
 										</S.MessageHeaderWrapper>
