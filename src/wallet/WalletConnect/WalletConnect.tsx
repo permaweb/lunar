@@ -313,7 +313,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 						/>
 					</S.PWrapper>
 					{showWalletDropdown && (
-						<S.Dropdown className={'border-wrapper-alt1 fade-in scroll-wrapper-hidden'}>
+						<S.Dropdown className={'border-wrapper-alt4 fade-in scroll-wrapper-hidden'}>
 							<S.DHeaderWrapper>
 								<S.DHeaderFlex>
 									<Avatar

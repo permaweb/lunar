@@ -26,12 +26,18 @@ export const HeaderWrapper = styled.div`
 `;
 
 export const InputWrapper = styled.div`
+	height: 38.5px;
 	max-width: 100%;
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
 	gap: 15px;
 	position: relative;
+	padding: 0 0 0 0.5px;
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		height: auto;
+	}
 `;
 
 export const InputFormWrapper = styled.div`

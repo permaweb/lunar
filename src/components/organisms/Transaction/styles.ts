@@ -98,6 +98,7 @@ export const MessageInfoHeader = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	flex-wrap: wrap;
 	gap: 15px;
 	background: ${(props) => props.theme.colors.container.alt1.background};
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
@@ -163,17 +164,20 @@ export const MessageInfoBody = styled.div`
 `;
 
 export const MessageInfoLine = styled.div`
+	min-height: 47.5px;
 	display: flex;
 	align-items: center;
 	gap: 7.5px;
 	padding: 10px 15px;
 	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+
 	span {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.alt1};
 	}
+
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -190,9 +194,195 @@ export const MessageInfoLine = styled.div`
 `;
 
 export const MessageInfoID = styled(MessageInfoLine)`
+	min-height: 35px;
+	align-items: center !important;
+
+	span {
+		display: flex;
+		margin: 1.5px 0 0 0;
+	}
+
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		flex-direction: row;
 		align-items: flex-start;
+	}
+`;
+
+export const TransferInfo = styled.div`
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+	padding: 12.5px 15px 17.5px 15px;
+`;
+
+export const TransferInfoHeader = styled(MessageInfoHeader)`
+	padding: 0 0 12.5px 0;
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+`;
+
+export const TransferInfoBody = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+
+	> * {
+		&:not(:last-child) {
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+			padding: 0 0 15px 0;
+		}
+	}
+`;
+
+export const TransferInfoID = styled(MessageInfoID)``;
+
+export const TransferInfoLine = styled(MessageInfoLine)`
+	min-height: 22.5px;
+	max-height: 45px;
+	padding: 0;
+	border-right: none;
+	gap: 15px;
+
+	> * {
+		&:not(:last-child) {
+			border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+			padding: 0 15px 0 0;
+		}
+	}
+
+	> *:last-child {
+		justify-content: flex-end;
+	}
+`;
+
+export const TransferInfoLineElement = styled.div`
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 7.5px;
+`;
+
+export const TransferInfoAmount = styled.div<{ isNumber: boolean }>`
+	display: flex;
+	align-items: center;
+	gap: 5px;
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.small};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) =>
+			props.isNumber ? props.theme.typography.weight.xBold : props.theme.typography.weight.bold};
+		color: ${(props) => (props.isNumber ? props.theme.colors.font.primary : props.theme.colors.font.primary)};
+		text-align: left;
+		text-transform: none;
+	}
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+		text-align: center;
+		text-transform: uppercase;
+	}
+`;
+
+export const TransferLogoWrapper = styled.div``;
+
+export const TransferLogo = styled.div<{ dimensions: number; margin?: string }>`
+	div {
+		margin: 0 0 0 1.5px;
+	}
+
+	svg {
+		height: ${(props) => `${props.dimensions.toString()}px`};
+		width: ${(props) => `${props.dimensions.toString()}px`};
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+		margin: ${(props) => props.margin ?? '0'};
+
+		path {
+			color: ${(props) => props.theme.colors.font.primary};
+			fill: ${(props) => props.theme.colors.font.primary};
+		}
+	}
+
+	img {
+		height: 15px;
+		width: 15px;
+		object-fit: contain;
+		margin: 6.5px 2.5px 0px 0;
+	}
+`;
+
+export const TransferInfoStatus = styled.div`
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 7.5px;
+	border-right: none !important;
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.alt1};
+	}
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+	}
+`;
+
+export const TransferInfoResult = styled.div<{ disabled: boolean }>`
+	p {
+		color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		max-width: 100% !important;
+		transition: all 100ms;
+	}
+
+	&:hover {
+		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
+		p {
+			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+			text-decoration: ${(props) => (props.disabled ? 'none' : 'underline')};
+			text-decoration-thickness: 1.25px;
+		}
+		svg {
+			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+			fill: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+		}
+	}
+`;
+
+export const TransferInfoStatusIndicator = styled.div<{ pending?: boolean; success?: boolean }>`
+	height: 17.5px;
+	width: 17.5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: ${(props) =>
+		props.pending
+			? props.theme.colors.container.alt2.background
+			: props.success
+			? props.theme.colors.indicator.active
+			: props.theme.colors.warning.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	margin: 0.5px 0 0 1.5px;
+
+	svg {
+		height: 9.5px;
+		width: 9.5px;
+		margin: 0 0 1px 0;
+		color: ${(props) => props.theme.colors.font.light1};
+		fill: ${(props) => props.theme.colors.font.light1};
 	}
 `;
 
@@ -265,6 +455,10 @@ export const SearchWrapper = styled.div`
 	gap: 15px;
 	position: relative;
 	padding: 0 0 0 0.5px;
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		height: auto;
+	}
 `;
 
 export const SearchInputWrapper = styled.div`
@@ -319,7 +513,7 @@ export const UpdateWrapper = styled.div`
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.light2};
+		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
 		text-transform: uppercase;
 	}

@@ -464,3 +464,53 @@ export async function withRetries<T>(
 	console.log('All retries exhausted');
 	throw lastResult;
 }
+
+export function pow10(decimals: number): bigint {
+	let result = BigInt(1);
+	for (let i = 0; i < decimals; i++) {
+		result *= BigInt(10);
+	}
+	return result;
+}
+
+export function formatUnits(value: string | bigint, decimals: number, precision = 6) {
+	const big = BigInt(value);
+	const base = pow10(decimals);
+
+	const whole = big / base;
+	const fraction = big % base;
+
+	if (fraction === BigInt(0)) return whole.toString();
+
+	const fractionFull = fraction.toString().padStart(decimals, '0');
+
+	// Detect very small numbers
+	const firstNonZero = fractionFull.search(/[1-9]/);
+
+	let effectivePrecision = precision;
+
+	if (whole === BigInt(0) && firstNonZero !== -1) {
+		// Ensure we show at least up to first meaningful digit
+		effectivePrecision = Math.max(precision, firstNonZero + 1);
+	}
+
+	const safePrecision = Math.min(effectivePrecision, decimals);
+	const scale = pow10(decimals - safePrecision);
+
+	let roundedFraction = fraction / scale;
+
+	const remainder = fraction % scale;
+	const half = scale / BigInt(2);
+
+	if (remainder >= half) {
+		roundedFraction += BigInt(1);
+	}
+
+	if (roundedFraction === pow10(safePrecision)) {
+		return (whole + BigInt(1)).toString();
+	}
+
+	const fractionStr = roundedFraction.toString().padStart(safePrecision, '0').replace(/0+$/, '');
+
+	return `${whole.toString()}.${fractionStr}`;
+}

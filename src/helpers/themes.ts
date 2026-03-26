@@ -1,11 +1,10 @@
 import { DefaultTheme } from 'styled-components';
 
 const common = {
-	positive1: '#38BD80',
-	positive2: '#2F9D6A',
+	positive1: '#28baa2',
 	caution1: '#EECA00',
-	negative1: '#F16A82',
-	negative2: '#EE4463',
+	negative1: '#ce3f96',
+	negative2: '#c0328a',
 	dark1: '#151515',
 	dark2: '#333333',
 	light1: '#FFFFFF',
@@ -176,7 +175,7 @@ export const lightThemeAlt2 = {
 export const darkTheme = {
 	scheme: 'dark',
 	neutral1: '#17181C',
-	neutral2: '#1C1D22',
+	neutral2: '#1C1D23',
 	neutral3: '#2C2D32',
 	neutral4: '#2E2F35',
 	neutral5: '#3b3b49',
@@ -460,7 +459,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			border: currentTheme.neutral5,
 			invalid: {
 				outline: currentTheme.negative1,
-				shadow: currentTheme.negative2,
+				shadow: currentTheme.shadow1,
 			},
 			valid: {
 				outline: currentTheme.primary1,
@@ -525,7 +524,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		},
 		scrollbar: {
 			track: currentTheme.neutral2,
-			thumb: currentTheme.neutral5,
+			thumb: currentTheme.neutral4,
 		},
 		shadow: {
 			primary: currentTheme.shadow1,

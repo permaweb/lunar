@@ -23,6 +23,7 @@ import {
 	checkValidAddress,
 	formatCount,
 	formatDate,
+	formatUnits,
 	getByteSizeDisplay,
 	getTagValue,
 	isNumeric,
@@ -93,6 +94,7 @@ function Transaction(props: {
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
 
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
+	const messageListRef = React.useRef<HTMLDivElement>(null);
 
 	React.useEffect(() => {
 		setInputTxId(props.txId);
@@ -215,6 +217,12 @@ function Transaction(props: {
 			await navigator.clipboard.writeText(address);
 			setIdCopied(true);
 			setTimeout(() => setIdCopied(false), 2000);
+		}
+	}, []);
+
+	const scrollToMessageList = React.useCallback(() => {
+		if (messageListRef.current) {
+			messageListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
 		}
 	}, []);
 
@@ -385,66 +393,281 @@ function Transaction(props: {
 		);
 	};
 
+	// TODO: Failure Cases
+	// Not scheduled
+	// Transfer-Error in result
+	// Show pending if compute in progress
+	// TODO: Handle non hard coded tokens
+	// TODO: Show not found for not found / error for error
 	const MessageInfoSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
+
+		const action = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || '-' : '-';
+		const from = txResponse
+			? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse?.node?.owner?.address
+			: undefined;
+		const target = txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target');
+
+		const isTransfer = getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer';
+
+		const [targetResponse, setTargetResponse] = React.useState<any>(null);
+		const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+
+		const fetchedTargetRef = React.useRef<string | null>(null);
+
+		React.useEffect(() => {
+			if (messageResult?.Response?.includes('Failed to fetch')) {
+				setStatusMessage('Failed To Fetch');
+			}
+		}, [messageResult]);
+
+		React.useEffect(() => {
+			if (target && fetchedTargetRef.current !== target) {
+				fetchedTargetRef.current = target;
+				setTargetResponse(null);
+				(async () => {
+					try {
+						const response = await searchTxById({
+							txId: target,
+							getGQLData: permawebProvider.libs.getGQLData,
+							store: store,
+							dispatch: dispatch,
+						});
+						setTargetResponse(response);
+					} catch (e) {
+						console.error(e);
+					}
+				})();
+			}
+		}, [target]);
+
+		let quantity;
+		let recipient;
+		let isTransferLoading = !messageResult;
+		let isTransferSuccess = false;
+		let isTransferPending = false;
+
+		if (isTransfer) {
+			quantity = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Quantity') || '-' : '-';
+			recipient = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Recipient') || '-' : '-';
+
+			if (messageResult?.error) {
+				isTransferLoading = false;
+			}
+
+			if (messageResult?.message?.includes('Compute in progress')) {
+				isTransferPending = true;
+			}
+
+			if (messageResult?.Messages?.length > 0) {
+				const actions = {
+					'Debit-Notice': null,
+					'Credit-Notice': null,
+					'Transfer-Error': null,
+				};
+
+				for (const message of messageResult.Messages) {
+					const action = getTagValue(message.Tags, 'Action');
+					if (action && actions.hasOwnProperty(action) && !actions[action]) {
+						actions[action] = message;
+					}
+				}
+
+				if (actions['Debit-Notice'] && actions['Credit-Notice']) isTransferSuccess = true;
+				else if (actions['Transfer-Error']) isTransferSuccess = false;
+				else isTransferSuccess = false;
+			}
+		}
+
+		function getQuantity() {
+			if (!isTransfer) return '-';
+
+			let token;
+			for (const entry of Object.entries(PROCESSES)) {
+				if (entry[1] === target) {
+					token = entry[0];
+				}
+			}
+
+			if (token && TOKEN_DENOMINATIONS[token]) {
+				let icon = null;
+				let dimensions = 15;
+				let margin = '0';
+				switch (token) {
+					case 'ao':
+						icon = ASSETS.ao;
+						dimensions = 18.5;
+						margin = '7.5px 4.5px 0 0';
+						break;
+					case 'pi':
+						dimensions = 10.5;
+						margin = '7.5px 4.5px 0 0';
+						icon = ASSETS.pi;
+						break;
+				}
+
+				if (token === 'arweave') {
+					dimensions = 12.5;
+					margin = '0 0 4.95px 0';
+					icon = ASSETS.arweave;
+				}
+
+				try {
+					const denomination = TOKEN_DENOMINATIONS[token];
+					const formatted = formatUnits(quantity, denomination);
+					return (
+						<S.TransferInfoAmount isNumber={true}>
+							{icon && (
+								<S.TransferLogoWrapper>
+									<S.TransferLogo dimensions={dimensions} margin={margin}>
+										<ReactSVG src={icon} />
+									</S.TransferLogo>
+								</S.TransferLogoWrapper>
+							)}
+							<p>{formatted}</p>
+						</S.TransferInfoAmount>
+					);
+				} catch (e) {
+					console.error(e);
+				}
+			}
+
+			// Check targetResponse for denomination and logo
+			if (targetResponse && targetResponse.Denomination) {
+				try {
+					const denomination = targetResponse.Denomination;
+					const formatted = formatUnits(quantity, denomination);
+					const logoTxId = targetResponse.Logo;
+
+					return (
+						<S.TransferInfoAmount isNumber={true}>
+							{logoTxId && (
+								<S.TransferLogoWrapper>
+									<S.TransferLogo dimensions={15} margin={'0'}>
+										<img src={getTxEndpoint(logoTxId)} alt={'Token logo'} />
+									</S.TransferLogo>
+								</S.TransferLogoWrapper>
+							)}
+							<p>{formatted}</p>
+						</S.TransferInfoAmount>
+					);
+				} catch (e) {
+					console.error(e);
+				}
+			}
+
+			return (
+				<S.TransferInfoAmount isNumber={true}>
+					<p>{quantity}</p>
+				</S.TransferInfoAmount>
+			);
+		}
+
 		return (
-			<S.MessageInfo className={'border-wrapper-primary'}>
-				<S.MessageInfoHeader>
-					<p>{language.messageInfo}</p>
-					<S.MessageInfoID>
-						<span>{`${language.id}: `}</span>
-						<TxAddress address={txResponse?.node?.id} />
-					</S.MessageInfoID>
-				</S.MessageInfoHeader>
-				<S.MessageInfoBody>
-					<S.MessageInfoLine>
-						<span>{`${language.from}: `}</span>
-						<TxAddress
-							address={
-								txResponse
-									? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse?.node?.owner?.address
-									: undefined
-							}
-						/>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.to}: `}</span>
-						<TxAddress address={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')} />
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.owner}: `}</span>
-						<TxAddress address={txResponse?.node?.owner?.address} />
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`Action: `}</span>
-						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || '-' : '-'}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.variant}: `}</span>
-						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.dataProtocol}: `}</span>
-						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.dateCreated}: `}</span>
-						<p>
-							{txResponse?.node?.block?.timestamp
-								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
-								: '-'}
-						</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.blockHeight}: `}</span>
-						<p>{txResponse?.node?.block?.height ? formatCount(txResponse?.node?.block?.height.toString()) : '-'}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.size}: `}</span>
-						<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
-					</S.MessageInfoLine>
-				</S.MessageInfoBody>
-			</S.MessageInfo>
+			<>
+				{isTransfer && (
+					<S.TransferInfo className={'border-wrapper-alt4'}>
+						<S.TransferInfoHeader>
+							<p>{language.tokenTransfer}</p>
+							<S.TransferInfoID>
+								<span>{`${language.token}: `}</span>
+								<TxAddress address={target} />
+							</S.TransferInfoID>
+						</S.TransferInfoHeader>
+						<S.TransferInfoBody>
+							<S.TransferInfoLine>
+								<S.TransferInfoLineElement>
+									<span>Transfer From: </span>
+									<TxAddress address={from} />
+								</S.TransferInfoLineElement>
+								<S.TransferInfoLineElement>
+									<span>To: </span>
+									<TxAddress address={recipient} />
+								</S.TransferInfoLineElement>
+								<S.TransferInfoLineElement>
+									<span>Amount: </span>
+									{getQuantity()}
+								</S.TransferInfoLineElement>
+							</S.TransferInfoLine>
+							<S.TransferInfoLine>
+								<S.TransferInfoStatus>
+									<span>Status:</span>
+									<p>
+										{isTransferLoading
+											? 'Loading...'
+											: isTransferPending
+											? 'Compute In Progress'
+											: isTransferSuccess
+											? 'Success'
+											: statusMessage ?? 'Error'}
+									</p>
+									{!isTransferLoading && !isTransferPending && !statusMessage && (
+										<S.TransferInfoStatusIndicator pending={isTransferLoading} success={isTransferSuccess}>
+											<ReactSVG src={isTransferSuccess ? ASSETS.success : ASSETS.warning} />
+										</S.TransferInfoStatusIndicator>
+									)}
+								</S.TransferInfoStatus>
+								<S.TransferInfoLineElement>
+									<S.TransferInfoResult disabled={isTransferLoading} onClick={scrollToMessageList}>
+										<p>Go To Results</p>
+									</S.TransferInfoResult>
+								</S.TransferInfoLineElement>
+							</S.TransferInfoLine>
+						</S.TransferInfoBody>
+					</S.TransferInfo>
+				)}
+				<S.MessageInfo className={'border-wrapper-primary'}>
+					<S.MessageInfoHeader>
+						<p>{language.messageInfo}</p>
+						<S.MessageInfoID>
+							<span>{`${language.id}: `}</span>
+							<TxAddress address={txResponse?.node?.id} />
+						</S.MessageInfoID>
+					</S.MessageInfoHeader>
+					<S.MessageInfoBody>
+						<S.MessageInfoLine>
+							<span>{`${language.from}: `}</span>
+							<TxAddress address={from} />
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`${language.target}: `}</span>
+							<TxAddress address={target} />
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`${language.owner}: `}</span>
+							<TxAddress address={txResponse?.node?.owner?.address} />
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`Action: `}</span>
+							<p>{action}</p>
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`${language.variant}: `}</span>
+							<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`${language.dataProtocol}: `}</span>
+							<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`${language.date}: `}</span>
+							<p>
+								{txResponse?.node?.block?.timestamp
+									? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
+									: '-'}
+							</p>
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`${language.blockHeight}: `}</span>
+							<p>{txResponse?.node?.block?.height ? formatCount(txResponse?.node?.block?.height.toString()) : '-'}</p>
+						</S.MessageInfoLine>
+						<S.MessageInfoLine>
+							<span>{`${language.size}: `}</span>
+							<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
+						</S.MessageInfoLine>
+					</S.MessageInfoBody>
+				</S.MessageInfo>
+			</>
 		);
 	};
 
@@ -646,7 +869,7 @@ function Transaction(props: {
 										</S.InfoWrapper>
 									)}
 									{showMessages && (
-										<S.MessageHeaderWrapper>
+										<S.MessageHeaderWrapper ref={messageListRef}>
 											{checkValidAddress(inputTxId) && (
 												<MessageList
 													key={refreshKey}
