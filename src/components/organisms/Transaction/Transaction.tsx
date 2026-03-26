@@ -29,6 +29,7 @@ import {
 	removeCommitments,
 	resolveLibDeps,
 	resolveMessageId,
+	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -605,6 +606,11 @@ function Transaction(props: {
 					const variant = txResponse
 						? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
 						: undefined;
+					const hydrateAoTransferNotices = shouldHydrateAoTransferNotices({
+						action: getTagValue(txResponse?.node?.tags, 'Action'),
+						variant: variant,
+						recipient: txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target'),
+					});
 
 					switch (props.type) {
 						case 'process':
@@ -662,19 +668,9 @@ function Transaction(props: {
 													timestamp={txResponse?.node?.block?.timestamp}
 													skipResultFetch={true}
 													showFilteredMessages={true}
-													hydrateAoTransferNotices={
-														getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer' &&
-														variant === MessageVariantEnum.Legacynet &&
-														(txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')) ===
-															PROCESSES.ao
-													}
+													hydrateAoTransferNotices={hydrateAoTransferNotices}
 													showResultMessageLabel={true}
-													clickableResultMessageLabel={
-														getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer' &&
-														variant === MessageVariantEnum.Legacynet &&
-														(txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')) ===
-															PROCESSES.ao
-													}
+													clickableResultMessageLabel={hydrateAoTransferNotices}
 												/>
 											)}
 										</S.MessageHeaderWrapper>

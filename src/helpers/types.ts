@@ -1,5 +1,10 @@
 export type TagType = { name: string; value: string };
 
+export type ResultMessageType = {
+	Target?: string;
+	Tags?: TagType[];
+};
+
 export type TagFilterType = { name: string; values: string[]; match?: string };
 
 export type BaseGQLArgsType = {
