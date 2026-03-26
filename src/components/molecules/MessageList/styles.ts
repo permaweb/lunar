@@ -245,26 +245,11 @@ export const ElementWrapper = styled.div<{
 		background: ${(props) =>
 			props.disabled ? props.theme.colors.container.primary : props.theme.colors.container.primary.active};
 		border-left: 1px solid
-			${(props) =>
-				props.childList
-					? props.theme.colors.border.alt4
-					: props.disabled
-					? props.theme.colors.border.primary
-					: props.theme.colors.border.alt4} !important;
+			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)} !important;
 		border-right: 1px solid
-			${(props) =>
-				props.childList
-					? props.theme.colors.border.alt4
-					: props.disabled
-					? props.theme.colors.border.primary
-					: props.theme.colors.border.alt4} !important;
+			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)} !important;
 		border-bottom: 1px solid
-			${(props) =>
-				props.childList && props.lastChild
-					? props.theme.colors.border.alt4
-					: props.disabled
-					? props.theme.colors.border.primary
-					: props.theme.colors.border.alt4} !important;
+			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)} !important;
 	}
 
 	&:hover::after {
@@ -277,12 +262,7 @@ export const ElementWrapper = styled.div<{
 		right: 0;
 		bottom: 0;
 		border-top: 1px solid
-			${(props) =>
-				props.childList
-					? props.theme.colors.border.primary
-					: props.disabled
-					? props.theme.colors.border.primary
-					: props.theme.colors.border.alt4};
+			${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt4)};
 		transition: all 100ms;
 	}
 
@@ -332,20 +312,21 @@ export const ResultMessage = styled.div<{ clickable?: boolean }>`
 	width: 165px;
 
 	span {
-		color: ${(props) => (props.clickable ? props.theme.colors.link.color : props.theme.colors.font.primary)};
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		color: ${(props) => (props.clickable ? props.theme.colors.link.color : props.theme.colors.font.alt1)} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.medium};
-		text-transform: uppercase;
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		max-width: 100% !important;
+		transition: all 100ms;
 	}
 
 	&:hover {
 		cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
 
 		span {
-			color: ${(props) => (props.clickable ? props.theme.colors.link.active : props.theme.colors.font.primary)};
+			color: ${(props) => (props.clickable ? props.theme.colors.link.active : props.theme.colors.font.alt1)};
 			text-decoration: ${(props) => (props.clickable ? 'underline' : 'none')};
-			text-decoration-thickness: ${(props) => (props.clickable ? '1px' : '0')};
+			text-decoration-thickness: ${(props) => (props.clickable ? '1.25px' : '0')};
 		}
 	}
 `;
