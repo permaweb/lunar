@@ -3,8 +3,8 @@ import { DefaultTheme } from 'styled-components';
 const common = {
 	positive1: '#28baa2',
 	caution1: '#EECA00',
-	negative1: '#ce3f96',
-	negative2: '#c0328a',
+	negative1: '#ce3f7e',
+	negative2: '#c5276c',
 	dark1: '#151515',
 	dark2: '#333333',
 	light1: '#FFFFFF',
@@ -175,7 +175,7 @@ export const lightThemeAlt2 = {
 export const darkTheme = {
 	scheme: 'dark',
 	neutral1: '#17181C',
-	neutral2: '#1C1D23',
+	neutral2: '#1a1b20',
 	neutral3: '#2C2D32',
 	neutral4: '#2E2F35',
 	neutral5: '#3b3b49',

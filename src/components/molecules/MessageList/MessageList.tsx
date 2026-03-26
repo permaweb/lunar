@@ -35,9 +35,9 @@ import {
 	getTagValue,
 	lowercaseTagKeys,
 	removeCommitments,
-	resolveResultMessages,
 	resolveLibDeps,
 	resolveMessageId,
+	resolveResultMessages,
 	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -491,7 +491,7 @@ function Message(props: {
 					recipient={props.element.node.recipient}
 					parentId={props.parentId}
 					result={result}
-					willHaveResult={true}
+					willHaveResult={false}
 					timestamp={props.element?.node?.block?.timestamp}
 					authority={getTagValue(props.element.node.tags, 'Authority')}
 					showFilteredMessages
