@@ -10,6 +10,8 @@ import { checkValidAddress, formatMs, removeCommitments, stripUrlProtocol } from
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
+import { store } from 'store';
+import { addTransaction, selectTransaction } from 'store/transactions/reducer';
 
 import * as S from './styles';
 
@@ -121,6 +123,17 @@ export default function ProcessRead(props: {
 					// If JSON parsing fails, treat it as a plain string response
 					parsedResponse = response;
 				}
+				let finalResponse = removeCommitments(parsedResponse);
+
+				// Merge with cached transaction if available
+				const cachedTx = selectTransaction(store.getState(), props.processId);
+				if (cachedTx) {
+					finalResponse = { ...cachedTx, ...finalResponse };
+				}
+
+				// Write the merged response back to cache
+				store.dispatch(addTransaction(props.processId, finalResponse));
+
 				setCurrentOutput(removeCommitments(parsedResponse));
 
 				const roundTrip = Date.now() - start;
