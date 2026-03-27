@@ -32,6 +32,8 @@ function getLazyImport(view: string) {
 	});
 }
 
+const APP_VERSION = '0.0.1';
+
 export default function App() {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -40,6 +42,15 @@ export default function App() {
 
 	const hasHiddenLoaderRef = React.useRef(false);
 	const hasInitializedServiceWorkerRef = React.useRef(false);
+
+	React.useEffect(() => {
+		const storedVersion = localStorage.getItem('app-version');
+		if (storedVersion !== APP_VERSION) {
+			console.log(`Version change detected (${storedVersion} -> ${APP_VERSION}). Clearing IndexedDB...`);
+			indexedDB.deleteDatabase('lunar-db');
+			localStorage.setItem('app-version', APP_VERSION);
+		}
+	}, []);
 
 	React.useEffect(() => {
 		if (!hasInitializedServiceWorkerRef.current) {
