@@ -37,8 +37,9 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 				gateway: DEFAULT_GATEWAYS.fallback,
 				id: [args.txId],
 			});
-			response = await normalizeGqlResponse(response);
 		}
+
+		response = await normalizeGqlResponse(response);
 
 		const responseData = response?.data?.[0];
 
