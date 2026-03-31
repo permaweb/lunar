@@ -129,10 +129,10 @@ export default function ProcessRead(props: {
 				const cachedTx = selectTransaction(store.getState(), props.processId);
 				if (cachedTx) {
 					finalResponse = { ...cachedTx, ...finalResponse };
-				}
 
-				// Write the merged response back to cache
-				store.dispatch(addTransaction(props.processId, finalResponse));
+					// Write the merged response back to cache
+					store.dispatch(addTransaction(props.processId, finalResponse));
+				}
 
 				setCurrentOutput(removeCommitments(parsedResponse));
 

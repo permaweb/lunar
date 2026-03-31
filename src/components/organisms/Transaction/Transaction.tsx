@@ -827,7 +827,7 @@ function Transaction(props: {
 					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
 
 					const variant = txResponse
-						? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+						? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
 						: undefined;
 					const hydrateAoTransferNotices = shouldHydrateAoTransferNotices({
 						action: getTagValue(txResponse?.node?.tags, 'Action'),
@@ -943,7 +943,7 @@ function Transaction(props: {
 						const { txResponse, refreshKey } = React.useContext(TxResponseContext);
 
 						const variant = txResponse
-							? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
 							: undefined;
 
 						return (
@@ -975,7 +975,7 @@ function Transaction(props: {
 						const { txResponse } = React.useContext(TxResponseContext);
 
 						const variant = txResponse
-							? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
 							: undefined;
 						return <ProcessEditor processId={inputTxId} variant={variant} type={'read'} />;
 					},
@@ -989,7 +989,7 @@ function Transaction(props: {
 						const { txResponse } = React.useContext(TxResponseContext);
 
 						const variant = txResponse
-							? (getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum)
+							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
 							: undefined;
 						return <ProcessEditor processId={inputTxId} variant={variant} type={'write'} />;
 					},
