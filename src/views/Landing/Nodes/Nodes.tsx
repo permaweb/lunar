@@ -46,17 +46,6 @@ function Node(props: { index: number; node: any }) {
 				</p>
 				<S.IndicatorWrapper>{getHealthStatus()}</S.IndicatorWrapper>
 			</S.NodeHeader>
-			{/* <S.NodeBody>
-				<S.NodeLine>
-					<span>Price:</span>
-					<p>{formatCount(props.node.price?.toString() ?? '0')}</p>
-					<span>ARM</span>
-				</S.NodeLine>
-				<S.NodeLine>
-					<span>Performance:</span>
-					<p>{formatCount(props.node.performance?.toString() ?? '0')}</p>
-				</S.NodeLine>
-			</S.NodeBody> */}
 		</S.NodeWrapper>
 	) : null;
 }
@@ -72,8 +61,9 @@ export default function Nodes() {
 			try {
 				for (const routerUrl of routerUrls) {
 					const res = await fetch(getRoutesEndpoint(routerUrl));
-					const parsed = (await res.json())['3'];
-					const groups = makeScoreGroups(parsed.nodes);
+					const data = await res.json();
+					const parsed = Object.values(data).find((route: any) => route.strategy === 'Nearest');
+					const groups = makeScoreGroups((parsed as any).nodes);
 
 					setRouters((prev) => [...(prev ?? []), { name: routerUrl, groups }]);
 				}
@@ -117,11 +107,6 @@ export default function Nodes() {
 									</S.NodeRow>
 								))}
 							</S.RouterBody>
-							{/* <S.RouterFooter>
-								<S.Subheader>
-									<span>{router.name}</span>
-								</S.Subheader>
-							</S.RouterFooter> */}
 						</S.RouterWrapper>
 					);
 				})
