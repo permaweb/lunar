@@ -8,7 +8,6 @@ export const Wrapper = styled.div`
 	padding: 25px 0 0 0;
 	display: flex;
 	gap: 25px;
-	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	#docs-previous {
 		align-items: flex-start;

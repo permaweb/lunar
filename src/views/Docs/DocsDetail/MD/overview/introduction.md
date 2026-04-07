@@ -1,4 +1,4 @@
-# Welcome to Lunar
+# Introduction
 
 Lunar is an interface for exploring and interacting with AO processes, messages and entities.
 

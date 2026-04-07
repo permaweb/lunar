@@ -2,22 +2,19 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-export const NWrapper = styled.div`
-	min-height: calc(100vh - ${STYLING.dimensions.nav.height});
+export const Wrapper = styled.div`
+	height: calc(100vh - (${STYLING.dimensions.nav.height} * 2));
 	width: ${STYLING.dimensions.nav.width};
-	position: fixed;
+	position: sticky;
 	top: ${STYLING.dimensions.nav.height};
 	left: 0;
 	z-index: 4;
-
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	overflow-y: auto;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		min-height: 0;
 		height: auto;
-		width: calc(100% - 30px);
+		width: calc(100% - 0px);
 		top: 15px;
 		left: 50%;
 		transform: translate(-50%, 0);
@@ -29,11 +26,17 @@ export const NWrapper = styled.div`
 	}
 `;
 
+export const NWrapper = styled.div`
+	height: fit-content;
+	width: 100%;
+	overflow-y: auto;
+`;
+
 export const NContent = styled.div`
 	height: 100%;
 	width: 100%;
 	z-index: 1;
-	padding: 25px;
+	padding: 25px 25px 25px 0;
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		position: relative;
 		top: auto;
@@ -116,11 +119,11 @@ export const NListItem = styled.li<{ disabled: boolean; active: boolean }>`
 	display: flex;
 	align-items: center;
 	cursor: pointer;
-	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	color: ${(props) =>
 		props.active ? props.theme.colors.button.primary.active.color : props.theme.colors.button.primary.color};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	margin: 0 0 8.5px 0;
+	margin: 0 0 10px 0;
 	line-height: 1.75;
 	text-align: left;
 	border-radius: ${STYLING.dimensions.radius.alt2};

@@ -21,11 +21,11 @@ export const Header = styled.header<{ navigationOpen: boolean }>`
 		border-bottom: 1px solid transparent !important;
 	}
 
-	&.docs-view {
+	/* &.docs-view {
 		background: ${(props) => props.theme.colors.container.primary.background};
 		box-shadow: inset 0px 6px 6px -6px ${(props) => props.theme.colors.shadow.primary};
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
-	}
+	} */
 `;
 
 export const Content = styled.div`
