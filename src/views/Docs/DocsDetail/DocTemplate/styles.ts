@@ -20,7 +20,6 @@ export const TableOfContents = styled.aside`
 	overflow-y: auto;
 	order: 2;
 	padding: 0 0 0 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 	overflow-y: auto;
 
 	@media (max-width: 1024px) {
@@ -34,8 +33,6 @@ export const TOCTitle = styled.h4`
 	font-family: ${(props) => props.theme.typography.family.primary} !important;
 	color: ${(props) => props.theme.colors.font.alt1} !important;
 	margin: 0 0 15px 0 !important;
-	padding: 0 0 11.5px 0;
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	color: ${(props) => props.theme.colors.font.primary} !important;
 `;
 
@@ -43,7 +40,7 @@ export const TOCList = styled.ul`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 8.5px;
+	gap: 10px;
 	margin: 0 !important;
 	padding: 0 !important;
 `;
@@ -62,7 +59,7 @@ export const TOCItem = styled.li<{ $active?: boolean }>`
 		width: 100%;
 		display: flex;
 		cursor: pointer;
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		color: ${(props) =>
 			props.$active ? props.theme.colors.button.primary.active.color : props.theme.colors.button.primary.color};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -105,6 +102,8 @@ export const Wrapper = styled.div`
 	flex-direction: column;
 	gap: 25px;
 	order: 1;
+	padding: 15px 0 0 0;
+	margin: 0 auto;
 
 	* {
 		overflow-wrap: anywhere !important;
@@ -112,6 +111,7 @@ export const Wrapper = styled.div`
 
 	@media (max-width: 1024px) {
 		max-width: 100%;
+		padding: 0 5px;
 	}
 
 	h1,

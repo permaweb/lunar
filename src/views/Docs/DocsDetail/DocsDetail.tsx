@@ -5,7 +5,7 @@ import * as S from './styles';
 
 export default function DocsDetail() {
 	return (
-		<S.Wrapper>
+		<S.Wrapper className={'max-view-wrapper'}>
 			<S.BodyWrapper>
 				<DocsNavigation />
 				<S.ContentWrapper>

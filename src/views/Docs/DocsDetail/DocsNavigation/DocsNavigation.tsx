@@ -94,15 +94,17 @@ export default function DocsNavigation() {
 		const Title: any = desktop ? S.NTitle : S.NTitleMobile;
 
 		return (
-			<S.NWrapper>
-				<S.NContent>
-					<Title onClick={desktop ? () => {} : () => setOpen(!open)} open={open}>
-						<p>{getCurrentDocName()}</p>
-						{!desktop && <ReactSVG src={ASSETS.arrow} />}
-					</Title>
-					<S.NList>{open && renderNavItems(handleNavClick)}</S.NList>
-				</S.NContent>
-			</S.NWrapper>
+			<S.Wrapper>
+				<S.NWrapper>
+					<S.NContent>
+						<Title onClick={desktop ? () => {} : () => setOpen(!open)} open={open}>
+							<p>{getCurrentDocName()}</p>
+							{!desktop && <ReactSVG src={ASSETS.arrow} />}
+						</Title>
+						<S.NList>{open && renderNavItems(handleNavClick)}</S.NList>
+					</S.NContent>
+				</S.NWrapper>
+			</S.Wrapper>
 		);
 	}
 
