@@ -136,8 +136,8 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 		if (!walletAddress) {
 			if (window.arweaveWallet) {
 				try {
-					await global.window?.arweaveWallet?.connect(WALLET_PERMISSIONS as any);
-					setWalletAddress(await global.window.arweaveWallet.getActiveAddress());
+					await window.arweaveWallet.connect(WALLET_PERMISSIONS as any);
+					setWalletAddress(await window.arweaveWallet.getActiveAddress());
 					setWallet(window.arweaveWallet);
 					setWalletType(WalletEnum.wander);
 					setWalletModalVisible(false);
@@ -151,7 +151,7 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 
 	async function handleDisconnect() {
 		if (localStorage.getItem(STORAGE.walletType)) localStorage.removeItem(STORAGE.walletType);
-		await global.window?.arweaveWallet?.disconnect();
+		await window.arweaveWallet?.disconnect();
 		setWallet(null);
 		setWalletAddress(null);
 	}

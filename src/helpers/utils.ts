@@ -197,14 +197,14 @@ export function getBase64Data(dataURL: string) {
 	return dataURL.split(',')[1];
 }
 
-export function getByteSize(input: string | Buffer): number {
+export function getByteSize(input: string | Uint8Array): number {
 	let sizeInBytes: number;
-	if (Buffer.isBuffer(input)) {
+	if (input instanceof Uint8Array) {
 		sizeInBytes = input.length;
 	} else if (typeof input === 'string') {
-		sizeInBytes = Buffer.byteLength(input, 'utf-8');
+		sizeInBytes = new TextEncoder().encode(input).length;
 	} else {
-		throw new Error('Input must be a string or a Buffer');
+		throw new Error('Input must be a string or a Uint8Array');
 	}
 
 	return sizeInBytes;

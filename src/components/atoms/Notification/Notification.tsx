@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { ASSETS, DOM } from 'helpers/config';
+import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { Portal } from '../Portal';
 
@@ -9,6 +10,9 @@ import * as S from './styles';
 import { IProps } from './types';
 
 export default function Notification(props: IProps) {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+
 	const [show, setShow] = React.useState<boolean>(true);
 
 	function handleClose() {
@@ -38,7 +42,7 @@ export default function Notification(props: IProps) {
 					<S.Message>{props.message}</S.Message>
 				</S.MessageWrapper>
 				<S.Close onClick={handleClose}>
-					<p>Dismiss</p>
+					<p>{language.dismiss}</p>
 				</S.Close>
 			</S.Wrapper>
 		</Portal>
