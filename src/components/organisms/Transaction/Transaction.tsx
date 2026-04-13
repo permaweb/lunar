@@ -545,7 +545,7 @@ function Transaction(props: {
 							{logoTxId && (
 								<S.TransferLogoWrapper>
 									<S.TransferLogo dimensions={15} margin={'0'}>
-										<img src={getTxEndpoint(logoTxId)} alt={'Token logo'} />
+										<img src={getTxEndpoint(logoTxId)} alt={language.tokenLogo} />
 									</S.TransferLogo>
 								</S.TransferLogoWrapper>
 							)}
@@ -578,29 +578,29 @@ function Transaction(props: {
 						<S.TransferInfoBody>
 							<S.TransferInfoLine>
 								<S.TransferInfoLineElement>
-									<span>Transfer From: </span>
+									<span>{`${language.transferFrom}: `}</span>
 									<TxAddress address={from} />
 								</S.TransferInfoLineElement>
 								<S.TransferInfoLineElement>
-									<span>To: </span>
+									<span>{`${language.to}: `}</span>
 									<TxAddress address={recipient} />
 								</S.TransferInfoLineElement>
 								<S.TransferInfoLineElement>
-									<span>Amount: </span>
+									<span>{`${language.amount}: `}</span>
 									{getQuantity()}
 								</S.TransferInfoLineElement>
 							</S.TransferInfoLine>
 							<S.TransferInfoLine>
 								<S.TransferInfoStatus>
-									<span>Status:</span>
+									<span>{`${language.status}:`}</span>
 									<p>
 										{isTransferLoading
-											? 'Loading...'
+											? `${language.loading}...`
 											: isTransferPending
-											? 'Compute In Progress'
+											? language.computeInProgress
 											: isTransferSuccess
-											? 'Success'
-											: statusMessage ?? 'Error'}
+											? language.done
+											: statusMessage ?? language.error}
 									</p>
 									{!isTransferLoading && !isTransferPending && !statusMessage && (
 										<S.TransferInfoStatusIndicator pending={isTransferLoading} success={isTransferSuccess}>
@@ -610,7 +610,7 @@ function Transaction(props: {
 								</S.TransferInfoStatus>
 								<S.TransferInfoLineElement>
 									<S.TransferInfoResult disabled={isTransferLoading} onClick={scrollToMessageList}>
-										<p>Go To Results</p>
+										<p>{language.goToResults}</p>
 									</S.TransferInfoResult>
 								</S.TransferInfoLineElement>
 							</S.TransferInfoLine>
@@ -639,7 +639,7 @@ function Transaction(props: {
 							<TxAddress address={txResponse?.node?.owner?.address} />
 						</S.MessageInfoLine>
 						<S.MessageInfoLine>
-							<span>{`Action: `}</span>
+							<span>{`${language.action}: `}</span>
 							<p>{action}</p>
 						</S.MessageInfoLine>
 						<S.MessageInfoLine>
@@ -794,7 +794,11 @@ function Transaction(props: {
 			if (contentType && contentType.startsWith('image/')) {
 				return (
 					<S.DataSection>
-						<img src={getTxEndpoint(inputTxId)} alt={'Transaction data'} style={{ maxWidth: '100%', height: 'auto' }} />
+						<img
+							src={getTxEndpoint(inputTxId)}
+							alt={language.transactionData}
+							style={{ maxWidth: '100%', height: 'auto' }}
+						/>
 					</S.DataSection>
 				);
 			}

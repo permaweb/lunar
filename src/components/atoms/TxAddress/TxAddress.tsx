@@ -88,7 +88,7 @@ export default function TxAddress(props: IProps) {
 				<S.IconWrapper>
 					{!copied && (
 						<S.Tooltip className={'info'} position={props.tooltipPosition ?? 'top-right'}>
-							<span>{isModifierKeyPressed ? 'Copy Address' : language.openInNewTab}</span>
+							<span>{isModifierKeyPressed ? language.copyAddress : language.openInNewTab}</span>
 						</S.Tooltip>
 					)}
 					<ReactSVG src={ASSETS.newTab} onClick={handleClick} />

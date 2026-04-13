@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useLanguageProvider } from 'providers/LanguageProvider';
+
 import * as S from './styles';
 
 interface CalendarProps {
@@ -10,6 +12,9 @@ interface CalendarProps {
 }
 
 export default function Calendar({ selectedDate, onDateSelect, minDate, viewDate: propViewDate }: CalendarProps) {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+
 	const currentDate = new Date();
 	const [viewDate, setViewDate] = React.useState({
 		year: propViewDate?.year || selectedDate?.year || currentDate.getFullYear(),
@@ -23,18 +28,18 @@ export default function Calendar({ selectedDate, onDateSelect, minDate, viewDate
 	}, [propViewDate]);
 
 	const monthNames = [
-		'January',
-		'February',
-		'March',
-		'April',
-		'May',
-		'June',
-		'July',
-		'August',
-		'September',
-		'October',
-		'November',
-		'December',
+		language.january,
+		language.february,
+		language.march,
+		language.april,
+		language.may,
+		language.june,
+		language.july,
+		language.august,
+		language.september,
+		language.october,
+		language.november,
+		language.december,
 	];
 
 	const getDaysInMonth = (month: number, year: number): number => {
@@ -131,13 +136,13 @@ export default function Calendar({ selectedDate, onDateSelect, minDate, viewDate
 				<S.NavButton onClick={handleNextMonth}>›</S.NavButton>
 			</S.Header>
 			<S.DaysHeader>
-				<S.DayName>Su</S.DayName>
-				<S.DayName>Mo</S.DayName>
-				<S.DayName>Tu</S.DayName>
-				<S.DayName>We</S.DayName>
-				<S.DayName>Th</S.DayName>
-				<S.DayName>Fr</S.DayName>
-				<S.DayName>Sa</S.DayName>
+				<S.DayName>{language.sundayShort}</S.DayName>
+				<S.DayName>{language.mondayShort}</S.DayName>
+				<S.DayName>{language.tuesdayShort}</S.DayName>
+				<S.DayName>{language.wednesdayShort}</S.DayName>
+				<S.DayName>{language.thursdayShort}</S.DayName>
+				<S.DayName>{language.fridayShort}</S.DayName>
+				<S.DayName>{language.saturdayShort}</S.DayName>
 			</S.DaysHeader>
 			<S.DaysGrid>{renderCalendarDays()}</S.DaysGrid>
 		</S.CalendarWrapper>
