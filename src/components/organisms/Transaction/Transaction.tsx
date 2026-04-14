@@ -599,7 +599,7 @@ function Transaction(props: {
 											: isTransferPending
 											? language.computeInProgress
 											: isTransferSuccess
-											? language.done
+											? language.success
 											: statusMessage ?? language.error}
 									</p>
 									{!isTransferLoading && !isTransferPending && !statusMessage && (

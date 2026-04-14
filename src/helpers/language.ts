@@ -242,6 +242,7 @@ export const language = {
 		startTime: `Start Time`,
 		status: `Status`,
 		submit: `Submit`,
+		success: `Success`,
 		sunday: `Sunday`,
 		sundayShort: `Su`,
 		sunlit: `Sunlit`,
