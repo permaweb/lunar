@@ -232,6 +232,7 @@ export const language = {
 		sidebarClose: `Close sidebar`,
 		sidebarOpen: `Open sidebar`,
 		size: `Size`,
+		slot: `Slot`,
 		sortNewestToOldest: `Newest to Oldest`,
 		sortOldestToNewest: `Oldest to Newest`,
 		source: `Source`,

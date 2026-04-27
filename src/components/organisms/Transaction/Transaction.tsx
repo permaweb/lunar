@@ -662,10 +662,17 @@ function Transaction(props: {
 							<span>{`${language.blockHeight}: `}</span>
 							<p>{txResponse?.node?.block?.height ? formatCount(txResponse?.node?.block?.height.toString()) : '-'}</p>
 						</S.MessageInfoLine>
-						<S.MessageInfoLine>
-							<span>{`${language.size}: `}</span>
-							<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
-						</S.MessageInfoLine>
+						{txResponse?.node?.slot ? (
+							<S.MessageInfoLine>
+								<span>{`${language.slot}: `}</span>
+								<p>{formatCount(txResponse?.node?.slot.toString())}</p>
+							</S.MessageInfoLine>
+						) : (
+							<S.MessageInfoLine>
+								<span>{`${language.size}: `}</span>
+								<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
+							</S.MessageInfoLine>
+						)}
 					</S.MessageInfoBody>
 				</S.MessageInfo>
 			</>

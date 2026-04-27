@@ -32,7 +32,7 @@ function getLazyImport(view: string) {
 	});
 }
 
-const APP_VERSION = '0.0.1';
+const APP_VERSION = '0.0.2';
 
 export default function App() {
 	const languageProvider = useLanguageProvider();
@@ -73,6 +73,7 @@ export default function App() {
 		}
 	}, [settings]);
 
+	// @ts-ignore
 	if (process.env.NODE_ENV === 'development') {
 		const suppressed = 'ResizeObserver loop completed with undelivered notifications.';
 		const origWarn = console.warn.bind(console);
