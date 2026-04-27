@@ -676,10 +676,11 @@ export async function resolveResultMessages(args: {
 		.filter((edge) => !!edge?.node?.recipient);
 }
 
-async function resolveMessageBlock(edge: GQLNodeResponseType) {
+async function resolveMessageSchedule(edge: GQLNodeResponseType) {
 	if (
 		getTagValue(edge.node.tags, 'Variant') === MessageVariantEnum.Legacynet &&
-		getTagValue(edge.node.tags, 'Type') === 'Message'
+		getTagValue(edge.node.tags, 'Type') === 'Message' &&
+		!getTagValue(edge.node.tags, 'Pushed-For') /* Skip any pushed messages */
 	) {
 		try {
 			const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
@@ -687,16 +688,19 @@ async function resolveMessageBlock(edge: GQLNodeResponseType) {
 			const parsed = await response.json();
 
 			return {
-				height: getTagValue(parsed.assignment.tags, 'Block-Height')?.replace(/^0+/, ''),
-				timestamp: parseInt(getTagValue(parsed.assignment.tags, 'Timestamp')) / 1000,
+				block: {
+					height: getTagValue(parsed.assignment.tags, 'Block-Height')?.replace(/^0+/, ''),
+					timestamp: parseInt(getTagValue(parsed.assignment.tags, 'Timestamp')) / 1000,
+				},
+				slot: parseInt(getTagValue(parsed.assignment.tags, 'Nonce')),
 			};
 		} catch (e) {
 			console.error(e);
-			return edge.node.block;
+			return { block: edge.node.block };
 		}
 	}
 
-	return edge.node.block;
+	return { block: edge.node.block };
 }
 
 export async function normalizeGqlResponse(response: DefaultGQLResponseType) {
@@ -705,7 +709,7 @@ export async function normalizeGqlResponse(response: DefaultGQLResponseType) {
 			response.data.map(async (edge: GQLNodeResponseType) => {
 				if (edge?.node?.tags) {
 					const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
-					const block = await resolveMessageBlock(edge);
+					const schedule = await resolveMessageSchedule(edge);
 
 					return {
 						...edge,
@@ -713,7 +717,8 @@ export async function normalizeGqlResponse(response: DefaultGQLResponseType) {
 							...edge.node,
 							recipient: recipient,
 							tags: normalizeTagKeys(edge.node.tags),
-							block: block,
+							block: { ...schedule.block },
+							slot: schedule.slot,
 						},
 					};
 				}

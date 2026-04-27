@@ -41,6 +41,8 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 
 		response = await normalizeGqlResponse(response);
 
+		console.log(response);
+
 		const responseData = response?.data?.[0];
 
 		if (!responseData) {
