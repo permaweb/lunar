@@ -1,17 +1,16 @@
 import React from 'react';
 import { ReactSVG } from 'react-svg';
 
-import { ASSETS, DOM } from 'helpers/config';
+import { ASSETS } from 'helpers/config';
+import { language as fallbackLanguage } from 'helpers/language';
 import { useLanguageProvider } from 'providers/LanguageProvider';
-
-import { Portal } from '../Portal';
 
 import * as S from './styles';
 import { IProps } from './types';
 
 export default function Notification(props: IProps) {
 	const languageProvider = useLanguageProvider();
-	const language = languageProvider.object[languageProvider.current];
+	const language = languageProvider?.object?.[languageProvider.current] ?? fallbackLanguage.en;
 
 	const [show, setShow] = React.useState<boolean>(true);
 
@@ -21,30 +20,31 @@ export default function Notification(props: IProps) {
 	}
 
 	React.useEffect(() => {
-		if (show && props.type !== 'warning') {
-			const timer = setTimeout(() => {
-				handleClose();
-			}, 5000);
+		if (show && !props.persistent) {
+			const timer = setTimeout(
+				() => {
+					handleClose();
+				},
+				props.type === 'warning' ? 10000 : 5000
+			);
 
 			return () => clearTimeout(timer);
 		}
-	}, [show, props.type]);
+	}, [show, props.type, props.persistent]);
 
 	return show ? (
-		<Portal node={DOM.notification}>
-			<S.Wrapper warning={props.type === 'warning'} className={'info'}>
-				<S.MessageWrapper>
-					{props.type && (
-						<S.Icon warning={props.type === 'warning'}>
-							<ReactSVG src={props.type === 'warning' ? ASSETS.warning : ASSETS.checkmark} />
-						</S.Icon>
-					)}
-					<S.Message>{props.message}</S.Message>
-				</S.MessageWrapper>
-				<S.Close onClick={handleClose}>
-					<p>{language.dismiss}</p>
-				</S.Close>
-			</S.Wrapper>
-		</Portal>
+		<S.Wrapper warning={props.type === 'warning'} className={'info'}>
+			<S.MessageWrapper>
+				<S.Icon type={props.type}>
+					<ReactSVG
+						src={props.type === 'warning' ? ASSETS.warning : props.type === 'info' ? ASSETS.info : ASSETS.checkmark}
+					/>
+				</S.Icon>
+				<S.Message>{props.message}</S.Message>
+			</S.MessageWrapper>
+			<S.Close onClick={handleClose}>
+				<p>{language?.dismiss ?? 'Dismiss'}</p>
+			</S.Close>
+		</S.Wrapper>
 	) : null;
 }

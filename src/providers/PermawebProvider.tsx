@@ -4,7 +4,7 @@ import Arweave from 'arweave';
 import { connect, createSigner } from '@permaweb/aoconnect';
 import PermawebLibs, { Types } from '@permaweb/libs';
 
-import { Panel } from 'components/atoms/Panel';
+import { Modal } from 'components/atoms/Modal';
 import { ProfileManager } from 'components/organisms/ProfileManager';
 import { DEFAULT_AO_NODE, DEFAULT_GATEWAYS, STORAGE } from 'helpers/config';
 
@@ -176,19 +176,21 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			}}
 		>
 			{props.children}
-			<Panel
-				open={showProfileManager}
-				header={profile && profile.id ? language.editProfile : language.createProfile}
-				handleClose={() => setShowProfileManager(false)}
-				width={575}
-				closeHandlerDisabled
-			>
-				<ProfileManager
-					profile={profile && profile.id ? profile : null}
+			{showProfileManager && (
+				<Modal
+					type="panel"
+					header={profile && profile.id ? language.editProfile : language.createProfile}
 					handleClose={() => setShowProfileManager(false)}
-					handleUpdate={null}
-				/>
-			</Panel>
+					width={575}
+					closeHandlerDisabled
+				>
+					<ProfileManager
+						profile={profile && profile.id ? profile : null}
+						handleClose={() => setShowProfileManager(false)}
+						handleUpdate={null}
+					/>
+				</Modal>
+			)}
 		</PermawebContext.Provider>
 	);
 }

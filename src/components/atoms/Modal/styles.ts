@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { open, transition2 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div<{ top: number; noHeader: boolean }>`
+export const Wrapper = styled.div<{ $top: number; $noHeader: boolean }>`
 	min-height: 100vh;
 	height: 100%;
 	width: 100%;
@@ -16,14 +16,37 @@ export const Wrapper = styled.div<{ top: number; noHeader: boolean }>`
 `;
 
 export const Container = styled.div<{
-	noHeader: boolean;
+	$noHeader: boolean;
+	width?: number;
 }>`
-	width: 650px;
-	max-width: ${(props) => (props.noHeader ? '100%' : '90vw')};
-	background: ${(props) => (props.noHeader ? 'transparent' : props.theme.colors.container.primary.background)};
+	width: ${(props) => (props.width ? `${props.width}px` : '650px')};
+	max-width: ${(props) => (props.$noHeader ? '100%' : '90vw')};
+	background: ${(props) => (props.$noHeader ? 'transparent' : props.theme.colors.container.alt1.background)};
 	border: 1.25px solid ${(props) => props.theme.colors.border.primary};
-	border-radius: ${STYLING.dimensions.radius.primary};
+	border-radius: ${STYLING.dimensions.radius.alt1};
 	margin: 20px auto;
+`;
+
+export const Panel = styled.div<{
+	$noHeader: boolean;
+	width?: number;
+}>`
+	height: 100vh;
+	width: ${(props) => (props.width ? `${props.width}px` : '650px')};
+	max-width: 90vw;
+	position: fixed;
+	top: 0;
+	right: 0;
+	background: ${(props) => (props.$noHeader ? 'transparent' : props.theme.colors.container.alt1.background)};
+	border: none !important;
+	border-left: 1.25px solid ${(props) => props.theme.colors.border.primary} !important;
+	border-radius: 0 !important;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		width: 100%;
+		max-width: 100%;
+		border-left: none !important;
+	}
 `;
 
 export const Header = styled.div`
@@ -60,4 +83,9 @@ export const Body = styled.div`
 	max-height: calc(100dvh - 110px);
 	width: 100%;
 	scrollbar-color: transparent transparent;
+`;
+
+export const PanelBody = styled(Body)`
+	height: calc(100dvh - 65px);
+	max-height: calc(100dvh - 65px);
 `;

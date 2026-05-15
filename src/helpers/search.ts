@@ -2,7 +2,8 @@ import { Types } from '@permaweb/libs';
 
 import { addTransaction, selectTransaction } from 'store/transactions/reducer';
 
-import { DEFAULT_GATEWAYS } from './config';
+import { DEFAULT_GATEWAYS, FLAGS } from './config';
+import { getTxEndpoint } from './endpoints';
 import { SearchTxArgs } from './types';
 import { getTagValue, normalizeGqlResponse } from './utils';
 
@@ -13,7 +14,7 @@ function cacheTransaction(
 	args: SearchTxArgs,
 	opts?: { skipBlockHeightCheck: boolean }
 ) {
-	if (args.store && args.dispatch) {
+	if (FLAGS.USE_TX_CACHE && args.store && args.dispatch) {
 		if (opts?.skipBlockHeightCheck || response?.node?.block) {
 			args.dispatch(addTransaction(args.txId, response));
 		}
@@ -21,12 +22,34 @@ function cacheTransaction(
 }
 
 export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<Types.GQLNodeResponseType> {
-	if (args.store) {
+	if (FLAGS.USE_TX_CACHE && args.store) {
 		const cached = selectTransaction(args.store.getState(), args.txId);
 		if (cached) {
 			return cached;
 		}
 	}
+
+	try {
+		const url = getTxEndpoint(args.txId);
+		console.log(url);
+		const directLookup = await fetch(url, {
+			redirect: 'follow',
+		});
+
+		console.log(directLookup.headers.get('X-ArNS-Resolved-Id'));
+		console.log(directLookup.headers.get('X-ArNS-TTL-Seconds'));
+		console.log(directLookup.headers.get('X-ArNS-Process-Id'));
+		console.log(directLookup.headers.get('X-ArNS-Undername-Limit'));
+		console.log(directLookup.headers.get('X-ArNS-Record-Index'));
+
+		for (const [name, value] of directLookup.headers) {
+			const titleCased = name.replace(/(^|-)(\w)/g, (_, sep, ch) => sep + ch.toUpperCase());
+			console.log({ name: titleCased, value });
+		}
+	} catch (e: any) {
+		console.error(e);
+	}
+
 	try {
 		let response = await args.getGQLData({
 			id: [args.txId],
@@ -40,8 +63,6 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 		}
 
 		response = await normalizeGqlResponse(response);
-
-		console.log(response);
 
 		const responseData = response?.data?.[0];
 

@@ -3,7 +3,6 @@ import { ReactSVG } from 'react-svg';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { IconButton } from 'components/atoms/IconButton';
 import { Select } from 'components/atoms/Select';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
@@ -335,26 +334,30 @@ export default function GraphQLPlayground(props: {
 							sm
 						/>
 					</S.InputFormWrapper>
-					<IconButton
+					<Button
 						type={'alt1'}
-						src={ASSETS.save}
+						icon={ASSETS.save}
 						handlePress={saveCustomGateway}
 						disabled={!inputGateway.trim() || gateways.includes(inputGateway.trim())}
-						dimensions={{
-							wrapper: 32.5,
-							icon: 14.5,
-						}}
+						height={32.5}
+						width={32.5}
+						noMinWidth
+						iconSize={14.5}
 						tooltip={language.save}
+						stopPropagation
+						preventDefault
 					/>
-					<IconButton
+					<Button
 						type={'alt1'}
-						src={ASSETS.fullscreen}
+						icon={ASSETS.fullscreen}
 						handlePress={toggleFullscreen}
-						dimensions={{
-							wrapper: 32.5,
-							icon: 14.5,
-						}}
+						height={32.5}
+						width={32.5}
+						noMinWidth
+						iconSize={14.5}
 						tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
+						stopPropagation
+						preventDefault
 					/>
 				</S.InputWrapper>
 				<S.ActionsWrapper>

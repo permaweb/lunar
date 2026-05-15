@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import JSONbig from 'json-bigint';
 
 import { Button } from 'components/atoms/Button';
-import { IconButton } from 'components/atoms/IconButton';
 import { ASSETS, URLS } from 'helpers/config';
 import { checkValidAddress, stripAnsiChars } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -750,56 +749,64 @@ export default function _JSONTree(props: {
 				<p>{props.header ?? language.output}</p>
 
 				<S.ActionsWrapper>
-					<IconButton
+					<Button
 						type={'alt1'}
-						src={ASSETS.plusMinus}
+						icon={ASSETS.plusMinus}
 						handlePress={handleToggleCollapse}
 						disabled={!data}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
+						height={25}
+						width={25}
+						noMinWidth
+						iconSize={12.5}
 						tooltip={language.collapseExpandAll}
 						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
 					/>
 					{!props.noFullScreen && (
-						<IconButton
+						<Button
 							type={'alt1'}
-							src={ASSETS.fullscreen}
+							icon={ASSETS.fullscreen}
 							handlePress={toggleFullscreen}
-							dimensions={{
-								wrapper: 25,
-								icon: 12.5,
-							}}
+							height={25}
+							width={25}
+							noMinWidth
+							iconSize={12.5}
 							padding={'3.95px 0 0 0'}
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'bottom-right'}
+							stopPropagation
+							preventDefault
 						/>
 					)}
-					<IconButton
+					<Button
 						type={'alt1'}
-						src={ASSETS.save}
+						icon={ASSETS.save}
 						handlePress={downloadData}
 						disabled={!data}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
+						height={25}
+						width={25}
+						noMinWidth
+						iconSize={12.5}
 						padding={'3.5px 0 0 0'}
 						tooltip={language.downloadJSON ?? 'Download JSON'}
 						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
 					/>
-					<IconButton
+					<Button
 						type={'alt1'}
-						src={ASSETS.copy}
+						icon={ASSETS.copy}
 						handlePress={copyData}
 						disabled={!data}
-						dimensions={{
-							wrapper: 25,
-							icon: 12.5,
-						}}
+						height={25}
+						width={25}
+						noMinWidth
+						iconSize={12.5}
 						tooltip={copied ? `${language.copied}!` : language.copyJSON}
 						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
 					/>
 				</S.ActionsWrapper>
 			</S.Header>

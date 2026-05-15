@@ -474,7 +474,7 @@ export const OverlayWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 15px;
-	padding: 0 20px;
+	padding: 0 20px 20px 20px;
 `;
 
 export const OverlayTagsWrapper = styled.div`

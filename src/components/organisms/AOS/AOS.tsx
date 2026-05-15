@@ -5,9 +5,8 @@ import { Types } from '@permaweb/libs';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { IconButton } from 'components/atoms/IconButton';
 import { Loader } from 'components/atoms/Loader';
-import { Panel } from 'components/atoms/Panel';
+import { Modal } from 'components/atoms/Modal';
 import { Editor } from 'components/molecules/Editor';
 import { ASSETS, DEFAULT_AO_NODE, TAGS } from 'helpers/config';
 import { MessageVariantEnum } from 'helpers/types';
@@ -688,35 +687,37 @@ function AOS(props: {
 						</S.OptionsWrapper>
 					</S.ConsoleWrapper>
 				</S.Wrapper>
-				<Panel
-					open={showCreatePanel}
-					width={550}
-					handleClose={() => {
-						setShowCreatePanel(false);
-						setProcessName('');
-					}}
-					header={language.createNewProcess}
-				>
-					<S.PanelContent onSubmit={handleSpawnProcess} className={'modal-wrapper'}>
-						<FormField
-							label={language.processName || 'Process Name'}
-							value={processName}
-							onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProcessName(e.target.value)}
-							placeholder={language.enterProcessName || 'Enter Process Name'}
-							invalid={{ status: false, message: null }}
-							disabled={loading}
-						/>
-						<Button
-							type={'alt1'}
-							label={loading ? `${language.creatingProcess}...` : language.create}
-							handlePress={handleSpawnProcess}
-							disabled={loading || !processName.trim()}
-							height={42.5}
-							fullWidth
-							formSubmit
-						/>
-					</S.PanelContent>
-				</Panel>
+				{showCreatePanel && (
+					<Modal
+						type="panel"
+						width={550}
+						handleClose={() => {
+							setShowCreatePanel(false);
+							setProcessName('');
+						}}
+						header={language.createNewProcess}
+					>
+						<S.PanelContent onSubmit={handleSpawnProcess} className={'modal-wrapper'}>
+							<FormField
+								label={language.processName || 'Process Name'}
+								value={processName}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProcessName(e.target.value)}
+								placeholder={language.enterProcessName || 'Enter Process Name'}
+								invalid={{ status: false, message: null }}
+								disabled={loading}
+							/>
+							<Button
+								type={'alt1'}
+								label={loading ? `${language.creatingProcess}...` : language.create}
+								handlePress={handleSpawnProcess}
+								disabled={loading || !processName.trim()}
+								height={42.5}
+								fullWidth
+								formSubmit
+							/>
+						</S.PanelContent>
+					</Modal>
+				)}
 			</>
 		);
 	}
@@ -845,39 +846,45 @@ function AOS(props: {
 							/>
 							<S.InputActionsWrapper>
 								<S.InputActionsSection>
-									<IconButton
+									<Button
 										type={'primary'}
-										src={ASSETS.code}
+										icon={ASSETS.code}
 										handlePress={() => setEditorMode((prev) => !prev)}
-										dimensions={{
-											wrapper: 25,
-											icon: 15,
-										}}
+										height={25}
+										width={25}
+										noMinWidth
+										iconSize={15}
 										disabled={!hasConnected}
 										tooltip={editorMode ? language.closeEditor : language.openEditor}
+										stopPropagation
+										preventDefault
 									/>
-									<IconButton
+									<Button
 										type={'primary'}
-										src={ASSETS.fullscreen}
+										icon={ASSETS.fullscreen}
 										handlePress={toggleFullscreen}
-										dimensions={{
-											wrapper: 25,
-											icon: 15,
-										}}
+										height={25}
+										width={25}
+										noMinWidth
+										iconSize={15}
 										tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+										stopPropagation
+										preventDefault
 									/>
 								</S.InputActionsSection>
 								<S.InputActionsSection>
-									<IconButton
+									<Button
 										type={'primary'}
-										src={ASSETS.send}
+										icon={ASSETS.send}
 										handlePress={handleSubmit}
-										dimensions={{
-											wrapper: 25,
-											icon: 15,
-										}}
+										height={25}
+										width={25}
+										noMinWidth
+										iconSize={15}
 										disabled={!hasConnected || loadingMessage || !inputValue}
 										tooltip={language.run}
+										stopPropagation
+										preventDefault
 									/>
 								</S.InputActionsSection>
 							</S.InputActionsWrapper>

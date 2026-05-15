@@ -4,14 +4,13 @@ import { ReactSVG } from 'react-svg';
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
-import { Notification } from 'components/atoms/Notification';
 import { TextArea } from 'components/atoms/TextArea';
 import { ASSETS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
-import { NotificationType } from 'helpers/types';
 import { checkValidAddress } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
+import { useNotifications } from 'providers/NotificationProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { WalletBlock } from 'wallet/WalletBlock';
 
@@ -27,6 +26,7 @@ export default function ProfileManager(props: IProps) {
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
+	const { addNotification } = useNotifications();
 
 	const bannerInputRef = React.useRef<any>(null);
 	const avatarInputRef = React.useRef<any>(null);
@@ -38,7 +38,6 @@ export default function ProfileManager(props: IProps) {
 	const [thumbnail, setThumbnail] = React.useState<any>(null);
 
 	const [loading, setLoading] = React.useState<boolean>(false);
-	const [profileResponse, setProfileResponse] = React.useState<NotificationType | null>(null);
 
 	React.useEffect(() => {
 		setUsername(props.profile?.username ?? '');
@@ -56,10 +55,7 @@ export default function ProfileManager(props: IProps) {
 		if (props.handleUpdate) props.handleUpdate();
 		if (props.handleClose) props.handleClose();
 
-		setProfileResponse({
-			message: response,
-			status: 'success',
-		});
+		addNotification(response, 'success');
 	}
 
 	async function handleSubmit() {
@@ -90,10 +86,7 @@ export default function ProfileManager(props: IProps) {
 					handleUpdate(`${language.profileCreated}!`);
 				}
 			} catch (e: any) {
-				setProfileResponse({
-					message: e.message ?? language.errorUpdatingProfile,
-					status: 'warning',
-				});
+				addNotification(e.message ?? language.errorUpdatingProfile, 'warning');
 			}
 
 			setLoading(false);
@@ -266,13 +259,6 @@ export default function ProfileManager(props: IProps) {
 									? `${language.profileUpdatingInfo}...`
 									: `${language.profileCreatingInfo}...`
 							}
-						/>
-					)}
-					{profileResponse && (
-						<Notification
-							message={profileResponse.message}
-							type={profileResponse.status}
-							callback={() => setProfileResponse(null)}
 						/>
 					)}
 				</>

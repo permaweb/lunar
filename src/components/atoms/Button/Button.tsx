@@ -8,6 +8,8 @@ import { IProps } from './types';
 export default function Button(props: IProps) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider?.object?.[languageProvider.current] || { loading: 'Loading' };
+	const warning = props.warning || props.type === 'warning';
+	const success = !warning && (props.success || props.type === 'success');
 
 	const buttonStyle = getType();
 	const StyledButton = buttonStyle.wrapper;
@@ -56,6 +58,12 @@ export default function Button(props: IProps) {
 					icon: S.IconWarning,
 				};
 				break;
+			case 'success':
+				buttonObj = {
+					wrapper: S.Success,
+					icon: S.IconSuccess,
+				};
+				break;
 			default:
 				buttonObj = {
 					wrapper: S.Primary,
@@ -66,26 +74,38 @@ export default function Button(props: IProps) {
 		return buttonObj;
 	}
 
+	function hasLabel() {
+		return props.label !== undefined && props.label !== null && props.label !== '';
+	}
+
 	function getLabel() {
+		const showLabel = hasLabel();
+
 		return (
 			<>
 				{props.icon && props.iconLeftAlign && (
 					<StyledIcon
-						warning={props.warning || false}
-						disabled={props.disabled}
-						active={props.active}
+						warning={warning}
+						success={success}
+						disabled={props.disabled || false}
+						active={props.active || false}
 						leftAlign={props.iconLeftAlign}
+						noLabel={!showLabel}
+						iconSize={props.iconSize}
 					>
 						<ReactSVG src={props.icon} />
 					</StyledIcon>
 				)}
-				<span>{props.loading ? `${language.loading}...` : props.label}</span>
+				{showLabel && <span>{props.loading ? `${language.loading}...` : props.label}</span>}
 				{props.icon && !props.iconLeftAlign && (
 					<StyledIcon
-						warning={props.warning || false}
-						disabled={props.disabled}
-						active={props.active}
-						leftAlign={props.iconLeftAlign}
+						warning={warning}
+						success={success}
+						disabled={props.disabled || false}
+						active={props.active || false}
+						leftAlign={props.iconLeftAlign || false}
+						noLabel={!showLabel}
+						iconSize={props.iconSize}
 					>
 						<ReactSVG src={props.icon} />
 					</StyledIcon>
@@ -95,17 +115,19 @@ export default function Button(props: IProps) {
 	}
 
 	function handlePress(e: React.MouseEvent) {
-		e.stopPropagation();
-		e.preventDefault();
+		if (props.stopPropagation) e.stopPropagation();
+		if (props.preventDefault) e.preventDefault();
 		props.handlePress(e);
 	}
 
 	function getAction() {
+		const iconOnly = !hasLabel() && !!props.icon;
+
 		return (
 			<StyledButton
-				tabIndex={props.noFocus ? -1 : 0}
+				tabIndex={props.noFocus || props.disabled ? -1 : 0}
 				type={props.formSubmit ? 'submit' : 'button'}
-				onClick={props.handlePress}
+				onClick={handlePress}
 				onKeyPress={handlePress}
 				disabled={props.disabled}
 				active={props.active}
@@ -114,7 +136,10 @@ export default function Button(props: IProps) {
 				fullWidth={props.fullWidth}
 				width={props.width}
 				height={props.height}
-				warning={props.warning || false}
+				warning={warning}
+				success={success}
+				iconOnly={iconOnly}
+				padding={props.padding}
 				className={props.className || ''}
 			>
 				{getLabel()}
@@ -126,7 +151,7 @@ export default function Button(props: IProps) {
 		if (props.tooltip) {
 			return (
 				<S.Wrapper>
-					<S.Tooltip className={'info'} useBottom={true}>
+					<S.Tooltip className={'info'} position={props.tooltipPosition || 'bottom'}>
 						<span>{props.tooltip}</span>
 					</S.Tooltip>
 					{getAction()}

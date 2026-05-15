@@ -2,20 +2,20 @@ import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { Avatar } from 'components/atoms/Avatar';
+import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
-import { IconButton } from 'components/atoms/IconButton';
-import { Panel } from 'components/atoms/Panel';
+import { Modal } from 'components/atoms/Modal';
 import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS } from 'helpers/config';
 import { getARBalanceEndpoint } from 'helpers/endpoints';
 import {
 	darkTheme,
 	darkThemeAlt1,
 	darkThemeAlt2,
-	darkThemeHighContrast,
+	darkThemeAlt3,
 	lightTheme,
 	lightThemeAlt1,
 	lightThemeAlt2,
-	lightThemeHighContrast,
+	lightThemeAlt3,
 } from 'helpers/themes';
 import { checkValidAddress, formatAddress, formatCount, isNumeric } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
@@ -140,20 +140,22 @@ const WalletBalanceSection = React.memo(
 				<p>{getBalanceDisplay()}</p>
 				{!icon && <span>{tokenName}</span>}
 				<S.Refresh>
-					<IconButton
+					<Button
 						type={'primary'}
 						handlePress={() => {
 							hasFetchedRef.current = false;
 							fetchBalance();
 						}}
-						src={ASSETS.refresh}
-						dimensions={{
-							wrapper: 20,
-							icon: 12.5,
-						}}
+						icon={ASSETS.refresh}
+						height={20}
+						width={20}
+						noMinWidth
+						iconSize={12.5}
 						disabled={loadingBalance}
 						tooltip={loadingBalance ? `${loading}...` : refresh}
 						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
 					/>
 				</S.Refresh>
 			</S.BalanceWrapper>
@@ -243,10 +245,10 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 					accent1: lightTheme.primary1,
 				},
 				{
-					id: 'light-high-contrast',
-					name: language.lightHighContrast,
-					background: lightThemeHighContrast.neutral1,
-					accent1: lightThemeHighContrast.neutral9,
+					id: 'light-alt-3',
+					name: language.lightMuted,
+					background: lightThemeAlt3.neutral1,
+					accent1: lightThemeAlt3.neutral9,
 				},
 				{
 					id: 'light-alt-1',
@@ -273,10 +275,10 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 					accent1: darkTheme.primary1,
 				},
 				{
-					id: 'dark-high-contrast',
-					name: language.darkHighContrast,
-					background: darkThemeHighContrast.neutral1,
-					accent1: darkThemeHighContrast.neutralA1,
+					id: 'dark-alt-3',
+					name: language.darkMuted,
+					background: darkThemeAlt3.neutral1,
+					accent1: darkThemeAlt3.neutralA1,
 				},
 				{
 					id: 'dark-alt-1',
@@ -313,7 +315,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 						/>
 					</S.PWrapper>
 					{showWalletDropdown && (
-						<S.Dropdown className={'border-wrapper-alt4 fade-in scroll-wrapper-hidden'}>
+						<S.Dropdown className={'border-wrapper-alt1 fade-in scroll-wrapper-hidden'}>
 							<S.DHeaderWrapper>
 								<S.DHeaderFlex>
 									<Avatar
@@ -389,56 +391,58 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 					)}
 				</S.Wrapper>
 			</CloseHandler>
-			<Panel
-				open={showThemeSelector}
-				width={450}
-				header={language.chooseAppAppearance}
-				handleClose={() => setShowThemeSelector(false)}
-			>
-				<S.MWrapper className={'modal-wrapper'}>
-					{Object.entries(THEMES).map(([key, theme]) => (
-						<S.ThemeSection key={key}>
-							<S.ThemeSectionHeader>
-								<ReactSVG src={theme.icon} />
-								<p>{theme.label}</p>
-							</S.ThemeSectionHeader>
-							<S.ThemeSectionBody>
-								{theme.variants.map((variant) => {
-									const isActiveTheme = settings.theme === variant.id;
-									const isPreferredLight = settings.preferredLightTheme === variant.id;
-									const isPreferredDark = settings.preferredDarkTheme === variant.id;
-									const showIndicator =
-										isActiveTheme || (settings.syncWithSystem && (isPreferredLight || isPreferredDark));
+			{showThemeSelector && (
+				<Modal
+					type="panel"
+					width={450}
+					header={language.chooseAppAppearance}
+					handleClose={() => setShowThemeSelector(false)}
+				>
+					<S.MWrapper className={'modal-wrapper'}>
+						{Object.entries(THEMES).map(([key, theme]) => (
+							<S.ThemeSection key={key}>
+								<S.ThemeSectionHeader>
+									<ReactSVG src={theme.icon} />
+									<p>{theme.label}</p>
+								</S.ThemeSectionHeader>
+								<S.ThemeSectionBody>
+									{theme.variants.map((variant) => {
+										const isActiveTheme = settings.theme === variant.id;
+										const isPreferredLight = settings.preferredLightTheme === variant.id;
+										const isPreferredDark = settings.preferredDarkTheme === variant.id;
+										const showIndicator =
+											isActiveTheme || (settings.syncWithSystem && (isPreferredLight || isPreferredDark));
 
-									return (
-										<S.ThemeSectionBodyElement
-											key={variant.id}
-											onClick={() => updateSettings('theme', variant.id as any)}
-										>
-											<S.Preview background={variant.background} accent={variant.accent1}>
-												<div id={'preview-accent-1'} />
-											</S.Preview>
-											<div>
-												<S.Indicator active={showIndicator} />
-												<p>{variant.name}</p>
-											</div>
-										</S.ThemeSectionBodyElement>
-									);
-								})}
-							</S.ThemeSectionBody>
-						</S.ThemeSection>
-					))}
-					<S.SyncToggle
-						onClick={() => updateSettings('syncWithSystem', !settings.syncWithSystem)}
-						active={settings.syncWithSystem}
-					>
-						<S.SyncToggleLabel>
-							<p>{language.syncWithSystem}</p>
-						</S.SyncToggleLabel>
-						<Checkbox checked={settings.syncWithSystem} handleSelect={() => {}} disabled={false} />
-					</S.SyncToggle>
-				</S.MWrapper>
-			</Panel>
+										return (
+											<S.ThemeSectionBodyElement
+												key={variant.id}
+												onClick={() => updateSettings('theme', variant.id as any)}
+											>
+												<S.Preview background={variant.background} accent={variant.accent1}>
+													<div id={'preview-accent-1'} />
+												</S.Preview>
+												<div>
+													<S.Indicator active={showIndicator} />
+													<p>{variant.name}</p>
+												</div>
+											</S.ThemeSectionBodyElement>
+										);
+									})}
+								</S.ThemeSectionBody>
+							</S.ThemeSection>
+						))}
+						<S.SyncToggle
+							onClick={() => updateSettings('syncWithSystem', !settings.syncWithSystem)}
+							active={settings.syncWithSystem}
+						>
+							<S.SyncToggleLabel>
+								<p>{language.syncWithSystem}</p>
+							</S.SyncToggleLabel>
+							<Checkbox checked={settings.syncWithSystem} handleSelect={() => {}} disabled={false} />
+						</S.SyncToggle>
+					</S.MWrapper>
+				</Modal>
+			)}
 		</>
 	);
 }

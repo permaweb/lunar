@@ -5,9 +5,8 @@ import JSONbig from 'json-bigint';
 
 import { Types } from '@permaweb/libs';
 
+import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { IconButton } from 'components/atoms/IconButton';
-import { Notification } from 'components/atoms/Notification';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { Editor } from 'components/molecules/Editor';
@@ -34,6 +33,7 @@ import {
 } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
+import { useNotifications } from 'providers/NotificationProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
 
@@ -70,6 +70,7 @@ function Transaction(props: {
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
 	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
+	const { addNotification } = useNotifications();
 
 	const currentHash = window.location.hash.replace('#', '');
 
@@ -88,7 +89,6 @@ function Transaction(props: {
 	const ownerAddress = React.useMemo(() => txResponse?.node?.owner?.address, [txResponse?.node?.owner?.address]);
 
 	const [hasFetched, setHasFetched] = React.useState<boolean>(false);
-	const [error, setError] = React.useState<string | null>(null);
 	const [refreshKey, setRefreshKey] = React.useState<number>(0);
 	const [messageResult, setMessageResult] = React.useState<any>(null);
 
@@ -206,7 +206,7 @@ function Transaction(props: {
 					if (props.onTxChange) props.onTxChange(walletResponse);
 				}
 			} catch (e: any) {
-				setError(e.message ?? language.errorFetchingTx);
+				addNotification(e.message ?? language.errorFetchingTx, 'warning');
 			}
 			setLoadingTx(false);
 			setHasFetched(true);
@@ -344,19 +344,22 @@ function Transaction(props: {
 					)}
 					{!icon && <span>{tokenName}</span>}
 					<S.Refresh>
-						<IconButton
+						<Button
 							type={'primary'}
 							handlePress={() => {
 								hasFetchedRef.current = false;
 								fetchBalance();
 							}}
-							src={ASSETS.refresh}
-							dimensions={{
-								wrapper: 20,
-								icon: 12.5,
-							}}
+							icon={ASSETS.refresh}
+							height={20}
+							width={20}
+							noMinWidth
+							iconSize={12.5}
 							disabled={loadingBalance}
 							tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
+							tooltipPosition={'bottom-right'}
+							stopPropagation
+							preventDefault
 						/>
 					</S.Refresh>
 				</S.BalanceWrapper>
@@ -1163,37 +1166,43 @@ function Transaction(props: {
 								sm
 							/>
 						</S.SearchInputWrapper>
-						<IconButton
+						<Button
 							type={'alt1'}
-							src={ASSETS.copy}
+							icon={ASSETS.copy}
 							handlePress={() => copyAddress(inputTxId)}
 							disabled={!checkValidAddress(inputTxId)}
-							dimensions={{
-								wrapper: 32.5,
-								icon: 14.5,
-							}}
+							height={32.5}
+							width={32.5}
+							noMinWidth
+							iconSize={14.5}
 							tooltip={idCopied ? `${language.copied}!` : language.copyId}
+							stopPropagation
+							preventDefault
 						/>
-						<IconButton
+						<Button
 							type={'alt1'}
-							src={ASSETS.fullscreen}
+							icon={ASSETS.fullscreen}
 							handlePress={toggleFullscreen}
-							dimensions={{
-								wrapper: 32.5,
-								icon: 14.5,
-							}}
+							height={32.5}
+							width={32.5}
+							noMinWidth
+							iconSize={14.5}
 							tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
+							stopPropagation
+							preventDefault
 						/>
-						<IconButton
+						<Button
 							type={'alt1'}
-							src={ASSETS.refresh}
+							icon={ASSETS.refresh}
 							handlePress={() => handleSubmit()}
 							disabled={loadingTx || !checkValidAddress(inputTxId)}
-							dimensions={{
-								wrapper: 32.5,
-								icon: 14.5,
-							}}
+							height={32.5}
+							width={32.5}
+							noMinWidth
+							iconSize={14.5}
 							tooltip={loadingTx ? `${language.loading}...` : language.refresh}
+							stopPropagation
+							preventDefault
 						/>
 					</S.SearchWrapper>
 					<S.HeaderActionsWrapper>
@@ -1223,15 +1232,6 @@ function Transaction(props: {
 				</S.HeaderWrapper>
 				<S.BodyWrapper>{getTransaction()}</S.BodyWrapper>
 			</S.Wrapper>
-			{props.active && error && (
-				<Notification
-					type={'warning'}
-					message={error}
-					callback={() => {
-						setError(null);
-					}}
-				/>
-			)}
 		</>
 	);
 }

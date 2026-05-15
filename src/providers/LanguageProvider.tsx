@@ -19,7 +19,7 @@ const LanguageContext = React.createContext<LanguageContextState>({
 	setCurrent(current: LanguageType) {
 		alert(current);
 	},
-	object: null,
+	object: language,
 });
 
 export function useLanguageProvider(): LanguageContextState {

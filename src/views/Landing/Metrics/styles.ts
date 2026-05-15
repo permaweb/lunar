@@ -19,7 +19,6 @@ export const Placeholder = styled.div`
 	width: 100%;
 	box-shadow: none !important;
 	background: ${(props) => props.theme.colors.container.primary};
-	border: 1px solid ${(props) => props.theme.colors.border.alt1};
 	border-radius: ${STYLING.dimensions.radius.alt1};
 	background: linear-gradient(
 		90deg,

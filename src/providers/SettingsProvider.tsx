@@ -4,37 +4,35 @@ import { ThemeProvider } from 'styled-components';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { IconButton } from 'components/atoms/IconButton';
-import { Notification } from 'components/atoms/Notification';
-import { Panel } from 'components/atoms/Panel';
+import { Modal } from 'components/atoms/Modal';
 import { ASSETS, DEFAULT_AO_NODE, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
 import {
 	darkTheme,
 	darkThemeAlt1,
 	darkThemeAlt2,
-	darkThemeHighContrast,
+	darkThemeAlt3,
 	lightTheme,
 	lightThemeAlt1,
 	lightThemeAlt2,
-	lightThemeHighContrast,
+	lightThemeAlt3,
 	theme,
 } from 'helpers/themes';
-import { NotificationType } from 'helpers/types';
 import { validateUrl } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
+import { NotificationViewport, useNotifications } from 'providers/NotificationProvider';
 
 import * as S from './styles';
 
 type ThemeType =
 	| 'light-primary'
-	| 'light-high-contrast'
 	| 'light-alt-1'
 	| 'light-alt-2'
+	| 'light-alt-3'
 	| 'dark-primary'
-	| 'dark-high-contrast'
 	| 'dark-alt-1'
-	| 'dark-alt-2';
+	| 'dark-alt-2'
+	| 'dark-alt-3';
 
 export interface NodeConfig {
 	url: string;
@@ -136,8 +134,9 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		return settings;
 	};
 
+	const { addNotification, removeNotification } = useNotifications();
+
 	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings());
-	const [settingsUpdateResponse, setSettingsUpdateResponse] = React.useState<NotificationType | null>(null);
 	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
 	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
 
@@ -238,20 +237,16 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	};
 
 	const addNode = async (node: Omit<NodeConfig, 'active' | 'authority'>) => {
+		let loadingNotificationId: string | null = null;
+
 		try {
 			// Check if node already exists
 			if (settings.nodes.some((n) => n.url === node.url)) {
-				setSettingsUpdateResponse({
-					status: 'warning',
-					message: `Node ${node.url} already exists`,
-				});
+				addNotification(`Node ${node.url} already exists`, 'warning');
 				return;
 			}
 
-			setSettingsUpdateResponse({
-				status: null,
-				message: `Loading...`,
-			});
+			loadingNotificationId = addNotification(`Loading...`, 'info', { persistent: true });
 
 			const authorityResponse = await fetch(`${node.url}/~meta@1.0/info/address`);
 			const authority = await authorityResponse.text();
@@ -271,19 +266,15 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				return newSettings;
 			});
 
-			setSettingsUpdateResponse({
-				status: 'success',
-				message: `Connected to ${node.url}`,
-			});
+			if (loadingNotificationId) removeNotification(loadingNotificationId);
+			addNotification(`Connected to ${node.url}`, 'success');
 
 			setNewNodeUrl('');
 		} catch (e: any) {
 			console.error(e);
 
-			setSettingsUpdateResponse({
-				status: 'warning',
-				message: e.message ?? `Error connecting to ${node.url}`,
-			});
+			if (loadingNotificationId) removeNotification(loadingNotificationId);
+			addNotification(e.message ?? `Error connecting to ${node.url}`, 'warning');
 		}
 	};
 
@@ -323,30 +314,27 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		setShowNodeSettings(false);
 
 		// Show notification
-		setSettingsUpdateResponse({
-			status: 'success',
-			message: `Switched to ${url}`,
-		});
+		addNotification(`Switched to ${url}`, 'success');
 	};
 
 	function getTheme() {
 		switch (settings.theme) {
 			case 'light-primary':
 				return theme(lightTheme);
-			case 'light-high-contrast':
-				return theme(lightThemeHighContrast);
+			case 'light-alt-3':
+				return theme(lightThemeAlt3);
 			case 'light-alt-1':
 				return theme(lightThemeAlt1);
 			case 'light-alt-2':
 				return theme(lightThemeAlt2);
 			case 'dark-primary':
 				return theme(darkTheme);
-			case 'dark-high-contrast':
-				return theme(darkThemeHighContrast);
 			case 'dark-alt-1':
 				return theme(darkThemeAlt1);
 			case 'dark-alt-2':
 				return theme(darkThemeAlt2);
+			case 'dark-alt-3':
+				return theme(darkThemeAlt3);
 			default:
 				return theme(lightTheme);
 		}
@@ -372,76 +360,72 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		>
 			<ThemeProvider theme={getTheme()}>
 				{props.children}
-				{settingsUpdateResponse && (
-					<Notification
-						type={settingsUpdateResponse.status}
-						message={settingsUpdateResponse.message}
-						callback={() => {
-							setSettingsUpdateResponse(null);
-						}}
-					/>
+				{showNodeSettings && (
+					<Modal
+						type="panel"
+						width={500}
+						header={language.en.nodeConfiguration}
+						handleClose={() => setShowNodeSettings(false)}
+					>
+						<S.MWrapper className={'modal-wrapper'}>
+							<S.NodeSection>
+								<S.NodeSectionHeader>
+									<p>{`AO Mainnet ${language.en.nodeConfiguration}`}</p>
+								</S.NodeSectionHeader>
+								<S.NodeList>
+									{settings.nodes.map((node) => (
+										<S.NodeItem key={node.url} active={node.active} onClick={() => handleSetActiveNode(node.url)}>
+											<S.NodeInfo>
+												<S.Indicator active={node.active} />
+												<S.NodeDetails>
+													<p>{node.url}</p>
+												</S.NodeDetails>
+											</S.NodeInfo>
+											{settings.nodes.length > 1 && (
+												<S.NodeRemove>
+													<Button
+														type={'alt1'}
+														icon={ASSETS.close}
+														handlePress={() => handleRemoveNode(node.url)}
+														height={20}
+														width={20}
+														noMinWidth
+														iconSize={11.5}
+														stopPropagation
+														preventDefault
+													/>
+												</S.NodeRemove>
+											)}
+										</S.NodeItem>
+									))}
+								</S.NodeList>
+								<S.NodeDivider>
+									<div className={'node-divider'} />
+									<span>{language.en.addANode}</span>
+									<div className={'node-divider'} />
+								</S.NodeDivider>
+								<S.NodeAddSection>
+									<FormField
+										placeholder={'http://localhost:8734'}
+										value={newNodeUrl}
+										onChange={(e) => setNewNodeUrl(e.target.value)}
+										invalid={{ status: newNodeUrl ? !validateUrl(newNodeUrl) : false, message: null }}
+										disabled={false}
+									/>
+									<Button
+										type={'alt1'}
+										label={language.en.addNode}
+										handlePress={handleAddNode}
+										disabled={!newNodeUrl || !validateUrl(newNodeUrl)}
+										height={45}
+										fullWidth
+									/>
+								</S.NodeAddSection>
+							</S.NodeSection>
+						</S.MWrapper>
+					</Modal>
 				)}
-				<Panel
-					open={showNodeSettings}
-					width={500}
-					header={language.en.nodeConfiguration}
-					handleClose={() => setShowNodeSettings(false)}
-				>
-					<S.MWrapper className={'modal-wrapper'}>
-						<S.NodeSection>
-							<S.NodeSectionHeader>
-								<p>{`AO Mainnet ${language.en.nodeConfiguration}`}</p>
-							</S.NodeSectionHeader>
-							<S.NodeList>
-								{settings.nodes.map((node) => (
-									<S.NodeItem key={node.url} active={node.active} onClick={() => handleSetActiveNode(node.url)}>
-										<S.NodeInfo>
-											<S.Indicator active={node.active} />
-											<S.NodeDetails>
-												<p>{node.url}</p>
-											</S.NodeDetails>
-										</S.NodeInfo>
-										{settings.nodes.length > 1 && (
-											<S.NodeRemove>
-												<IconButton
-													type={'alt1'}
-													src={ASSETS.close}
-													handlePress={() => handleRemoveNode(node.url)}
-													dimensions={{
-														wrapper: 20,
-														icon: 11.5,
-													}}
-												/>
-											</S.NodeRemove>
-										)}
-									</S.NodeItem>
-								))}
-							</S.NodeList>
-							<S.NodeDivider>
-								<div className={'node-divider'} />
-								<span>{language.en.addANode}</span>
-								<div className={'node-divider'} />
-							</S.NodeDivider>
-							<S.NodeAddSection>
-								<FormField
-									placeholder={'http://localhost:8734'}
-									value={newNodeUrl}
-									onChange={(e) => setNewNodeUrl(e.target.value)}
-									invalid={{ status: newNodeUrl ? !validateUrl(newNodeUrl) : false, message: null }}
-									disabled={false}
-								/>
-								<Button
-									type={'alt1'}
-									label={language.en.addNode}
-									handlePress={handleAddNode}
-									disabled={!newNodeUrl || !validateUrl(newNodeUrl)}
-									height={45}
-									fullWidth
-								/>
-							</S.NodeAddSection>
-						</S.NodeSection>
-					</S.MWrapper>
-				</Panel>
+				<NotificationViewport />
 			</ThemeProvider>
 		</SettingsContext.Provider>
 	);
