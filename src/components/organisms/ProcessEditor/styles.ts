@@ -15,12 +15,16 @@ export const Wrapper = styled.div`
 
 export const EditorWrapper = styled.div`
 	height: 100%;
-	flex: 1;
+	flex: 1 1 50%;
+	min-width: 0;
+	overflow: hidden;
 `;
 
 export const ResultWrapper = styled.div`
 	height: 100%;
-	flex: 1;
+	flex: 1 1 50%;
+	min-width: 0;
+	overflow: hidden;
 
 	> * {
 		&:first-child {

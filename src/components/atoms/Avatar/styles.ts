@@ -30,7 +30,7 @@ export const Wrapper = styled.div<{
 		min-width: ${(props) => `${props.dimensions.icon.toString()}px`};
 		height: ${(props) => `${props.dimensions.icon.toString()}px`};
 		width: ${(props) => `${props.dimensions.icon.toString()}px`};
-		padding: 2.5px 0 0 0px;
+		padding: 3.5px 0 0 0px;
 		color: ${(props) => props.theme.colors.font.primary};
 		color: ${(props) => (props.hasOwner ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};
 		fill: ${(props) => (props.hasOwner ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};

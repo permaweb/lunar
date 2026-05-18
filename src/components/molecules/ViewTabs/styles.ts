@@ -85,7 +85,7 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	margin: 0 0 -1.5px 0;
 	background: ${(props) => (props.active ? props.theme.colors.view.background : 'transparent')};
 	border-bottom: 1px solid ${(props) => (props.active ? 'transparent' : props.theme.colors.border.primary)};
-	border-top: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
+	border-top: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt3 : 'transparent')};
 	cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
 
 	white-space: nowrap;
@@ -121,6 +121,10 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	.delete-icon {
 		display: none;
 		margin: 1.5px 0 0 0;
+
+		button {
+			border: none !important;
+		}
 	}
 
 	&:hover .normal-icon {
@@ -196,7 +200,7 @@ export const TabActiveIndicator = styled.div`
 	left: -0.5px;
 	z-index: 2;
 	top: -2px;
-	border-top: 2px solid ${(props) => props.theme.colors.border.alt5};
+	border-top: 2px solid ${(props) => props.theme.colors.border.alt1};
 `;
 
 export const DropIndicator = styled.div<{ side: 'left' | 'right' }>`

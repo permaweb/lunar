@@ -60,7 +60,7 @@ export const FlexAction = styled.div`
 
 export const Dropdown = styled.div`
 	max-height: 65vh;
-	width: 325px;
+	width: 300px;
 	max-width: 75vw;
 	padding: 11.5px 10px;
 	position: absolute;
@@ -183,13 +183,21 @@ export const Refresh = styled.div`
 	margin: 0 0 0 auto;
 
 	svg {
-		color: ${(props) => props.theme.colors.font.primary};
-		fill: ${(props) => props.theme.colors.font.primary};
+		color: ${(props) => props.theme.colors.font.primary} !important;
+		fill: ${(props) => props.theme.colors.font.primary} !important;
 	}
 
 	button {
+		background: transparent !important;
+		border: none !important;
+
 		&:hover {
-			background: ${(props) => props.theme.colors.container.primary.active.background};
+			svg {
+				color: ${(props) => props.theme.colors.font.alt1} !important;
+				fill: ${(props) => props.theme.colors.font.alt1} !important;
+			}
+
+			opacity: 0.75 !important;
 		}
 	}
 `;
@@ -368,7 +376,7 @@ export const Preview = styled.div<{ background: string; accent: string }>`
 	width: 100%;
 	border-radius: ${STYLING.dimensions.radius.primary};
 	background: ${(props) => props.background};
-	border: 1.25px solid ${(props) => props.theme.colors.border.alt1};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	#preview-accent-1 {
 		height: 32.5px;

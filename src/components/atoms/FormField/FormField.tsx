@@ -4,7 +4,7 @@ import { Modal } from 'components/atoms/Modal';
 import { ASSETS } from 'helpers/config';
 import { formatRequiredField } from 'helpers/utils';
 
-import { IconButton } from '../IconButton';
+import { Button } from '../Button';
 
 import * as S from './styles';
 import { IProps } from './types';
@@ -34,12 +34,17 @@ export default function FormField(props: IProps) {
 					<S.TWrapper>
 						{props.label && <S.Label>{props.required ? formatRequiredField(props.label) : props.label}</S.Label>}
 						{props.tooltip && (
-							<IconButton
+							<Button
 								type={'primary'}
 								active={false}
-								src={ASSETS.info}
+								icon={ASSETS.info}
 								handlePress={() => setShowTooltip(!showTooltip)}
-								dimensions={{ wrapper: 22.5, icon: 13.5 }}
+								height={22.5}
+								width={22.5}
+								noMinWidth
+								iconSize={13.5}
+								stopPropagation
+								preventDefault
 							/>
 						)}
 					</S.TWrapper>

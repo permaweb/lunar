@@ -1,16 +1,26 @@
 import React from 'react';
 
-import { IconButton } from 'components/atoms/IconButton';
+import { Button } from 'components/atoms/Button';
 import { Portal } from 'components/atoms/Portal';
 import { ASSETS, DOM } from 'helpers/config';
 import { useLanguageProvider } from 'providers/LanguageProvider';
+import { CloseHandler } from 'wrappers/CloseHandler';
 
 import * as S from './styles';
 import { IProps } from './types';
 
 export default function Modal(props: IProps) {
 	const languageProvider = useLanguageProvider();
-	const language = languageProvider.object[languageProvider.current];
+	const language = languageProvider?.object?.[languageProvider.current] || { close: 'Close' };
+
+	const escFunction = React.useCallback(
+		(e: any) => {
+			if (e.key === 'Escape' && props.handleClose && !props.closeHandlerDisabled) {
+				props.handleClose();
+			}
+		},
+		[props]
+	);
 
 	React.useEffect(() => {
 		hideDocumentBody();
@@ -18,15 +28,6 @@ export default function Modal(props: IProps) {
 			showDocumentBody();
 		};
 	}, []);
-
-	const escFunction = React.useCallback(
-		(e: any) => {
-			if (e.key === 'Escape' && props.handleClose) {
-				props.handleClose();
-			}
-		},
-		[props]
-	);
 
 	React.useEffect(() => {
 		document.addEventListener('keydown', escFunction, false);
@@ -36,43 +37,80 @@ export default function Modal(props: IProps) {
 		};
 	}, [escFunction]);
 
-	function getBody() {
-		return (
-			<>
-				<S.Container noHeader={!props.header}>
-					{props.header && (
-						<S.Header>
-							<S.LT>
-								<S.Title>{props.header}</S.Title>
-							</S.LT>
-							{props.handleClose && (
-								<S.Close>
-									<IconButton
-										type={'primary'}
-										warning
-										src={ASSETS.close}
-										handlePress={() => props.handleClose()}
-										active={false}
-										dimensions={{
-											wrapper: 35,
-											icon: 20,
-										}}
-										tooltip={language.close}
-									/>
-								</S.Close>
-							)}
-						</S.Header>
-					)}
-					<S.Body className={props.allowOverflow ? '' : 'scroll-wrapper'}>{props.children}</S.Body>
-				</S.Container>
-			</>
-		);
+	function getBodyClassName() {
+		let className = '';
+		if (!props.allowOverflow) className += 'scroll-wrapper';
+		return className;
 	}
+
+	// Determine which components to use based on type
+	let Container;
+	let Body;
+	const modalType = props.type || 'modal';
+	switch (modalType) {
+		case 'modal':
+			Container = S.Container;
+			Body = S.Body;
+			break;
+		case 'panel':
+			Container = S.Panel;
+			Body = S.PanelBody;
+			break;
+		default:
+			Container = S.Container;
+			Body = S.Body;
+			break;
+	}
+
+	// Create the content
+	const content = (
+		<>
+			{props.header && (
+				<S.Header>
+					<S.LT>
+						<S.Title>{props.header}</S.Title>
+					</S.LT>
+					{props.handleClose && (
+						<S.Close>
+							<Button
+								type={'alt1'}
+								icon={ASSETS.close}
+								handlePress={() => props.handleClose()}
+								active={false}
+								height={30}
+								width={30}
+								noMinWidth
+								iconSize={16}
+								tooltip={language.close}
+								stopPropagation
+								preventDefault
+							/>
+						</S.Close>
+					)}
+				</S.Header>
+			)}
+			<Body className={getBodyClassName()}>{props.children}</Body>
+		</>
+	);
+
+	// Wrap Panel content with CloseHandler if it's a panel and not disabled
+	const containerContent =
+		modalType === 'panel' && !props.closeHandlerDisabled ? (
+			<Container $noHeader={!props.header} width={props.width} className={'border-wrapper-primary'}>
+				<CloseHandler active={true} disabled={false} callback={() => props.handleClose && props.handleClose()}>
+					{content}
+				</CloseHandler>
+			</Container>
+		) : (
+			<Container $noHeader={!props.header} width={props.width} className={'border-wrapper-primary'}>
+				{content}
+			</Container>
+		);
 
 	return (
 		<Portal node={DOM.overlay}>
-			<S.Wrapper noHeader={!props.header} top={window ? (window as any).pageYOffset : 0}>
-				{getBody()}
+			<S.Wrapper $noHeader={!props.header} $top={window ? (window as any).pageYOffset : 0}>
+				{containerContent}
 			</S.Wrapper>
 		</Portal>
 	);

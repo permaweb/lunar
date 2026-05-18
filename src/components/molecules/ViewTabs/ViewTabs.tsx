@@ -3,7 +3,6 @@ import { ReactSVG } from 'react-svg';
 
 import { ViewWrapper } from 'app/styles';
 import { Button } from 'components/atoms/Button';
-import { IconButton } from 'components/atoms/IconButton';
 import { Modal } from 'components/atoms/Modal';
 import { ViewHeader } from 'components/atoms/ViewHeader';
 import { ASSETS } from 'helpers/config';
@@ -333,14 +332,19 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 										<ReactSVG src={props.renderTabIcon(tab)} />
 									</div>
 									<div className={'delete-icon'}>
-										<IconButton
+										<Button
 											type={'primary'}
-											src={ASSETS.close}
+											icon={ASSETS.close}
 											handlePress={() => {
 												handleDeleteTab(index);
 											}}
-											dimensions={{ wrapper: 10, icon: 10 }}
+											height={10}
+											width={10}
+											noMinWidth
+											iconSize={10}
 											disabled={disabled}
+											stopPropagation
+											preventDefault
 										/>
 									</div>
 								</div>

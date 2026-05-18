@@ -573,8 +573,11 @@ export const Refresh = styled.div`
 	}
 
 	button {
+		background: transparent !important;
+		border: none !important;
+
 		&:hover {
-			background: ${(props) => props.theme.colors.font.dark1};
+			opacity: 0.75 !important;
 		}
 	}
 `;

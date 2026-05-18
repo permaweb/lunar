@@ -19,6 +19,7 @@ export default function JSONWriter(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const monacoRef = React.useRef<typeof import('monaco-editor') | null>(null);
+	const editorRef = React.useRef<any>(null);
 	const themeName = currentTheme.scheme === 'dark' ? 'editorDark' : 'editorLight';
 
 	const [jsonString, setJsonString] = React.useState(JSON.stringify(props.initialData, null, 4));
@@ -92,7 +93,60 @@ export default function JSONWriter(props: {
 		monaco.editor.setTheme(themeName);
 	}, [currentTheme, themeName]);
 
+	// Add resize handler to ensure proper layout
+	React.useEffect(() => {
+		let resizeTimeout: NodeJS.Timeout;
+		const handleResize = () => {
+			// Clear any pending layout calls
+			clearTimeout(resizeTimeout);
+			// Force Monaco to recalculate its layout with a small delay
+			resizeTimeout = setTimeout(() => {
+				editorRef.current?.layout();
+			}, 100);
+		};
+		window.addEventListener('resize', handleResize);
+		return () => {
+			clearTimeout(resizeTimeout);
+			window.removeEventListener('resize', handleResize);
+			// Cleanup ResizeObserver and timeout if they exist
+			const editor = editorRef.current;
+			if (editor) {
+				if ((editor as any)._resizeTimeout) {
+					clearTimeout((editor as any)._resizeTimeout);
+				}
+				if ((editor as any)._resizeObserver) {
+					(editor as any)._resizeObserver.disconnect();
+				}
+			}
+		};
+	}, []);
+
 	const handleEditorDidMount: OnMount = (editor, monaco) => {
+		editorRef.current = editor;
+
+		// Force initial layout
+		requestAnimationFrame(() => {
+			editor.layout();
+		});
+
+		// Use ResizeObserver on the parent container to handle layout changes
+		const parentContainer = editor.getContainerDomNode()?.parentElement?.parentElement;
+		if (parentContainer) {
+			let resizeTimeout: NodeJS.Timeout;
+			const resizeObserver = new ResizeObserver((entries) => {
+				// Clear any pending layout calls
+				clearTimeout(resizeTimeout);
+				// Schedule a layout update
+				resizeTimeout = setTimeout(() => {
+					editor.layout();
+				}, 50);
+			});
+			resizeObserver.observe(parentContainer);
+			// Store observer and timeout for cleanup
+			(editor as any)._resizeObserver = resizeObserver;
+			(editor as any)._resizeTimeout = resizeTimeout;
+		}
+
 		editor.onKeyDown((e) => {
 			if ((e.metaKey || e.ctrlKey) && e.keyCode === monaco.KeyCode.Enter) {
 				const current = editor.getValue();
@@ -136,7 +190,7 @@ export default function JSONWriter(props: {
 						theme={themeName}
 						options={{
 							readOnly: props.loading,
-							automaticLayout: true,
+							automaticLayout: false,
 							tabSize: 4,
 							formatOnPaste: true,
 							formatOnType: true,

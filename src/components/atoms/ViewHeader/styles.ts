@@ -14,10 +14,9 @@ export const HeaderContent = styled.div`
 
 	h4 {
 		line-height: 1;
-		font-size: ${(props) => props.theme.typography.size.xxxLg};
-		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-size: ${(props) => props.theme.typography.size.xxLg};
+		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.xBold};
-		letter-spacing: 0.85px;
 		color: ${(props) => props.theme.colors.font.primary};
 	}
 `;

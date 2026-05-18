@@ -10,7 +10,7 @@ import { Button } from 'components/atoms/Button';
 import { Calendar } from 'components/atoms/Calendar';
 import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
-import { Panel } from 'components/atoms/Panel';
+import { Modal } from 'components/atoms/Modal';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
@@ -337,8 +337,8 @@ function Message(props: {
 			if (result) loading = false;
 		}
 
-		return (
-			<Panel open={open} width={750} header={header} handleClose={handleClose}>
+		return open ? (
+			<Modal type="panel" width={750} header={header} handleClose={handleClose}>
 				<S.OverlayWrapper>
 					<S.OverlayInfo>
 						<S.OverlayInfoLine>
@@ -384,8 +384,8 @@ function Message(props: {
 						<Button type={'primary'} label={language.close} handlePress={handleClose} />
 					</S.OverlayActions>
 				</S.OverlayWrapper>
-			</Panel>
-		);
+			</Modal>
+		) : null;
 	}
 
 	function getID() {
@@ -1346,13 +1346,8 @@ export default function MessageList(props: {
 				)}
 				{!props.childList && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
 			</S.Container>
-			{!props.childList && (
-				<Panel
-					open={showFilters}
-					width={515}
-					header={language.messageFilters}
-					handleClose={() => setShowFilters(false)}
-				>
+			{!props.childList && showFilters && (
+				<Modal type="panel" width={515} header={language.messageFilters} handleClose={() => setShowFilters(false)}>
 					<S.FilterDropdown>
 						<S.FilterDropdownHeader>
 							<p>{language.filterByAction}</p>
@@ -1507,7 +1502,7 @@ export default function MessageList(props: {
 							/>
 						</S.FilterApply>
 					</S.FilterDropdown>
-				</Panel>
+				</Modal>
 			)}
 		</>
 	);

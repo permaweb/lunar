@@ -20,12 +20,6 @@ export const Header = styled.header<{ navigationOpen: boolean }>`
 		box-shadow: inset 0px 6px 6px -6px ${(props) => props.theme.colors.shadow.primary};
 		border-bottom: 1px solid transparent !important;
 	}
-
-	/* &.docs-view {
-		background: ${(props) => props.theme.colors.container.primary.background};
-		box-shadow: inset 0px 6px 6px -6px ${(props) => props.theme.colors.shadow.primary};
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
-	} */
 `;
 
 export const Content = styled.div`
@@ -337,7 +331,7 @@ export const DNavLink = styled.div<{ active: boolean }>`
 	a {
 		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		text-transform: uppercase;
 		letter-spacing: 0.35px;

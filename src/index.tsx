@@ -7,6 +7,7 @@ import { App } from 'app';
 import { GlobalStyle } from 'app/styles';
 import { ArweaveProvider } from 'providers/ArweaveProvider';
 import { LanguageProvider } from 'providers/LanguageProvider';
+import { NotificationProvider } from 'providers/NotificationProvider';
 import { PermawebProvider } from 'providers/PermawebProvider';
 import { SettingsProvider } from 'providers/SettingsProvider';
 import { persistor, store } from 'store';
@@ -15,16 +16,18 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 	<Provider store={store}>
 		<PersistGate loading={null} persistor={persistor}>
 			<HashRouter>
-				<SettingsProvider>
-					<LanguageProvider>
-						<ArweaveProvider>
-							<PermawebProvider>
-								<GlobalStyle />
-								<App />
-							</PermawebProvider>
-						</ArweaveProvider>
-					</LanguageProvider>
-				</SettingsProvider>
+				<LanguageProvider>
+					<NotificationProvider>
+						<SettingsProvider>
+							<ArweaveProvider>
+								<PermawebProvider>
+									<GlobalStyle />
+									<App />
+								</PermawebProvider>
+							</ArweaveProvider>
+						</SettingsProvider>
+					</NotificationProvider>
+				</LanguageProvider>
 			</HashRouter>
 		</PersistGate>
 	</Provider>

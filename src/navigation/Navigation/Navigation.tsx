@@ -5,8 +5,8 @@ import { ReactSVG } from 'react-svg';
 import { debounce } from 'lodash';
 import { useTheme } from 'styled-components';
 
+import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { IconButton } from 'components/atoms/IconButton';
 import { ASSETS, STYLING, URLS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
 import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
@@ -249,14 +249,16 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						</S.DSearchWrapper>
 						<S.MSearchWrapper>
 							<CloseHandler active={searchOpen} disabled={!searchOpen} callback={() => setSearchOpen(false)}>
-								<IconButton
+								<Button
 									type={'alt1'}
-									src={ASSETS.search}
+									icon={ASSETS.search}
 									handlePress={() => setSearchOpen((prev) => !prev)}
-									dimensions={{
-										wrapper: 36.5,
-										icon: 15.5,
-									}}
+									height={36.5}
+									width={36.5}
+									noMinWidth
+									iconSize={15.5}
+									stopPropagation
+									preventDefault
 								/>
 								{searchOpen && (
 									<S.MSearchContainer className={'border-wrapper-alt1'}>
@@ -269,14 +271,16 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							</CloseHandler>
 						</S.MSearchWrapper>
 						<S.MMenuWrapper>
-							<IconButton
+							<Button
 								type={'alt1'}
-								src={ASSETS.menu}
+								icon={ASSETS.menu}
 								handlePress={() => setPanelOpen(true)}
-								dimensions={{
-									wrapper: 36.5,
-									icon: 18.5,
-								}}
+								height={36.5}
+								width={36.5}
+								noMinWidth
+								iconSize={18.5}
+								stopPropagation
+								preventDefault
 							/>
 						</S.MMenuWrapper>
 						<WalletConnect />
@@ -290,15 +294,17 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							<S.PMenu>
 								<S.PHeader>
 									<h4>{language.goTo}</h4>
-									<IconButton
+									<Button
 										type={'primary'}
-										src={ASSETS.close}
+										icon={ASSETS.close}
 										handlePress={() => setPanelOpen(false)}
-										dimensions={{
-											wrapper: 35,
-											icon: 20,
-										}}
+										height={35}
+										width={35}
+										noMinWidth
+										iconSize={20}
 										tooltip={language.close}
+										stopPropagation
+										preventDefault
 									/>
 								</S.PHeader>
 								<S.MNavWrapper>

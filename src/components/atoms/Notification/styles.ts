@@ -6,11 +6,6 @@ import { STYLING } from 'helpers/config';
 export const Wrapper = styled.div<{ warning: boolean | undefined }>`
 	min-width: 375px;
 	max-width: 50vw;
-	position: fixed;
-	left: 50%;
-	bottom: 20px;
-	transform: translate(-50%, 0);
-	z-index: 2147483647;
 	animation: ${open} ${transition1};
 	display: flex;
 	align-items: center;
@@ -34,7 +29,7 @@ export const MessageWrapper = styled.div`
 	text-overflow: ellipsis;
 `;
 
-export const Icon = styled.div<{ warning: boolean | undefined }>`
+export const Icon = styled.div<{ type: 'success' | 'warning' | 'info' }>`
 	min-height: 17.5px;
 	height: 17.5px;
 	min-width: 17.5px;
@@ -42,7 +37,12 @@ export const Icon = styled.div<{ warning: boolean | undefined }>`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: ${(props) => (props.warning ? props.theme.colors.warning.alt1 : props.theme.colors.indicator.active)};
+	background: ${(props) =>
+		props.type === 'warning'
+			? props.theme.colors.warning.alt1
+			: props.type === 'info'
+			? props.theme.colors.actions.info
+			: props.theme.colors.indicator.active};
 	border-radius: 50%;
 
 	svg {
