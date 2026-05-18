@@ -174,9 +174,9 @@ export const lightThemeAlt3 = {
 
 export const darkTheme = {
 	scheme: 'dark',
-	neutral1: '#111111',
+	neutral1: '#121212',
 	neutral2: '#151515',
-	neutral3: '#292929',
+	neutral3: '#252525',
 	neutral4: '#393939',
 	neutral5: '#979797',
 	neutral6: '#909090',

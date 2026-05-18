@@ -57,7 +57,7 @@ interface Settings {
 interface SettingsContextState {
 	settings: Settings;
 	updateSettings: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
-	addNode: (node: Omit<NodeConfig, 'active' | 'authority'>) => void;
+	addNode: (node: Omit<NodeConfig, 'active' | 'authority'>) => Promise<void>;
 	removeNode: (url: string) => void;
 	setActiveNode: (url: string) => void;
 	showNodeSettings: boolean;
@@ -85,7 +85,7 @@ const defaultSettings: Settings = {
 const SettingsContext = React.createContext<SettingsContextState>({
 	settings: defaultSettings,
 	updateSettings: () => {},
-	addNode: () => {},
+	addNode: async () => {},
 	removeNode: () => {},
 	setActiveNode: () => {},
 	showNodeSettings: false,
@@ -139,6 +139,8 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings());
 	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
 	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
+	const [addingNodeUrl, setAddingNodeUrl] = React.useState<string | null>(null);
+	const pendingNodeUrlsRef = React.useRef<Set<string>>(new Set());
 
 	const handleWindowResize = React.useCallback(() => {
 		const newIsDesktop = checkWindowCutoff(parseInt(STYLING.cutoffs.desktop));
@@ -237,27 +239,36 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	};
 
 	const addNode = async (node: Omit<NodeConfig, 'active' | 'authority'>) => {
+		const url = node.url.trim();
 		let loadingNotificationId: string | null = null;
 
 		try {
+			if (!url || pendingNodeUrlsRef.current.has(url)) return;
+
 			// Check if node already exists
-			if (settings.nodes.some((n) => n.url === node.url)) {
-				addNotification(`Node ${node.url} already exists`, 'warning');
+			if (settings.nodes.some((n) => n.url === url)) {
+				addNotification(`Node ${url} already exists`, 'warning');
 				return;
 			}
 
+			pendingNodeUrlsRef.current.add(url);
+			setAddingNodeUrl(url);
 			loadingNotificationId = addNotification(`Loading...`, 'info', { persistent: true });
 
-			const authorityResponse = await fetch(`${node.url}/~meta@1.0/info/address`);
+			const authorityResponse = await fetch(`${url}/~meta@1.0/info/address`);
 			const authority = await authorityResponse.text();
 
 			const newNode = {
-				...node,
+				url,
 				authority: authority,
 				active: true,
 			};
 
 			setSettings((prevSettings) => {
+				if (prevSettings.nodes.some((n) => n.url === url)) {
+					return prevSettings;
+				}
+
 				const newSettings = {
 					...prevSettings,
 					nodes: [...prevSettings.nodes.map((n) => ({ ...n, active: false })), { ...newNode }],
@@ -267,14 +278,19 @@ export function SettingsProvider(props: SettingsProviderProps) {
 			});
 
 			if (loadingNotificationId) removeNotification(loadingNotificationId);
-			addNotification(`Connected to ${node.url}`, 'success');
+			addNotification(`Connected to ${url}`, 'success');
 
 			setNewNodeUrl('');
 		} catch (e: any) {
 			console.error(e);
 
 			if (loadingNotificationId) removeNotification(loadingNotificationId);
-			addNotification(e.message ?? `Error connecting to ${node.url}`, 'warning');
+			addNotification(e.message ?? `Error connecting to ${url}`, 'warning');
+		} finally {
+			if (url) {
+				pendingNodeUrlsRef.current.delete(url);
+				setAddingNodeUrl((currentUrl) => (currentUrl === url ? null : currentUrl));
+			}
 		}
 	};
 
@@ -341,8 +357,10 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	}
 
 	function handleAddNode() {
-		if (newNodeUrl) {
-			addNode({ url: newNodeUrl });
+		const url = newNodeUrl.trim();
+
+		if (url && validateUrl(url) && !addingNodeUrl) {
+			addNode({ url });
 		}
 	}
 
@@ -410,13 +428,14 @@ export function SettingsProvider(props: SettingsProviderProps) {
 										value={newNodeUrl}
 										onChange={(e) => setNewNodeUrl(e.target.value)}
 										invalid={{ status: newNodeUrl ? !validateUrl(newNodeUrl) : false, message: null }}
-										disabled={false}
+										disabled={!!addingNodeUrl}
 									/>
 									<Button
 										type={'alt1'}
 										label={language.en.addNode}
 										handlePress={handleAddNode}
-										disabled={!newNodeUrl || !validateUrl(newNodeUrl)}
+										disabled={!newNodeUrl || !validateUrl(newNodeUrl) || !!addingNodeUrl}
+										loading={!!addingNodeUrl}
 										height={45}
 										fullWidth
 									/>

@@ -238,7 +238,7 @@ export default function _Editor(props: {
 	}, [defineThemes]);
 
 	React.useEffect(() => {
-		const handleResize = () => editorRef.current?.layout();
+		const handleResize = () => editorInstanceRef.current?.layout();
 		window.addEventListener('resize', handleResize);
 		return () => window.removeEventListener('resize', handleResize);
 	}, []);

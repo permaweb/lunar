@@ -869,14 +869,21 @@ export function pow10(decimals: number): bigint {
 	return result;
 }
 
+function formatIntegerWithCommas(value: bigint) {
+	return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function formatUnits(value: string | bigint, decimals: number, precision = 6) {
 	const big = BigInt(value);
+	const isNegative = big < BigInt(0);
+	const absBig = isNegative ? -big : big;
+	const sign = isNegative ? '-' : '';
 	const base = pow10(decimals);
 
-	const whole = big / base;
-	const fraction = big % base;
+	const whole = absBig / base;
+	const fraction = absBig % base;
 
-	if (fraction === BigInt(0)) return whole.toString();
+	if (fraction === BigInt(0)) return `${sign}${formatIntegerWithCommas(whole)}`;
 
 	const fractionFull = fraction.toString().padStart(decimals, '0');
 
@@ -903,10 +910,10 @@ export function formatUnits(value: string | bigint, decimals: number, precision 
 	}
 
 	if (roundedFraction === pow10(safePrecision)) {
-		return (whole + BigInt(1)).toString();
+		return `${sign}${formatIntegerWithCommas(whole + BigInt(1))}`;
 	}
 
 	const fractionStr = roundedFraction.toString().padStart(safePrecision, '0').replace(/0+$/, '');
 
-	return `${whole.toString()}.${fractionStr}`;
+	return `${sign}${formatIntegerWithCommas(whole)}.${fractionStr}`;
 }

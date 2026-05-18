@@ -245,6 +245,8 @@ export const ElementWrapper = styled.div<{
 	${(props) =>
 		!props.disabled &&
 		css`
+			transition: all 75ms;
+
 			&:hover {
 				background: ${props.theme.colors.container.primary.active};
 				border-left: 1px solid ${props.theme.colors.border.alt4} !important;
@@ -464,7 +466,7 @@ export const Results = styled(ElementItem)<{ open?: boolean }>`
 	svg {
 		height: 15px;
 		width: 15px;
-		margin: 3.5px 0 0 0;
+		margin: 0 0 -2.5px 0;
 		transform: rotate(${(props) => (props.open ? '180deg' : '0deg')});
 		transition: transform 0.15s ease-in-out;
 	}

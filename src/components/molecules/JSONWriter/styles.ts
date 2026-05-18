@@ -6,6 +6,7 @@ export const Wrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
+	min-width: 0;
 `;
 
 export const EditorWrapper = styled.div`
@@ -14,6 +15,7 @@ export const EditorWrapper = styled.div`
 	display: flex;
 	align-items: flex-start;
 	position: relative;
+	min-width: 0;
 `;
 
 export const Editor = styled.div`
@@ -23,9 +25,12 @@ export const Editor = styled.div`
 	position: relative;
 	padding: 15px 0 0 0;
 	background: ${(props) => props.theme.colors.container.alt1.background};
+	min-width: 0;
+	overflow: hidden;
 
 	> div {
 		height: 100% !important;
+		width: 100% !important;
 		background: ${(props) => props.theme.colors.container.alt1.background} !important;
 	}
 

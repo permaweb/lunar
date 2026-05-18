@@ -128,7 +128,6 @@ export default function Button(props: IProps) {
 				tabIndex={props.noFocus || props.disabled ? -1 : 0}
 				type={props.formSubmit ? 'submit' : 'button'}
 				onClick={handlePress}
-				onKeyPress={handlePress}
 				disabled={props.disabled}
 				active={props.active}
 				useMaxWidth={props.useMaxWidth}

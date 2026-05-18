@@ -397,12 +397,6 @@ function Transaction(props: {
 		);
 	};
 
-	// TODO: Failure Cases
-	// Not scheduled
-	// Transfer-Error in result
-	// Show pending if compute in progress
-	// TODO: Handle non hard coded tokens
-	// TODO: Show not found for not found / error for error
 	const MessageInfoSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
 
