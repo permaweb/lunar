@@ -2,9 +2,9 @@ import { Types } from '@permaweb/libs';
 
 import { addTransaction, selectTransaction } from 'store/transactions/reducer';
 
-import { DEFAULT_GATEWAYS, FLAGS } from './config';
+import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, FLAGS } from './config';
 import { getTxEndpoint } from './endpoints';
-import { SearchTxArgs, TagType } from './types';
+import { MessageVariantEnum, SearchTxArgs, TagType } from './types';
 import { getTagValue, normalizeGqlResponse, normalizeTagKeys } from './utils';
 
 const MAX_DEPTH = 10;
@@ -160,6 +160,85 @@ function getNumberHeader(headers: Headers, name: string) {
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
+function getNumberTag(tags: TagType[] | undefined, name: string) {
+	const value = getTagValue(tags, name);
+	if (!value) return null;
+
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasBlockMetadata(response: Types.GQLNodeResponseType) {
+	return response?.node?.block?.height != null || response?.node?.block?.timestamp != null;
+}
+
+function hasScheduleMetadata(response: Types.GQLNodeResponseType) {
+	return hasBlockMetadata(response) && response?.node?.slot != null;
+}
+
+function isLegacyMessage(response: Types.GQLNodeResponseType) {
+	const tags = response?.node?.tags;
+
+	return getTagValue(tags, 'Variant') === MessageVariantEnum.Legacynet && getTagValue(tags, 'Type') === 'Message';
+}
+
+function isWalletResponse(response: Types.GQLNodeResponseType) {
+	return getTagValue(response?.node?.tags, 'Type') === 'Wallet';
+}
+
+function needsPushedMessageSchedule(response: Types.GQLNodeResponseType) {
+	return (
+		isLegacyMessage(response) && !!getTagValue(response?.node?.tags, 'Pushed-For') && !hasScheduleMetadata(response)
+	);
+}
+
+function shouldUseCachedTransaction(response: Types.GQLNodeResponseType) {
+	if (isWalletResponse(response)) return true;
+	if (!hasBlockMetadata(response)) return false;
+
+	return !needsPushedMessageSchedule(response);
+}
+
+async function hydrateLegacyMessageSchedule(response: Types.GQLNodeResponseType) {
+	if (hasScheduleMetadata(response) || !isLegacyMessage(response)) {
+		return response;
+	}
+
+	const tags = response?.node?.tags;
+	const recipient = response.node.recipient ?? getTagValue(tags, 'Target');
+	if (!recipient) return response;
+
+	try {
+		const schedulerResponse = await fetch(
+			`${DEFAULT_LEGACY_SCHEDULER_URL}/${response.node.id}?process-id=${recipient}`
+		);
+		const parsedSchedulerResponse = await schedulerResponse.json();
+		const assignmentTags = parsedSchedulerResponse?.assignment?.tags;
+
+		if (!assignmentTags?.length) return response;
+
+		const height = getNumberTag(assignmentTags, 'Block-Height');
+		const timestamp = getNumberTag(assignmentTags, 'Timestamp');
+		const slot = getNumberTag(assignmentTags, 'Nonce');
+
+		return {
+			...response,
+			node: {
+				...response.node,
+				block: {
+					...response.node.block,
+					...(height !== null ? { height } : {}),
+					...(timestamp !== null ? { timestamp: timestamp / 1000 } : {}),
+				},
+				...(slot !== null ? { slot } : {}),
+			},
+		};
+	} catch (e: any) {
+		console.error(e);
+		return response;
+	}
+}
+
 async function buildDirectLookupResponse(
 	txId: string,
 	directLookup: Response
@@ -208,7 +287,7 @@ function cacheTransaction(
 	opts?: { skipBlockHeightCheck: boolean }
 ) {
 	if (FLAGS.USE_TX_CACHE && args.store && args.dispatch) {
-		if (opts?.skipBlockHeightCheck || response?.node?.block) {
+		if (opts?.skipBlockHeightCheck || hasBlockMetadata(response)) {
 			args.dispatch(addTransaction(args.txId, response));
 		}
 	}
@@ -246,6 +325,15 @@ async function resolveResponseData(
 			depth + 1
 		);
 
+		const fromProcessVariant = getTagValue(fromProcessResponse?.node?.tags, 'Variant');
+
+		if (fromProcessVariant === MessageVariantEnum.Mainnet) {
+			const mainnetResponseData = await hydrateLegacyMessageSchedule(responseData);
+
+			cacheTransaction(mainnetResponseData, args);
+			return mainnetResponseData;
+		}
+
 		const fromProcessAuthority = getTagValue(fromProcessResponse?.node?.tags, 'Authority');
 
 		// Reject if authority doesn't match owner
@@ -253,8 +341,10 @@ async function resolveResponseData(
 			return null;
 		}
 
-		cacheTransaction(responseData, args);
-		return responseData;
+		const legacynetResponseData = await hydrateLegacyMessageSchedule(responseData);
+
+		cacheTransaction(legacynetResponseData, args);
+		return legacynetResponseData;
 	} catch (e: any) {
 		console.error(e);
 		return responseData;
@@ -264,7 +354,7 @@ async function resolveResponseData(
 export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<Types.GQLNodeResponseType> {
 	if (FLAGS.USE_TX_CACHE && args.store) {
 		const cached = selectTransaction(args.store.getState(), args.txId);
-		if (cached) {
+		if (cached && shouldUseCachedTransaction(cached)) {
 			return cached;
 		}
 	}
