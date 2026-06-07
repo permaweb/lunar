@@ -22,6 +22,12 @@ export function formatAddress(address: string | null, wrap: boolean) {
 	return wrap ? `(${formattedAddress})` : formattedAddress;
 }
 
+export function formatBlockId(id: string | null, wrap: boolean) {
+	if (!id) return '';
+	const formattedId = id.substring(0, 6) + '...' + id.substring(58, id.length);
+	return wrap ? `(${formattedId})` : formattedId;
+}
+
 export function getTagValue(list: { [key: string]: any }[], name: string): string {
 	if (!list) return null;
 

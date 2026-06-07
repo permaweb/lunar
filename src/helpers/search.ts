@@ -385,16 +385,33 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 	}
 
 	try {
-		let response = await args.getGQLData({
-			id: [args.txId],
-		});
+		let response: any = null;
+		let lastError: any = null;
 
-		if (!response.data?.length || response.data?.length <= 0) {
-			response = await args.getGQLData({
+		for (const gqlArgs of [
+			{
+				id: [args.txId],
+			},
+			{
 				gateway: DEFAULT_GATEWAYS.fallback,
 				id: [args.txId],
-			});
+			},
+			{
+				gateway: DEFAULT_GATEWAYS.arweave,
+				id: [args.txId],
+			},
+		]) {
+			try {
+				response = await args.getGQLData(gqlArgs);
+				if (response.data?.length > 0) break;
+			} catch (e: any) {
+				lastError = e;
+				console.error(e);
+			}
 		}
+
+		if (!response && lastError) throw lastError;
+		if (!response) response = { data: [] };
 
 		response = await normalizeGqlResponse(response);
 

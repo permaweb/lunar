@@ -1,9 +1,12 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import JSONbig from 'json-bigint';
 
 import { Types } from '@permaweb/libs';
+
+import { BlockNode, getBlock } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
@@ -14,12 +17,15 @@ import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
+import { TransactionList } from 'components/molecules/TransactionList';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
 	checkValidAddress,
+	formatAddress,
+	formatBlockId,
 	formatCount,
 	formatDate,
 	formatUnits,
@@ -55,6 +61,16 @@ const TxResponseContext = React.createContext<{
 	type: null,
 	refreshKey: 0,
 });
+
+function checkValidBlockId(id: string | null): boolean {
+	if (!id) return false;
+	return /^[a-z0-9_-]{64}$/i.test(id);
+}
+
+function checkValidBlockHeight(id: string | null): boolean {
+	if (!id) return false;
+	return /^\d+$/.test(id);
+}
 
 function Transaction(props: {
 	txId: string;
@@ -97,6 +113,84 @@ function Transaction(props: {
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const messageListRef = React.useRef<HTMLDivElement>(null);
 
+	function isValidExplorerInput(value: string) {
+		if (checkValidBlockHeight(value) || checkValidBlockId(value)) return true;
+
+		switch (props.type) {
+			case 'bundle':
+				return checkValidAddress(value);
+			default:
+				return checkValidAddress(value);
+		}
+	}
+
+	function buildBlockResponse(block: BlockNode): Types.GQLNodeResponseType {
+		return {
+			cursor: null,
+			node: {
+				id: inputTxId,
+				tags: [
+					{ name: 'Type', value: 'Block' },
+					{ name: 'Name', value: formatCount(block.height.toString()) },
+				],
+				data: null,
+				owner: {
+					address: null,
+				},
+				block: {
+					height: block.height,
+					timestamp: block.timestamp,
+				},
+				blockId: block.id,
+				previous: block.previous,
+			},
+		} as any;
+	}
+
+	function buildBundleResponse(response: Types.GQLNodeResponseType | null): Types.GQLNodeResponseType {
+		const bundleTags = [
+			{ name: 'bundle-format', value: 'binary' },
+			{ name: 'bundle-version', value: '2.0.0' },
+		];
+		const existingTags = response?.node?.tags ?? [];
+		const tagsWithoutSynthetic = existingTags.filter(
+			(tag) =>
+				!['Type', 'Name', ...bundleTags.map((bundleTag) => bundleTag.name)].some(
+					(tagName) => tag.name.toLowerCase() === tagName.toLowerCase()
+				)
+		);
+
+		return {
+			cursor: response?.cursor ?? null,
+			node: {
+				...(response?.node ?? {}),
+				id: inputTxId,
+				tags: [
+					{ name: 'Type', value: 'Bundle' },
+					{ name: 'Name', value: formatAddress(inputTxId, false) },
+					...bundleTags,
+					...tagsWithoutSynthetic,
+				],
+				data: response?.node?.data ?? null,
+				owner: response?.node?.owner ?? {
+					address: null,
+				},
+				block: response?.node?.block ?? {
+					height: null,
+					timestamp: null,
+				},
+			},
+		} as any;
+	}
+
+	function isBundleResponse(response: Types.GQLNodeResponseType | null) {
+		const tags = response?.node?.tags ?? [];
+
+		return (
+			getTagValue(tags, 'bundle-format')?.toLowerCase() === 'binary' && getTagValue(tags, 'bundle-version') === '2.0.0'
+		);
+	}
+
 	React.useEffect(() => {
 		setInputTxId(props.txId);
 	}, [props.txId]);
@@ -108,20 +202,59 @@ function Transaction(props: {
 	}, [inputTxId]);
 
 	React.useEffect(() => {
-		if (props.active && !hasFetched && inputTxId && checkValidAddress(inputTxId)) {
+		if (props.active && !hasFetched && inputTxId && isValidExplorerInput(inputTxId)) {
 			(async () => {
 				await handleSubmit();
 				setHasFetched(true);
 			})();
 		}
-	}, [props.active, hasFetched, inputTxId]);
+	}, [props.active, hasFetched, inputTxId, props.type]);
 
 	async function handleSubmit() {
-		if (inputTxId && checkValidAddress(inputTxId)) {
+		if (inputTxId && isValidExplorerInput(inputTxId)) {
 			setLoadingTx(true);
 			setRefreshKey((prev) => prev + 1);
 			setMessageResult(null);
 			try {
+				if (checkValidBlockHeight(inputTxId) || checkValidBlockId(inputTxId)) {
+					const block = await getBlock(
+						checkValidBlockHeight(inputTxId) ? { height: Number(inputTxId) } : { id: inputTxId }
+					);
+
+					if (!block) {
+						throw new Error(language.errorFetchingData);
+					}
+
+					const blockResponse = buildBlockResponse(block);
+					setTxResponse(blockResponse);
+					if (props.onTxChange) props.onTxChange(blockResponse);
+					setLoadingTx(false);
+					setHasFetched(true);
+					return;
+				}
+
+				if (props.type === 'bundle') {
+					let bundleLookup: Types.GQLNodeResponseType | null = null;
+
+					try {
+						bundleLookup = await searchTxById({
+							txId: inputTxId,
+							getGQLData: permawebProvider.libs.getGQLData,
+							store: store,
+							dispatch: dispatch,
+						});
+					} catch (e: any) {
+						console.error(e);
+					}
+
+					const bundleResponse = buildBundleResponse(bundleLookup);
+					setTxResponse(bundleResponse);
+					if (props.onTxChange) props.onTxChange(bundleResponse);
+					setLoadingTx(false);
+					setHasFetched(true);
+					return;
+				}
+
 				const response = await searchTxById({
 					txId: inputTxId,
 					getGQLData: permawebProvider.libs.getGQLData,
@@ -129,7 +262,11 @@ function Transaction(props: {
 					dispatch: dispatch,
 				});
 
-				const responseData = response;
+				let responseData = response;
+				if (isBundleResponse(responseData)) {
+					responseData = buildBundleResponse(responseData);
+				}
+
 				setTxResponse(responseData ?? null);
 				if (responseData) {
 					if (props.onTxChange) props.onTxChange(responseData);
@@ -657,7 +794,15 @@ function Transaction(props: {
 						</S.MessageInfoLine>
 						<S.MessageInfoLine>
 							<span>{`${language.blockHeight}: `}</span>
-							<p>{txResponse?.node?.block?.height ? formatCount(txResponse?.node?.block?.height.toString()) : '-'}</p>
+							{txResponse?.node?.block?.height ? (
+								<S.Height>
+									<Link to={`${URLS.explorer}${txResponse.node.block.height}`}>
+										<p>{formatCount(txResponse?.node?.block?.height.toString())}</p>
+									</Link>
+								</S.Height>
+							) : (
+								<p>-</p>
+							)}
 						</S.MessageInfoLine>
 						{txResponse?.node?.slot ? (
 							<S.MessageInfoLine>
@@ -673,6 +818,108 @@ function Transaction(props: {
 					</S.MessageInfoBody>
 				</S.MessageInfo>
 			</>
+		);
+	};
+
+	const BlockInfoSection = () => {
+		const { txResponse } = React.useContext(TxResponseContext);
+		const node: any = txResponse?.node;
+		const blockId = node?.blockId;
+		const previous = node?.previous;
+
+		return (
+			<S.MessageInfo className={'border-wrapper-primary'}>
+				<S.MessageInfoHeader>
+					<p>{language.blockOverview}</p>
+					<S.MessageInfoID>
+						<span>{`${language.height}: `}</span>
+						{txResponse?.node?.block?.height ? (
+							<S.Height>
+								<Link to={`${URLS.explorer}${txResponse.node.block.height}`}>
+									<p>{formatCount(txResponse?.node?.block?.height.toString())}</p>
+								</Link>
+							</S.Height>
+						) : (
+							<p>-</p>
+						)}
+					</S.MessageInfoID>
+				</S.MessageInfoHeader>
+				<S.MessageInfoBody>
+					<S.MessageInfoLine>
+						<span>{`${language.blockId}: `}</span>
+						<p title={blockId}>{blockId ? formatBlockId(blockId, false) : '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.previousBlock}: `}</span>
+						<p title={previous}>{previous ? formatBlockId(previous, false) : '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.date}: `}</span>
+						<p>
+							{txResponse?.node?.block?.timestamp
+								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
+								: '-'}
+						</p>
+					</S.MessageInfoLine>
+				</S.MessageInfoBody>
+			</S.MessageInfo>
+		);
+	};
+
+	const BundleInfoSection = () => {
+		const { txResponse } = React.useContext(TxResponseContext);
+		const tags = txResponse?.node?.tags ?? [];
+		const bundleFormat = getTagValue(tags, 'bundle-format');
+		const bundleVersion = getTagValue(tags, 'bundle-version');
+
+		return (
+			<S.MessageInfo className={'border-wrapper-primary'}>
+				<S.MessageInfoHeader>
+					<p>{language.bundleOverview}</p>
+					<S.MessageInfoID>
+						<span>{`${language.id}: `}</span>
+						<TxAddress address={txResponse?.node?.id} />
+					</S.MessageInfoID>
+				</S.MessageInfoHeader>
+				<S.MessageInfoBody $hideDesktopLastRowBorder>
+					<S.MessageInfoLine>
+						<span>{`${language.owner}: `}</span>
+						{txResponse?.node?.owner?.address ? <TxAddress address={txResponse.node.owner.address} /> : <p>-</p>}
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.blockHeightActual}: `}</span>
+						{txResponse?.node?.block?.height ? (
+							<S.Height>
+								<Link to={`${URLS.explorer}${txResponse.node.block.height}`}>
+									<p>{formatCount(txResponse?.node?.block?.height.toString())}</p>
+								</Link>
+							</S.Height>
+						) : (
+							<p>-</p>
+						)}
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.date}: `}</span>
+						<p>
+							{txResponse?.node?.block?.timestamp
+								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
+								: '-'}
+						</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.size}: `}</span>
+						<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) || 0)}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.bundleFormat}: `}</span>
+						<p>{bundleFormat ?? '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.bundleVersion}: `}</span>
+						<p>{bundleVersion ?? '-'}</p>
+					</S.MessageInfoLine>
+				</S.MessageInfoBody>
+			</S.MessageInfo>
 		);
 	};
 
@@ -844,6 +1091,31 @@ function Transaction(props: {
 					});
 
 					switch (props.type) {
+						case 'block':
+							return (
+								<S.ColumnFlexWrapper>
+									<BlockInfoSection />
+									<TransactionList
+										key={refreshKey}
+										mode={'block'}
+										blockHeight={txResponse?.node?.block?.height}
+										blockId={(txResponse?.node as any)?.blockId}
+										header={language.transactions}
+									/>
+								</S.ColumnFlexWrapper>
+							);
+						case 'bundle':
+							return (
+								<S.ColumnFlexWrapper>
+									<BundleInfoSection />
+									<TransactionList
+										key={refreshKey}
+										mode={'bundle'}
+										bundleId={inputTxId}
+										header={language.transactions}
+									/>
+								</S.ColumnFlexWrapper>
+							);
 						case 'process':
 						case 'message':
 							return (
@@ -1153,7 +1425,7 @@ function Transaction(props: {
 								value={inputTxId}
 								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
 								placeholder={language.explorerSearchInput}
-								invalid={{ status: inputTxId ? !checkValidAddress(inputTxId) : false, message: null }}
+								invalid={{ status: inputTxId ? !isValidExplorerInput(inputTxId) : false, message: null }}
 								disabled={loadingTx}
 								autoFocus
 								hideErrorMessage
@@ -1164,7 +1436,7 @@ function Transaction(props: {
 							type={'alt1'}
 							icon={ASSETS.copy}
 							handlePress={() => copyAddress(inputTxId)}
-							disabled={!checkValidAddress(inputTxId)}
+							disabled={!inputTxId}
 							height={32.5}
 							width={32.5}
 							noMinWidth
@@ -1189,7 +1461,7 @@ function Transaction(props: {
 							type={'alt1'}
 							icon={ASSETS.refresh}
 							handlePress={() => handleSubmit()}
-							disabled={loadingTx || !checkValidAddress(inputTxId)}
+							disabled={loadingTx || !isValidExplorerInput(inputTxId)}
 							height={32.5}
 							width={32.5}
 							noMinWidth

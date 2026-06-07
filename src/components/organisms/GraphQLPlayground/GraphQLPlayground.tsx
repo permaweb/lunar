@@ -94,7 +94,7 @@ export default function GraphQLPlayground(props: {
 		}
 	});
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
-	const layoutTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+	const layoutTimeoutRef = React.useRef<any | null>(null);
 
 	// Trigger layout recalculation when tab becomes active
 	React.useEffect(() => {
@@ -220,7 +220,7 @@ export default function GraphQLPlayground(props: {
 	}, [query, props.onQueryChange, props.initialQuery, extractQueryName]);
 
 	const saveCustomGateway = React.useCallback(() => {
-		const trimmedGateway = inputGateway.trim();
+		const trimmedGateway = inputGateway.trim().replace('http://', '').replace('https://', '');
 		// Save gateway with protocol preserved
 		if (trimmedGateway && !gateways.includes(trimmedGateway)) {
 			const updatedGateways = [...gateways, trimmedGateway];

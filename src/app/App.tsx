@@ -5,6 +5,7 @@ import { serviceWorkerManager } from 'helpers/serviceWorkerManager';
 const views = (import.meta as any).glob('../views/**/index.tsx');
 
 const Landing = getLazyImport('Landing');
+const Blocks = getLazyImport('Blocks');
 const Explorer = getLazyImport('Explorer');
 const Console = getLazyImport('Console');
 const GraphQL = getLazyImport('GraphQL');
@@ -136,6 +137,7 @@ export default function App() {
 				<S.App>
 					<Routes>
 						{getRoute(URLS.base, <Landing />)}
+						{getRoute(URLS.blocks, <Blocks />)}
 						{getRoute(URLS.explorer, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid`, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid/:active`, <Explorer />)}

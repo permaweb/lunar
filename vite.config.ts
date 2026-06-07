@@ -15,6 +15,7 @@ export default defineConfig({
 		alias: {
 			react: path.resolve(__dirname, 'node_modules/react'),
 			app: path.resolve(__dirname, 'src/app/'),
+			api: path.resolve(__dirname, 'src/api/'),
 			arweave: path.resolve(__dirname, 'node_modules/arweave'),
 			assets: path.resolve(__dirname, 'src/assets'),
 			components: path.resolve(__dirname, 'src/components'),

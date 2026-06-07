@@ -15,6 +15,7 @@ export const DEFAULT_LEGACY_AUTHORITY = 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4Xbr
 export const DEFAULT_GATEWAYS = {
 	legacy: 'https://ao-search-gateway.goldsky.com',
 	fallback: 'https://cache.forward.computer/~query@1.0/graphql',
+	arweave: 'https://arweave.net/graphql',
 };
 
 export const PROCESSES = {
@@ -43,6 +44,8 @@ export const ASSETS = {
 	arrows: getAssetEndpoint('arrows.svg'),
 	article: getAssetEndpoint('article.svg'),
 	arweave: getAssetEndpoint('arweave.svg'),
+	block: getAssetEndpoint('block.svg'),
+	bundle: getAssetEndpoint('bundle.svg'),
 	checkmark: getAssetEndpoint('checkmark.svg'),
 	close: getAssetEndpoint('close.svg'),
 	code: getAssetEndpoint('code.svg'),
@@ -213,11 +216,13 @@ function createURLs() {
 
 	const docs = `${base}docs/`;
 	const explorer = `${base}explorer/`;
+	const blocks = `${base}blocks/`;
 	const aos = `${base}aos/`;
 	const graphql = `${base}graphql/`;
 
 	return {
 		base: base,
+		blocks: blocks,
 		explorer: explorer,
 		explorerInfo: (id: string) => `${explorer}${id}/info`,
 		explorerMessages: (id: string) => `${explorer}${id}/messages`,

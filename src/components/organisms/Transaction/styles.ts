@@ -118,7 +118,7 @@ export const MessageInfoHeader = styled.div`
 	}
 `;
 
-export const MessageInfoBody = styled.div`
+export const MessageInfoBody = styled.div<{ $hideDesktopLastRowBorder?: boolean }>`
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 
@@ -145,6 +145,16 @@ export const MessageInfoBody = styled.div`
 		&:nth-child(8) {
 			padding: 10px 15px;
 		}
+	}
+
+	@media (min-width: ${STYLING.cutoffs.desktop}) {
+		${(props) =>
+			props.$hideDesktopLastRowBorder &&
+			`
+					> *:nth-last-child(-n + 3) {
+						border-bottom: none;
+					}
+				`}
 	}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
@@ -190,6 +200,18 @@ export const MessageInfoLine = styled.div`
 		align-items: flex-start;
 		border-right: none;
 		padding: 15px;
+	}
+`;
+
+export const Height = styled.div`
+	a p {
+		color: ${(props) => props.theme.colors.link.color};
+	}
+
+	a:hover p {
+		color: ${(props) => props.theme.colors.link.active};
+		text-decoration: underline;
+		text-decoration-thickness: 1.25px;
 	}
 `;
 

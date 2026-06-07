@@ -39,7 +39,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			return parsed.length > 0
 				? parsed.map((tx: any) => ({
 						...tx,
-						lastRoute: tx.lastRoute || (tx.id ? `${URLS[props.type]}${tx.id}` : undefined),
+						lastRoute: tx.id ? getRouteForTab(tx, getStoredSubPath(tx.lastRoute)) : undefined,
 						tabKey: tx.tabKey || `tab-${Date.now()}-${Math.random()}`,
 				  }))
 				: [{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }];
@@ -51,13 +51,14 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
 
 	React.useEffect(() => {
-		const { txId, subPath } = extractTxDetailsFromPath(location.pathname);
+		const { txId, subPath, txType } = extractTxDetailsFromPath(location.pathname);
+		const route = getRouteForTab({ id: txId, type: txType }, subPath);
 
-		if (txId && !transactions.some((tab) => tab.id === txId) && !isDeletingRef.current) {
+		if (txId && !transactions.some((tab) => isSameTab(tab, txId, txType)) && !isDeletingRef.current) {
 			if (transactions.length === 1 && transactions[0].id === '') {
 				setTransactions((prev) => {
 					const updated = [...prev];
-					updated[0] = { ...updated[0], id: txId, label: txId, type: 'message', lastRoute: location.pathname };
+					updated[0] = { ...updated[0], id: txId, label: txId, type: txType, lastRoute: route };
 					return updated;
 				});
 				setActiveTabIndex(0);
@@ -69,8 +70,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 					{
 						id: txId,
 						label: txId,
-						type: 'message',
-						lastRoute: location.pathname,
+						type: txType,
+						lastRoute: route,
 						tabKey: `tab-${Date.now()}-${Math.random()}`,
 					},
 				]);
@@ -78,9 +79,9 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				setVisitedTabs((prev) => new Set(prev).add(newIndex));
 			}
 
-			navigate(`${URLS[props.type]}${txId}${subPath}`);
+			navigate(route);
 		} else if (txId) {
-			const tabIndex = transactions.findIndex((tab) => tab.id === txId);
+			const tabIndex = transactions.findIndex((tab) => isSameTab(tab, txId, txType));
 			if (tabIndex !== -1) {
 				if (tabIndex !== activeTabIndex) {
 					setActiveTabIndex(tabIndex);
@@ -88,7 +89,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				}
 				setTransactions((prev) => {
 					const updated = [...prev];
-					updated[tabIndex] = { ...updated[tabIndex], lastRoute: location.pathname };
+					updated[tabIndex] = { ...updated[tabIndex], lastRoute: route };
 					return updated;
 				});
 			}
@@ -124,12 +125,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		(tabsRef: React.RefObject<HTMLDivElement>) => {
 			tabsContainerRef.current = tabsRef.current;
 
-			const { txId } = extractTxDetailsFromPath(location.pathname);
+			const { txId, txType } = extractTxDetailsFromPath(location.pathname);
 			const activeTab = transactions[activeTabIndex];
 
 			// If the URL doesn't match the active tab, navigate to the active tab's route
-			if (activeTab && activeTab.id !== txId) {
-				const route = activeTab.lastRoute || `${URLS[props.type]}${activeTab.id}`;
+			if (activeTab && (activeTab.id !== txId || activeTab.type !== txType)) {
+				const route = activeTab.lastRoute || getRouteForTab(activeTab);
 				navigate(route, { replace: true });
 			}
 
@@ -154,29 +155,49 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		[location.pathname, transactions, activeTabIndex, props.type, navigate]
 	);
 
+	function getRouteForTab(tab: Pick<ExplorerTabType, 'id' | 'type'>, subPath: string = '') {
+		if (!tab.id) return URLS[props.type];
+		if (props.type === 'aos') return `${URLS.aos}${tab.id}${subPath}`;
+
+		return `${URLS.explorer}${tab.id}${subPath}`;
+	}
+
+	function isSameTab(tab: ExplorerTabType, id: string, type: TransactionTabType['type']) {
+		if (tab.id !== id) return false;
+
+		return props.type === 'explorer' || tab.type === type;
+	}
+
+	function getStoredSubPath(route?: string) {
+		if (!route) return '';
+
+		const parts = route.replace(/#.*/, '').split('/').filter(Boolean);
+		const subPathParts =
+			props.type === 'explorer' && ['block', 'bundle'].includes(parts[1]) ? parts.slice(3) : parts.slice(2);
+		const subPath = subPathParts.join('/') || '';
+
+		return subPath ? `/${subPath}` : '';
+	}
+
 	function extractTxDetailsFromPath(pathname: string) {
 		const parts = pathname.replace(/#.*/, '').split('/').filter(Boolean);
 		const txId = parts[1] || '';
-		const subPath = parts.slice(2).join('/') || '';
+		const subPathParts = parts.slice(2);
+		const subPath = subPathParts.join('/') || '';
+		const matchingTab = transactions.find((tab) => tab.id === txId && tab.type);
+		const txType = matchingTab?.type ?? (txId ? 'message' : null);
 
-		return { txId, subPath: subPath ? `/${subPath}` : '' };
+		return { txId, subPath: subPath ? `/${subPath}` : '', txType };
 	}
 
 	function getInitialIndex() {
 		if (transactions.length <= 0) return 0;
 
-		const parts = location.pathname.split('/');
-		let currentTxId = '';
-		for (const part of parts) {
-			if (checkValidAddress(part)) {
-				currentTxId = part;
-				break;
-			}
-		}
+		const { txId, txType } = extractTxDetailsFromPath(location.pathname);
 
-		if (currentTxId) {
+		if (txId) {
 			for (let i = 0; i < transactions.length; i++) {
-				if (transactions[i].id === currentTxId) return i;
+				if (isSameTab(transactions[i], txId, txType)) return i;
 			}
 		}
 
@@ -199,23 +220,31 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			setTransactions((prev) => {
 				const updated = [...prev];
 				if (updated[tabIndex]) {
-					const isBlankTab = updated[tabIndex].id === '';
+					const nextType = type ? (type.toLowerCase() as TransactionTabType['type']) : 'message';
+					const nextRoute = getRouteForTab({ id: newTx.node.id, type: nextType });
+					const shouldNavigate =
+						tabIndex === activeTabIndex &&
+						(updated[tabIndex].id !== newTx.node.id || updated[tabIndex].type !== nextType);
+
 					updated[tabIndex] = {
 						...updated[tabIndex],
 						id: newTx.node.id,
 						label: name ?? newTx.node.id,
-						type: type ? (type.toLowerCase() as any) : 'message',
+						type: nextType,
+						lastRoute: nextRoute,
 					};
 
-					if (isBlankTab && tabIndex === activeTabIndex) {
-						navigate(`${URLS[props.type]}${newTx.node.id}`);
+					if (shouldNavigate) {
+						navigate(nextRoute);
 					}
 				} else {
+					const nextType = type ? (type.toLowerCase() as TransactionTabType['type']) : 'message';
 					updated.push({
 						id: newTx.node.id,
 						label: name ?? newTx.node.id,
-						type: type ? (type.toLowerCase() as any) : 'message',
+						type: nextType,
 						tabKey: tabKey,
+						lastRoute: getRouteForTab({ id: newTx.node.id, type: nextType }),
 					});
 				}
 				return updated;
@@ -237,7 +266,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		setVisitedTabs((prev) => new Set(prev).add(index));
 		if (!skipNavigation) {
 			const targetTab = transactions[index];
-			const route = targetTab.lastRoute || `${URLS[props.type]}${targetTab.id}`;
+			const route = targetTab.lastRoute || getRouteForTab(targetTab);
 			navigate(route);
 		}
 	};
@@ -267,7 +296,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				}
 			}, 0);
 
-			navigate(id ? `${URLS[props.type]}${id}` : URLS[props.type]);
+			navigate(id ? getRouteForTab(newTab) : URLS[props.type]);
 		},
 		[props.type, navigate]
 	);
@@ -303,8 +332,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		if (updatedTransactions.length > 0) {
 			setTransactions(updatedTransactions);
 			setActiveTabIndex(newActiveIndex);
-			const newId = updatedTransactions[newActiveIndex]?.id ?? '';
-			navigate(`${URLS[props.type]}${newId}`);
+			const nextTab = updatedTransactions[newActiveIndex];
+			navigate(nextTab ? getRouteForTab(nextTab) : URLS[props.type]);
 		} else {
 			setTransactions([{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }]);
 			setActiveTabIndex(0);

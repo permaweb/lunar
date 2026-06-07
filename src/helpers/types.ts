@@ -84,7 +84,7 @@ export type SelectOptionType = { id: string; label: string };
 
 export type UploadMethodType = 'default' | 'turbo';
 
-export type TransactionType = 'process' | 'message' | 'wallet';
+export type TransactionType = 'process' | 'message' | 'wallet' | 'block' | 'bundle';
 
 export interface BaseTabType {
 	id: string;
