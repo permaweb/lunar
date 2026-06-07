@@ -82,14 +82,14 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				label: language.home,
 			},
 			{
+				path: URLS.blocks,
+				icon: ASSETS.block,
+				label: language.blocks,
+			},
+			{
 				path: URLS.explorer,
 				icon: ASSETS.explorer,
 				label: language.explorer,
-			},
-			{
-				path: URLS.blocks,
-				icon: ASSETS.data,
-				label: language.blocks,
 			},
 			{
 				path: URLS.aos,

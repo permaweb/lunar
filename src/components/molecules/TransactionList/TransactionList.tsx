@@ -78,7 +78,9 @@ export default function TransactionList(props: {
 
 					setTransactions(response.transactions.edges);
 					setNextCursor(response.transactions.pageInfo.hasNextPage ? lastEdge?.cursor ?? null : null);
-					setTotalCount(response.transactions.count ?? null);
+					if (response.transactions.count !== undefined) {
+						setTotalCount(response.transactions.count ?? null);
+					}
 					setError(null);
 				}
 			} catch (e: any) {

@@ -5,6 +5,15 @@ export type BlockNode = {
 	previous: string;
 };
 
+export type BlockMetadata = {
+	height?: number;
+	timestamp?: number;
+	tx_root?: string | null;
+	block_size?: string | number | null;
+	indep_hash?: string | null;
+	previous_block?: string | null;
+};
+
 export type TransactionTag = {
 	name: string;
 	value: string;
@@ -51,6 +60,12 @@ export type TransactionsQueryResponse = {
 	transactions: GQLConnection<TransactionNode>;
 };
 
+export type TransactionCountQueryResponse = {
+	transactions: {
+		count?: number | string;
+	};
+};
+
 export type GetBlockArgs = {
 	id?: string;
 	height?: number;
@@ -85,6 +100,7 @@ type GraphQLResponse<T> = {
 };
 
 const DEFAULT_GRAPHQL_ENDPOINT = 'https://arweave.net/graphql';
+const DEFAULT_ARWEAVE_ENDPOINT = 'https://arweave.net';
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
 
@@ -108,7 +124,6 @@ const BLOCK_FIELDS = `
 `;
 
 const TRANSACTION_FIELDS = `
-	count
 	pageInfo {
 		hasNextPage
 	}
@@ -139,6 +154,11 @@ const TRANSACTION_FIELDS = `
 	}
 `;
 
+const TRANSACTION_FIELDS_WITH_COUNT = `
+	count
+	${TRANSACTION_FIELDS}
+`;
+
 const BLOCKS_QUERY = `
 	query Blocks($first: Int, $after: String) {
 		blocks(first: $first, after: $after, sort: HEIGHT_DESC) {
@@ -166,12 +186,45 @@ const BLOCK_BY_HEIGHT_QUERY = `
 const TRANSACTIONS_BY_BLOCK_QUERY = `
 	query TransactionsByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
 		transactions(block: { min: $minBlock, max: $maxBlock }, first: $first, after: $after, sort: HEIGHT_DESC) {
+			${TRANSACTION_FIELDS_WITH_COUNT}
+		}
+	}
+`;
+
+const TRANSACTIONS_BY_BLOCK_PAGINATED_QUERY = `
+	query TransactionsByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
+		transactions(block: { min: $minBlock, max: $maxBlock }, first: $first, after: $after, sort: HEIGHT_DESC) {
 			${TRANSACTION_FIELDS}
 		}
 	}
 `;
 
+const TRANSACTION_COUNT_BY_BLOCK_QUERY = `
+	query TransactionCountByBlock($minBlock: Int, $maxBlock: Int, $first: Int) {
+		transactions(block: { min: $minBlock, max: $maxBlock }, first: $first) {
+			count
+		}
+	}
+`;
+
 const BUNDLES_BY_BLOCK_QUERY = `
+	query BundlesByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
+		transactions(
+			block: { min: $minBlock, max: $maxBlock }
+			tags: [
+				{ name: "bundle-format", values: ["binary"] }
+				{ name: "bundle-version", values: ["2.0.0"] }
+			]
+			first: $first
+			after: $after
+			sort: HEIGHT_DESC
+		) {
+			${TRANSACTION_FIELDS_WITH_COUNT}
+		}
+	}
+`;
+
+const BUNDLES_BY_BLOCK_PAGINATED_QUERY = `
 	query BundlesByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
 		transactions(
 			block: { min: $minBlock, max: $maxBlock }
@@ -189,6 +242,14 @@ const BUNDLES_BY_BLOCK_QUERY = `
 `;
 
 const TRANSACTIONS_BY_BUNDLE_QUERY = `
+	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
+		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
+			${TRANSACTION_FIELDS_WITH_COUNT}
+		}
+	}
+`;
+
+const TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY = `
 	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
 		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
 			${TRANSACTION_FIELDS}
@@ -334,6 +395,38 @@ export async function getBlock(args: GetBlockArgs): Promise<BlockNode | null> {
 	return null;
 }
 
+export async function getBlockMetadataByHeight(height: number): Promise<BlockMetadata> {
+	const response = await fetch(`${DEFAULT_ARWEAVE_ENDPOINT}/block/height/${height}`);
+
+	if (!response.ok) {
+		throw new Error(`Block metadata request failed with status ${response.status}`);
+	}
+
+	return await response.json();
+}
+
+export async function getTransactionCountByBlock(
+	args: Pick<GetTransactionsByBlockArgs, 'blockHeight' | 'blockId' | 'gateway'>
+): Promise<number | null> {
+	const blockHeight = args.blockHeight ?? (args.blockId ? await getBlockHeightById(args.blockId, args.gateway) : null);
+
+	if (blockHeight === null) {
+		return null;
+	}
+
+	const response = await queryGraphQL<TransactionCountQueryResponse>({
+		query: TRANSACTION_COUNT_BY_BLOCK_QUERY,
+		variables: {
+			minBlock: blockHeight,
+			maxBlock: blockHeight,
+			first: 1,
+		},
+		gateway: args.gateway,
+	});
+
+	return normalizeCount(response.transactions.count) ?? null;
+}
+
 export async function getTransactionsByBlock(
 	args: GetTransactionsByBlockArgs = {}
 ): Promise<TransactionsQueryResponse> {
@@ -352,7 +445,13 @@ export async function getTransactionsByBlock(
 	}
 
 	const response = await queryGraphQL<TransactionsQueryResponse>({
-		query: args.bundlesOnly ? BUNDLES_BY_BLOCK_QUERY : TRANSACTIONS_BY_BLOCK_QUERY,
+		query: args.after
+			? args.bundlesOnly
+				? BUNDLES_BY_BLOCK_PAGINATED_QUERY
+				: TRANSACTIONS_BY_BLOCK_PAGINATED_QUERY
+			: args.bundlesOnly
+			? BUNDLES_BY_BLOCK_QUERY
+			: TRANSACTIONS_BY_BLOCK_QUERY,
 		variables: {
 			minBlock: blockHeight,
 			maxBlock: blockHeight,
@@ -369,7 +468,7 @@ export async function getTransactionsByBlock(
 
 export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs): Promise<TransactionsQueryResponse> {
 	const response = await queryGraphQL<TransactionsQueryResponse>({
-		query: TRANSACTIONS_BY_BUNDLE_QUERY,
+		query: args.after ? TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY : TRANSACTIONS_BY_BUNDLE_QUERY,
 		variables: {
 			bundleId: [args.bundleId],
 			first: getFirst(args.first),

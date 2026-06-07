@@ -137,6 +137,8 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 	}, [props.tabs.length, props.defaultTab, props.onAddTab]);
 
 	const handleDeleteTab = (deletedIndex: number) => {
+		if (isAnyLoading) return;
+
 		if (props.onDeleteTab) {
 			props.onDeleteTab(deletedIndex);
 			return;
@@ -303,7 +305,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 	}, [props.loadingStates]);
 
 	const tabElements = React.useMemo(() => {
-		const disabled = isAnyLoading;
+		const closeDisabled = isAnyLoading;
 
 		return (
 			<S.TabsContent ref={tabsRef} className={'scroll-wrapper-hidden'}>
@@ -315,14 +317,14 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						<React.Fragment key={tab.tabKey}>
 							<S.TabAction
 								active={index === props.activeTabIndex}
-								onMouseDown={disabled ? () => {} : handleMouseDown}
-								onClick={(e) => (disabled ? () => {} : handleTabClick(e, index))}
-								disabled={disabled}
+								onMouseDown={handleMouseDown}
+								onClick={(e) => handleTabClick(e, index)}
+								disabled={false}
 								data-tab-index={index}
-								draggable={!disabled}
-								onDragStart={(e) => (disabled ? () => {} : handleDragStart(e, index))}
-								onDragOver={(e) => (disabled ? () => {} : handleDragOver(e, index))}
-								onDragEnd={disabled ? () => {} : handleDragEnd}
+								draggable
+								onDragStart={(e) => handleDragStart(e, index)}
+								onDragOver={(e) => handleDragOver(e, index)}
+								onDragEnd={handleDragEnd}
 							>
 								{showLeftIndicator && <S.DropIndicator side={'left'} />}
 								{showRightIndicator && <S.DropIndicator side={'right'} />}
@@ -342,7 +344,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 											width={10}
 											noMinWidth
 											iconSize={10}
-											disabled={disabled}
+											disabled={closeDisabled}
 											stopPropagation
 											preventDefault
 										/>
@@ -353,7 +355,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						</React.Fragment>
 					);
 				})}
-				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={disabled}>
+				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={false}>
 					<ReactSVG src={ASSETS.add} />
 					{props.languageLabels.newTab}
 				</S.NewTab>

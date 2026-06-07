@@ -118,7 +118,38 @@ export const MessageInfoHeader = styled.div`
 	}
 `;
 
-export const MessageInfoBody = styled.div<{ $hideDesktopLastRowBorder?: boolean }>`
+function getDesktopLastRowBorderStyles(props: { $desktopItemCount?: number; $hideDesktopLastRowBorder?: boolean }) {
+	if (props.$desktopItemCount) {
+		const lastRowStart = props.$desktopItemCount - ((props.$desktopItemCount - 1) % 3);
+		const alignIncompleteLastItem =
+			props.$desktopItemCount % 3 !== 0
+				? `
+					> *:last-child {
+						justify-content: flex-start;
+						text-align: left;
+					}
+				`
+				: '';
+
+		return `
+			> *:nth-child(n + ${lastRowStart}) {
+				border-bottom: none;
+			}
+
+			${alignIncompleteLastItem}
+		`;
+	}
+
+	if (!props.$hideDesktopLastRowBorder) return '';
+
+	return `
+		> *:nth-last-child(-n + 3) {
+			border-bottom: none;
+		}
+	`;
+}
+
+export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDesktopLastRowBorder?: boolean }>`
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 
@@ -148,13 +179,7 @@ export const MessageInfoBody = styled.div<{ $hideDesktopLastRowBorder?: boolean 
 	}
 
 	@media (min-width: ${STYLING.cutoffs.desktop}) {
-		${(props) =>
-			props.$hideDesktopLastRowBorder &&
-			`
-					> *:nth-last-child(-n + 3) {
-						border-bottom: none;
-					}
-				`}
+		${getDesktopLastRowBorderStyles}
 	}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {

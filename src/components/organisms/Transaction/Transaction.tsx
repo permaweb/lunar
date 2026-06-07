@@ -6,7 +6,7 @@ import JSONbig from 'json-bigint';
 
 import { Types } from '@permaweb/libs';
 
-import { BlockNode, getBlock } from 'api/blocks';
+import { BlockMetadata, BlockNode, getBlock, getBlockMetadataByHeight, getTransactionCountByBlock } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
@@ -72,6 +72,13 @@ function checkValidBlockHeight(id: string | null): boolean {
 	return /^\d+$/.test(id);
 }
 
+function formatMetadataHash(id: string | null) {
+	if (!id) return '';
+	if (id.length <= 18) return id;
+
+	return `${id.substring(0, 6)}...${id.substring(id.length - 8)}`;
+}
+
 function Transaction(props: {
 	txId: string;
 	type: TransactionType;
@@ -124,7 +131,11 @@ function Transaction(props: {
 		}
 	}
 
-	function buildBlockResponse(block: BlockNode): Types.GQLNodeResponseType {
+	function buildBlockResponse(
+		block: BlockNode,
+		metadata: BlockMetadata | null = null,
+		transactionCount: number | null = null
+	): Types.GQLNodeResponseType {
 		return {
 			cursor: null,
 			node: {
@@ -139,10 +150,13 @@ function Transaction(props: {
 				},
 				block: {
 					height: block.height,
-					timestamp: block.timestamp,
+					timestamp: metadata?.timestamp ?? block.timestamp,
 				},
-				blockId: block.id,
-				previous: block.previous,
+				blockId: metadata?.indep_hash ?? block.id,
+				previous: metadata?.previous_block ?? block.previous,
+				txRoot: metadata?.tx_root ?? null,
+				blockSize: metadata?.block_size ?? null,
+				txCount: transactionCount,
 			},
 		} as any;
 	}
@@ -225,7 +239,27 @@ function Transaction(props: {
 						throw new Error(language.errorFetchingData);
 					}
 
-					const blockResponse = buildBlockResponse(block);
+					let blockMetadata: BlockMetadata | null = null;
+					let blockTransactionCount: number | null = null;
+
+					await Promise.all([
+						getBlockMetadataByHeight(block.height)
+							.then((metadata) => {
+								blockMetadata = metadata;
+							})
+							.catch((e: any) => {
+								console.error(e);
+							}),
+						getTransactionCountByBlock({ blockHeight: block.height })
+							.then((count) => {
+								blockTransactionCount = count;
+							})
+							.catch((e: any) => {
+								console.error(e);
+							}),
+					]);
+
+					const blockResponse = buildBlockResponse(block, blockMetadata, blockTransactionCount);
 					setTxResponse(blockResponse);
 					if (props.onTxChange) props.onTxChange(blockResponse);
 					setLoadingTx(false);
@@ -826,6 +860,10 @@ function Transaction(props: {
 		const node: any = txResponse?.node;
 		const blockId = node?.blockId;
 		const previous = node?.previous;
+		const txRoot = node?.txRoot;
+		const blockSizeValue = node?.blockSize?.toString?.() ?? null;
+		const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
+		const txCount = typeof node?.txCount === 'number' ? node.txCount : null;
 
 		return (
 			<S.MessageInfo className={'border-wrapper-primary'}>
@@ -844,14 +882,14 @@ function Transaction(props: {
 						)}
 					</S.MessageInfoID>
 				</S.MessageInfoHeader>
-				<S.MessageInfoBody>
+				<S.MessageInfoBody $desktopItemCount={6}>
 					<S.MessageInfoLine>
 						<span>{`${language.blockId}: `}</span>
 						<p title={blockId}>{blockId ? formatBlockId(blockId, false) : '-'}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
-						<span>{`${language.previousBlock}: `}</span>
-						<p title={previous}>{previous ? formatBlockId(previous, false) : '-'}</p>
+						<span>{`${language.transactions}: `}</span>
+						<p>{txCount !== null ? formatCount(txCount.toString()) : '-'}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`${language.date}: `}</span>
@@ -860,6 +898,20 @@ function Transaction(props: {
 								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
 								: '-'}
 						</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.previousBlock}: `}</span>
+						<p title={previous}>{previous ? formatBlockId(previous, false) : '-'}</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.blockSize}: `}</span>
+						<p title={blockSizeValue ?? undefined}>
+							{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : blockSizeValue ?? '-'}
+						</p>
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.txRoot}: `}</span>
+						<p title={txRoot}>{txRoot ? formatMetadataHash(txRoot) : '-'}</p>
 					</S.MessageInfoLine>
 				</S.MessageInfoBody>
 			</S.MessageInfo>
