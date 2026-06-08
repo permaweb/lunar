@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { useTheme } from 'styled-components';
 
 import {
@@ -12,9 +11,8 @@ import {
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
-import { TxAddress } from 'components/atoms/TxAddress';
-import { ASSETS, URLS } from 'helpers/config';
-import { formatAddress, formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
+import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
+import { formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -43,7 +41,6 @@ export default function TransactionList(props: {
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [pageNumber, setPageNumber] = React.useState<number>(1);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
-	const [refreshTrigger, setRefreshTrigger] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -102,15 +99,7 @@ export default function TransactionList(props: {
 		return () => {
 			cancelled = true;
 		};
-	}, [
-		props.mode,
-		props.blockHeight,
-		props.blockId,
-		props.bundleId,
-		pageCursor,
-		refreshTrigger,
-		language.errorFetchingData,
-	]);
+	}, [props.mode, props.blockHeight, props.blockId, props.bundleId, pageCursor, language.errorFetchingData]);
 
 	const scrollToTop = React.useCallback(() => {
 		if (tableContainerRef.current) {
@@ -141,18 +130,10 @@ export default function TransactionList(props: {
 		}
 	}
 
-	function handleRefresh() {
-		setRefreshTrigger((prev) => !prev);
-	}
-
 	function getTransactionType(transaction: TransactionNode) {
 		if (isBundleTransaction(transaction)) return language.bundle;
 
 		return getTagValue(transaction.tags, 'Type') ?? language.transaction;
-	}
-
-	function getTransactionRoute(transaction: TransactionNode) {
-		return `${URLS.explorer}${transaction.id}`;
 	}
 
 	function getTypeBackground(transaction: TransactionNode) {
@@ -236,18 +217,7 @@ export default function TransactionList(props: {
 						</div>
 					)}
 				</S.HeaderMain>
-				<S.HeaderActions className={'scroll-wrapper-hidden'}>
-					<Button
-						type={'alt3'}
-						label={language.refresh}
-						handlePress={handleRefresh}
-						disabled={loading}
-						icon={ASSETS.refresh}
-						iconLeftAlign
-					/>
-					<S.Divider />
-					{getPaginator(false)}
-				</S.HeaderActions>
+				<S.HeaderActions className={'scroll-wrapper-hidden'}>{getPaginator(false)}</S.HeaderActions>
 			</S.Header>
 			{transactions.length > 0 ? (
 				<S.Wrapper>
@@ -274,15 +244,12 @@ export default function TransactionList(props: {
 					<S.BodyWrapper className={'fade-in'}>
 						{transactions.map((edge) => {
 							const transaction = edge.node;
-							const route = getTransactionRoute(transaction);
 
 							return (
 								<S.ElementWrapper key={transaction.id} className={'transaction-list-element'}>
 									<S.ID title={transaction.id}>
 										<S.LinkLabel>
-											<Link to={route}>
-												<p>{formatAddress(transaction.id, false)}</p>
-											</Link>
+											<ExplorerLink value={transaction.id} type={'transaction'} />
 										</S.LinkLabel>
 									</S.ID>
 									<S.TypeValue background={getTypeBackground(transaction)}>
@@ -294,7 +261,7 @@ export default function TransactionList(props: {
 										{transaction.owner?.address ? <TxAddress address={transaction.owner.address} /> : <p>-</p>}
 									</S.Owner>
 									<S.Recipient>
-										{transaction.recipient ? <TxAddress address={transaction.recipient} /> : <p>-</p>}
+										{transaction.recipient ? <TxAddress address={transaction.recipient} /> : <p>No Recipient</p>}
 									</S.Recipient>
 									<S.Size>
 										<p>{getSize(transaction)}</p>

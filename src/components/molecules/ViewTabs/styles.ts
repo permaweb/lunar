@@ -200,7 +200,7 @@ export const TabActiveIndicator = styled.div`
 	left: -0.5px;
 	z-index: 2;
 	top: -2px;
-	border-top: 2px solid ${(props) => props.theme.colors.border.alt1};
+	border-top: 2px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const DropIndicator = styled.div<{ side: 'left' | 'right' }>`

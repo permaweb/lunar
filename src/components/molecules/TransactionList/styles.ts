@@ -113,6 +113,7 @@ export const ElementWrapper = styled.div`
 	justify-content: space-between;
 	gap: 15px;
 	padding: 0 15px;
+	transition: all 75ms;
 	background: ${(props) => props.theme.colors.container.primary.background};
 
 	p {
@@ -161,10 +162,10 @@ export const TypeValue = styled(Type)<{ background?: string }>`
 		border-radius: ${STYLING.dimensions.radius.alt2};
 
 		p {
-			font-size: ${(props) => props.theme.typography.size.xSmall};
+			font-size: ${(props) => props.theme.typography.size.xxSmall};
 			font-family: ${(props) => props.theme.typography.family.primary};
 			font-weight: ${(props) => props.theme.typography.weight.bold};
-			color: ${(props) => props.theme.colors.font.primary};
+			color: ${(props) => props.theme.colors.font.light1};
 		}
 	}
 `;

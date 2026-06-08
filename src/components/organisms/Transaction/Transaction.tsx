@@ -1,16 +1,22 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { Link } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import JSONbig from 'json-bigint';
 
 import { Types } from '@permaweb/libs';
 
-import { BlockMetadata, BlockNode, getBlock, getBlockMetadataByHeight, getTransactionCountByBlock } from 'api/blocks';
+import {
+	BlockMetadata,
+	BlockNode,
+	getBlock,
+	getBlockMetadataByHeight,
+	getTransactionById,
+	getTransactionCountByBlock,
+} from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { TxAddress } from 'components/atoms/TxAddress';
+import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
@@ -19,7 +25,7 @@ import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
-import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { getARBalanceEndpoint, getTxEndpoint, getTxStatusEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
@@ -30,7 +36,9 @@ import {
 	formatDate,
 	formatUnits,
 	getByteSizeDisplay,
+	getRelativeDate,
 	getTagValue,
+	getTransactionTypeFromTags,
 	isNumeric,
 	removeCommitments,
 	resolveLibDeps,
@@ -49,11 +57,20 @@ import { ProcessSource } from '../ProcessSource';
 
 import * as S from './styles';
 
+const TX_FINALITY_CONFIRMATIONS = 15;
+const ARWEAVE_BLOCK_TIME_SECONDS = 120;
+const ARWEAVE_PRICE_ENDPOINT = 'https://api.coingecko.com/api/v3/simple/price?ids=arweave&vs_currencies=usd';
+
+type TxStatusResponse = {
+	block_height?: number;
+	number_of_confirmations?: number;
+};
+
 // Create a context to provide txResponse to all tab views without recreating them
 const TxResponseContext = React.createContext<{
 	txResponse: Types.GQLNodeResponseType | null;
 	inputTxId: string;
-	type: TransactionType;
+	type: TransactionType | null;
 	refreshKey: number;
 }>({
 	txResponse: null,
@@ -79,9 +96,77 @@ function formatMetadataHash(id: string | null) {
 	return `${id.substring(0, 6)}...${id.substring(id.length - 8)}`;
 }
 
+function winstonToArString(winston?: string | number | null) {
+	if (winston === null || winston === undefined) return null;
+
+	const normalized = winston.toString().trim();
+	if (!/^\d+$/.test(normalized)) return null;
+
+	const padded = normalized.padStart(13, '0');
+	const integer = padded.slice(0, -12) || '0';
+	const decimal = padded.slice(-12);
+
+	return `${integer}.${decimal}`;
+}
+
+function formatArDisplay(ar?: string | number | null, winston?: string | number | null) {
+	const raw = ar !== null && ar !== undefined ? ar.toString() : winstonToArString(winston);
+	if (!raw) return '-';
+
+	const [integerPart, decimalPart = ''] = raw.split('.');
+	const integer = formatCount((integerPart || '0').replace(/^0+(?=\d)/, '') || '0');
+	const decimal = decimalPart.slice(0, 10).replace(/0+$/, '');
+
+	return `${decimal ? `${integer}.${decimal}` : integer} AR`;
+}
+
+function formatUsdDisplay(value: number | null) {
+	if (value === null || !Number.isFinite(value)) return null;
+
+	if (value === 0) return '$0.00';
+	if (Math.abs(value) < 0.01) return `$${value.toFixed(8)}`;
+
+	return value.toLocaleString(undefined, {
+		style: 'currency',
+		currency: 'USD',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 6,
+	});
+}
+
+function formatCompactByteSize(bytes: number | null) {
+	if (bytes === null || !Number.isFinite(bytes)) return '-';
+	if (bytes < 1000) return `${bytes} B`;
+
+	const sizes = ['KB', 'MB', 'GB', 'TB'];
+	let value = bytes / 1000;
+	let index = 0;
+
+	while (value >= 1000 && index < sizes.length - 1) {
+		value /= 1000;
+		index += 1;
+	}
+
+	return `${Number(value.toFixed(value >= 10 ? 1 : 2))} ${sizes[index]}`;
+}
+
+function formatStatusEta(confirmations: number | null) {
+	if (confirmations === null || confirmations >= TX_FINALITY_CONFIRMATIONS) return null;
+
+	const remainingConfirmations = Math.max(TX_FINALITY_CONFIRMATIONS - confirmations, 1);
+	const remainingMinutes = Math.max(1, Math.round((remainingConfirmations * ARWEAVE_BLOCK_TIME_SECONDS) / 60));
+
+	if (remainingMinutes < 60) return `~${remainingMinutes}m`;
+
+	const hours = Math.floor(remainingMinutes / 60);
+	const minutes = remainingMinutes % 60;
+
+	return minutes ? `~${hours}h ${minutes}m` : `~${hours}h`;
+}
+
 function Transaction(props: {
 	txId: string;
-	type: TransactionType;
+	type: TransactionType | null;
 	active: boolean;
 	onTxChange?: (newTx: Types.GQLNodeResponseType) => void;
 	handleMessageOpen: (id: string) => void;
@@ -205,6 +290,12 @@ function Transaction(props: {
 		);
 	}
 
+	const resolvedType = React.useMemo(() => {
+		if (!txResponse) return props.type;
+
+		return getTransactionTypeFromTags(txResponse.node?.tags);
+	}, [txResponse, props.type]);
+
 	React.useEffect(() => {
 		setInputTxId(props.txId);
 	}, [props.txId]);
@@ -307,8 +398,8 @@ function Transaction(props: {
 
 					// Fetch message result if this is a message type
 					// Check both props.type and the actual transaction tags to determine if it's a message
-					const txType = getTagValue(responseData.node.tags, 'Type');
-					const isMessage = props.type === 'message' || txType === 'Message';
+					const txType = getTransactionTypeFromTags(responseData.node.tags);
+					const isMessage = txType === 'message';
 
 					if (isMessage) {
 						try {
@@ -565,6 +656,147 @@ function Transaction(props: {
 				<span>{label}</span>
 				{value ? renderContent(value) : <p>-</p>}
 			</S.OverviewLine>
+		);
+	};
+
+	const TxOverviewValue = ({ primary, secondary }: { primary: React.ReactNode; secondary?: React.ReactNode }) => {
+		return (
+			<S.TxOverviewValue>
+				<p>{primary}</p>
+				{secondary && <small>{secondary}</small>}
+			</S.TxOverviewValue>
+		);
+	};
+
+	const TxOverviewLine = ({ label, children }: { label: string; children: React.ReactNode }) => {
+		return (
+			<S.MessageInfoLine>
+				<span>{`${label}: `}</span>
+				{children}
+			</S.MessageInfoLine>
+		);
+	};
+
+	const TransactionOverviewSection = () => {
+		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
+
+		const [txMetadata, setTxMetadata] = React.useState<any | null>(null);
+		const [txStatus, setTxStatus] = React.useState<TxStatusResponse | null>(null);
+		const [arUsdPrice, setArUsdPrice] = React.useState<number | null>(null);
+
+		React.useEffect(() => {
+			if (!inputTxId || !checkValidAddress(inputTxId)) return;
+
+			let active = true;
+
+			setTxMetadata(null);
+			setTxStatus(null);
+			setArUsdPrice(null);
+
+			(async () => {
+				const [metadata, status, price] = await Promise.all([
+					getTransactionById({ id: inputTxId }).catch((e: any) => {
+						console.error(e);
+						return null;
+					}),
+					fetch(getTxStatusEndpoint(inputTxId))
+						.then(async (response) => {
+							if (!response.ok && response.status !== 202) return null;
+
+							return await response.json();
+						})
+						.catch((e: any) => {
+							console.error(e);
+							return null;
+						}),
+					fetch(ARWEAVE_PRICE_ENDPOINT)
+						.then(async (response) => {
+							if (!response.ok) return null;
+
+							const parsed = await response.json();
+							const value = Number(parsed?.arweave?.usd);
+
+							return Number.isFinite(value) ? value : null;
+						})
+						.catch((e: any) => {
+							console.error(e);
+							return null;
+						}),
+				]);
+
+				if (!active) return;
+
+				setTxMetadata(metadata);
+				setTxStatus(status);
+				setArUsdPrice(price);
+			})();
+
+			return () => {
+				active = false;
+			};
+		}, [inputTxId]);
+
+		const node = txMetadata ?? txResponse?.node;
+		const tags = node?.tags ?? txResponse?.node?.tags ?? [];
+		const from = node?.owner?.address ?? txResponse?.node?.owner?.address;
+		const to = node?.recipient || txResponse?.node?.recipient || getTagValue(tags, 'Target') || null;
+		const blockHeight = txStatus?.block_height ?? node?.block?.height ?? txResponse?.node?.block?.height ?? null;
+		const timestamp = node?.block?.timestamp ?? txResponse?.node?.block?.timestamp ?? null;
+		const confirmations = txStatus?.number_of_confirmations ?? null;
+		const pending = confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : !blockHeight;
+		const statusEta = pending ? formatStatusEta(confirmations) : null;
+		const fee = node?.fee;
+		const quantity = node?.quantity;
+		const feeAr = fee?.ar ?? winstonToArString(fee?.winston);
+		const feeUsd = feeAr && arUsdPrice !== null ? formatUsdDisplay(Number(feeAr) * arUsdPrice) : null;
+		const size = node?.data?.size ?? txResponse?.node?.data?.size ?? null;
+
+		function renderAddress(address: string | null | undefined) {
+			if (!address) return <p>-</p>;
+			if (checkValidAddress(address)) return <TxAddress address={address} />;
+
+			return <p>{address}</p>;
+		}
+
+		return (
+			<S.MessageInfo className={'border-wrapper-primary'}>
+				<S.MessageInfoHeader>
+					<p>{language.transactionOverview}</p>
+					<S.MessageInfoID>
+						<TxOverviewValue
+							primary={`Status: ${pending ? language.pending : language.confirmed}`}
+							secondary={statusEta}
+						/>
+					</S.MessageInfoID>
+				</S.MessageInfoHeader>
+				<S.MessageInfoBody $desktopItemCount={9}>
+					<TxOverviewLine label={language.value}>
+						<TxOverviewValue primary={formatArDisplay(quantity?.ar, quantity?.winston)} />
+					</TxOverviewLine>
+					<TxOverviewLine label={language.from}>{renderAddress(from)}</TxOverviewLine>
+					<TxOverviewLine label={language.to}>{renderAddress(to)}</TxOverviewLine>
+					<TxOverviewLine label={language.fee}>
+						<TxOverviewValue primary={formatArDisplay(fee?.ar, fee?.winston)} secondary={feeUsd} />
+					</TxOverviewLine>
+					<TxOverviewLine label={language.date}>
+						<TxOverviewValue primary={formatDate(timestamp * 1000, 'timestamp', true)} />
+					</TxOverviewLine>
+					<TxOverviewLine label={language.age}>
+						<TxOverviewValue primary={timestamp ? getRelativeDate(timestamp * 1000).replace(/ ago$/, '') : '-'} />
+					</TxOverviewLine>
+					<TxOverviewLine label={language.height}>
+						<S.Height>
+							<ExplorerLink value={blockHeight} type={'block'} />
+						</S.Height>
+					</TxOverviewLine>
+					<TxOverviewLine label={language.confirmations}>
+						<TxOverviewValue primary={confirmations !== null ? formatCount(confirmations.toString()) : '-'} />
+					</TxOverviewLine>
+					<TxOverviewLine label={language.size}>
+						<TxOverviewValue primary={formatCompactByteSize(size !== null ? Number(size) : null)} />
+					</TxOverviewLine>
+				</S.MessageInfoBody>
+			</S.MessageInfo>
 		);
 	};
 
@@ -830,9 +1062,7 @@ function Transaction(props: {
 							<span>{`${language.blockHeight}: `}</span>
 							{txResponse?.node?.block?.height ? (
 								<S.Height>
-									<Link to={`${URLS.explorer}${txResponse.node.block.height}`}>
-										<p>{formatCount(txResponse?.node?.block?.height.toString())}</p>
-									</Link>
+									<ExplorerLink value={txResponse.node.block.height} type={'block'} />
 								</S.Height>
 							) : (
 								<p>-</p>
@@ -873,9 +1103,7 @@ function Transaction(props: {
 						<span>{`${language.height}: `}</span>
 						{txResponse?.node?.block?.height ? (
 							<S.Height>
-								<Link to={`${URLS.explorer}${txResponse.node.block.height}`}>
-									<p>{formatCount(txResponse?.node?.block?.height.toString())}</p>
-								</Link>
+								<ExplorerLink value={txResponse.node.block.height} type={'block'} />
 							</S.Height>
 						) : (
 							<p>-</p>
@@ -942,9 +1170,7 @@ function Transaction(props: {
 						<span>{`${language.blockHeightActual}: `}</span>
 						{txResponse?.node?.block?.height ? (
 							<S.Height>
-								<Link to={`${URLS.explorer}${txResponse.node.block.height}`}>
-									<p>{formatCount(txResponse?.node?.block?.height.toString())}</p>
-								</Link>
+								<ExplorerLink value={txResponse.node.block.height} type={'block'} />
 							</S.Height>
 						) : (
 							<p>-</p>
@@ -998,7 +1224,7 @@ function Transaction(props: {
 						}
 					/>
 					<S.OverviewDivider />
-					{props.type === 'process' && (
+					{resolvedType === 'process' && (
 						<>
 							<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
 							<OverviewLine
@@ -1031,7 +1257,7 @@ function Transaction(props: {
 		);
 	};
 
-	const DataSection = () => {
+	const DataSection = (props: { dataHeader?: string }) => {
 		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
 		const [data, setData] = React.useState<any>(null);
 		const [loading, setLoading] = React.useState<boolean>(false);
@@ -1107,10 +1333,19 @@ function Transaction(props: {
 			}
 
 			if (typeof data === 'object') {
-				return <JSONReader data={data} header={null} maxHeight={600} />;
+				return <JSONReader data={data} header={props.dataHeader ?? null} maxHeight={600} />;
 			}
 
-			return <Editor initialData={data} header={null} language={'lua'} readOnly loading={false} fixedHeight={600} />;
+			return (
+				<Editor
+					initialData={data}
+					header={props.dataHeader ?? null}
+					language={'lua'}
+					readOnly
+					loading={false}
+					fixedHeight={600}
+				/>
+			);
 		}
 
 		return <>{getDataContent()}</>;
@@ -1119,10 +1354,10 @@ function Transaction(props: {
 	const TABS = React.useMemo(() => {
 		if (!inputTxId) return null;
 
-		const showOverview = props.type === 'message';
-		const showMessages = props.type === 'message';
-		const showTags = props.type === 'process';
-		const showRead = props.type === 'process' || props.type === 'message';
+		const showOverview = resolvedType === 'message';
+		const showMessages = resolvedType === 'message';
+		const showTags = resolvedType === 'process';
+		const showRead = resolvedType === 'process' || resolvedType === 'message';
 
 		const tabs = [
 			{
@@ -1142,7 +1377,7 @@ function Transaction(props: {
 						recipient: txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target'),
 					});
 
-					switch (props.type) {
+					switch (resolvedType) {
 						case 'block':
 							return (
 								<S.ColumnFlexWrapper>
@@ -1181,7 +1416,7 @@ function Transaction(props: {
 												</S.TagsWrapper>
 											)}
 											<S.ReadWrapper fullWidth={!showTags}>
-												{props.type === 'process' && (
+												{resolvedType === 'process' && (
 													<>
 														<ProcessRead
 															key={refreshKey}
@@ -1191,7 +1426,7 @@ function Transaction(props: {
 														/>
 													</>
 												)}
-												{props.type === 'message' && (
+												{resolvedType === 'message' && (
 													<MessageResult
 														key={refreshKey}
 														processId={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
@@ -1214,7 +1449,7 @@ function Transaction(props: {
 													header={language.resultingMessages}
 													txId={inputTxId}
 													variant={variant}
-													type={props.type}
+													type={resolvedType}
 													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 													parentId={inputTxId}
 													authority={getTagValue(txResponse?.node?.tags, 'Authority')}
@@ -1240,7 +1475,7 @@ function Transaction(props: {
 											key={refreshKey}
 											txId={inputTxId}
 											variant={MessageVariantEnum.Legacynet}
-											type={props.type}
+											type={resolvedType}
 											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 											parentId={inputTxId}
 											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
@@ -1250,21 +1485,24 @@ function Transaction(props: {
 							);
 						default:
 							return (
-								<S.InfoWrapper>
-									<S.TagsWrapper>
-										<TagsSection />
-									</S.TagsWrapper>
-									<S.ReadWrapper fullWidth={false}>
-										<DataSection />
-									</S.ReadWrapper>
-								</S.InfoWrapper>
+								<S.ColumnFlexWrapper>
+									<TransactionOverviewSection />
+									<S.InfoWrapper>
+										<S.SectionWrapperFlex>
+											<TagsSection />
+										</S.SectionWrapperFlex>
+										<S.SectionWrapperFlex>
+											<DataSection dataHeader={'Data'} />
+										</S.SectionWrapperFlex>
+									</S.InfoWrapper>
+								</S.ColumnFlexWrapper>
 							);
 					}
 				},
 			},
 		];
 
-		if (props.type === 'process') {
+		if (resolvedType === 'process') {
 			tabs.push(
 				{
 					label: language.messages,
@@ -1286,7 +1524,7 @@ function Transaction(props: {
 											key={refreshKey}
 											txId={inputTxId}
 											variant={variant}
-											type={props.type}
+											type={resolvedType}
 											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 											parentId={inputTxId}
 											authority={getTagValue(txResponse?.node?.tags, 'Authority')}
@@ -1367,15 +1605,15 @@ function Transaction(props: {
 		}
 
 		return tabs;
-	}, [props.type, inputTxId, arProvider.walletAddress, ownerAddress, language, messageResult]);
+	}, [props.type, resolvedType, inputTxId, arProvider.walletAddress, ownerAddress, language, messageResult]);
 
 	const contextValue = React.useMemo(
-		() => ({ txResponse, inputTxId, type: props.type, refreshKey }),
-		[txResponse, inputTxId, props.type, refreshKey]
+		() => ({ txResponse, inputTxId, type: resolvedType, refreshKey }),
+		[txResponse, inputTxId, resolvedType, refreshKey]
 	);
 
 	const balanceSections = React.useMemo(() => {
-		if (props.type !== 'wallet' && props.type !== 'process') return null;
+		if (resolvedType !== 'wallet' && resolvedType !== 'process') return null;
 		const shouldFetch = !!txResponse;
 		const useNaOnError = false;
 		return (
@@ -1398,7 +1636,7 @@ function Transaction(props: {
 					shouldFetch={shouldFetch}
 					useNaOnError={useNaOnError}
 				/>
-				{props.type === 'wallet' && (
+				{resolvedType === 'wallet' && (
 					<WalletBalanceSection
 						balanceSource={'arweave'}
 						tokenName={'AR'}
@@ -1409,7 +1647,7 @@ function Transaction(props: {
 				)}
 			</>
 		);
-	}, [txResponse, inputTxId, props.type]);
+	}, [txResponse, inputTxId, resolvedType]);
 
 	const transactionTabs = React.useMemo(() => {
 		if (!TABS) return null;
@@ -1524,10 +1762,10 @@ function Transaction(props: {
 						/>
 					</S.SearchWrapper>
 					<S.HeaderActionsWrapper>
-						{props.type && txResponse && (
+						{resolvedType && txResponse && (
 							<S.TxInfoWrapper>
 								<S.UpdateWrapper>
-									<span>{props.type}</span>
+									<span>{resolvedType}</span>
 								</S.UpdateWrapper>
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 									<>

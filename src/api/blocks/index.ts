@@ -19,6 +19,11 @@ export type TransactionTag = {
 	value: string;
 };
 
+export type TransactionAmount = {
+	winston?: string;
+	ar?: string;
+};
+
 export type TransactionNode = {
 	id: string;
 	tags: TransactionTag[];
@@ -33,6 +38,8 @@ export type TransactionNode = {
 		address: string;
 	};
 	recipient?: string;
+	fee?: TransactionAmount;
+	quantity?: TransactionAmount;
 	data?: {
 		size: string;
 		type: string;
@@ -75,6 +82,8 @@ export type GetBlockArgs = {
 export type GetBlocksArgs = {
 	first?: number;
 	after?: string | null;
+	minHeight?: number | null;
+	maxHeight?: number | null;
 	gateway?: string;
 };
 
@@ -91,6 +100,11 @@ export type GetTransactionsByBundleArgs = {
 	bundleId: string;
 	first?: number;
 	after?: string | null;
+	gateway?: string;
+};
+
+export type GetTransactionByIdArgs = {
+	id: string;
 	gateway?: string;
 };
 
@@ -139,6 +153,14 @@ const TRANSACTION_FIELDS = `
 			owner {
 				address
 			}
+			fee {
+				winston
+				ar
+			}
+			quantity {
+				winston
+				ar
+			}
 			block {
 				height
 				timestamp
@@ -159,9 +181,25 @@ const TRANSACTION_FIELDS_WITH_COUNT = `
 	${TRANSACTION_FIELDS}
 `;
 
+const TRANSACTION_BY_ID_QUERY = `
+	query TransactionById($ids: [ID!]) {
+		transactions(ids: $ids, first: 1) {
+			${TRANSACTION_FIELDS}
+		}
+	}
+`;
+
 const BLOCKS_QUERY = `
 	query Blocks($first: Int, $after: String) {
 		blocks(first: $first, after: $after, sort: HEIGHT_DESC) {
+			${BLOCK_FIELDS}
+		}
+	}
+`;
+
+const BLOCKS_BY_RANGE_QUERY = `
+	query BlocksByRange($first: Int, $after: String, $minHeight: Int, $maxHeight: Int) {
+		blocks(first: $first, after: $after, sort: HEIGHT_DESC, height: { min: $minHeight, max: $maxHeight }) {
 			${BLOCK_FIELDS}
 		}
 	}
@@ -356,11 +394,15 @@ async function getBlockHeightById(blockId: string, gateway?: string) {
 }
 
 export async function getBlocks(args: GetBlocksArgs = {}): Promise<BlocksQueryResponse> {
+	const hasRange = args.minHeight !== undefined || args.maxHeight !== undefined;
+
 	return await queryGraphQL<BlocksQueryResponse>({
-		query: BLOCKS_QUERY,
+		query: hasRange ? BLOCKS_BY_RANGE_QUERY : BLOCKS_QUERY,
 		variables: {
 			first: getFirst(args.first),
 			after: args.after ?? null,
+			minHeight: args.minHeight ?? null,
+			maxHeight: args.maxHeight ?? null,
 		},
 		gateway: args.gateway,
 	});
@@ -480,4 +522,16 @@ export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs)
 	return {
 		transactions: normalizeTransactionConnection(response.transactions),
 	};
+}
+
+export async function getTransactionById(args: GetTransactionByIdArgs): Promise<TransactionNode | null> {
+	const response = await queryGraphQL<TransactionsQueryResponse>({
+		query: TRANSACTION_BY_ID_QUERY,
+		variables: {
+			ids: [args.id],
+		},
+		gateway: args.gateway,
+	});
+
+	return normalizeTransactionConnection(response.transactions).edges[0]?.node ?? null;
 }

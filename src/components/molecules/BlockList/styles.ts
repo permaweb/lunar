@@ -49,6 +49,7 @@ export const HeaderMain = styled.div`
 export const HeaderActions = styled.div`
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: 12.5px;
 `;
 
@@ -138,20 +139,6 @@ export const ElementItem = styled.div`
 export const Height = styled(ElementItem)`
 	min-width: 120px;
 	width: 120px;
-
-	a {
-		max-width: 100%;
-	}
-
-	a p {
-		color: ${(props) => props.theme.colors.link.color};
-	}
-
-	a:hover p {
-		color: ${(props) => props.theme.colors.link.active};
-		text-decoration: underline;
-		text-decoration-thickness: 1.25px;
-	}
 `;
 
 export const ID = styled(ElementItem)`

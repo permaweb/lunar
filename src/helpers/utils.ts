@@ -8,7 +8,14 @@ import {
 	DEFAULT_SCHEDULER_URL,
 	PROCESSES,
 } from './config';
-import { DefaultGQLResponseType, GQLNodeResponseType, MessageVariantEnum, ResultMessageType, TagType } from './types';
+import {
+	DefaultGQLResponseType,
+	GQLNodeResponseType,
+	MessageVariantEnum,
+	ResultMessageType,
+	TagType,
+	TransactionType,
+} from './types';
 
 export function checkValidAddress(address: string | null) {
 	if (!address) return false;
@@ -51,6 +58,21 @@ export function getTagValue(list: { [key: string]: any }[], name: string): strin
 	}
 
 	return null;
+}
+
+export function getTransactionTypeFromTags(tags: TagType[] | undefined): TransactionType {
+	const type = getTagValue(tags, 'Type')?.toLowerCase();
+
+	switch (type) {
+		case 'process':
+		case 'message':
+		case 'wallet':
+		case 'block':
+		case 'bundle':
+			return type;
+		default:
+			return 'transaction';
+	}
 }
 
 export function formatCount(count: string): string {

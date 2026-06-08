@@ -6,7 +6,7 @@ import { Types } from '@permaweb/libs';
 import { ViewTabs } from 'components/molecules/ViewTabs';
 import { ASSETS, URLS } from 'helpers/config';
 import { BaseTabType, TransactionTabType } from 'helpers/types';
-import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
+import { checkValidAddress, formatAddress, getTagValue, getTransactionTypeFromTags } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { AOS } from '../AOS';
@@ -185,7 +185,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		const subPathParts = parts.slice(2);
 		const subPath = subPathParts.join('/') || '';
 		const matchingTab = transactions.find((tab) => tab.id === txId && tab.type);
-		const txType = matchingTab?.type ?? (txId ? 'message' : null);
+		const txType = matchingTab?.type ?? (txId ? 'transaction' : null);
 
 		return { txId, subPath: subPath ? `/${subPath}` : '', txType };
 	}
@@ -215,12 +215,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			if (tabIndex === undefined) return;
 
 			const name = getTagValue(newTx.node.tags, 'Name');
-			const type = getTagValue(newTx.node.tags, 'Type');
+			const type = getTransactionTypeFromTags(newTx.node.tags);
 
 			setTransactions((prev) => {
 				const updated = [...prev];
 				if (updated[tabIndex]) {
-					const nextType = type ? (type.toLowerCase() as TransactionTabType['type']) : 'message';
+					const nextType = type as TransactionTabType['type'];
 					const nextRoute = getRouteForTab({ id: newTx.node.id, type: nextType });
 					const shouldNavigate =
 						tabIndex === activeTabIndex &&
@@ -238,7 +238,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 						navigate(nextRoute);
 					}
 				} else {
-					const nextType = type ? (type.toLowerCase() as TransactionTabType['type']) : 'message';
+					const nextType = type as TransactionTabType['type'];
 					updated.push({
 						id: newTx.node.id,
 						label: name ?? newTx.node.id,

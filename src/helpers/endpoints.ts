@@ -11,6 +11,10 @@ export function getTxEndpoint(txId: string) {
 	return `${arweaveEndpoint}/${txId}`;
 }
 
+export function getTxStatusEndpoint(txId: string) {
+	return `${arweaveEndpoint}/tx/${txId}/status`;
+}
+
 export function getRendererEndpoint(renderWith: string, tx: string) {
 	if (checkValidAddress(renderWith)) {
 		return `${arweaveEndpoint}/${renderWith}/?tx=${tx}`;

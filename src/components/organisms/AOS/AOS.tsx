@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { useTheme } from 'styled-components';
 
 import { Types } from '@permaweb/libs';
@@ -9,12 +10,14 @@ import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
 import { Editor } from 'components/molecules/Editor';
 import { ASSETS, DEFAULT_AO_NODE, TAGS } from 'helpers/config';
+import { searchTxById } from 'helpers/search';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatAddress, getTagValue, resolveLibDeps, resolveLibs } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
+import { store } from 'store';
 import { WalletBlock } from 'wallet/WalletBlock';
 
 import * as S from './styles';
@@ -92,6 +95,7 @@ function AOS(props: {
 	onTxChange?: (newTx: Types.GQLNodeResponseType) => void;
 	tabKey?: string;
 }) {
+	const dispatch = useDispatch();
 	const theme = useTheme();
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
@@ -230,8 +234,12 @@ function AOS(props: {
 					if (!txResponse) {
 						setLoadingTx(true);
 						try {
-							const response = await permawebProvider.libs.getGQLData({ ids: [inputProcessId] });
-							const responseData = response?.data?.[0];
+							const responseData = await searchTxById({
+								txId: inputProcessId,
+								getGQLData: permawebProvider.libs.getGQLData,
+								store: store,
+								dispatch: dispatch,
+							});
 
 							setTxResponse(responseData ?? null);
 
@@ -853,9 +861,10 @@ function AOS(props: {
 										height={25}
 										width={25}
 										noMinWidth
-										iconSize={15}
+										iconSize={12}
 										disabled={!hasConnected}
 										tooltip={editorMode ? language.closeEditor : language.openEditor}
+										tooltipPosition={'top-left'}
 										stopPropagation
 										preventDefault
 									/>
@@ -866,8 +875,9 @@ function AOS(props: {
 										height={25}
 										width={25}
 										noMinWidth
-										iconSize={15}
+										iconSize={12}
 										tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+										tooltipPosition={'top-left'}
 										stopPropagation
 										preventDefault
 									/>
@@ -875,14 +885,15 @@ function AOS(props: {
 								<S.InputActionsSection>
 									<Button
 										type={'primary'}
-										icon={ASSETS.send}
+										icon={ASSETS.go}
 										handlePress={handleSubmit}
 										height={25}
 										width={25}
 										noMinWidth
-										iconSize={15}
+										iconSize={12}
 										disabled={!hasConnected || loadingMessage || !inputValue}
 										tooltip={language.run}
+										tooltipPosition={'top-right'}
 										stopPropagation
 										preventDefault
 									/>

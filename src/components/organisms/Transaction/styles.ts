@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { DefaultTheme } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
@@ -79,6 +79,11 @@ export const TagsWrapper = styled.div`
 	}
 `;
 
+export const SectionWrapperFlex = styled.div`
+	width: 50%;
+	flex: 1;
+`;
+
 export const ReadWrapper = styled.div<{ fullWidth: boolean }>`
 	width: ${(props) => (props.fullWidth ? '100%' : 'calc(100% - 475px)')};
 	display: flex;
@@ -118,7 +123,11 @@ export const MessageInfoHeader = styled.div`
 	}
 `;
 
-function getDesktopLastRowBorderStyles(props: { $desktopItemCount?: number; $hideDesktopLastRowBorder?: boolean }) {
+function getDesktopLastRowBorderStyles(props: {
+	$desktopItemCount?: number;
+	$hideDesktopLastRowBorder?: boolean;
+	theme: DefaultTheme;
+}) {
 	if (props.$desktopItemCount) {
 		const lastRowStart = props.$desktopItemCount - ((props.$desktopItemCount - 1) % 3);
 		const alignIncompleteLastItem =
@@ -132,6 +141,10 @@ function getDesktopLastRowBorderStyles(props: { $desktopItemCount?: number; $hid
 				: '';
 
 		return `
+			> * {
+				border-bottom: 1px solid ${props.theme.colors.border.primary};
+			}
+
 			> *:nth-child(n + ${lastRowStart}) {
 				border-bottom: none;
 			}
@@ -153,29 +166,24 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 
-	> {
-		&:last-child,
-		&:nth-child(3),
-		&:nth-child(6) {
-			justify-content: flex-end;
-			text-align: right;
-			border-right: none;
-		}
+	> *:last-child,
+	> *:nth-child(3n) {
+		justify-content: flex-end;
+		text-align: right;
+		border-right: none;
+	}
 
-		&:first-child,
-		&:nth-child(2),
-		&:nth-child(3),
-		&:nth-child(4),
-		&:nth-child(5),
-		&:nth-child(6) {
-			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-		}
+	> *:first-child,
+	> *:nth-child(2),
+	> *:nth-child(3),
+	> *:nth-child(4),
+	> *:nth-child(5),
+	> *:nth-child(6) {
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+	}
 
-		&:nth-child(2),
-		&:nth-child(5),
-		&:nth-child(8) {
-			padding: 10px 15px;
-		}
+	> *:nth-child(3n + 2) {
+		padding: 10px 15px;
 	}
 
 	@media (min-width: ${STYLING.cutoffs.desktop}) {
@@ -185,16 +193,34 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		grid-template-columns: repeat(1, 1fr);
 
-		> {
-			&:nth-child(7),
-			&:nth-child(8) {
-				border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-			}
-
-			&:last-child {
-				border-bottom: none;
-			}
+		> * {
+			justify-content: flex-start;
+			text-align: left;
+			border-right: none;
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 		}
+
+		> *:last-child {
+			border-bottom: none;
+		}
+	}
+`;
+
+export const TxOverviewValue = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 7.5px;
+
+	p {
+		line-height: 1.35;
+	}
+
+	small {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.alt1};
+		line-height: 1.35;
 	}
 `;
 

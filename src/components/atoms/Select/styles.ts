@@ -103,8 +103,9 @@ export const Option = styled.li<{ active: boolean }>`
 	height: calc(${STYLING.dimensions.form.small} + 2px);
 	display: flex;
 	align-items: center;
-	cursor: ${(props) => (props.active ? 'default' : 'pointer')};
-	pointer-events: ${(props) => (props.active ? 'none' : 'all')};
+	justify-content: space-between;
+	gap: 10px;
+	cursor: pointer;
 	color: ${(props) => (props.active ? props.theme.colors.font.light1 : props.theme.colors.font.light1)};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -116,5 +117,42 @@ export const Option = styled.li<{ active: boolean }>`
 	&:hover {
 		color: ${(props) => props.theme.colors.font.light1};
 		background: ${(props) => props.theme.colors.container.alt9.background};
+	}
+`;
+
+export const OptionLabel = styled.span`
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+`;
+
+export const RemoveOption = styled.button`
+	height: 24px;
+	width: 24px;
+	min-width: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	background: transparent;
+	color: ${(props) => props.theme.colors.font.light1};
+	transition: all 100ms;
+
+	div {
+		height: 12px;
+		width: 12px;
+	}
+
+	svg {
+		height: 12px;
+		width: 12px;
+		color: currentColor;
+	}
+
+	&:hover {
+		cursor: pointer;
+		background: ${(props) => props.theme.colors.container.alt8.background};
 	}
 `;

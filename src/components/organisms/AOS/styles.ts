@@ -48,7 +48,7 @@ export const ResultsWrapper = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		background: ${(props) => props.theme.colors.container.alt2.background};
-		border: 1px solid ${(props) => props.theme.colors.border.alt2};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.alt2};
 		padding: 1.5px 7.5px;
 	}
@@ -129,7 +129,7 @@ export const SplashScreen = styled.div`
 	flex-direction: column;
 	gap: 7.5px;
 	position: relative;
-	border: 1px solid ${(props) => props.theme.colors.border.alt2} !important;
+	border: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 `;
 
 export const SplashScreenHeader = styled.div`
@@ -166,7 +166,7 @@ export const SplashScreenLine = styled.div`
 export const SplashScreenDivider = styled.div`
 	height: 1px;
 	width: 100%;
-	border-top: 1px solid ${(props) => props.theme.colors.border.alt2} !important;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 	margin: 10px 0;
 `;
 
@@ -179,13 +179,14 @@ export const InputWrapper = styled.div<{ disabled: boolean }>`
 		props.disabled
 			? props.theme.colors.button.primary.disabled.background
 			: props.theme.colors.container.alt1.background} !important;
-	border: 1px solid ${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.alt1)} !important;
+	border: 1px solid
+		${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.primary)} !important;
 	position: relative;
 	transition: border-color 100ms ease;
 	cursor: text;
 
 	&:focus-within {
-		border-color: ${(props) => !props.disabled && props.theme.colors.border.alt4} !important;
+		border-color: ${(props) => !props.disabled && props.theme.colors.border.primary} !important;
 	}
 `;
 
