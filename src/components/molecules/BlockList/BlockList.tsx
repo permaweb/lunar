@@ -1,14 +1,14 @@
 import React from 'react';
 
-import { BlockNode, getBlocks, GQLEdge } from 'api/blocks';
+import { BlockMetadata, BlockNode, getBlockMetadataByHeight, getBlocks, GQLEdge } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
-import { ExplorerLink } from 'components/atoms/TxAddress';
+import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { ASSETS } from 'helpers/config';
-import { formatAddress, formatCount, formatDate } from 'helpers/utils';
+import { checkValidAddress, formatBlockId, formatCount, formatDate, getByteSizeDisplay } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as FilterS from '../MessageList/styles';
@@ -17,13 +17,19 @@ import * as S from './styles';
 
 const BLOCKS_PER_PAGE = 50;
 
+type BlockListEdge = GQLEdge<
+	BlockNode & {
+		metadata?: BlockMetadata | null;
+	}
+>;
+
 export default function BlockList(props: { header?: string }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
 
-	const [blocks, setBlocks] = React.useState<GQLEdge<BlockNode>[]>([]);
+	const [blocks, setBlocks] = React.useState<BlockListEdge[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(true);
 	const [error, setError] = React.useState<string | null>(null);
 	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
@@ -61,12 +67,60 @@ export default function BlockList(props: { header?: string }) {
 				});
 
 				if (!cancelled) {
-					const lastEdge = response.blocks.edges[response.blocks.edges.length - 1];
+					const visibleEdges = response.blocks.edges.map((edge) => ({
+						...edge,
+						node: {
+							...edge.node,
+							metadata: undefined,
+						},
+					}));
+					const lastEdge = visibleEdges[visibleEdges.length - 1];
 
-					setBlocks(response.blocks.edges);
+					setBlocks(visibleEdges);
 					setNextCursor(response.blocks.pageInfo.hasNextPage ? lastEdge?.cursor ?? null : null);
 					setTotalCount(response.blocks.count ?? null);
 					setError(null);
+					setLoading(false);
+
+					visibleEdges.forEach((edge) => {
+						getBlockMetadataByHeight(edge.node.height)
+							.then((metadata) => {
+								if (cancelled) return;
+
+								setBlocks((currentBlocks) =>
+									currentBlocks.map((currentEdge) =>
+										currentEdge.node.height === edge.node.height
+											? {
+													...currentEdge,
+													node: {
+														...currentEdge.node,
+														metadata: metadata,
+													},
+											  }
+											: currentEdge
+									)
+								);
+							})
+							.catch((e: any) => {
+								console.error(e);
+
+								if (cancelled) return;
+
+								setBlocks((currentBlocks) =>
+									currentBlocks.map((currentEdge) =>
+										currentEdge.node.height === edge.node.height
+											? {
+													...currentEdge,
+													node: {
+														...currentEdge.node,
+														metadata: null,
+													},
+											  }
+											: currentEdge
+									)
+								);
+							});
+					});
 				}
 			} catch (e: any) {
 				console.error(e);
@@ -289,25 +343,67 @@ export default function BlockList(props: { header?: string }) {
 							<S.Previous>
 								<p>{language.previousBlock}</p>
 							</S.Previous>
+							<S.Miner>
+								<p>{language.miner}</p>
+							</S.Miner>
+							<S.Size>
+								<p>{language.size}</p>
+							</S.Size>
+							<S.Transactions>
+								<p>{language.transactions}</p>
+							</S.Transactions>
 							<S.Time>
 								<p>{language.time}</p>
 							</S.Time>
 						</S.HeaderWrapper>
 						<S.BodyWrapper className={'fade-in'}>
 							{blocks.map((edge) => {
+								const metadataPending = edge.node.metadata === undefined;
+								const blockId = edge.node.metadata?.indep_hash ?? edge.node.id;
+								const previous = edge.node.metadata?.previous_block ?? edge.node.previous;
+								const blockSizeValue = edge.node.metadata?.block_size?.toString?.() ?? null;
+								const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
+								const miner = edge.node.metadata?.reward_addr ?? edge.node.metadata?.miner ?? null;
+								const txs = edge.node.metadata?.txs;
+								const txCount = Array.isArray(txs) ? txs.length : null;
+								const timestamp = edge.node.metadata?.timestamp ?? edge.node.timestamp;
+
 								return (
 									<S.ElementWrapper key={edge.node.id} className={'block-list-element'}>
 										<S.Height>
 											<ExplorerLink value={edge.node.height} type={'block'} tooltipPosition={'right'} />
 										</S.Height>
-										<S.ID title={edge.node.id}>
-											<p>{formatAddress(edge.node.id, false)}</p>
+										<S.ID title={blockId}>
+											<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} tooltipPosition={'right'} />
 										</S.ID>
-										<S.Previous title={edge.node.previous}>
-											<p>{formatAddress(edge.node.previous, false)}</p>
+										<S.Previous title={previous}>
+											<ExplorerLink value={previous} label={formatBlockId(previous, false)} tooltipPosition={'right'} />
 										</S.Previous>
+										<S.Miner title={miner ?? undefined}>
+											{miner ? (
+												checkValidAddress(miner) ? (
+													<TxAddress address={miner} tooltipPosition={'right'} />
+												) : (
+													<p>{miner}</p>
+												)
+											) : (
+												<p>-</p>
+											)}
+										</S.Miner>
+										<S.Size title={blockSizeValue ?? undefined}>
+											<p>{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : '-'}</p>
+										</S.Size>
+										<S.Transactions>
+											<p>
+												{metadataPending
+													? `${language.loading}...`
+													: txCount !== null
+													? formatCount(txCount.toString())
+													: '-'}
+											</p>
+										</S.Transactions>
 										<S.Time>
-											<p>{formatDate(edge.node.timestamp * 1000, 'timestamp', true)}</p>
+											<p>{formatDate(timestamp * 1000, 'timestamp', true)}</p>
 										</S.Time>
 									</S.ElementWrapper>
 								);

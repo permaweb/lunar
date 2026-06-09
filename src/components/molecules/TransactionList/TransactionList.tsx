@@ -12,6 +12,7 @@ import {
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
+import { getBundlerLabel } from 'helpers/bundlers';
 import { formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -133,7 +134,7 @@ export default function TransactionList(props: {
 	function getTransactionType(transaction: TransactionNode) {
 		if (isBundleTransaction(transaction)) return language.bundle;
 
-		return getTagValue(transaction.tags, 'Type') ?? language.transaction;
+		return language.transaction;
 	}
 
 	function getTypeBackground(transaction: TransactionNode) {
@@ -244,6 +245,7 @@ export default function TransactionList(props: {
 					<S.BodyWrapper className={'fade-in'}>
 						{transactions.map((edge) => {
 							const transaction = edge.node;
+							const bundlerLabel = getBundlerLabel(transaction.owner?.address, transaction.tags);
 
 							return (
 								<S.ElementWrapper key={transaction.id} className={'transaction-list-element'}>
@@ -258,7 +260,14 @@ export default function TransactionList(props: {
 										</div>
 									</S.TypeValue>
 									<S.Owner>
-										{transaction.owner?.address ? <TxAddress address={transaction.owner.address} /> : <p>-</p>}
+										{transaction.owner?.address ? (
+											<S.LabeledAddress>
+												<TxAddress address={transaction.owner.address} />
+												{bundlerLabel && <S.AddressLabel>{bundlerLabel}</S.AddressLabel>}
+											</S.LabeledAddress>
+										) : (
+											<p>-</p>
+										)}
 									</S.Owner>
 									<S.Recipient>
 										{transaction.recipient ? <TxAddress address={transaction.recipient} /> : <p>No Recipient</p>}

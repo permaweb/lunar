@@ -225,6 +225,25 @@ export const LinkLabel = styled.div`
 	}
 `;
 
+export const LabeledAddress = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 7.5px;
+	min-width: 0;
+`;
+
+export const AddressLabel = styled.small`
+	width: fit-content;
+	padding: 2px 6px;
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	color: ${(props) => props.theme.colors.font.light1};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	white-space: nowrap;
+`;
+
 export const FooterWrapper = styled.div`
 	width: 100%;
 	display: flex;

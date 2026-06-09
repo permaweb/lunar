@@ -316,6 +316,61 @@ function Message(props: {
 		);
 	};
 
+	const OverlayTagValue = ({ value }: { value: any }) => {
+		const displayValue = value?.toString?.() ?? value;
+		const [copied, setCopied] = React.useState<boolean>(false);
+		const [tooltipVisible, setTooltipVisible] = React.useState<boolean>(false);
+		const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+		React.useEffect(() => {
+			return () => {
+				if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+			};
+		}, []);
+
+		async function handleCopy(e: React.MouseEvent) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!displayValue) return;
+
+			await navigator.clipboard.writeText(displayValue);
+			setCopied(true);
+			setTooltipVisible(true);
+
+			if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+			copyTimeoutRef.current = setTimeout(() => {
+				setCopied(false);
+				setTooltipVisible(false);
+			}, 2000);
+		}
+
+		function hideTooltip() {
+			setTooltipVisible(false);
+		}
+
+		function showTooltip() {
+			setTooltipVisible(true);
+		}
+
+		return (
+			<S.OverlayTagValue
+				type={'button'}
+				onBlur={hideTooltip}
+				onClick={handleCopy}
+				onFocus={showTooltip}
+				onMouseEnter={showTooltip}
+				onMouseLeave={hideTooltip}
+				$tooltipVisible={tooltipVisible}
+			>
+				<p>{displayValue}</p>
+				<S.OverlayTagValueTooltip>{copied ? `${language.copied}!` : displayValue}</S.OverlayTagValueTooltip>
+			</S.OverlayTagValue>
+		);
+	};
+
+	const renderOverlayTagValue = (value: any) => <OverlayTagValue value={value} />;
+
 	function getMessageOverlay() {
 		let open = false;
 		let header = null;
@@ -374,7 +429,7 @@ function Message(props: {
 									<p>{language.tags}</p>
 								</S.OverlayTagsHeader>
 								{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-									<OverlayLine key={index} label={tag.name} value={tag.value} />
+									<OverlayLine key={index} label={tag.name} value={tag.value} render={renderOverlayTagValue} />
 								))}
 							</S.OverlayTagsWrapper>
 						)}
@@ -508,6 +563,12 @@ function Message(props: {
 	);
 }
 
+function normalizeVariantFilter(variant: any): MessageVariantEnum | null {
+	if ((Object.values(MessageVariantEnum) as string[]).includes(variant)) return variant as MessageVariantEnum;
+
+	return null;
+}
+
 export default function MessageList(props: {
 	header?: string;
 	txId?: string;
@@ -549,6 +610,7 @@ export default function MessageList(props: {
 					return {
 						filter: parsed.filter,
 						action: parsed.action || null,
+						variant: normalizeVariantFilter(parsed.variant),
 						recipient: parsed.recipient || '',
 						fromAddress: parsed.fromAddress || '',
 						startDate: parsed.startDate || null,
@@ -566,6 +628,9 @@ export default function MessageList(props: {
 		props.currentFilter ?? loadedFilterState?.filter ?? 'outgoing'
 	);
 	const [currentAction, setCurrentAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
+	const [currentVariant, setCurrentVariant] = React.useState<MessageVariantEnum | null>(
+		loadedFilterState?.variant ?? null
+	);
 	const [actionOptions, setActionOptions] = React.useState<string[]>(() => {
 		const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
 		try {
@@ -610,6 +675,9 @@ export default function MessageList(props: {
 
 	// Applied filter states (only updated when "Apply Filters" is clicked)
 	const [appliedAction, setAppliedAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
+	const [appliedVariant, setAppliedVariant] = React.useState<MessageVariantEnum | null>(
+		loadedFilterState?.variant ?? null
+	);
 	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
 	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
 	const [appliedFromAddressIsProcess, setAppliedFromAddressIsProcess] = React.useState<boolean>(false);
@@ -627,6 +695,24 @@ export default function MessageList(props: {
 	function formatDateLabel(date: { year: number; month: number; day: number } | null): string {
 		if (!date) return '';
 		return `${date.month}/${date.day}/${date.year}`;
+	}
+
+	function getVariantFilterLabel(variant: MessageVariantEnum | null) {
+		switch (variant) {
+			case MessageVariantEnum.Legacynet:
+				return `${language.aoLegacynet} (${MessageVariantEnum.Legacynet})`;
+			case MessageVariantEnum.Mainnet:
+				return `${language.aoMainnet} (${MessageVariantEnum.Mainnet})`;
+			default:
+				return language.all;
+		}
+	}
+
+	function buildQueryTags(tags: { name: string; values: string[] }[]) {
+		const nextTags = appliedVariant ? [...tags, { name: 'Variant', values: [appliedVariant] }] : [...tags];
+		const variantForQuery = appliedVariant ?? props.variant;
+
+		return variantForQuery === MessageVariantEnum.Mainnet ? lowercaseTagKeys(nextTags) : nextTags;
 	}
 
 	async function timestampToBlockHeight(timestamp: number): Promise<number> {
@@ -681,6 +767,7 @@ export default function MessageList(props: {
 				const filterState = {
 					filter: currentFilter,
 					action: currentAction,
+					variant: currentVariant,
 					recipient: recipient,
 					fromAddress: fromAddress,
 					startDate: startDate,
@@ -701,17 +788,13 @@ export default function MessageList(props: {
 
 				tags.push({ name: 'From-Process', values: [props.txId] });
 
-				if (props.variant === MessageVariantEnum.Mainnet) {
-					tags = lowercaseTagKeys(tags);
-				}
-
 				return {
-					tags: [...tags],
+					tags: buildQueryTags(tags),
 					owners: [props.authority ?? ''],
 				};
 			case 'wallet':
 				return {
-					tags: [...outgoingTags],
+					tags: buildQueryTags(outgoingTags),
 					owners: [props.txId],
 				};
 		}
@@ -743,25 +826,28 @@ export default function MessageList(props: {
 	// Save filter state whenever it changes
 	React.useEffect(() => {
 		saveFilterState();
-	}, [currentFilter, currentAction, recipient, fromAddress, startDate, endDate]);
+	}, [currentFilter, currentAction, currentVariant, recipient, fromAddress, startDate, endDate]);
 
 	React.useEffect(() => {
 		(async function () {
-			let tags = [];
-			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+			const baseTags = [];
+			if (appliedAction) baseTags.push({ name: 'Action', values: [appliedAction] });
 
 			if (props.txId) {
 				try {
 					// Build incoming query args
 					let incomingQueryArgs: any = {
-						tags: tags,
+						tags: buildQueryTags(baseTags),
 						recipients: [props.txId],
 					};
 
 					// Add fromAddress filter if applicable
 					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
 						if (appliedFromAddressIsProcess) {
-							incomingQueryArgs.tags = [...tags, { name: 'From-Process', values: [appliedFromAddress] }];
+							incomingQueryArgs.tags = buildQueryTags([
+								...baseTags,
+								{ name: 'From-Process', values: [appliedFromAddress] },
+							]);
 						} else {
 							incomingQueryArgs.owners = [appliedFromAddress];
 						}
@@ -782,7 +868,7 @@ export default function MessageList(props: {
 
 					let outgoingQueryArgs: any = {
 						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
-						...(await getOutgoingGQLArgs(tags)),
+						...(await getOutgoingGQLArgs(baseTags)),
 					};
 
 					// Add time range filters for outgoing
@@ -824,7 +910,7 @@ export default function MessageList(props: {
 						switch (currentFilter) {
 							case 'incoming':
 								let incomingQueryArgs: any = {
-									tags: tags,
+									tags: buildQueryTags(tags),
 									recipients: [props.txId],
 									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
@@ -834,7 +920,10 @@ export default function MessageList(props: {
 								// Add fromAddress filter if applicable
 								if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
 									if (appliedFromAddressIsProcess) {
-										incomingQueryArgs.tags = [...tags, { name: 'From-Process', values: [appliedFromAddress] }];
+										incomingQueryArgs.tags = buildQueryTags([
+											...tags,
+											{ name: 'From-Process', values: [appliedFromAddress] },
+										]);
 									} else {
 										incomingQueryArgs.owners = [appliedFromAddress];
 									}
@@ -964,7 +1053,7 @@ export default function MessageList(props: {
 				tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
 
 				let globalQueryArgs: any = {
-					tags: tags,
+					tags: buildQueryTags(tags),
 					paginator: perPage,
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
@@ -1055,6 +1144,7 @@ export default function MessageList(props: {
 	function handleFilterUpdate() {
 		// Update applied filter states
 		setAppliedAction(currentAction);
+		setAppliedVariant(currentVariant);
 		setAppliedRecipient(recipient);
 		setAppliedFromAddress(fromAddress);
 		setAppliedFromAddressIsProcess(fromAddressIsProcess);
@@ -1147,6 +1237,7 @@ export default function MessageList(props: {
 
 	const invalidPerPage = perPage <= 0 || perPage > 100;
 	const customActionSelected = currentAction && actionOptions.some((action) => action === currentAction);
+	const variantOptions = [null, MessageVariantEnum.Legacynet, MessageVariantEnum.Mainnet];
 
 	return (
 		<>
@@ -1193,6 +1284,21 @@ export default function MessageList(props: {
 										handlePress={() => {
 											setCurrentAction(null);
 											setAppliedAction(null);
+											setToggleFilterChange((prev) => !prev);
+											handleClear();
+										}}
+										active={true}
+										disabled={loadingMessages}
+										icon={ASSETS.close}
+									/>
+								)}
+								{appliedVariant && (
+									<Button
+										type={'alt3'}
+										label={`${language.variant} (${appliedVariant})`}
+										handlePress={() => {
+											setCurrentVariant(null);
+											setAppliedVariant(null);
 											setToggleFilterChange((prev) => !prev);
 											handleClear();
 										}}
@@ -1389,6 +1495,29 @@ export default function MessageList(props: {
 								height={40}
 								fullWidth
 							/>
+						</S.FilterDropdownActionSelect>
+						<S.FilterDivider />
+						<S.FilterDropdownHeader>
+							<p>{language.filterByVariant}</p>
+						</S.FilterDropdownHeader>
+						<S.FilterDropdownActionSelect>
+							{variantOptions.map((variant) => {
+								const optionId = variant ?? 'all';
+
+								return (
+									<Button
+										key={optionId}
+										type={'primary'}
+										label={getVariantFilterLabel(variant)}
+										handlePress={() => setCurrentVariant(currentVariant === variant ? null : variant)}
+										disabled={loadingMessages}
+										active={currentVariant === variant}
+										icon={currentVariant === variant && variant ? ASSETS.close : null}
+										height={40}
+										fullWidth
+									/>
+								);
+							})}
 						</S.FilterDropdownActionSelect>
 						<S.FilterDivider />
 						{(currentFilter !== 'incoming' || !props.txId) && (

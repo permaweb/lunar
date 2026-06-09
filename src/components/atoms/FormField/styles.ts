@@ -57,9 +57,33 @@ export const Input = styled.input<{
 	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 
 	&::placeholder {
-		color: ${(props) => props.theme.colors.font.alt1};
+		color: ${(props) => props.theme.colors.font.alt2} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall};
-		opacity: 1;
+		opacity: 0.75;
+	}
+
+	&::-webkit-input-placeholder {
+		color: ${(props) => props.theme.colors.font.alt2} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		opacity: 0.75;
+	}
+
+	&::-moz-placeholder {
+		color: ${(props) => props.theme.colors.font.alt2} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		opacity: 0.75;
+	}
+
+	&:-ms-input-placeholder {
+		color: ${(props) => props.theme.colors.font.alt2} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		opacity: 0.75;
+	}
+
+	&::-ms-input-placeholder {
+		color: ${(props) => props.theme.colors.font.alt2} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		opacity: 0.75;
 	}
 
 	&:focus {

@@ -10,6 +10,7 @@ import {
 	BlockNode,
 	getBlock,
 	getBlockMetadataByHeight,
+	getCurrentBlockHeight,
 	getTransactionById,
 	getTransactionCountByBlock,
 } from 'api/blocks';
@@ -24,6 +25,7 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
+import { getBundlerLabel } from 'helpers/bundlers';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint, getTxEndpoint, getTxStatusEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
@@ -219,8 +221,15 @@ function Transaction(props: {
 	function buildBlockResponse(
 		block: BlockNode,
 		metadata: BlockMetadata | null = null,
-		transactionCount: number | null = null
+		transactionCount: number | null = null,
+		currentBlockHeight: number | null = null
 	): Types.GQLNodeResponseType {
+		const metadataTxCount = Array.isArray(metadata?.txs) ? metadata.txs.length : null;
+		const confirmations =
+			currentBlockHeight !== null && Number.isFinite(currentBlockHeight)
+				? Math.max(currentBlockHeight - block.height, 0)
+				: null;
+
 		return {
 			cursor: null,
 			node: {
@@ -241,7 +250,10 @@ function Transaction(props: {
 				previous: metadata?.previous_block ?? block.previous,
 				txRoot: metadata?.tx_root ?? null,
 				blockSize: metadata?.block_size ?? null,
-				txCount: transactionCount,
+				txCount: transactionCount ?? metadataTxCount,
+				miner: metadata?.reward_addr ?? metadata?.miner ?? null,
+				minerReward: metadata?.reward ?? null,
+				confirmations: confirmations,
 			},
 		} as any;
 	}
@@ -332,6 +344,7 @@ function Transaction(props: {
 
 					let blockMetadata: BlockMetadata | null = null;
 					let blockTransactionCount: number | null = null;
+					let currentBlockHeight: number | null = null;
 
 					await Promise.all([
 						getBlockMetadataByHeight(block.height)
@@ -348,9 +361,16 @@ function Transaction(props: {
 							.catch((e: any) => {
 								console.error(e);
 							}),
+						getCurrentBlockHeight()
+							.then((height) => {
+								currentBlockHeight = height;
+							})
+							.catch((e: any) => {
+								console.error(e);
+							}),
 					]);
 
-					const blockResponse = buildBlockResponse(block, blockMetadata, blockTransactionCount);
+					const blockResponse = buildBlockResponse(block, blockMetadata, blockTransactionCount, currentBlockHeight);
 					setTxResponse(blockResponse);
 					if (props.onTxChange) props.onTxChange(blockResponse);
 					setLoadingTx(false);
@@ -659,6 +679,61 @@ function Transaction(props: {
 		);
 	};
 
+	const TagValue = ({ value }: { value: any }) => {
+		const displayValue = value?.toString?.() ?? value;
+		const [copied, setCopied] = React.useState<boolean>(false);
+		const [tooltipVisible, setTooltipVisible] = React.useState<boolean>(false);
+		const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+		React.useEffect(() => {
+			return () => {
+				if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+			};
+		}, []);
+
+		async function handleCopy(e: React.MouseEvent) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!displayValue) return;
+
+			await navigator.clipboard.writeText(displayValue);
+			setCopied(true);
+			setTooltipVisible(true);
+
+			if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+			copyTimeoutRef.current = setTimeout(() => {
+				setCopied(false);
+				setTooltipVisible(false);
+			}, 2000);
+		}
+
+		function hideTooltip() {
+			setTooltipVisible(false);
+		}
+
+		function showTooltip() {
+			setTooltipVisible(true);
+		}
+
+		return (
+			<S.TagValue
+				type={'button'}
+				onBlur={hideTooltip}
+				onClick={handleCopy}
+				onFocus={showTooltip}
+				onMouseEnter={showTooltip}
+				onMouseLeave={hideTooltip}
+				$tooltipVisible={tooltipVisible}
+			>
+				<p>{displayValue}</p>
+				<S.TagValueTooltip>{copied ? `${language.copied}!` : displayValue}</S.TagValueTooltip>
+			</S.TagValue>
+		);
+	};
+
+	const renderTagValue = (value: any) => <TagValue value={value} />;
+
 	const TxOverviewValue = ({ primary, secondary }: { primary: React.ReactNode; secondary?: React.ReactNode }) => {
 		return (
 			<S.TxOverviewValue>
@@ -674,6 +749,33 @@ function Transaction(props: {
 				<span>{`${label}: `}</span>
 				{children}
 			</S.MessageInfoLine>
+		);
+	};
+
+	const CopyableValue = ({ value, label }: { value: string | null | undefined; label: string }) => {
+		const [copied, setCopied] = React.useState<boolean>(false);
+
+		const handleCopy = React.useCallback(
+			async (e: React.MouseEvent) => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				if (!value) return;
+
+				await navigator.clipboard.writeText(value);
+				setCopied(true);
+				setTimeout(() => setCopied(false), 2000);
+			},
+			[value]
+		);
+
+		if (!value) return <p>-</p>;
+
+		return (
+			<S.CopyableValue type={'button'} title={value} onClick={handleCopy}>
+				<p>{copied ? `${language.copied}!` : label}</p>
+				<ReactSVG src={ASSETS.copy} />
+			</S.CopyableValue>
 		);
 	};
 
@@ -1094,6 +1196,10 @@ function Transaction(props: {
 		const blockSizeValue = node?.blockSize?.toString?.() ?? null;
 		const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
 		const txCount = typeof node?.txCount === 'number' ? node.txCount : null;
+		const miner = node?.miner ?? null;
+		const minerReward = node?.minerReward ?? null;
+		const confirmations = typeof node?.confirmations === 'number' ? node.confirmations : null;
+		const timestamp = txResponse?.node?.block?.timestamp ?? null;
 
 		return (
 			<S.MessageInfo className={'border-wrapper-primary'}>
@@ -1110,10 +1216,38 @@ function Transaction(props: {
 						)}
 					</S.MessageInfoID>
 				</S.MessageInfoHeader>
-				<S.MessageInfoBody $desktopItemCount={6}>
+				<S.MessageInfoBody $desktopItemCount={9}>
 					<S.MessageInfoLine>
 						<span>{`${language.blockId}: `}</span>
-						<p title={blockId}>{blockId ? formatBlockId(blockId, false) : '-'}</p>
+						{blockId ? (
+							<S.HashLink>
+								<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} />
+							</S.HashLink>
+						) : (
+							<p>-</p>
+						)}
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.previousBlock}: `}</span>
+						{previous ? (
+							<S.HashLink>
+								<ExplorerLink value={previous} label={formatBlockId(previous, false)} />
+							</S.HashLink>
+						) : (
+							<p>-</p>
+						)}
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.txRoot}: `}</span>
+						<CopyableValue value={txRoot} label={txRoot ? formatMetadataHash(txRoot) : '-'} />
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.miner}: `}</span>
+						{miner ? checkValidAddress(miner) ? <TxAddress address={miner} /> : <p>{miner}</p> : <p>-</p>}
+					</S.MessageInfoLine>
+					<S.MessageInfoLine>
+						<span>{`${language.minerReward}: `}</span>
+						<p>{formatArDisplay(null, minerReward)}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`${language.transactions}: `}</span>
@@ -1121,25 +1255,20 @@ function Transaction(props: {
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`${language.date}: `}</span>
-						<p>
-							{txResponse?.node?.block?.timestamp
-								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
-								: '-'}
-						</p>
+						<TxOverviewValue
+							primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'}
+							secondary={timestamp ? `(${getRelativeDate(timestamp * 1000)})` : null}
+						/>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
-						<span>{`${language.previousBlock}: `}</span>
-						<p title={previous}>{previous ? formatBlockId(previous, false) : '-'}</p>
+						<span>{`${language.confirmations}: `}</span>
+						<p>{confirmations !== null ? formatCount(confirmations.toString()) : '-'}</p>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`${language.blockSize}: `}</span>
 						<p title={blockSizeValue ?? undefined}>
 							{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : blockSizeValue ?? '-'}
 						</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.txRoot}: `}</span>
-						<p title={txRoot}>{txRoot ? formatMetadataHash(txRoot) : '-'}</p>
 					</S.MessageInfoLine>
 				</S.MessageInfoBody>
 			</S.MessageInfo>
@@ -1151,6 +1280,8 @@ function Transaction(props: {
 		const tags = txResponse?.node?.tags ?? [];
 		const bundleFormat = getTagValue(tags, 'bundle-format');
 		const bundleVersion = getTagValue(tags, 'bundle-version');
+		const ownerAddress = txResponse?.node?.owner?.address ?? null;
+		const bundlerLabel = getBundlerLabel(ownerAddress, tags);
 
 		return (
 			<S.MessageInfo className={'border-wrapper-primary'}>
@@ -1163,8 +1294,15 @@ function Transaction(props: {
 				</S.MessageInfoHeader>
 				<S.MessageInfoBody $hideDesktopLastRowBorder>
 					<S.MessageInfoLine>
-						<span>{`${language.owner}: `}</span>
-						{txResponse?.node?.owner?.address ? <TxAddress address={txResponse.node.owner.address} /> : <p>-</p>}
+						<span>{`${language.bundler}: `}</span>
+						{ownerAddress ? (
+							<S.LabeledAddress>
+								<TxAddress address={ownerAddress} />
+								{bundlerLabel && <S.AddressLabel>{bundlerLabel}</S.AddressLabel>}
+							</S.LabeledAddress>
+						) : (
+							<p>-</p>
+						)}
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
 						<span>{`${language.blockHeightActual}: `}</span>
@@ -1201,21 +1339,71 @@ function Transaction(props: {
 		);
 	};
 
-	const TagsSection = () => {
+	const BundleTagsSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
-		const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
-		const filteredTags =
-			txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
+		const tags = txResponse?.node?.tags ?? [];
+		const filteredTags = tags.filter((tag: { name: string }) => !['type', 'name'].includes(tag.name.toLowerCase()));
+
+		if (filteredTags.length <= 0) return null;
 
 		return (
 			<S.Section className={'border-wrapper-alt3'}>
 				<S.SectionHeader>
-					<p>{language.tags}</p>
+					<p>{language.bundleTags}</p>
 				</S.SectionHeader>
 				<S.OverviewWrapper>
+					{filteredTags.map((tag: { name: string; value: string }, index: number) => (
+						<OverviewLine key={`${tag.name}-${index}`} label={tag.name} value={tag.value} render={renderTagValue} />
+					))}
+				</S.OverviewWrapper>
+			</S.Section>
+		);
+	};
+
+	const TagsSection = (props: { fixedHeight?: number } = {}) => {
+		const { txResponse } = React.useContext(TxResponseContext);
+		const overviewWrapperRef = React.useRef<HTMLDivElement | null>(null);
+		const [overviewHasOverflow, setOverviewHasOverflow] = React.useState<boolean>(false);
+		const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
+		const filteredTags =
+			txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
+
+		React.useEffect(() => {
+			const element = overviewWrapperRef.current;
+			if (!element) return;
+
+			function updateOverflowState() {
+				setOverviewHasOverflow(element.scrollHeight > element.clientHeight);
+			}
+
+			updateOverflowState();
+
+			if (typeof ResizeObserver === 'undefined') {
+				window.addEventListener('resize', updateOverflowState);
+				return () => window.removeEventListener('resize', updateOverflowState);
+			}
+
+			const observer = new ResizeObserver(updateOverflowState);
+			observer.observe(element);
+
+			return () => observer.disconnect();
+		}, [props.fixedHeight, txResponse]);
+
+		return (
+			<S.Section className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
+				<S.SectionHeader>
+					<p>{language.tags}</p>
+				</S.SectionHeader>
+				<S.OverviewWrapper
+					ref={overviewWrapperRef}
+					$fixedHeight={props.fixedHeight}
+					$hasOverflow={overviewHasOverflow}
+					className={'scroll-wrapper'}
+				>
 					<OverviewLine
 						label={language.type}
 						value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Type')}
+						render={renderTagValue}
 					/>
 					<OverviewLine
 						label={language.dateCreated}
@@ -1230,21 +1418,24 @@ function Transaction(props: {
 							<OverviewLine
 								label={language.authority}
 								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Authority')}
+								render={renderTagValue}
 							/>
 							<OverviewLine
 								label={language.module}
 								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Module')}
+								render={renderTagValue}
 							/>
 							<OverviewLine
 								label={language.scheduler}
 								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Scheduler')}
+								render={renderTagValue}
 							/>
 						</>
 					)}
 					{txResponse ? (
 						<>
 							{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-								<OverviewLine key={index} label={tag.name} value={tag.value} />
+								<OverviewLine key={index} label={tag.name} value={tag.value} render={renderTagValue} />
 							))}
 						</>
 					) : (
@@ -1257,7 +1448,7 @@ function Transaction(props: {
 		);
 	};
 
-	const DataSection = (props: { dataHeader?: string }) => {
+	const DataSection = (props: { dataHeader?: string; fixedHeight?: number }) => {
 		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
 		const [data, setData] = React.useState<any>(null);
 		const [loading, setLoading] = React.useState<boolean>(false);
@@ -1304,13 +1495,16 @@ function Transaction(props: {
 		}, [inputTxId]);
 
 		function getDataContent() {
-			if (loading) return null;
-			if (!data) return null;
+			if (loading || !data) {
+				return props.fixedHeight ? (
+					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight} />
+				) : null;
+			}
 
 			// Render HTML directly
 			if (contentType === 'text/html') {
 				return (
-					<S.Section className={'border-wrapper-alt3'}>
+					<S.Section className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
 						<S.SectionHeader>
 							<p>{language.data}</p>
 						</S.SectionHeader>
@@ -1322,7 +1516,7 @@ function Transaction(props: {
 			// Render images
 			if (contentType && contentType.startsWith('image/')) {
 				return (
-					<S.DataSection>
+					<S.DataSection $fixedHeight={props.fixedHeight}>
 						<img
 							src={getTxEndpoint(inputTxId)}
 							alt={language.transactionData}
@@ -1333,17 +1527,24 @@ function Transaction(props: {
 			}
 
 			if (typeof data === 'object') {
-				return <JSONReader data={data} header={props.dataHeader ?? null} maxHeight={600} />;
+				return (
+					<JSONReader
+						data={data}
+						header={props.dataHeader ?? null}
+						maxHeight={props.fixedHeight ?? 600}
+						fixedHeight={props.fixedHeight}
+					/>
+				);
 			}
 
 			return (
 				<Editor
 					initialData={data}
-					header={props.dataHeader ?? null}
+					header={null}
 					language={'lua'}
 					readOnly
 					loading={false}
-					fixedHeight={600}
+					fixedHeight={props.fixedHeight ?? 600}
 				/>
 			);
 		}
@@ -1395,6 +1596,7 @@ function Transaction(props: {
 							return (
 								<S.ColumnFlexWrapper>
 									<BundleInfoSection />
+									<BundleTagsSection />
 									<TransactionList
 										key={refreshKey}
 										mode={'bundle'}

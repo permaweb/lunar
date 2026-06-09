@@ -76,8 +76,7 @@ export const NodeSectionHeader = styled.div`
 		color: ${(props) => props.theme.colors.font.alt1};
 		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
-		font-family: ${(props) => props.theme.typography.family.alt1} !important;
-		text-transform: uppercase;
+		font-family: ${(props) => props.theme.typography.family.primary} !important;
 	}
 `;
 

@@ -36,24 +36,36 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 	React.useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.metaKey || e.ctrlKey) {
-				setIsModifierKeyPressed(true);
-			}
+			setIsModifierKeyPressed(e.metaKey || e.ctrlKey);
 		};
 
 		const handleKeyUp = (e: KeyboardEvent) => {
-			if (!e.metaKey && !e.ctrlKey) {
-				setIsModifierKeyPressed(false);
-			}
+			setIsModifierKeyPressed(e.metaKey || e.ctrlKey);
+		};
+
+		const resetModifierState = () => {
+			setIsModifierKeyPressed(false);
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.hidden) resetModifierState();
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		window.addEventListener('keyup', handleKeyUp);
+		window.addEventListener('blur', resetModifierState);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
 
 		return () => {
 			window.removeEventListener('keydown', handleKeyDown);
 			window.removeEventListener('keyup', handleKeyUp);
+			window.removeEventListener('blur', resetModifierState);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
+	}, []);
+
+	const handleMouseModifierState = React.useCallback((e: React.MouseEvent) => {
+		setIsModifierKeyPressed(e.metaKey || e.ctrlKey);
 	}, []);
 
 	const handleClick = React.useCallback(
@@ -91,7 +103,12 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 	if (!value) return <p>-</p>;
 
 	return (
-		<S.Wrapper disabled={copied} onClick={handleClick}>
+		<S.Wrapper
+			disabled={copied}
+			onClick={handleClick}
+			onMouseEnter={handleMouseModifierState}
+			onMouseMove={handleMouseModifierState}
+		>
 			<p>{copied ? `${language.copied}!` : getLabel()}</p>
 			{props.showIcon !== false && (
 				<S.IconWrapper>

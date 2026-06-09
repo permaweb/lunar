@@ -137,10 +137,19 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 		button {
 			background: transparent !important;
 
-			&:hover {
+			&:not(:disabled):hover {
 				svg {
 					color: ${(props) => props.theme.colors.warning.primary} !important;
 					fill: ${(props) => props.theme.colors.warning.primary} !important;
+				}
+			}
+
+			&:disabled {
+				cursor: default;
+
+				svg {
+					color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
+					fill: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 				}
 			}
 		}

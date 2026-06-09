@@ -82,6 +82,10 @@ export const TagsWrapper = styled.div`
 export const SectionWrapperFlex = styled.div`
 	width: 50%;
 	flex: 1;
+
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		width: 100%;
+	}
 `;
 
 export const ReadWrapper = styled.div<{ fullWidth: boolean }>`
@@ -264,6 +268,75 @@ export const Height = styled.div`
 		text-decoration: underline;
 		text-decoration-thickness: 1.25px;
 	}
+`;
+
+export const HashLink = styled.div`
+	max-width: 100%;
+
+	p {
+		color: ${(props) => props.theme.colors.link.color};
+	}
+`;
+
+export const CopyableValue = styled.button`
+	max-width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 6.5px;
+	padding: 0;
+	background: transparent;
+	border: none;
+
+	p {
+		color: ${(props) => props.theme.colors.link.color};
+	}
+
+	div {
+		height: 12.5px;
+		width: 12.5px;
+	}
+
+	svg {
+		height: 12.5px;
+		width: 12.5px;
+		margin: 2px 0 0 0;
+		color: ${(props) => props.theme.colors.link.color};
+		fill: ${(props) => props.theme.colors.link.color};
+	}
+
+	&:hover {
+		cursor: pointer;
+
+		p {
+			color: ${(props) => props.theme.colors.link.active};
+			text-decoration: underline;
+			text-decoration-thickness: 1.25px;
+		}
+
+		svg {
+			color: ${(props) => props.theme.colors.link.active};
+			fill: ${(props) => props.theme.colors.link.active};
+		}
+	}
+`;
+
+export const LabeledAddress = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 12.5px;
+	min-width: 0;
+`;
+
+export const AddressLabel = styled.small`
+	width: fit-content;
+	padding: 1px 5px;
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	color: ${(props) => props.theme.colors.font.light1};
+	font-size: ${(props) => props.theme.typography.size.xxxxSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	white-space: nowrap;
 `;
 
 export const MessageInfoID = styled(MessageInfoLine)`
@@ -463,8 +536,8 @@ export const MessagesWrapper = styled.div`
 	width: 100%;
 `;
 
-export const Section = styled.div`
-	height: fit-content;
+export const Section = styled.div<{ $fixedHeight?: number }>`
+	height: ${(props) => (props.$fixedHeight ? `${props.$fixedHeight}px` : 'fit-content')};
 	flex: 1;
 	padding: 15px;
 
@@ -657,11 +730,13 @@ export const Refresh = styled.div`
 
 export const NodeConnectionWrapper = styled.div``;
 
-export const OverviewWrapper = styled.div`
-	height: fit-content;
+export const OverviewWrapper = styled.div<{ $fixedHeight?: number; $hasOverflow?: boolean }>`
+	height: ${(props) => (props.$fixedHeight ? `calc(${props.$fixedHeight}px - 80px)` : 'fit-content')};
+	max-height: 526.5px;
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
+	padding-right: ${(props) => (props.$hasOverflow ? '15px' : '0')};
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		gap: 20px;
@@ -708,6 +783,73 @@ export const OverviewLine = styled.div`
 		p {
 			text-align: left;
 		}
+	}
+`;
+
+export const TagValue = styled.button<{ $tooltipVisible?: boolean }>`
+	position: relative;
+	max-width: 45%;
+	display: flex;
+	justify-content: flex-end;
+	padding: 0;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+
+	p {
+		max-width: 100%;
+		text-align: right;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	> div {
+		opacity: ${(props) => (props.$tooltipVisible ? 1 : 0)};
+		visibility: ${(props) => (props.$tooltipVisible ? 'visible' : 'hidden')};
+		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : 'translateY(-3px)')};
+		transition-delay: ${(props) => (props.$tooltipVisible ? '0s' : '0s, 0s, 140ms')};
+	}
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		max-width: 100%;
+		justify-content: flex-start;
+
+		p {
+			text-align: left;
+		}
+	}
+`;
+
+export const TagValueTooltip = styled.div`
+	position: absolute;
+	z-index: 5;
+	top: calc(100% + 3.5px);
+	right: 0;
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-3px);
+	width: max-content;
+	max-width: 400px;
+	padding: 2.5px 5px;
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	color: ${(props) => props.theme.colors.font.light1};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	line-height: 1.45;
+	text-align: left;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	pointer-events: none;
+	transition: opacity 140ms ease, transform 140ms ease, visibility 0s linear 140ms;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		right: auto;
+		left: 0;
 	}
 `;
 

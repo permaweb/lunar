@@ -61,13 +61,13 @@ export const FilterDropdown = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 12.5px;
-	padding: 0 20px;
+	padding: 0 20px 20px 20px;
 `;
 
 export const FilterDropdownHeader = styled.div`
 	p {
 		color: ${(props) => props.theme.colors.font.alt1};
-		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
+		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		text-transform: uppercase;
@@ -532,6 +532,73 @@ export const OverlayLine = styled.div`
 		p {
 			text-align: left;
 		}
+	}
+`;
+
+export const OverlayTagValue = styled.button<{ $tooltipVisible?: boolean }>`
+	position: relative;
+	max-width: 65%;
+	display: flex;
+	justify-content: flex-end;
+	padding: 0;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+
+	p {
+		max-width: 100%;
+		text-align: right;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	> div {
+		opacity: ${(props) => (props.$tooltipVisible ? 1 : 0)};
+		visibility: ${(props) => (props.$tooltipVisible ? 'visible' : 'hidden')};
+		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : 'translateY(-3px)')};
+		transition-delay: ${(props) => (props.$tooltipVisible ? '0s' : '0s, 0s, 140ms')};
+	}
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		max-width: 100%;
+		justify-content: flex-start;
+
+		p {
+			text-align: left;
+		}
+	}
+`;
+
+export const OverlayTagValueTooltip = styled.div`
+	position: absolute;
+	z-index: 5;
+	top: calc(100% + 3.5px);
+	right: 0;
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-3px);
+	width: max-content;
+	max-width: min(720px, calc(100vw - 40px));
+	padding: 2.5px 5px;
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	color: ${(props) => props.theme.colors.font.light1};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	line-height: 1.45;
+	text-align: left;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	pointer-events: none;
+	transition: opacity 140ms ease, transform 140ms ease, visibility 0s linear 140ms;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		right: auto;
+		left: 0;
 	}
 `;
 

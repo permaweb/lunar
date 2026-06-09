@@ -151,6 +151,21 @@ export const Previous = styled(ElementItem)`
 	width: 250px;
 `;
 
+export const Size = styled(ElementItem)`
+	min-width: 115px;
+	width: 115px;
+	justify-content: flex-end;
+
+	p {
+		text-align: right;
+	}
+`;
+
+export const Miner = styled(ElementItem)`
+	min-width: 165px;
+	width: 165px;
+`;
+
 export const Bundles = styled(ElementItem)`
 	min-width: 95px;
 	width: 95px;

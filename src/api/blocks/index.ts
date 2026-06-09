@@ -12,6 +12,10 @@ export type BlockMetadata = {
 	block_size?: string | number | null;
 	indep_hash?: string | null;
 	previous_block?: string | null;
+	miner?: string | null;
+	reward?: string | number | null;
+	reward_addr?: string | null;
+	txs?: string[];
 };
 
 export type TransactionTag = {
@@ -445,6 +449,19 @@ export async function getBlockMetadataByHeight(height: number): Promise<BlockMet
 	}
 
 	return await response.json();
+}
+
+export async function getCurrentBlockHeight(): Promise<number | null> {
+	const response = await fetch(`${DEFAULT_ARWEAVE_ENDPOINT}/info`);
+
+	if (!response.ok) {
+		throw new Error(`Network info request failed with status ${response.status}`);
+	}
+
+	const info = await response.json();
+	const height = Number(info?.height);
+
+	return Number.isFinite(height) ? height : null;
 }
 
 export async function getTransactionCountByBlock(
