@@ -297,8 +297,8 @@ export const ElementItem = styled.div`
 `;
 
 export const ID = styled(ElementItem)`
-	min-width: 250px;
-	width: 250px;
+	min-width: 305px;
+	width: 305px;
 	display: flex;
 	align-items: center;
 	gap: 5px;

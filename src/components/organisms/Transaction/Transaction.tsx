@@ -68,6 +68,100 @@ type TxStatusResponse = {
 	number_of_confirmations?: number;
 };
 
+type TransactionOverviewData = {
+	metadata: any | null;
+	status: TxStatusResponse | null;
+	arUsdPrice: number | null;
+};
+
+const TRANSACTION_OVERVIEW_CACHE_LIMIT = 50;
+const transactionOverviewCache = new Map<string, TransactionOverviewData>();
+const transactionOverviewRequestCache = new Map<string, Promise<TransactionOverviewData>>();
+let arUsdPriceCache: number | null | undefined;
+let arUsdPriceRequestCache: Promise<number | null> | null = null;
+
+function cacheTransactionOverview(cacheKey: string, data: TransactionOverviewData) {
+	transactionOverviewCache.set(cacheKey, data);
+
+	if (transactionOverviewCache.size > TRANSACTION_OVERVIEW_CACHE_LIMIT) {
+		const oldestKey = transactionOverviewCache.keys().next().value;
+		if (oldestKey) transactionOverviewCache.delete(oldestKey);
+	}
+}
+
+function getTransactionOverviewCacheKey(id: string, refreshKey: number) {
+	return `${id}:${refreshKey}`;
+}
+
+function fetchArUsdPrice() {
+	if (arUsdPriceCache !== undefined) return Promise.resolve(arUsdPriceCache);
+	if (arUsdPriceRequestCache) return arUsdPriceRequestCache;
+
+	arUsdPriceRequestCache = fetch(ARWEAVE_PRICE_ENDPOINT)
+		.then(async (response) => {
+			if (!response.ok) return null;
+
+			const parsed = await response.json();
+			const value = Number(parsed?.arweave?.usd);
+
+			return Number.isFinite(value) ? value : null;
+		})
+		.catch((e: any) => {
+			console.error(e);
+			return null;
+		})
+		.then((price) => {
+			arUsdPriceCache = price;
+
+			return price;
+		})
+		.finally(() => {
+			arUsdPriceRequestCache = null;
+		});
+
+	return arUsdPriceRequestCache;
+}
+
+async function fetchTransactionOverview(id: string, refreshKey: number): Promise<TransactionOverviewData> {
+	const cacheKey = getTransactionOverviewCacheKey(id, refreshKey);
+	const cached = transactionOverviewCache.get(cacheKey);
+	if (cached) return cached;
+
+	const pending = transactionOverviewRequestCache.get(cacheKey);
+	if (pending) return pending;
+
+	const request = Promise.all([
+		getTransactionById({ id: id }).catch((e: any) => {
+			console.error(e);
+			return null;
+		}),
+		fetch(getTxStatusEndpoint(id))
+			.then(async (response) => {
+				if (!response.ok && response.status !== 202) return null;
+
+				return await response.json();
+			})
+			.catch((e: any) => {
+				console.error(e);
+				return null;
+			}),
+		fetchArUsdPrice(),
+	])
+		.then(([metadata, status, arUsdPrice]) => {
+			const data = { metadata, status, arUsdPrice };
+			cacheTransactionOverview(cacheKey, data);
+
+			return data;
+		})
+		.finally(() => {
+			transactionOverviewRequestCache.delete(cacheKey);
+		});
+
+	transactionOverviewRequestCache.set(cacheKey, request);
+
+	return request;
+}
+
 // Create a context to provide txResponse to all tab views without recreating them
 const TxResponseContext = React.createContext<{
 	txResponse: Types.GQLNodeResponseType | null;
@@ -780,7 +874,7 @@ function Transaction(props: {
 	};
 
 	const TransactionOverviewSection = () => {
-		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
+		const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
 
 		const [txMetadata, setTxMetadata] = React.useState<any | null>(null);
 		const [txStatus, setTxStatus] = React.useState<TxStatusResponse | null>(null);
@@ -796,47 +890,19 @@ function Transaction(props: {
 			setArUsdPrice(null);
 
 			(async () => {
-				const [metadata, status, price] = await Promise.all([
-					getTransactionById({ id: inputTxId }).catch((e: any) => {
-						console.error(e);
-						return null;
-					}),
-					fetch(getTxStatusEndpoint(inputTxId))
-						.then(async (response) => {
-							if (!response.ok && response.status !== 202) return null;
-
-							return await response.json();
-						})
-						.catch((e: any) => {
-							console.error(e);
-							return null;
-						}),
-					fetch(ARWEAVE_PRICE_ENDPOINT)
-						.then(async (response) => {
-							if (!response.ok) return null;
-
-							const parsed = await response.json();
-							const value = Number(parsed?.arweave?.usd);
-
-							return Number.isFinite(value) ? value : null;
-						})
-						.catch((e: any) => {
-							console.error(e);
-							return null;
-						}),
-				]);
+				const overview = await fetchTransactionOverview(inputTxId, refreshKey);
 
 				if (!active) return;
 
-				setTxMetadata(metadata);
-				setTxStatus(status);
-				setArUsdPrice(price);
+				setTxMetadata(overview.metadata);
+				setTxStatus(overview.status);
+				setArUsdPrice(overview.arUsdPrice);
 			})();
 
 			return () => {
 				active = false;
 			};
-		}, [inputTxId]);
+		}, [inputTxId, refreshKey]);
 
 		const node = txMetadata ?? txResponse?.node;
 		const tags = node?.tags ?? txResponse?.node?.tags ?? [];
@@ -1364,7 +1430,7 @@ function Transaction(props: {
 		const { txResponse } = React.useContext(TxResponseContext);
 		const overviewWrapperRef = React.useRef<HTMLDivElement | null>(null);
 		const [overviewHasOverflow, setOverviewHasOverflow] = React.useState<boolean>(false);
-		const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
+		const excludedTagNames = [];
 		const filteredTags =
 			txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
 
@@ -1400,18 +1466,6 @@ function Transaction(props: {
 					$hasOverflow={overviewHasOverflow}
 					className={'scroll-wrapper'}
 				>
-					<OverviewLine
-						label={language.type}
-						value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Type')}
-						render={renderTagValue}
-					/>
-					<OverviewLine
-						label={language.dateCreated}
-						value={
-							txResponse?.node?.block?.timestamp && formatDate(txResponse.node.block.timestamp * 1000, 'timestamp')
-						}
-					/>
-					<S.OverviewDivider />
 					{resolvedType === 'process' && (
 						<>
 							<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
@@ -1434,9 +1488,17 @@ function Transaction(props: {
 					)}
 					{txResponse ? (
 						<>
-							{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-								<OverviewLine key={index} label={tag.name} value={tag.value} render={renderTagValue} />
-							))}
+							{filteredTags?.length > 0 ? (
+								<>
+									{filteredTags.map((tag: { name: string; value: string }, index: number) => (
+										<OverviewLine key={index} label={tag.name} value={tag.value} render={renderTagValue} />
+									))}
+								</>
+							) : (
+								<S.OverviewLine>
+									<span>{'None'}</span>
+								</S.OverviewLine>
+							)}
 						</>
 					) : (
 						<S.OverviewLine>
@@ -1675,6 +1737,7 @@ function Transaction(props: {
 									{checkValidAddress(inputTxId) && (
 										<MessageList
 											key={refreshKey}
+											header={language.transactions}
 											txId={inputTxId}
 											variant={MessageVariantEnum.Legacynet}
 											type={resolvedType}

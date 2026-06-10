@@ -46,6 +46,24 @@ import { store } from 'store';
 
 import * as S from './styles';
 
+const NON_MESSAGE_ACTION_FALLBACK_TAGS = [
+	'App-Name',
+	'Content-Type',
+	'Name',
+	'Title',
+	'Protocol-Name',
+	'Bundle-Format',
+	'Bundle-Version',
+];
+
+function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
+	return getTagValue(tags, name)?.toLowerCase() === value.toLowerCase();
+}
+
+function isAoMessageTransaction(tags: any[] | undefined) {
+	return tagValueEquals(tags, 'Data-Protocol', 'ao') && tagValueEquals(tags, TAGS.keys.type, 'Message');
+}
+
 function Message(props: {
 	element: Types.GQLNodeResponseType;
 	type: TransactionType;
@@ -77,6 +95,11 @@ function Message(props: {
 	const [showViewResult, setShowViewResult] = React.useState<boolean>(false);
 	const [filterMessage, setFilterMessage] = React.useState<boolean>(false);
 
+	const hasAoMessageTags = isAoMessageTransaction(props.element.node?.tags);
+	const isAoResultMessage = props.showResultMessageLabel && !!props.variant;
+	const isAoMessage = hasAoMessageTags || isAoResultMessage;
+	const canFetchAoResult = isAoMessage && !!props.element.node.recipient;
+
 	React.useEffect(() => {
 		if (props.element && props.variant === MessageVariantEnum.Legacynet) {
 			const fromProcess = getTagValue(props.element.node?.tags, 'From-Process');
@@ -93,7 +116,7 @@ function Message(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			if ((open || showViewResult) && !result && !filterMessage) {
+			if ((open || showViewResult) && !result && !filterMessage && canFetchAoResult) {
 				let processId: string = props.element.node.recipient;
 				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
 
@@ -140,7 +163,7 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [open, result, showViewResult, props.currentFilter, filterMessage]);
+	}, [open, result, showViewResult, props.currentFilter, filterMessage, canFetchAoResult]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -204,7 +227,20 @@ function Message(props: {
 	}
 
 	function getActionLabel() {
-		return getTagValue(props.element.node.tags, 'Action') || language.none;
+		const action = getTagValue(props.element.node.tags, 'Action');
+		if (action) return action;
+		if (isAoMessage) return language.none;
+
+		const tags = props.element.node.tags ?? [];
+
+		if (tags.length === 1) return tags[0].name;
+
+		for (const tagName of NON_MESSAGE_ACTION_FALLBACK_TAGS) {
+			const value = getTagValue(tags, tagName);
+			if (value) return value;
+		}
+
+		return language.none;
 	}
 
 	function getFrom() {
@@ -470,6 +506,14 @@ function Message(props: {
 		);
 	}
 
+	function getTransactionTypeLabel() {
+		if (!isAoMessage) return language.transaction;
+
+		const variant = getTagValue(props.element.node.tags, TAGS.keys.variant) ?? props.variant;
+
+		return variant ? `${language.message} (${variant})` : language.message;
+	}
+
 	const hydrateNestedAoTransferNotices = shouldHydrateAoTransferNotices({
 		action: getTagValue(props.element.node.tags, 'Action'),
 		variant: props.variant,
@@ -495,16 +539,16 @@ function Message(props: {
 			<S.ElementWrapper
 				key={props.element.node.id}
 				className={'message-list-element'}
-				onClick={() => (!props.element.node.id ? {} : setOpen((prev) => !prev))}
+				onClick={() => (!props.element.node.id || !canFetchAoResult ? {} : setOpen((prev) => !prev))}
 				disabled={!props.element.node.id}
-				open={open}
+				open={open && canFetchAoResult}
 				lastChild={props.lastChild}
 				childList={props.childList}
 			>
 				<S.ID>
 					{getID()}
 					<S.Variant className={'info'}>
-						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant) ?? 'No Variant'}</span>
+						<span>{getTransactionTypeLabel()}</span>
 					</S.Variant>
 				</S.ID>
 				{getAction(true)}
@@ -523,7 +567,7 @@ function Message(props: {
 						type={'alt3'}
 						label={language.output}
 						handlePress={(e) => handleShowViewResult(e)}
-						disabled={!props.element.node.id}
+						disabled={!props.element.node.id || !canFetchAoResult}
 					/>
 				</S.Output>
 				<S.Time>
@@ -533,11 +577,9 @@ function Message(props: {
 							: 'Processing'}
 					</p>
 				</S.Time>
-				<S.Results open={open}>
-					<ReactSVG src={ASSETS.arrow} />
-				</S.Results>
+				<S.Results open={open}>{canFetchAoResult && <ReactSVG src={ASSETS.arrow} />}</S.Results>
 			</S.ElementWrapper>
-			{open && (
+			{open && canFetchAoResult && (
 				<MessageList
 					txId={props.element.node.id}
 					variant={props.variant}
@@ -715,6 +757,12 @@ export default function MessageList(props: {
 		return variantForQuery === MessageVariantEnum.Mainnet ? lowercaseTagKeys(nextTags) : nextTags;
 	}
 
+	function getQueryTagsArg(tags: { name: string; values: string[] }[]) {
+		const queryTags = buildQueryTags(tags);
+
+		return queryTags.length > 0 ? { tags: queryTags } : {};
+	}
+
 	async function timestampToBlockHeight(timestamp: number): Promise<number> {
 		try {
 			// Fetch current network height
@@ -789,12 +837,12 @@ export default function MessageList(props: {
 				tags.push({ name: 'From-Process', values: [props.txId] });
 
 				return {
-					tags: buildQueryTags(tags),
+					...getQueryTagsArg(tags),
 					owners: [props.authority ?? ''],
 				};
 			case 'wallet':
 				return {
-					tags: buildQueryTags(outgoingTags),
+					...getQueryTagsArg(outgoingTags),
 					owners: [props.txId],
 				};
 		}
@@ -837,17 +885,17 @@ export default function MessageList(props: {
 				try {
 					// Build incoming query args
 					let incomingQueryArgs: any = {
-						tags: buildQueryTags(baseTags),
+						...getQueryTagsArg(baseTags),
 						recipients: [props.txId],
 					};
 
 					// Add fromAddress filter if applicable
 					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
 						if (appliedFromAddressIsProcess) {
-							incomingQueryArgs.tags = buildQueryTags([
-								...baseTags,
-								{ name: 'From-Process', values: [appliedFromAddress] },
-							]);
+							incomingQueryArgs = {
+								...incomingQueryArgs,
+								...getQueryTagsArg([...baseTags, { name: 'From-Process', values: [appliedFromAddress] }]),
+							};
 						} else {
 							incomingQueryArgs.owners = [appliedFromAddress];
 						}
@@ -910,7 +958,7 @@ export default function MessageList(props: {
 						switch (currentFilter) {
 							case 'incoming':
 								let incomingQueryArgs: any = {
-									tags: buildQueryTags(tags),
+									...getQueryTagsArg(tags),
 									recipients: [props.txId],
 									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
@@ -920,10 +968,10 @@ export default function MessageList(props: {
 								// Add fromAddress filter if applicable
 								if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
 									if (appliedFromAddressIsProcess) {
-										incomingQueryArgs.tags = buildQueryTags([
-											...tags,
-											{ name: 'From-Process', values: [appliedFromAddress] },
-										]);
+										incomingQueryArgs = {
+											...incomingQueryArgs,
+											...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
+										};
 									} else {
 										incomingQueryArgs.owners = [appliedFromAddress];
 									}
@@ -1053,7 +1101,7 @@ export default function MessageList(props: {
 				tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
 
 				let globalQueryArgs: any = {
-					tags: buildQueryTags(tags),
+					...getQueryTagsArg(tags),
 					paginator: perPage,
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
@@ -1192,9 +1240,13 @@ export default function MessageList(props: {
 	}
 
 	function getMessage() {
-		let message: string = language.associatedMessagesInfo;
-		if (loadingMessages || props.willHaveResult) message = `${language.associatedMessagesLoading}...`;
-		if (currentData?.length <= 0) message = language.associatedMessagesNotFound;
+		const isTransactionView = props.type === 'wallet';
+		let message: string = isTransactionView ? language.transactionsNotFound : language.associatedMessagesInfo;
+		if (loadingMessages || props.willHaveResult) {
+			message = `${isTransactionView ? language.transactionsLoading : language.associatedMessagesLoading}...`;
+		}
+		if (currentData?.length <= 0)
+			message = isTransactionView ? language.transactionsNotFound : language.associatedMessagesNotFound;
 		return (
 			<S.UpdateWrapper childList={props.childList}>
 				<p>{message}</p>
@@ -1245,7 +1297,7 @@ export default function MessageList(props: {
 				{!props.childList && (
 					<S.Header>
 						<S.HeaderMain>
-							<p>{props.header ?? language.messages}</p>
+							<p>{props.header ?? (props.type === 'wallet' ? language.transactions : language.messages)}</p>
 							{loadingMessages && (
 								<div className={'loader'}>
 									<Loader xSm relative />
