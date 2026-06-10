@@ -2,6 +2,7 @@ import React from 'react';
 import { useTheme } from 'styled-components';
 
 import {
+	getBlock,
 	getTransactionsByBlock,
 	getTransactionsByBundle,
 	GQLEdge,
@@ -10,11 +11,25 @@ import {
 } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
+import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
+import { Modal } from 'components/atoms/Modal';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { getBundlerLabel } from 'helpers/bundlers';
+import { ASSETS, DEFAULT_GATEWAYS } from 'helpers/config';
+import {
+	DEFAULT_CSV_EXPORT_AMOUNT,
+	downloadCsv,
+	fetchBoundedGqlData,
+	getCsvTimestamp,
+	mapTransactionForCsv,
+	parseCsvExportAmount,
+} from 'helpers/csv';
 import { formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
+import { usePermawebProvider } from 'providers/PermawebProvider';
+
+import * as FilterS from '../MessageList/styles';
 
 import * as S from './styles';
 
@@ -28,6 +43,7 @@ export default function TransactionList(props: {
 	header?: string;
 }) {
 	const currentTheme: any = useTheme();
+	const permawebProvider = usePermawebProvider();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -42,6 +58,13 @@ export default function TransactionList(props: {
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [pageNumber, setPageNumber] = React.useState<number>(1);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
+	const [showExport, setShowExport] = React.useState<boolean>(false);
+	const [exportAmount, setExportAmount] = React.useState<string>(DEFAULT_CSV_EXPORT_AMOUNT.toString());
+	const [exporting, setExporting] = React.useState<boolean>(false);
+	const [exportError, setExportError] = React.useState<string | null>(null);
+
+	const parsedExportAmount = parseCsvExportAmount(exportAmount);
+	const invalidExportAmount = exportAmount.trim() !== '' && parsedExportAmount === null;
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -128,6 +151,75 @@ export default function TransactionList(props: {
 			setPageCursor(previousCursor);
 			setPageNumber((prevPage) => Math.max(prevPage - 1, 1));
 			scrollToTop();
+		}
+	}
+
+	async function getExportRows(amount: number) {
+		if (amount <= transactions.length) return transactions.slice(0, amount);
+
+		if (props.mode === 'block') {
+			const blockHeight =
+				props.blockHeight ?? (props.blockId ? (await getBlock({ id: props.blockId }))?.height ?? null : null);
+
+			if (blockHeight === null) return [];
+
+			return fetchBoundedGqlData(
+				(args) => permawebProvider.libs.getGQLData(args),
+				{
+					gateway: DEFAULT_GATEWAYS.arweave,
+					minBlock: blockHeight,
+					maxBlock: blockHeight,
+					sort: 'descending',
+				},
+				amount
+			);
+		}
+
+		if (!props.bundleId) return [];
+
+		const collected: GQLEdge<TransactionNode>[] = [];
+		let cursor: string | null = null;
+
+		while (collected.length < amount) {
+			const response = await getTransactionsByBundle({
+				bundleId: props.bundleId,
+				first: Math.min(DEFAULT_CSV_EXPORT_AMOUNT, amount - collected.length),
+				after: cursor,
+			});
+			const edges = response.transactions.edges;
+			const lastEdge = edges[edges.length - 1];
+
+			collected.push(...edges);
+
+			if (!response.transactions.pageInfo.hasNextPage || !lastEdge?.cursor) break;
+			cursor = lastEdge.cursor;
+		}
+
+		return collected.slice(0, amount);
+	}
+
+	async function handleExport() {
+		if (!parsedExportAmount || exporting) return;
+
+		setExporting(true);
+		setExportError(null);
+
+		try {
+			const rows = await getExportRows(parsedExportAmount);
+			const csvRows = rows.map(mapTransactionForCsv);
+
+			if (csvRows.length <= 0) {
+				setExportError(language.transactionsNotFound);
+				return;
+			}
+
+			downloadCsv(`lunar-transactions-${getCsvTimestamp()}.csv`, csvRows);
+			setShowExport(false);
+		} catch (e: any) {
+			console.error(e);
+			setExportError(e.message || language.errorFetchingData);
+		} finally {
+			setExporting(false);
 		}
 	}
 
@@ -218,7 +310,18 @@ export default function TransactionList(props: {
 						</div>
 					)}
 				</S.HeaderMain>
-				<S.HeaderActions className={'scroll-wrapper-hidden'}>{getPaginator(false)}</S.HeaderActions>
+				<S.HeaderActions className={'scroll-wrapper-hidden'}>
+					<Button
+						type={'alt3'}
+						label={language.download}
+						handlePress={() => setShowExport(true)}
+						disabled={loading || exporting}
+						icon={ASSETS.save}
+						iconLeftAlign
+					/>
+					<S.Divider />
+					{getPaginator(false)}
+				</S.HeaderActions>
 			</S.Header>
 			{transactions.length > 0 ? (
 				<S.Wrapper>
@@ -255,9 +358,8 @@ export default function TransactionList(props: {
 										</S.LinkLabel>
 									</S.ID>
 									<S.TypeValue background={getTypeBackground(transaction)}>
-										<div className={'type-indicator'}>
-											<p>{getTransactionType(transaction)}</p>
-										</div>
+										<div className={'type-indicator'} />
+										<p>{getTransactionType(transaction)}</p>
 									</S.TypeValue>
 									<S.Owner>
 										{transaction.owner?.address ? (
@@ -291,6 +393,42 @@ export default function TransactionList(props: {
 				getMessage()
 			)}
 			<S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>
+			{showExport && (
+				<Modal header={'Export CSV'} handleClose={() => setShowExport(false)}>
+					<FilterS.FilterDropdown>
+						<FilterS.FilterDropdownHeader>
+							<p>{'Transactions to download'}</p>
+						</FilterS.FilterDropdownHeader>
+						<FilterS.FilterDropdownActionSelect>
+							<FormField
+								label={language.amount}
+								value={exportAmount}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExportAmount(e.target.value)}
+								disabled={exporting}
+								type={'number'}
+								invalid={{ status: invalidExportAmount, message: null }}
+								hideErrorMessage
+							/>
+						</FilterS.FilterDropdownActionSelect>
+						{exportError && (
+							<FilterS.UpdateWrapper>
+								<p>{exportError}</p>
+							</FilterS.UpdateWrapper>
+						)}
+						<FilterS.FilterApply>
+							<Button
+								type={'alt1'}
+								label={exporting ? `${language.loading}...` : language.download}
+								handlePress={handleExport}
+								disabled={!parsedExportAmount || exporting}
+								active={false}
+								height={42.5}
+								fullWidth
+							/>
+						</FilterS.FilterApply>
+					</FilterS.FilterDropdown>
+				</Modal>
+			)}
 		</S.Container>
 	);
 }

@@ -1,6 +1,6 @@
 import { Types } from '@permaweb/libs';
 
-import { addTransaction, selectTransaction } from 'store/transactions/reducer';
+import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
 import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, FLAGS } from './config';
 import { getTxEndpoint } from './endpoints';
@@ -355,6 +355,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 	if (FLAGS.USE_TX_CACHE && args.store) {
 		const cached = selectTransaction(args.store.getState(), args.txId);
 		if (cached && shouldUseCachedTransaction(cached)) {
+			if (args.dispatch) args.dispatch(touchTransaction(args.txId));
 			return cached;
 		}
 	}

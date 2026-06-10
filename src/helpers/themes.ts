@@ -68,7 +68,7 @@ export const lightTheme = {
 	scheme: 'light',
 	neutral1: '#FFFFFF',
 	neutral2: '#F9F9F9',
-	neutral3: '#E4E4E4',
+	neutral3: '#eeeeee',
 	neutral4: '#D6D6D6',
 	neutral5: '#CCCCCC',
 	neutral6: '#ADADAD',
@@ -348,9 +348,9 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 				border: currentTheme.neutral3,
 				color: currentTheme.neutralA1,
 				active: {
-					background: currentTheme.primary1,
-					border: currentTheme.primary1,
-					color: currentTheme.light1,
+					background: currentTheme.neutral3,
+					border: currentTheme.neutral4,
+					color: currentTheme.neutralA1,
 				},
 				disabled: {
 					background: currentTheme.neutral3,

@@ -147,26 +147,34 @@ export const Type = styled(ElementItem)`
 `;
 
 export const TypeValue = styled(Type)<{ background?: string }>`
-	min-width: 215px;
-	width: 215px;
+	min-width: 190px;
+	width: 190px;
 	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 7.5px;
 
 	.type-indicator {
+		height: 10px;
+		width: 10px;
+		border-radius: 50%;
 		position: relative;
-		width: 100%;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 2.15px 7.5px;
 		background: ${(props) => (props.background ? props.background : props.theme.colors.container.alt8.background)};
-		border-radius: ${STYLING.dimensions.radius.alt2};
+	}
 
-		p {
-			font-size: ${(props) => props.theme.typography.size.xxSmall};
-			font-family: ${(props) => props.theme.typography.family.primary};
-			font-weight: ${(props) => props.theme.typography.weight.bold};
-			color: ${(props) => props.theme.colors.font.light1};
-		}
+	p {
+		max-width: 100%;
+		color: ${(props) => props.theme.colors.font.primary} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
+		text-align: center;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 `;
 

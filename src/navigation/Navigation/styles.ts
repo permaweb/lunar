@@ -329,19 +329,15 @@ export const DNavWrapper = styled.div`
 
 export const DNavLink = styled.div<{ active: boolean }>`
 	a {
-		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
+		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		text-transform: uppercase;
 		letter-spacing: 0.35px;
 
-		padding: 0 0 2.5px 0;
-		border-bottom: 2.5px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
-
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};
-			border-bottom: 2.5px solid ${(props) => props.theme.colors.border.alt5};
 		}
 	}
 `;

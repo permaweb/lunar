@@ -27,7 +27,7 @@ import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
 import { getBundlerLabel } from 'helpers/bundlers';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
-import { getARBalanceEndpoint, getTxEndpoint, getTxStatusEndpoint } from 'helpers/endpoints';
+import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
@@ -63,14 +63,9 @@ const TX_FINALITY_CONFIRMATIONS = 15;
 const ARWEAVE_BLOCK_TIME_SECONDS = 120;
 const ARWEAVE_PRICE_ENDPOINT = 'https://api.coingecko.com/api/v3/simple/price?ids=arweave&vs_currencies=usd';
 
-type TxStatusResponse = {
-	block_height?: number;
-	number_of_confirmations?: number;
-};
-
 type TransactionOverviewData = {
 	metadata: any | null;
-	status: TxStatusResponse | null;
+	currentBlockHeight: number | null;
 	arUsdPrice: number | null;
 };
 
@@ -135,20 +130,14 @@ async function fetchTransactionOverview(id: string, refreshKey: number): Promise
 			console.error(e);
 			return null;
 		}),
-		fetch(getTxStatusEndpoint(id))
-			.then(async (response) => {
-				if (!response.ok && response.status !== 202) return null;
-
-				return await response.json();
-			})
-			.catch((e: any) => {
-				console.error(e);
-				return null;
-			}),
+		getCurrentBlockHeight().catch((e: any) => {
+			console.error(e);
+			return null;
+		}),
 		fetchArUsdPrice(),
 	])
-		.then(([metadata, status, arUsdPrice]) => {
-			const data = { metadata, status, arUsdPrice };
+		.then(([metadata, currentBlockHeight, arUsdPrice]) => {
+			const data = { metadata, currentBlockHeight, arUsdPrice };
 			cacheTransactionOverview(cacheKey, data);
 
 			return data;
@@ -828,10 +817,19 @@ function Transaction(props: {
 
 	const renderTagValue = (value: any) => <TagValue value={value} />;
 
-	const TxOverviewValue = ({ primary, secondary }: { primary: React.ReactNode; secondary?: React.ReactNode }) => {
+	const TxOverviewValue = ({
+		primary,
+		secondary,
+		indicator,
+	}: {
+		primary: React.ReactNode;
+		secondary?: React.ReactNode;
+		indicator?: React.ReactNode;
+	}) => {
 		return (
 			<S.TxOverviewValue>
 				<p>{primary}</p>
+				{indicator}
 				{secondary && <small>{secondary}</small>}
 			</S.TxOverviewValue>
 		);
@@ -877,7 +875,7 @@ function Transaction(props: {
 		const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
 
 		const [txMetadata, setTxMetadata] = React.useState<any | null>(null);
-		const [txStatus, setTxStatus] = React.useState<TxStatusResponse | null>(null);
+		const [currentBlockHeight, setCurrentBlockHeight] = React.useState<number | null>(null);
 		const [arUsdPrice, setArUsdPrice] = React.useState<number | null>(null);
 
 		React.useEffect(() => {
@@ -886,7 +884,7 @@ function Transaction(props: {
 			let active = true;
 
 			setTxMetadata(null);
-			setTxStatus(null);
+			setCurrentBlockHeight(null);
 			setArUsdPrice(null);
 
 			(async () => {
@@ -895,7 +893,7 @@ function Transaction(props: {
 				if (!active) return;
 
 				setTxMetadata(overview.metadata);
-				setTxStatus(overview.status);
+				setCurrentBlockHeight(overview.currentBlockHeight);
 				setArUsdPrice(overview.arUsdPrice);
 			})();
 
@@ -908,9 +906,10 @@ function Transaction(props: {
 		const tags = node?.tags ?? txResponse?.node?.tags ?? [];
 		const from = node?.owner?.address ?? txResponse?.node?.owner?.address;
 		const to = node?.recipient || txResponse?.node?.recipient || getTagValue(tags, 'Target') || null;
-		const blockHeight = txStatus?.block_height ?? node?.block?.height ?? txResponse?.node?.block?.height ?? null;
+		const blockHeight = node?.block?.height ?? txResponse?.node?.block?.height ?? null;
 		const timestamp = node?.block?.timestamp ?? txResponse?.node?.block?.timestamp ?? null;
-		const confirmations = txStatus?.number_of_confirmations ?? null;
+		const confirmations =
+			currentBlockHeight !== null && blockHeight !== null ? Math.max(currentBlockHeight - blockHeight, 0) : null;
 		const pending = confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : !blockHeight;
 		const statusEta = pending ? formatStatusEta(confirmations) : null;
 		const fee = node?.fee;
@@ -934,6 +933,13 @@ function Transaction(props: {
 						<TxOverviewValue
 							primary={`Status: ${pending ? language.pending : language.confirmed}`}
 							secondary={statusEta}
+							indicator={
+								!pending ? (
+									<S.TransferInfoStatusIndicator success>
+										<ReactSVG src={ASSETS.success} />
+									</S.TransferInfoStatusIndicator>
+								) : null
+							}
 						/>
 					</S.MessageInfoID>
 				</S.MessageInfoHeader>

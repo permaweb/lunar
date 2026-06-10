@@ -257,6 +257,7 @@ export const MWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
+	padding: 0 20px 20px 20px !important;
 `;
 
 export const SyncToggle = styled.button<{ active: boolean }>`

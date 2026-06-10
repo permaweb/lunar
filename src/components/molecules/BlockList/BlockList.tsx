@@ -7,7 +7,14 @@ import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
-import { ASSETS } from 'helpers/config';
+import { ASSETS, DEFAULT_GATEWAYS } from 'helpers/config';
+import {
+	DEFAULT_CSV_EXPORT_AMOUNT,
+	downloadCsv,
+	getCsvTimestamp,
+	mapBlockForCsv,
+	parseCsvExportAmount,
+} from 'helpers/csv';
 import { checkValidAddress, formatBlockId, formatCount, formatDate, getByteSizeDisplay } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -39,6 +46,10 @@ export default function BlockList(props: { header?: string }) {
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 	const [refreshTrigger, setRefreshTrigger] = React.useState<boolean>(false);
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
+	const [showExport, setShowExport] = React.useState<boolean>(false);
+	const [exportAmount, setExportAmount] = React.useState<string>(DEFAULT_CSV_EXPORT_AMOUNT.toString());
+	const [exporting, setExporting] = React.useState<boolean>(false);
+	const [exportError, setExportError] = React.useState<string | null>(null);
 	const [minHeightInput, setMinHeightInput] = React.useState<string>('');
 	const [maxHeightInput, setMaxHeightInput] = React.useState<string>('');
 	const [activeRange, setActiveRange] = React.useState<{ minHeight: number | null; maxHeight: number | null }>({
@@ -51,6 +62,8 @@ export default function BlockList(props: { header?: string }) {
 	const invalidMinHeight = !!minHeightInput.trim() && parsedMinHeight === null;
 	const invalidMaxHeight = !!maxHeightInput.trim() && parsedMaxHeight === null;
 	const invalidRange = parsedMinHeight !== null && parsedMaxHeight !== null && parsedMinHeight > parsedMaxHeight;
+	const parsedExportAmount = parseCsvExportAmount(exportAmount);
+	const invalidExportAmount = exportAmount.trim() !== '' && parsedExportAmount === null;
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -230,6 +243,80 @@ export default function BlockList(props: { header?: string }) {
 		}));
 	}
 
+	async function hydrateBlockMetadata(edge: GQLEdge<BlockNode>): Promise<BlockListEdge> {
+		try {
+			const metadata = await getBlockMetadataByHeight(edge.node.height);
+
+			return {
+				...edge,
+				node: {
+					...edge.node,
+					metadata: metadata,
+				},
+			};
+		} catch (e: any) {
+			console.error(e);
+
+			return {
+				...edge,
+				node: {
+					...edge.node,
+					metadata: null,
+				},
+			};
+		}
+	}
+
+	async function getExportBlocks(amount: number) {
+		const rows: BlockListEdge[] = [];
+		let cursor: string | null = null;
+
+		while (rows.length < amount) {
+			const response = await getBlocks({
+				first: Math.min(DEFAULT_CSV_EXPORT_AMOUNT, amount - rows.length),
+				after: cursor,
+				minHeight: activeRange.minHeight,
+				maxHeight: activeRange.maxHeight,
+				gateway: DEFAULT_GATEWAYS.arweave,
+			});
+			const pageRows = response.blocks.edges;
+			const lastRow = pageRows[pageRows.length - 1];
+			const rowsWithMetadata = await Promise.all(pageRows.map(hydrateBlockMetadata));
+
+			rows.push(...rowsWithMetadata);
+
+			if (pageRows.length <= 0 || !response.blocks.pageInfo.hasNextPage || !lastRow?.cursor) break;
+			cursor = lastRow.cursor;
+		}
+
+		return rows.slice(0, amount);
+	}
+
+	async function handleExport() {
+		if (!parsedExportAmount || exporting) return;
+
+		setExporting(true);
+		setExportError(null);
+
+		try {
+			const rows = await getExportBlocks(parsedExportAmount);
+			const csvRows = rows.map(mapBlockForCsv);
+
+			if (csvRows.length <= 0) {
+				setExportError(language.blocksNotFound);
+				return;
+			}
+
+			downloadCsv(`lunar-blocks-${getCsvTimestamp()}.csv`, csvRows);
+			setShowExport(false);
+		} catch (e: any) {
+			console.error(e);
+			setExportError(e.message || language.errorFetchingData);
+		} finally {
+			setExporting(false);
+		}
+	}
+
 	function getMessage() {
 		let message = language.blocksNotFound;
 		if (loading) message = `${language.blocksLoading}...`;
@@ -325,6 +412,14 @@ export default function BlockList(props: { header?: string }) {
 							handlePress={handleRefresh}
 							disabled={loading}
 							icon={ASSETS.refresh}
+							iconLeftAlign
+						/>
+						<Button
+							type={'alt3'}
+							label={language.download}
+							handlePress={() => setShowExport(true)}
+							disabled={loading || exporting}
+							icon={ASSETS.save}
 							iconLeftAlign
 						/>
 						<S.Divider />
@@ -467,6 +562,42 @@ export default function BlockList(props: { header?: string }) {
 								label={language.applyFilters}
 								handlePress={handleApplyRange}
 								disabled={invalidMinHeight || invalidMaxHeight || invalidRange}
+								active={false}
+								height={42.5}
+								fullWidth
+							/>
+						</FilterS.FilterApply>
+					</FilterS.FilterDropdown>
+				</Modal>
+			)}
+			{showExport && (
+				<Modal header={'Export CSV'} handleClose={() => setShowExport(false)}>
+					<FilterS.FilterDropdown>
+						<FilterS.FilterDropdownHeader>
+							<p>{'Blocks to download'}</p>
+						</FilterS.FilterDropdownHeader>
+						<FilterS.FilterDropdownActionSelect>
+							<FormField
+								label={language.amount}
+								value={exportAmount}
+								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExportAmount(e.target.value)}
+								disabled={exporting}
+								type={'number'}
+								invalid={{ status: invalidExportAmount, message: null }}
+								hideErrorMessage
+							/>
+						</FilterS.FilterDropdownActionSelect>
+						{exportError && (
+							<FilterS.UpdateWrapper>
+								<p>{exportError}</p>
+							</FilterS.UpdateWrapper>
+						)}
+						<FilterS.FilterApply>
+							<Button
+								type={'alt1'}
+								label={exporting ? `${language.loading}...` : language.download}
+								handlePress={handleExport}
+								disabled={!parsedExportAmount || exporting}
 								active={false}
 								height={42.5}
 								fullWidth

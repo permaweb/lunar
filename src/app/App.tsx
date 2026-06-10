@@ -1,7 +1,9 @@
 import React, { lazy, Suspense } from 'react';
+import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
 
 import { serviceWorkerManager } from 'helpers/serviceWorkerManager';
+import { pruneTransactionCache } from 'store/transactions/reducer';
 const views = (import.meta as any).glob('../views/**/index.tsx');
 
 const Landing = getLazyImport('Landing');
@@ -36,6 +38,7 @@ function getLazyImport(view: string) {
 const APP_VERSION = '0.0.2';
 
 export default function App() {
+	const dispatch = useDispatch();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -52,6 +55,10 @@ export default function App() {
 			localStorage.setItem('app-version', APP_VERSION);
 		}
 	}, []);
+
+	React.useEffect(() => {
+		dispatch(pruneTransactionCache());
+	}, [dispatch]);
 
 	React.useEffect(() => {
 		if (!hasInitializedServiceWorkerRef.current) {

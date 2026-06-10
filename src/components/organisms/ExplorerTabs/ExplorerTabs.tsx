@@ -6,7 +6,13 @@ import { Types } from '@permaweb/libs';
 import { ViewTabs } from 'components/molecules/ViewTabs';
 import { ASSETS, URLS } from 'helpers/config';
 import { BaseTabType, TransactionTabType } from 'helpers/types';
-import { checkValidAddress, formatAddress, getTagValue, getTransactionTypeFromTags } from 'helpers/utils';
+import {
+	checkValidAddress,
+	formatAddress,
+	formatBlockId,
+	getTagValue,
+	getTransactionTypeFromTags,
+} from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { AOS } from '../AOS';
@@ -16,6 +22,11 @@ type ExplorerTabType = BaseTabType & {
 	type: TransactionTabType['type'];
 	lastRoute?: string;
 };
+
+function checkValidBlockId(id: string | null) {
+	if (!id) return false;
+	return /^[a-z0-9_-]{64}$/i.test(id);
+}
 
 export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const location = useLocation();
@@ -356,7 +367,11 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const renderTabLabel = (tab: ExplorerTabType) => {
 		let label = language.untitled;
 		if (tab.label) {
-			label = checkValidAddress(tab.label) ? formatAddress(tab.label, false) : tab.label;
+			if (checkValidBlockId(tab.label)) {
+				label = formatBlockId(tab.label, false);
+			} else {
+				label = checkValidAddress(tab.label) ? formatAddress(tab.label, false) : tab.label;
+			}
 		}
 		return label;
 	};

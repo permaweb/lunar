@@ -217,6 +217,7 @@ export const ElementWrapper = styled.div<{
 	disabled: boolean;
 	lastChild?: boolean;
 	childList?: boolean;
+	clickable?: boolean;
 }>`
 	height: 40px;
 	min-width: 100%;
@@ -228,8 +229,7 @@ export const ElementWrapper = styled.div<{
 	gap: 15px;
 	padding: 0 15px;
 
-	cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
-	pointer-events: ${(props) => (props.disabled ? 'none' : 'all')};
+	cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
 	background: ${(props) => props.theme.colors.container.primary.background};
 
 	p {
@@ -242,11 +242,15 @@ export const ElementWrapper = styled.div<{
 		text-overflow: ellipsis;
 	}
 
-	${(props) =>
-		!props.disabled &&
-		css`
-			transition: all 75ms;
+	transition: all 75ms;
 
+	&:hover {
+		background: ${(props) => props.theme.colors.container.primary.active};
+	}
+
+	${(props) =>
+		props.clickable &&
+		css`
 			&:hover {
 				background: ${props.theme.colors.container.primary.active};
 				border-left: 1px solid ${props.theme.colors.border.alt4} !important;
@@ -351,8 +355,8 @@ export const Variant = styled.div`
 `;
 
 export const Action = styled(ElementItem)`
-	min-width: 215px;
-	width: 215px;
+	min-width: 190px;
+	width: 190px;
 `;
 
 export const ActionTooltip = styled.div`
@@ -370,19 +374,22 @@ export const ActionTooltip = styled.div`
 `;
 
 export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: boolean }>`
-	min-width: 215px;
-	width: 215px;
+	min-width: 190px;
+	width: 190px;
 	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 7.5px;
 
 	.action-indicator {
+		height: 10px;
+		width: 10px;
+		border-radius: 50%;
 		position: relative;
-		width: ${(props) => (props.useMaxWidth ? '215px' : 'fit-content')};
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 2.15px 7.5px;
 		background: ${(props) => (props.background ? props.background : props.theme.colors.container.alt8.background)};
-		border-radius: ${STYLING.dimensions.radius.alt2};
 
 		&:hover {
 			${ActionTooltip} {
@@ -393,9 +400,9 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 
 	p {
 		max-width: 100%;
-		color: ${(props) => props.theme.colors.font.light1} !important;
-		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
-		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		color: ${(props) => props.theme.colors.font.primary} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
 		text-align: center;
 		white-space: nowrap;
 		overflow: hidden;

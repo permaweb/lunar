@@ -23,6 +23,14 @@ import {
 	STORAGE,
 	TAGS,
 } from 'helpers/config';
+import {
+	DEFAULT_CSV_EXPORT_AMOUNT,
+	downloadCsv,
+	fetchBoundedGqlData,
+	getCsvTimestamp,
+	mapTransactionForCsv,
+	parseCsvExportAmount,
+} from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
 import { MessageFilterType, MessageVariantEnum, ResultMessageType, TransactionType } from 'helpers/types';
@@ -64,6 +72,23 @@ function isAoMessageTransaction(tags: any[] | undefined) {
 	return tagValueEquals(tags, 'Data-Protocol', 'ao') && tagValueEquals(tags, TAGS.keys.type, 'Message');
 }
 
+function isMessageElement(tags: any[] | undefined, isAoResultMessage: boolean) {
+	return isAoResultMessage || tagValueEquals(tags, TAGS.keys.type, 'Message');
+}
+
+function getNonMessageActionFallback(tags: any[] | undefined) {
+	const normalizedTags = tags ?? [];
+
+	if (normalizedTags.length === 1) return normalizedTags[0]?.name ?? null;
+
+	for (const tagName of NON_MESSAGE_ACTION_FALLBACK_TAGS) {
+		const value = getTagValue(normalizedTags, tagName);
+		if (value) return value;
+	}
+
+	return null;
+}
+
 function Message(props: {
 	element: Types.GQLNodeResponseType;
 	type: TransactionType;
@@ -96,8 +121,9 @@ function Message(props: {
 	const [filterMessage, setFilterMessage] = React.useState<boolean>(false);
 
 	const hasAoMessageTags = isAoMessageTransaction(props.element.node?.tags);
-	const isAoResultMessage = props.showResultMessageLabel && !!props.variant;
+	const isAoResultMessage = Boolean(props.showResultMessageLabel && props.variant);
 	const isAoMessage = hasAoMessageTags || isAoResultMessage;
+	const shouldUseMessageActionFallback = !isMessageElement(props.element.node?.tags, isAoResultMessage);
 	const canFetchAoResult = isAoMessage && !!props.element.node.recipient;
 
 	React.useEffect(() => {
@@ -229,16 +255,7 @@ function Message(props: {
 	function getActionLabel() {
 		const action = getTagValue(props.element.node.tags, 'Action');
 		if (action) return action;
-		if (isAoMessage) return language.none;
-
-		const tags = props.element.node.tags ?? [];
-
-		if (tags.length === 1) return tags[0].name;
-
-		for (const tagName of NON_MESSAGE_ACTION_FALLBACK_TAGS) {
-			const value = getTagValue(tags, tagName);
-			if (value) return value;
-		}
+		if (shouldUseMessageActionFallback) return getNonMessageActionFallback(props.element.node.tags) ?? language.none;
 
 		return language.none;
 	}
@@ -255,7 +272,7 @@ function Message(props: {
 				{props.element.node.recipient ? (
 					<TxAddress address={props.element.node.recipient} tooltipPosition={'right'} />
 				) : (
-					<p>-</p>
+					<p>No Recipient</p>
 				)}
 			</S.To>
 		);
@@ -303,12 +320,11 @@ function Message(props: {
 	function getAction(useMaxWidth: boolean) {
 		return (
 			<S.ActionValue background={getActionBackground()} useMaxWidth={useMaxWidth}>
-				<div className={'action-indicator'}>
-					<p>{getActionLabel()}</p>
-					<S.ActionTooltip className={'info'}>
-						<span>{getActionLabel()}</span>
-					</S.ActionTooltip>
-				</div>
+				<div className={'action-indicator'} />
+				<p>{getActionLabel()}</p>
+				<S.ActionTooltip className={'info'}>
+					<span>{getActionLabel()}</span>
+				</S.ActionTooltip>
 			</S.ActionValue>
 		);
 	}
@@ -519,6 +535,7 @@ function Message(props: {
 		variant: props.variant,
 		recipient: props.element.node.recipient,
 	});
+	const rowClickable = Boolean(props.element.node.id && canFetchAoResult);
 
 	return filterMessage ? (
 		<S.ElementWrapper
@@ -526,6 +543,7 @@ function Message(props: {
 			className={'message-list-element'}
 			onClick={() => {}}
 			disabled={true}
+			clickable={false}
 			open={false}
 			lastChild={props.lastChild}
 			style={{ pointerEvents: 'none' }}
@@ -539,8 +557,9 @@ function Message(props: {
 			<S.ElementWrapper
 				key={props.element.node.id}
 				className={'message-list-element'}
-				onClick={() => (!props.element.node.id || !canFetchAoResult ? {} : setOpen((prev) => !prev))}
+				onClick={rowClickable ? () => setOpen((prev) => !prev) : undefined}
 				disabled={!props.element.node.id}
+				clickable={rowClickable}
 				open={open && canFetchAoResult}
 				lastChild={props.lastChild}
 				childList={props.childList}
@@ -642,6 +661,7 @@ export default function MessageList(props: {
 	const tableContainerRef = React.useRef(null);
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
+	const [showExport, setShowExport] = React.useState<boolean>(false);
 
 	const loadedFilterState = React.useMemo(() => {
 		if (props.txId && !props.childList) {
@@ -729,6 +749,12 @@ export default function MessageList(props: {
 	const [appliedEndDate, setAppliedEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
 		loadedFilterState?.endDate ?? null
 	);
+	const [exportAmount, setExportAmount] = React.useState<string>(DEFAULT_CSV_EXPORT_AMOUNT.toString());
+	const [exporting, setExporting] = React.useState<boolean>(false);
+	const [exportError, setExportError] = React.useState<string | null>(null);
+
+	const parsedExportAmount = parseCsvExportAmount(exportAmount);
+	const invalidExportAmount = exportAmount.trim() !== '' && parsedExportAmount === null;
 
 	function dateToTimestamp(date: { year: number; month: number; day: number }): number {
 		return Math.floor(new Date(date.year, date.month - 1, date.day).getTime() / 1000);
@@ -845,6 +871,120 @@ export default function MessageList(props: {
 					...getQueryTagsArg(outgoingTags),
 					owners: [props.txId],
 				};
+		}
+	}
+
+	async function getExportQueryArgs() {
+		let tags = [];
+
+		if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+
+		if (props.txId) {
+			if (props.childList || props.type === 'message') return null;
+
+			let queryArgs: any;
+
+			switch (currentFilter) {
+				case 'incoming':
+					queryArgs = {
+						...getQueryTagsArg(tags),
+						recipients: [props.txId],
+						sort: 'descending',
+					};
+
+					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
+						if (appliedFromAddressIsProcess) {
+							queryArgs = {
+								...queryArgs,
+								...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
+							};
+						} else {
+							queryArgs.owners = [appliedFromAddress];
+						}
+					}
+					break;
+				case 'outgoing':
+					queryArgs = {
+						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+						sort: 'descending',
+						...(await getOutgoingGQLArgs(tags)),
+					};
+					break;
+				default:
+					return null;
+			}
+
+			if (appliedStartDate) {
+				queryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+			}
+			if (appliedEndDate) {
+				queryArgs.maxBlock = await timestampToBlockHeight(
+					dateToTimestamp({
+						...appliedEndDate,
+						day: appliedEndDate.day + 1,
+					})
+				);
+			}
+
+			return queryArgs;
+		}
+
+		tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
+
+		const queryArgs: any = {
+			...getQueryTagsArg(tags),
+			...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+		};
+
+		if (appliedStartDate) {
+			queryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+		}
+		if (appliedEndDate) {
+			queryArgs.maxBlock = await timestampToBlockHeight(
+				dateToTimestamp({
+					...appliedEndDate,
+					day: appliedEndDate.day + 1,
+				})
+			);
+		}
+
+		return queryArgs;
+	}
+
+	async function handleExport() {
+		if (!parsedExportAmount || exporting) return;
+
+		setExporting(true);
+		setExportError(null);
+
+		try {
+			const rows =
+				parsedExportAmount <= (currentData?.length ?? 0)
+					? currentData.slice(0, parsedExportAmount)
+					: await (async () => {
+							const queryArgs = await getExportQueryArgs();
+							if (!queryArgs) return [];
+
+							return fetchBoundedGqlData(
+								(args) => permawebProvider.libs.getGQLData(args),
+								queryArgs,
+								parsedExportAmount
+							);
+					  })();
+			const csvRows = rows.map(mapTransactionForCsv);
+
+			if (csvRows.length <= 0) {
+				setExportError(language.transactionsNotFound);
+				return;
+			}
+
+			downloadCsv(`lunar-messages-${getCsvTimestamp()}.csv`, csvRows);
+			setShowExport(false);
+		} catch (e: any) {
+			console.error(e);
+			setExportError(e.message || language.errorFetchingData);
+		} finally {
+			setExporting(false);
 		}
 	}
 
@@ -1290,6 +1430,7 @@ export default function MessageList(props: {
 	const invalidPerPage = perPage <= 0 || perPage > 100;
 	const customActionSelected = currentAction && actionOptions.some((action) => action === currentAction);
 	const variantOptions = [null, MessageVariantEnum.Legacynet, MessageVariantEnum.Mainnet];
+	const canExport = !props.childList && !props.result && (props.type !== 'message' || !props.txId);
 
 	return (
 		<>
@@ -1437,6 +1578,16 @@ export default function MessageList(props: {
 										iconLeftAlign
 									/>
 								</S.FilterWrapper>
+								{canExport && (
+									<Button
+										type={'alt3'}
+										label={language.download}
+										handlePress={() => setShowExport(true)}
+										disabled={loadingMessages || exporting}
+										icon={ASSETS.save}
+										iconLeftAlign
+									/>
+								)}
 								<S.Divider />
 								{getPaginator(false)}
 							</S.HeaderActions>
@@ -1677,6 +1828,42 @@ export default function MessageList(props: {
 								label={language.applyFilters}
 								handlePress={() => handleFilterUpdate()}
 								disabled={invalidPerPage}
+								active={false}
+								height={42.5}
+								fullWidth
+							/>
+						</S.FilterApply>
+					</S.FilterDropdown>
+				</Modal>
+			)}
+			{showExport && (
+				<Modal header={'Export CSV'} handleClose={() => setShowExport(false)}>
+					<S.FilterDropdown>
+						<S.FilterDropdownHeader>
+							<p>{'Transactions to download'}</p>
+						</S.FilterDropdownHeader>
+						<S.FilterDropdownActionSelect>
+							<FormField
+								type={'number'}
+								label={language.amount}
+								value={exportAmount}
+								onChange={(e: any) => setExportAmount(e.target.value)}
+								disabled={exporting}
+								invalid={{ status: invalidExportAmount, message: null }}
+								hideErrorMessage
+							/>
+						</S.FilterDropdownActionSelect>
+						{exportError && (
+							<S.UpdateWrapper>
+								<p>{exportError}</p>
+							</S.UpdateWrapper>
+						)}
+						<S.FilterApply>
+							<Button
+								type={'alt1'}
+								label={exporting ? `${language.loading}...` : language.download}
+								handlePress={handleExport}
+								disabled={!parsedExportAmount || exporting}
 								active={false}
 								height={42.5}
 								fullWidth

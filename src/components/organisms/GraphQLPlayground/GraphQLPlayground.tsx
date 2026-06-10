@@ -3,6 +3,7 @@ import { ReactSVG } from 'react-svg';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
+import { Modal } from 'components/atoms/Modal';
 import { Select } from 'components/atoms/Select';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
@@ -43,6 +44,126 @@ const DEFAULT_GATEWAYS = ['ao-search-gateway.goldsky.com', 'arweave-search.golds
 const STORAGE_KEY = 'lunar-gql-gateways';
 const STORAGE_KEY_VARIABLES = (playgroundId: string) => `lunar-gql-variables-${playgroundId}`;
 const STORAGE_KEY_SHOW_VARIABLES = (playgroundId: string) => `lunar-gql-show-variables-${playgroundId}`;
+const SCHEMA_CACHE = new Map<string, GQLSchemaDocs>();
+const SCHEMA_REQUEST_CACHE = new Map<string, Promise<GQLSchemaDocs>>();
+
+const INTROSPECTION_QUERY = `
+	query LunarSchemaDocs {
+		__schema {
+			queryType {
+				name
+			}
+			mutationType {
+				name
+			}
+			subscriptionType {
+				name
+			}
+			types {
+				kind
+				name
+				description
+				fields(includeDeprecated: true) {
+					name
+					description
+					args {
+						name
+						description
+						defaultValue
+						type {
+							...TypeRef
+						}
+					}
+					type {
+						...TypeRef
+					}
+					isDeprecated
+					deprecationReason
+				}
+				inputFields {
+					name
+					description
+					defaultValue
+					type {
+						...TypeRef
+					}
+				}
+				enumValues(includeDeprecated: true) {
+					name
+					description
+					isDeprecated
+					deprecationReason
+				}
+			}
+		}
+	}
+
+	fragment TypeRef on __Type {
+		kind
+		name
+		ofType {
+			kind
+			name
+			ofType {
+				kind
+				name
+				ofType {
+					kind
+					name
+					ofType {
+						kind
+						name
+					}
+				}
+			}
+		}
+	}
+`;
+
+type GQLTypeRef = {
+	kind: string;
+	name?: string | null;
+	ofType?: GQLTypeRef | null;
+};
+
+type GQLInputValue = {
+	name: string;
+	description?: string | null;
+	defaultValue?: string | null;
+	type: GQLTypeRef;
+};
+
+type GQLField = {
+	name: string;
+	description?: string | null;
+	args?: GQLInputValue[];
+	type: GQLTypeRef;
+	isDeprecated?: boolean;
+	deprecationReason?: string | null;
+};
+
+type GQLEnumValue = {
+	name: string;
+	description?: string | null;
+	isDeprecated?: boolean;
+	deprecationReason?: string | null;
+};
+
+type GQLType = {
+	kind: string;
+	name: string;
+	description?: string | null;
+	fields?: GQLField[] | null;
+	inputFields?: GQLInputValue[] | null;
+	enumValues?: GQLEnumValue[] | null;
+};
+
+type GQLSchemaDocs = {
+	queryType?: { name: string } | null;
+	mutationType?: { name: string } | null;
+	subscriptionType?: { name: string } | null;
+	types: GQLType[];
+};
 
 function ensureGatewayProtocol(gateway: string) {
 	const trimmed = gateway.trim();
@@ -69,6 +190,75 @@ function getGatewayGraphqlEndpoint(gateway: string) {
 	const withProtocol = ensureGatewayProtocol(gateway).replace(/\/+$/, '');
 
 	return /\/graphql$/i.test(withProtocol) ? withProtocol : `${withProtocol}/graphql`;
+}
+
+function formatTypeRef(type: GQLTypeRef | null | undefined): string {
+	if (!type) return 'Unknown';
+	if (type.kind === 'NON_NULL') return `${formatTypeRef(type.ofType)}!`;
+	if (type.kind === 'LIST') return `[${formatTypeRef(type.ofType)}]`;
+
+	return type.name || type.kind;
+}
+
+function buildFieldSignature(field: GQLField) {
+	const args =
+		field.args && field.args.length > 0
+			? `(${field.args.map((arg) => `${arg.name}: ${formatTypeRef(arg.type)}`).join(', ')})`
+			: '';
+
+	return `${field.name}${args}: ${formatTypeRef(field.type)}`;
+}
+
+function getNamedTypeName(type: GQLTypeRef | null | undefined): string | null {
+	if (!type) return null;
+	if (type.name) return type.name;
+
+	return getNamedTypeName(type.ofType);
+}
+
+function isLeafType(type: GQLType | undefined) {
+	return !type || ['SCALAR', 'ENUM'].includes(type.kind);
+}
+
+function capitalize(value: string) {
+	return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : 'Query';
+}
+
+async function fetchSchemaDocs(endpoint: string): Promise<GQLSchemaDocs> {
+	const cached = SCHEMA_CACHE.get(endpoint);
+	if (cached) return cached;
+
+	const pending = SCHEMA_REQUEST_CACHE.get(endpoint);
+	if (pending) return pending;
+
+	const request = fetch(endpoint, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'Codec-Device': 'json@1.0',
+		},
+		body: JSON.stringify({ query: INTROSPECTION_QUERY }),
+	})
+		.then(async (response) => {
+			const payload = await response.json();
+
+			if (!response.ok || payload.errors?.length > 0 || !payload.data?.__schema) {
+				const message = payload.errors?.[0]?.message || `Schema request failed with status ${response.status}`;
+				throw new Error(message);
+			}
+
+			const schema = payload.data.__schema as GQLSchemaDocs;
+			SCHEMA_CACHE.set(endpoint, schema);
+
+			return schema;
+		})
+		.finally(() => {
+			SCHEMA_REQUEST_CACHE.delete(endpoint);
+		});
+
+	SCHEMA_REQUEST_CACHE.set(endpoint, request);
+
+	return request;
 }
 
 export default function GraphQLPlayground(props: {
@@ -125,8 +315,13 @@ export default function GraphQLPlayground(props: {
 			return '{}';
 		}
 	});
+	const [showDocs, setShowDocs] = React.useState<boolean>(false);
+	const [schemaDocs, setSchemaDocs] = React.useState<GQLSchemaDocs | null>(null);
+	const [schemaDocsLoading, setSchemaDocsLoading] = React.useState<boolean>(false);
+	const [schemaDocsError, setSchemaDocsError] = React.useState<string | null>(null);
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const layoutTimeoutRef = React.useRef<any | null>(null);
+	const schemaDocsEndpoint = React.useMemo(() => getGatewayGraphqlEndpoint(inputGateway.trim()), [inputGateway]);
 
 	// Trigger layout recalculation when tab becomes active
 	React.useEffect(() => {
@@ -253,6 +448,34 @@ export default function GraphQLPlayground(props: {
 		}
 	}, [query, props.onQueryChange, props.initialQuery, extractQueryName]);
 
+	React.useEffect(() => {
+		if (!showDocs || !schemaDocsEndpoint) return;
+
+		let active = true;
+
+		setSchemaDocsLoading(true);
+		setSchemaDocsError(null);
+
+		fetchSchemaDocs(schemaDocsEndpoint)
+			.then((schema) => {
+				if (!active) return;
+				setSchemaDocs(schema);
+			})
+			.catch((e: any) => {
+				if (!active) return;
+				setSchemaDocs(null);
+				setSchemaDocsError(e.message || language.errorFetchingData);
+			})
+			.finally(() => {
+				if (!active) return;
+				setSchemaDocsLoading(false);
+			});
+
+		return () => {
+			active = false;
+		};
+	}, [showDocs, schemaDocsEndpoint, language.errorFetchingData]);
+
 	const saveCustomGateway = React.useCallback(() => {
 		const gateway = getGatewayStorageValue(inputGateway);
 
@@ -361,6 +584,192 @@ export default function GraphQLPlayground(props: {
 		[query, inputGateway, prepareQuery, showVariables, variables]
 	);
 
+	const schemaTypesByName = React.useMemo(() => {
+		const map = new Map<string, GQLType>();
+		for (const type of schemaDocs?.types ?? []) {
+			if (type.name) map.set(type.name, type);
+		}
+
+		return map;
+	}, [schemaDocs]);
+
+	function getRootFields(rootType?: { name: string } | null) {
+		if (!rootType?.name) return [];
+
+		return schemaTypesByName.get(rootType.name)?.fields ?? [];
+	}
+
+	function getSelectionSet(typeRef: GQLTypeRef, depth = 0): string {
+		const typeName = getNamedTypeName(typeRef);
+		const type = typeName ? schemaTypesByName.get(typeName) : undefined;
+		if (isLeafType(type) || depth > 1) return '';
+
+		const fields = (type?.fields ?? []).filter((field) => !field.name.startsWith('__') && !field.isDeprecated);
+		const scalarFields = fields
+			.filter((field) => isLeafType(schemaTypesByName.get(getNamedTypeName(field.type) ?? '')))
+			.slice(0, 6);
+		const selectedFields = scalarFields.length > 0 ? scalarFields : fields.slice(0, 3);
+		if (selectedFields.length <= 0) return '';
+
+		const indent = '\t'.repeat(depth + 2);
+		const childLines = selectedFields.map((field) => {
+			const nestedSelection = getSelectionSet(field.type, depth + 1);
+			return `${indent}${field.name}${nestedSelection}`;
+		});
+
+		return ` {\n${childLines.join('\n')}\n${'\t'.repeat(depth + 1)}}`;
+	}
+
+	function useFieldQuery(operation: 'query' | 'mutation' | 'subscription', field: GQLField) {
+		const requiredArgs = (field.args ?? []).filter((arg) => arg.type.kind === 'NON_NULL' && !arg.defaultValue);
+		const variableDefs = requiredArgs.map((arg) => `$${arg.name}: ${formatTypeRef(arg.type)}`).join(', ');
+		const variableArgs = requiredArgs.map((arg) => `${arg.name}: $${arg.name}`).join(', ');
+		const operationSuffix =
+			operation === 'mutation' ? 'Mutation' : operation === 'subscription' ? 'Subscription' : 'Query';
+		const operationName = `${capitalize(field.name)}${operationSuffix}`;
+		const selection = getSelectionSet(field.type);
+		const nextQuery = `${operation} ${operationName}${variableDefs ? `(${variableDefs})` : ''} {\n\t${field.name}${
+			variableArgs ? `(${variableArgs})` : ''
+		}${selection}\n}`;
+
+		setQuery(nextQuery);
+
+		if (requiredArgs.length > 0) {
+			setVariables(JSON.stringify(Object.fromEntries(requiredArgs.map((arg) => [arg.name, null])), null, 2));
+			setShowVariables(true);
+		}
+
+		setShowDocs(false);
+		setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+	}
+
+	function renderFieldDocs(operation: 'query' | 'mutation' | 'subscription', fields: GQLField[]) {
+		if (fields.length <= 0) {
+			return (
+				<S.DocsEmpty>
+					<p>No {operation === 'query' ? 'queries' : operation === 'mutation' ? 'mutations' : 'subscriptions'} found</p>
+				</S.DocsEmpty>
+			);
+		}
+
+		return (
+			<S.DocsList>
+				{fields.map((field) => (
+					<S.DocsField key={field.name}>
+						<S.DocsFieldHeader>
+							<S.DocsFieldSignature>
+								<code>{buildFieldSignature(field)}</code>
+							</S.DocsFieldSignature>
+							<Button type={'alt3'} label={'Use'} handlePress={() => useFieldQuery(operation, field)} height={30} />
+						</S.DocsFieldHeader>
+						{field.description && (
+							<S.DocsDescription>
+								<p>{field.description}</p>
+							</S.DocsDescription>
+						)}
+						{field.args && field.args.length > 0 && (
+							<S.DocsArgs>
+								{field.args.map((arg) => (
+									<S.DocsArg key={arg.name}>
+										<code>{`${arg.name}: ${formatTypeRef(arg.type)}`}</code>
+										{arg.defaultValue && <span>{`= ${arg.defaultValue}`}</span>}
+									</S.DocsArg>
+								))}
+							</S.DocsArgs>
+						)}
+						{field.isDeprecated && (
+							<S.DocsDeprecated>
+								<p>{field.deprecationReason || 'Deprecated'}</p>
+							</S.DocsDeprecated>
+						)}
+					</S.DocsField>
+				))}
+			</S.DocsList>
+		);
+	}
+
+	function renderTypeDocs() {
+		const visibleTypes = (schemaDocs?.types ?? [])
+			.filter((type) => type.name && !type.name.startsWith('__'))
+			.sort((a, b) => a.name.localeCompare(b.name));
+
+		if (visibleTypes.length <= 0) return null;
+
+		return (
+			<S.DocsSection>
+				<S.DocsSectionHeader>
+					<p>Types</p>
+					<span>{visibleTypes.length}</span>
+				</S.DocsSectionHeader>
+				<S.DocsTypeGrid>
+					{visibleTypes.map((type) => (
+						<S.DocsType key={type.name}>
+							<code>{type.name}</code>
+							<span>{type.kind}</span>
+						</S.DocsType>
+					))}
+				</S.DocsTypeGrid>
+			</S.DocsSection>
+		);
+	}
+
+	function renderDocsPanel() {
+		const queryFields = getRootFields(schemaDocs?.queryType);
+		const mutationFields = getRootFields(schemaDocs?.mutationType);
+		const subscriptionFields = getRootFields(schemaDocs?.subscriptionType);
+
+		return (
+			<Modal type="panel" width={680} header={`${language.docs} - GraphQL`} handleClose={() => setShowDocs(false)}>
+				<S.DocsPanel>
+					<S.DocsEndpoint>
+						<span>Gateway</span>
+						<p>{schemaDocsEndpoint}</p>
+					</S.DocsEndpoint>
+					{schemaDocsLoading && (
+						<S.DocsEmpty>
+							<p>{`${language.loading}...`}</p>
+						</S.DocsEmpty>
+					)}
+					{schemaDocsError && (
+						<S.DocsError>
+							<p>{schemaDocsError}</p>
+						</S.DocsError>
+					)}
+					{schemaDocs && !schemaDocsLoading && !schemaDocsError && (
+						<>
+							<S.DocsSection>
+								<S.DocsSectionHeader>
+									<p>Queries</p>
+									<span>{queryFields.length}</span>
+								</S.DocsSectionHeader>
+								{renderFieldDocs('query', queryFields)}
+							</S.DocsSection>
+							{mutationFields.length > 0 && (
+								<S.DocsSection>
+									<S.DocsSectionHeader>
+										<p>Mutations</p>
+										<span>{mutationFields.length}</span>
+									</S.DocsSectionHeader>
+									{renderFieldDocs('mutation', mutationFields)}
+								</S.DocsSection>
+							)}
+							{subscriptionFields.length > 0 && (
+								<S.DocsSection>
+									<S.DocsSectionHeader>
+										<p>Subscriptions</p>
+										<span>{subscriptionFields.length}</span>
+									</S.DocsSectionHeader>
+									{renderFieldDocs('subscription', subscriptionFields)}
+								</S.DocsSection>
+							)}
+							{renderTypeDocs()}
+						</>
+					)}
+				</S.DocsPanel>
+			</Modal>
+		);
+	}
+
 	return (
 		<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
 			<S.HeaderWrapper>
@@ -405,16 +814,28 @@ export default function GraphQLPlayground(props: {
 						stopPropagation
 						preventDefault
 					/>
-				</S.InputWrapper>
-				<S.ActionsWrapper>
 					<Button
-						type={'primary'}
-						label={language.queryVariables}
+						type={'alt1'}
 						handlePress={() => setShowVariables((prev) => !prev)}
 						active={showVariables}
-						icon={showVariables ? ASSETS.close : null}
-						height={37.5}
+						icon={showVariables ? ASSETS.close : ASSETS.code}
+						height={32.5}
+						width={32.5}
+						iconSize={14.5}
+						tooltip={language.queryVariables}
 					/>
+					<Button
+						type={'alt1'}
+						handlePress={() => setShowDocs(true)}
+						active={showDocs}
+						icon={ASSETS.docs}
+						height={32.5}
+						width={32.5}
+						iconSize={14.5}
+						tooltip={language.docs}
+					/>
+				</S.InputWrapper>
+				<S.ActionsWrapper>
 					<Select
 						label={''}
 						activeOption={activeGatewayOption}
@@ -465,6 +886,7 @@ export default function GraphQLPlayground(props: {
 					/>
 				</S.ResultWrapper>
 			</S.Container>
+			{showDocs && renderDocsPanel()}
 		</S.Wrapper>
 	);
 }

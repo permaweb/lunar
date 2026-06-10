@@ -80,7 +80,7 @@ export const TagsWrapper = styled.div`
 `;
 
 export const SectionWrapperFlex = styled.div`
-	width: 50%;
+	width: calc(50% - 12.5px);
 	flex: 1;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -714,8 +714,7 @@ export const Refresh = styled.div`
 	margin: 0 -4.5px 0 4.5px;
 
 	svg {
-		color: ${(props) => props.theme.colors.font.light1};
-		fill: ${(props) => props.theme.colors.font.light1};
+		color: ${(props) => props.theme.colors.font.light1} !important;
 	}
 
 	button {
@@ -724,6 +723,10 @@ export const Refresh = styled.div`
 
 		&:hover {
 			opacity: 0.75 !important;
+
+			svg {
+				color: ${(props) => props.theme.colors.font.light2} !important;
+			}
 		}
 	}
 `;
