@@ -629,6 +629,13 @@ export const SearchInputWrapper = styled.div`
 	}
 `;
 
+export const BlockNavigationWrapper = styled.div`
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 7.5px;
+`;
+
 export const InputActions = styled.div`
 	width: 100%;
 	display: flex;

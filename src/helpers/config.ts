@@ -177,6 +177,7 @@ export const STORAGE = {
 	walletType: `wallet-type`,
 	profile: (id: string) => `profile-${id}`,
 	customActions: 'explorer-custom-actions',
+	blockFilters: 'block-filters',
 	messageFilter: (id: string) => `message-filter-${id}`,
 };
 

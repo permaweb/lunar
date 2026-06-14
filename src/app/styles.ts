@@ -1,7 +1,37 @@
-import styled, { createGlobalStyle } from 'styled-components';
+import styled, { createGlobalStyle, css, keyframes } from 'styled-components';
 
 import { open, transition1, transition2 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
+
+const nodeStatusBlink = keyframes`
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: scale(0.9);
+	}
+
+	50% {
+		opacity: 0.85;
+		transform: scale(1);
+	}
+`;
+
+const nodeStatusPulse = keyframes`
+	0% {
+		box-shadow: 0 0 0 0 currentColor;
+		transform: scale(0.96);
+	}
+
+	70% {
+		box-shadow: 0 0 0 7px transparent;
+		transform: scale(1);
+	}
+
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+		transform: scale(0.96);
+	}
+`;
 
 export const GlobalStyle = createGlobalStyle`
   html, body, div, span, applet, object, iframe,
@@ -313,6 +343,86 @@ export const App = styled.div`
 	position: relative;
 	display: flex;
 	flex-direction: column;
+`;
+
+export const NodeStatusButton = styled.button`
+	min-width: 250px;
+	position: fixed;
+	right: 20px;
+	bottom: 20px;
+	z-index: 10;
+	max-width: min(360px, calc(100vw - 40px));
+	display: flex;
+	align-items: center;
+	gap: 12.5px;
+	padding: 10px 14.5px;
+	background: ${(props) => props.theme.colors.contrast.background};
+	border: 1px solid ${(props) => props.theme.colors.contrast.border};
+	border-radius: ${STYLING.dimensions.radius.primary};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	color: ${(props) => props.theme.colors.font.primary};
+	text-align: left;
+
+	&:hover,
+	&:focus {
+		background: ${(props) => props.theme.colors.contrast.active.background};
+		border-color: ${(props) => props.theme.colors.contrast.active.border};
+		outline: none;
+	}
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		right: 12px;
+		bottom: 12px;
+		max-width: calc(100vw - 24px);
+	}
+`;
+
+export const NodeStatusIndicator = styled.div<{ $isOnline: boolean; $isLoading: boolean }>`
+	height: 10px;
+	width: 10px;
+	flex: none;
+	border-radius: 50%;
+	margin: 2.5px 0 0 0;
+	color: ${(props) =>
+		props.$isLoading
+			? props.theme.colors.font.alt1
+			: props.$isOnline
+			? props.theme.colors.indicator.active
+			: props.theme.colors.warning.primary};
+	background: currentColor;
+	opacity: ${(props) => (props.$isLoading ? 0.65 : 1)};
+	will-change: box-shadow, opacity, transform;
+	${(props) =>
+		props.$isLoading
+			? css`
+					animation: ${nodeStatusBlink} 1s ease-in-out infinite;
+			  `
+			: css`
+					animation: ${nodeStatusPulse} 1.8s ease-out infinite;
+			  `}
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+`;
+
+export const NodeStatusText = styled.div`
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+
+	p {
+		min-width: 0;
+		overflow: hidden;
+		color: ${(props) => props.theme.colors.contrast.color};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		line-height: 1.25;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 `;
 
 export const View = styled.main<{ navigationOpen: boolean }>`

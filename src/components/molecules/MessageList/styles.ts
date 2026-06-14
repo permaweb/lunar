@@ -96,6 +96,18 @@ export const FilterApply = styled.div`
 	margin: 15px 0 0 0;
 `;
 
+export const FilterWarning = styled.div`
+	margin: -2.5px 0 0 0;
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.warning.caution};
+		line-height: 1.45;
+	}
+`;
+
 export const DateRangeWrapper = styled.div`
 	display: flex;
 	flex-direction: column;

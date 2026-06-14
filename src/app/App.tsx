@@ -16,6 +16,7 @@ const NotFound = getLazyImport('NotFound');
 
 import { Loader } from 'components/atoms/Loader';
 import { DOM, LINKS, URLS } from 'helpers/config';
+import { stripUrlProtocol } from 'helpers/utils';
 import { Navigation } from 'navigation/Navigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
@@ -42,10 +43,18 @@ export default function App() {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const { settings, updateSettings } = useSettingsProvider();
+	const { settings, updateSettings, setShowNodeSettings } = useSettingsProvider();
 
 	const hasHiddenLoaderRef = React.useRef(false);
 	const hasInitializedServiceWorkerRef = React.useRef(false);
+
+	const activeNode = React.useMemo(
+		() => settings.nodes.find((node) => node.active) ?? settings.nodes[0],
+		[settings.nodes]
+	);
+
+	const [isNodeOnline, setIsNodeOnline] = React.useState<boolean>(false);
+	const [isNodeStatusLoading, setIsNodeStatusLoading] = React.useState<boolean>(true);
 
 	React.useEffect(() => {
 		const storedVersion = localStorage.getItem('app-version');
@@ -80,6 +89,58 @@ export default function App() {
 			}
 		}
 	}, [settings]);
+
+	React.useEffect(() => {
+		let cancelled = false;
+		const controller = new AbortController();
+		let timeout: number | undefined;
+
+		async function checkNodeStatus() {
+			if (!settings.showNodeStatus || !activeNode?.url) {
+				setIsNodeOnline(false);
+				setIsNodeStatusLoading(false);
+				return;
+			}
+
+			setIsNodeOnline(false);
+			setIsNodeStatusLoading(true);
+			timeout = window.setTimeout(() => controller.abort(), 10000);
+
+			try {
+				const nodeUrl = activeNode.url.replace(/\/$/, '');
+				const response = await fetch(`${nodeUrl}/~hyperbuddy@1.0/metrics`, { signal: controller.signal });
+
+				if (!cancelled) {
+					setIsNodeOnline(response.ok);
+				}
+			} catch (error) {
+				const isAbortError = error instanceof Error && error.name === 'AbortError';
+				if (!cancelled && !isAbortError) {
+					console.error('Failed to fetch node status:', error);
+				}
+				if (!cancelled) {
+					setIsNodeOnline(false);
+				}
+			} finally {
+				if (timeout) {
+					window.clearTimeout(timeout);
+				}
+				if (!cancelled) {
+					setIsNodeStatusLoading(false);
+				}
+			}
+		}
+
+		checkNodeStatus();
+
+		return () => {
+			cancelled = true;
+			controller.abort();
+			if (timeout) {
+				window.clearTimeout(timeout);
+			}
+		};
+	}, [activeNode?.url, settings.showNodeStatus]);
 
 	// @ts-ignore
 	if (process.env.NODE_ENV === 'development') {
@@ -156,6 +217,21 @@ export default function App() {
 						{getRoute(URLS.notFound, <NotFound />)}
 						{getRoute(`*`, <NotFound />)}
 					</Routes>
+					{settings.showNodeStatus && activeNode && (
+						<S.NodeStatusButton
+							type={'button'}
+							onClick={() => setShowNodeSettings(true)}
+							aria-label={`${language.aoMainnet} ${language.node}: ${stripUrlProtocol(activeNode.url)}. ${
+								isNodeStatusLoading ? `${language.loading}...` : isNodeOnline ? language.online : language.offline
+							}`}
+							title={language.changeConnection}
+						>
+							<S.NodeStatusIndicator $isOnline={isNodeOnline} $isLoading={isNodeStatusLoading} />
+							<S.NodeStatusText>
+								<p>{stripUrlProtocol(activeNode.url)}</p>
+							</S.NodeStatusText>
+						</S.NodeStatusButton>
+					)}
 				</S.App>
 			</Suspense>
 		</>

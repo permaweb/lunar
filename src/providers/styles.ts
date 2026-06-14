@@ -80,6 +80,51 @@ export const NodeSectionHeader = styled.div`
 	}
 `;
 
+export const NodeDisplayOption = styled.label`
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 10px 12px;
+	background: ${(props) => props.theme.colors.container.primary.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	cursor: pointer;
+	transition: all 100ms;
+
+	&:hover {
+		background: ${(props) => props.theme.colors.container.primary.active};
+		border-color: ${(props) => props.theme.colors.border.alt2};
+	}
+
+	> div:first-child {
+		flex: none;
+		margin: 3.5px 0 0 0;
+	}
+`;
+
+export const NodeDisplayOptionText = styled.div`
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+
+	span {
+		color: ${(props) => props.theme.colors.font.primary};
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		line-height: 1.35;
+	}
+
+	p {
+		color: ${(props) => props.theme.colors.font.alt1};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		line-height: 1.45;
+	}
+`;
+
 export const NodeList = styled.div`
 	display: flex;
 	flex-direction: column;

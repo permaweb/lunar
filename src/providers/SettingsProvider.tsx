@@ -3,6 +3,7 @@ import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
 import { Button } from 'components/atoms/Button';
+import { Checkbox } from 'components/atoms/Checkbox';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
 import { ASSETS, DEFAULT_AO_NODE, STYLING } from 'helpers/config';
@@ -51,6 +52,7 @@ interface Settings {
 	showCategoryAction: boolean;
 	showTopicAction: boolean;
 	showLinkAction: boolean;
+	showNodeStatus: boolean;
 	nodes: NodeConfig[];
 }
 
@@ -79,6 +81,7 @@ const defaultSettings: Settings = {
 	showCategoryAction: false,
 	showTopicAction: false,
 	showLinkAction: false,
+	showNodeStatus: true,
 	nodes: [{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true }],
 };
 
@@ -115,6 +118,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				showCategoryAction: parsedSettings.showCategoryAction ?? false,
 				showTopicAction: parsedSettings.showTopicAction ?? false,
 				showLinkAction: parsedSettings.showLinkAction ?? false,
+				showNodeStatus: parsedSettings.showNodeStatus ?? true,
 				syncWithSystem: parsedSettings.syncWithSystem ?? true,
 				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
 				preferredDarkTheme: parsedSettings.preferredDarkTheme ?? 'dark-primary',
@@ -372,6 +376,10 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		setActiveNode(url);
 	}
 
+	function handleToggleNodeStatus() {
+		updateSettings('showNodeStatus', !settings.showNodeStatus);
+	}
+
 	return (
 		<SettingsContext.Provider
 			value={{ settings, updateSettings, addNode, removeNode, setActiveNode, showNodeSettings, setShowNodeSettings }}
@@ -440,6 +448,13 @@ export function SettingsProvider(props: SettingsProviderProps) {
 										fullWidth
 									/>
 								</S.NodeAddSection>
+								<S.NodeDisplayOption>
+									<Checkbox checked={settings.showNodeStatus} handleSelect={handleToggleNodeStatus} disabled={false} />
+									<S.NodeDisplayOptionText>
+										<span>{language.en.showFixedNodeStatus}</span>
+										<p>{language.en.showFixedNodeStatusDescription}</p>
+									</S.NodeDisplayOptionText>
+								</S.NodeDisplayOption>
 							</S.NodeSection>
 						</S.MWrapper>
 					</Modal>

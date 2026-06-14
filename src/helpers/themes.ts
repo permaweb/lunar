@@ -2,7 +2,7 @@ import { DefaultTheme } from 'styled-components';
 
 const common = {
 	positive1: '#28baa2',
-	caution1: '#EECA00',
+	caution1: '#eb9330',
 	negative1: '#ce3f7e',
 	negative2: '#c5276c',
 	dark1: '#151515',
@@ -440,6 +440,11 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			background: currentTheme.dark2,
 			border: currentTheme.dark2,
 			color: currentTheme.light1,
+			active: {
+				background: currentTheme.dark1,
+				border: currentTheme.dark2,
+				color: currentTheme.light1,
+			},
 		},
 		font: {
 			primary: currentTheme.neutralA1,
@@ -546,6 +551,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 		warning: {
 			primary: currentTheme.negative1,
 			alt1: currentTheme.negative2,
+			caution: currentTheme.caution1,
 		},
 	},
 	typography: {

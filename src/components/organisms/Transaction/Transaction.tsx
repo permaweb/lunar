@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import JSONbig from 'json-bigint';
 
@@ -259,6 +260,7 @@ function Transaction(props: {
 	onLoadingChange?: (loading: boolean) => void;
 }) {
 	const dispatch = useDispatch();
+	const navigate = useNavigate();
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
@@ -1975,6 +1977,20 @@ function Transaction(props: {
 		}
 	}, []);
 
+	const handleBlockNavigation = React.useCallback(
+		(blockHeight: number) => {
+			navigate(`${URLS.explorer}${blockHeight}`);
+		},
+		[navigate]
+	);
+
+	const blockHeight = resolvedType === 'block' ? txResponse?.node?.block?.height : null;
+	const blockConfirmations = resolvedType === 'block' ? (txResponse?.node as any)?.confirmations : null;
+	const hasBlockNavigation = typeof blockHeight === 'number' && Number.isFinite(blockHeight);
+	const previousBlockHeight = hasBlockNavigation && blockHeight > 0 ? blockHeight - 1 : null;
+	const nextBlockHeight = hasBlockNavigation ? blockHeight + 1 : null;
+	const nextBlockDisabled = blockConfirmations === 0;
+
 	return (
 		<>
 			<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
@@ -2031,6 +2047,39 @@ function Transaction(props: {
 							stopPropagation
 							preventDefault
 						/>
+						{hasBlockNavigation && (
+							<S.BlockNavigationWrapper>
+								{previousBlockHeight !== null && (
+									<Button
+										type={'primary'}
+										label={'Previous Block'}
+										icon={ASSETS.arrowLeft}
+										iconLeftAlign
+										handlePress={() => handleBlockNavigation(previousBlockHeight)}
+										disabled={loadingTx}
+										height={32.5}
+										iconSize={13.5}
+										tooltip={`${formatCount(previousBlockHeight.toString())}`}
+										stopPropagation
+										preventDefault
+									/>
+								)}
+								{nextBlockHeight !== null && (
+									<Button
+										type={'primary'}
+										label={'Next Block'}
+										icon={ASSETS.arrowRight}
+										handlePress={() => handleBlockNavigation(nextBlockHeight)}
+										disabled={loadingTx || nextBlockDisabled}
+										height={32.5}
+										iconSize={13.5}
+										tooltip={`${formatCount(nextBlockHeight.toString())}`}
+										stopPropagation
+										preventDefault
+									/>
+								)}
+							</S.BlockNavigationWrapper>
+						)}
 					</S.SearchWrapper>
 					<S.HeaderActionsWrapper>
 						{resolvedType && txResponse && (

@@ -16,8 +16,9 @@ export const HeaderContent = styled.div`
 		line-height: 1;
 		font-size: ${(props) => props.theme.typography.size.xxLg};
 		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.medium};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
+		letter-spacing: 0.5px;
 	}
 `;
 

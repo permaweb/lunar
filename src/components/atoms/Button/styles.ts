@@ -627,19 +627,19 @@ export const IconAlt3 = styled(IconPrimary)`
 		margin: ${(props) => (props.noLabel ? '0' : props.leftAlign ? '2.5px 6.5px 0 0' : '2.5px -6.5px 0 6.5px')};
 		color: ${(props) =>
 			props.disabled
-				? props.theme.colors.button.alt2.disabled.color
+				? props.theme.colors.button.primary.disabled.color
 				: props.warning
 				? props.theme.colors.font.light1
 				: props.active
-				? props.theme.colors.font.light1
+				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color};
 		fill: ${(props) =>
 			props.disabled
-				? props.theme.colors.button.alt2.disabled.color
+				? props.theme.colors.button.primary.disabled.color
 				: props.warning
 				? props.theme.colors.font.light1
 				: props.active
-				? props.theme.colors.font.light1
+				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color};
 	}
 `;

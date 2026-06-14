@@ -398,7 +398,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 					header={language.chooseAppAppearance}
 					handleClose={() => setShowThemeSelector(false)}
 				>
-					<S.MWrapper className={'modal-wrapper'}>
+					<S.MWrapper>
 						{Object.entries(THEMES).map(([key, theme]) => (
 							<S.ThemeSection key={key}>
 								<S.ThemeSectionHeader>

@@ -23,14 +23,7 @@ import {
 	STORAGE,
 	TAGS,
 } from 'helpers/config';
-import {
-	DEFAULT_CSV_EXPORT_AMOUNT,
-	downloadCsv,
-	fetchBoundedGqlData,
-	getCsvTimestamp,
-	mapTransactionForCsv,
-	parseCsvExportAmount,
-} from 'helpers/csv';
+import { downloadCsv, getCsvTimestamp, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
 import { MessageFilterType, MessageVariantEnum, ResultMessageType, TransactionType } from 'helpers/types';
@@ -63,6 +56,8 @@ const NON_MESSAGE_ACTION_FALLBACK_TAGS = [
 	'Bundle-Format',
 	'Bundle-Version',
 ];
+const GQL_PAGE_CHUNK_SIZE = 100;
+const DEFAULT_RESULTS_PER_PAGE = 50;
 
 function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
 	return getTagValue(tags, name)?.toLowerCase() === value.toLowerCase();
@@ -630,6 +625,12 @@ function normalizeVariantFilter(variant: any): MessageVariantEnum | null {
 	return null;
 }
 
+function normalizePerPageFilter(perPage: any) {
+	const parsed = Number(perPage);
+
+	return Number.isInteger(parsed) && parsed > 0 ? parsed.toString() : DEFAULT_RESULTS_PER_PAGE.toString();
+}
+
 export default function MessageList(props: {
 	header?: string;
 	txId?: string;
@@ -661,12 +662,16 @@ export default function MessageList(props: {
 	const tableContainerRef = React.useRef(null);
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
-	const [showExport, setShowExport] = React.useState<boolean>(false);
+	const filterStorageKey = React.useMemo(() => {
+		if (props.childList || props.result) return null;
+
+		return STORAGE.messageFilter(props.txId || 'global');
+	}, [props.txId, props.childList, props.result]);
 
 	const loadedFilterState = React.useMemo(() => {
-		if (props.txId && !props.childList) {
+		if (filterStorageKey) {
 			try {
-				const saved = localStorage.getItem(STORAGE.messageFilter(props.txId));
+				const saved = localStorage.getItem(filterStorageKey);
 				if (saved) {
 					const parsed = JSON.parse(saved);
 					return {
@@ -677,6 +682,7 @@ export default function MessageList(props: {
 						fromAddress: parsed.fromAddress || '',
 						startDate: parsed.startDate || null,
 						endDate: parsed.endDate || null,
+						perPage: normalizePerPageFilter(parsed.perPage),
 					};
 				}
 			} catch (e) {
@@ -684,7 +690,7 @@ export default function MessageList(props: {
 			}
 		}
 		return null;
-	}, [props.txId, props.childList]);
+	}, [filterStorageKey]);
 
 	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(
 		props.currentFilter ?? loadedFilterState?.filter ?? 'outgoing'
@@ -720,7 +726,9 @@ export default function MessageList(props: {
 	const [cursorHistory, setCursorHistory] = React.useState([]);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
 	const [pageNumber, setPageNumber] = React.useState(1);
-	const [perPage, setPerPage] = React.useState(50);
+	const [perPage, setPerPage] = React.useState<string>(
+		loadedFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+	);
 	const [recipient, setRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
 	const [fromAddress, setFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
 	const [fromAddressIsProcess, setFromAddressIsProcess] = React.useState<boolean>(false);
@@ -749,12 +757,15 @@ export default function MessageList(props: {
 	const [appliedEndDate, setAppliedEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
 		loadedFilterState?.endDate ?? null
 	);
-	const [exportAmount, setExportAmount] = React.useState<string>(DEFAULT_CSV_EXPORT_AMOUNT.toString());
-	const [exporting, setExporting] = React.useState<boolean>(false);
-	const [exportError, setExportError] = React.useState<string | null>(null);
 
-	const parsedExportAmount = parseCsvExportAmount(exportAmount);
-	const invalidExportAmount = exportAmount.trim() !== '' && parsedExportAmount === null;
+	const parsedPerPage = React.useMemo(() => {
+		const parsed = Number(perPage);
+
+		return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+	}, [perPage]);
+	const invalidPerPage = parsedPerPage === null;
+	const showLargeFetchWarning = parsedPerPage !== null && parsedPerPage > GQL_PAGE_CHUNK_SIZE;
+	const usingCustomPerPage = parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE;
 
 	function dateToTimestamp(date: { year: number; month: number; day: number }): number {
 		return Math.floor(new Date(date.year, date.month - 1, date.day).getTime() / 1000);
@@ -836,7 +847,7 @@ export default function MessageList(props: {
 	}
 
 	function saveFilterState() {
-		if (props.txId && !props.childList) {
+		if (filterStorageKey) {
 			try {
 				const filterState = {
 					filter: currentFilter,
@@ -846,8 +857,9 @@ export default function MessageList(props: {
 					fromAddress: fromAddress,
 					startDate: startDate,
 					endDate: endDate,
+					perPage: parsedPerPage?.toString() ?? undefined,
 				};
-				localStorage.setItem(STORAGE.messageFilter(props.txId), JSON.stringify(filterState));
+				localStorage.setItem(filterStorageKey, JSON.stringify(filterState));
 			} catch (e) {
 				console.error('Failed to save message filter:', e);
 			}
@@ -874,118 +886,44 @@ export default function MessageList(props: {
 		}
 	}
 
-	async function getExportQueryArgs() {
-		let tags = [];
+	async function fetchGqlDataPage(queryArgs: any, amount: number) {
+		const { cursor: initialCursor, paginator: _paginator, ...baseArgs } = queryArgs;
+		const rows: any[] = [];
+		let cursor: string | null = initialCursor ?? null;
+		let nextCursorValue: string | null = null;
+		let count: number | null = null;
 
-		if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+		while (rows.length < amount) {
+			const response = await permawebProvider.libs.getGQLData({
+				...baseArgs,
+				paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
+				...(cursor ? { cursor } : {}),
+			});
+			const pageRows = response?.data ?? [];
+			const responseNextCursor = response?.nextCursor && response.nextCursor !== 'END' ? response.nextCursor : null;
 
-		if (props.txId) {
-			if (props.childList || props.type === 'message') return null;
+			if (count === null && response?.count !== undefined) count = response.count;
 
-			let queryArgs: any;
+			rows.push(...pageRows);
+			nextCursorValue = responseNextCursor;
 
-			switch (currentFilter) {
-				case 'incoming':
-					queryArgs = {
-						...getQueryTagsArg(tags),
-						recipients: [props.txId],
-						sort: 'descending',
-					};
-
-					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
-						if (appliedFromAddressIsProcess) {
-							queryArgs = {
-								...queryArgs,
-								...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
-							};
-						} else {
-							queryArgs.owners = [appliedFromAddress];
-						}
-					}
-					break;
-				case 'outgoing':
-					queryArgs = {
-						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
-						sort: 'descending',
-						...(await getOutgoingGQLArgs(tags)),
-					};
-					break;
-				default:
-					return null;
-			}
-
-			if (appliedStartDate) {
-				queryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
-			}
-			if (appliedEndDate) {
-				queryArgs.maxBlock = await timestampToBlockHeight(
-					dateToTimestamp({
-						...appliedEndDate,
-						day: appliedEndDate.day + 1,
-					})
-				);
-			}
-
-			return queryArgs;
+			if (pageRows.length <= 0 || !responseNextCursor) break;
+			cursor = responseNextCursor;
 		}
 
-		tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
-
-		const queryArgs: any = {
-			...getQueryTagsArg(tags),
-			...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+		return {
+			count,
+			data: rows.slice(0, amount),
+			nextCursor: nextCursorValue,
 		};
-
-		if (appliedStartDate) {
-			queryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
-		}
-		if (appliedEndDate) {
-			queryArgs.maxBlock = await timestampToBlockHeight(
-				dateToTimestamp({
-					...appliedEndDate,
-					day: appliedEndDate.day + 1,
-				})
-			);
-		}
-
-		return queryArgs;
 	}
 
-	async function handleExport() {
-		if (!parsedExportAmount || exporting) return;
+	function handleExport() {
+		const csvRows = (currentData ?? []).map(mapTransactionForCsv);
 
-		setExporting(true);
-		setExportError(null);
+		if (csvRows.length <= 0) return;
 
-		try {
-			const rows =
-				parsedExportAmount <= (currentData?.length ?? 0)
-					? currentData.slice(0, parsedExportAmount)
-					: await (async () => {
-							const queryArgs = await getExportQueryArgs();
-							if (!queryArgs) return [];
-
-							return fetchBoundedGqlData(
-								(args) => permawebProvider.libs.getGQLData(args),
-								queryArgs,
-								parsedExportAmount
-							);
-					  })();
-			const csvRows = rows.map(mapTransactionForCsv);
-
-			if (csvRows.length <= 0) {
-				setExportError(language.transactionsNotFound);
-				return;
-			}
-
-			downloadCsv(`lunar-messages-${getCsvTimestamp()}.csv`, csvRows);
-			setShowExport(false);
-		} catch (e: any) {
-			console.error(e);
-			setExportError(e.message || language.errorFetchingData);
-		} finally {
-			setExporting(false);
-		}
+		downloadCsv(`lunar-messages-${getCsvTimestamp()}.csv`, csvRows);
 	}
 
 	// Check if fromAddress is a process whenever it changes
@@ -1014,7 +952,7 @@ export default function MessageList(props: {
 	// Save filter state whenever it changes
 	React.useEffect(() => {
 		saveFilterState();
-	}, [currentFilter, currentAction, currentVariant, recipient, fromAddress, startDate, endDate]);
+	}, [currentFilter, currentAction, currentVariant, recipient, fromAddress, startDate, endDate, perPage]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -1091,6 +1029,13 @@ export default function MessageList(props: {
 			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
 
 			setLoadingMessages(true);
+			if (!parsedPerPage) {
+				setCurrentData([]);
+				setNextCursor(null);
+				setLoadingMessages(false);
+				return;
+			}
+
 			if (props.txId) {
 				try {
 					if (!props.childList && props.type !== 'message') {
@@ -1100,7 +1045,6 @@ export default function MessageList(props: {
 								let incomingQueryArgs: any = {
 									...getQueryTagsArg(tags),
 									recipients: [props.txId],
-									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									sort: 'descending',
 								};
@@ -1130,11 +1074,10 @@ export default function MessageList(props: {
 									);
 								}
 
-								gqlResponse = await permawebProvider.libs.getGQLData(incomingQueryArgs);
+								gqlResponse = await fetchGqlDataPage(incomingQueryArgs, parsedPerPage);
 								break;
 							case 'outgoing':
 								let outgoingArgs: any = {
-									paginator: perPage,
 									...(appliedRecipient && checkValidAddress(appliedRecipient)
 										? { recipients: [appliedRecipient] }
 										: {}),
@@ -1156,14 +1099,14 @@ export default function MessageList(props: {
 									);
 								}
 
-								gqlResponse = await permawebProvider.libs.getGQLData(outgoingArgs);
+								gqlResponse = await fetchGqlDataPage(outgoingArgs, parsedPerPage);
 								break;
 							default:
 								break;
 						}
 
 						setCurrentData(gqlResponse.data);
-						setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
+						setNextCursor(gqlResponse.nextCursor);
 					} else {
 						if (props.recipient) {
 							try {
@@ -1242,7 +1185,6 @@ export default function MessageList(props: {
 
 				let globalQueryArgs: any = {
 					...getQueryTagsArg(tags),
-					paginator: perPage,
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
 				};
@@ -1260,11 +1202,11 @@ export default function MessageList(props: {
 					);
 				}
 
-				const gqlResponse = await permawebProvider.libs.getGQLData(globalQueryArgs);
+				const gqlResponse = await fetchGqlDataPage(globalQueryArgs, parsedPerPage);
 
 				setTotalCount(gqlResponse.count);
 				setCurrentData(gqlResponse.data);
-				setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
+				setNextCursor(gqlResponse.nextCursor);
 			}
 			setLoadingMessages(false);
 		})();
@@ -1322,6 +1264,12 @@ export default function MessageList(props: {
 			setFromAddress('');
 		}
 		setCurrentFilter(filter);
+		handleClear();
+	}
+
+	function handlePerPageReset() {
+		setPerPage(DEFAULT_RESULTS_PER_PAGE.toString());
+		setToggleFilterChange((prev) => !prev);
 		handleClear();
 	}
 
@@ -1396,12 +1344,13 @@ export default function MessageList(props: {
 
 	function getPages() {
 		const count = totalCount ? totalCount : currentFilter === 'incoming' ? incomingCount : outgoingCount;
-		const totalPages = count ? Math.ceil(count / perPage) : 1;
+		const activePerPage = parsedPerPage ?? 1;
+		const totalPages = count ? Math.ceil(count / activePerPage) : 1;
 		return (
 			<>
 				<p>{`Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`}</p>
 				<S.Divider />
-				<p>{`${!showFilters ? perPage : '-'} per page`}</p>
+				<p>{language.perPage(!showFilters ? formatCount(activePerPage.toString()) : '-')}</p>
 			</>
 		);
 	}
@@ -1427,7 +1376,6 @@ export default function MessageList(props: {
 		);
 	}
 
-	const invalidPerPage = perPage <= 0 || perPage > 100;
 	const customActionSelected = currentAction && actionOptions.some((action) => action === currentAction);
 	const variantOptions = [null, MessageVariantEnum.Legacynet, MessageVariantEnum.Mainnet];
 	const canExport = !props.childList && !props.result && (props.type !== 'message' || !props.txId);
@@ -1567,6 +1515,16 @@ export default function MessageList(props: {
 										icon={ASSETS.close}
 									/>
 								)}
+								{usingCustomPerPage && (
+									<Button
+										type={'alt3'}
+										label={`${language.resultsPerPage} (${formatCount(parsedPerPage.toString())})`}
+										handlePress={handlePerPageReset}
+										active={true}
+										disabled={loadingMessages}
+										icon={ASSETS.close}
+									/>
+								)}
 								<S.FilterWrapper>
 									<Button
 										type={'alt3'}
@@ -1582,8 +1540,8 @@ export default function MessageList(props: {
 									<Button
 										type={'alt3'}
 										label={language.download}
-										handlePress={() => setShowExport(true)}
-										disabled={loadingMessages || exporting}
+										handlePress={handleExport}
+										disabled={loadingMessages || !currentData?.length}
 										icon={ASSETS.save}
 										iconLeftAlign
 									/>
@@ -1820,50 +1778,19 @@ export default function MessageList(props: {
 							value={perPage}
 							onChange={(e: any) => setPerPage(e.target.value)}
 							disabled={loadingMessages}
-							invalid={{ status: invalidPerPage, message: invalidPerPage ? 'Value must be between 0 and 100' : null }}
+							invalid={{ status: invalidPerPage, message: invalidPerPage ? language.valueGreaterThan0 : null }}
 						/>
+						{showLargeFetchWarning && (
+							<S.FilterWarning>
+								<p>{language.largeResultSetWarning}</p>
+							</S.FilterWarning>
+						)}
 						<S.FilterApply>
 							<Button
 								type={'alt1'}
 								label={language.applyFilters}
 								handlePress={() => handleFilterUpdate()}
 								disabled={invalidPerPage}
-								active={false}
-								height={42.5}
-								fullWidth
-							/>
-						</S.FilterApply>
-					</S.FilterDropdown>
-				</Modal>
-			)}
-			{showExport && (
-				<Modal header={'Export CSV'} handleClose={() => setShowExport(false)}>
-					<S.FilterDropdown>
-						<S.FilterDropdownHeader>
-							<p>{'Transactions to download'}</p>
-						</S.FilterDropdownHeader>
-						<S.FilterDropdownActionSelect>
-							<FormField
-								type={'number'}
-								label={language.amount}
-								value={exportAmount}
-								onChange={(e: any) => setExportAmount(e.target.value)}
-								disabled={exporting}
-								invalid={{ status: invalidExportAmount, message: null }}
-								hideErrorMessage
-							/>
-						</S.FilterDropdownActionSelect>
-						{exportError && (
-							<S.UpdateWrapper>
-								<p>{exportError}</p>
-							</S.UpdateWrapper>
-						)}
-						<S.FilterApply>
-							<Button
-								type={'alt1'}
-								label={exporting ? `${language.loading}...` : language.download}
-								handlePress={handleExport}
-								disabled={!parsedExportAmount || exporting}
 								active={false}
 								height={42.5}
 								fullWidth
