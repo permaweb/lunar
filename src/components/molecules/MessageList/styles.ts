@@ -411,6 +411,8 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 	}
 
 	p {
+		min-width: 0;
+		flex: 0 1 auto;
 		max-width: 100%;
 		color: ${(props) => props.theme.colors.font.primary} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall} !important;

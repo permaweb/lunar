@@ -331,10 +331,10 @@ export const DNavLink = styled.div<{ active: boolean }>`
 	a {
 		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		text-transform: uppercase;
-		letter-spacing: 0.35px;
+		letter-spacing: 0;
 
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};
@@ -347,6 +347,58 @@ export const ActionsWrapper = styled.div`
 	align-items: center;
 	gap: 15px;
 	position: relative;
+`;
+
+export const PriceWrapper = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 25px;
+	margin: 0 15px 0 0;
+
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		display: none;
+	}
+`;
+
+export const PriceItem = styled.div`
+	height: 36.5px;
+	display: flex;
+	align-items: center;
+	gap: 8.5px;
+
+	div {
+		height: 18px;
+		width: 18px;
+	}
+
+	.ar-icon {
+		height: 14px;
+		width: 14px;
+	}
+
+	svg {
+		height: 18px;
+		width: 18px;
+		margin: 0 0 3px 0;
+
+		path {
+			color: ${(props) => props.theme.colors.font.primary};
+			fill: ${(props) => props.theme.colors.font.primary};
+		}
+	}
+
+	.ar-icon svg {
+		height: 14px;
+		width: 14px;
+	}
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.xBold};
+		color: ${(props) => props.theme.colors.font.primary};
+		white-space: nowrap;
+	}
 `;
 
 export const DSearchWrapper = styled.div`

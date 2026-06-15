@@ -164,6 +164,7 @@ export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...D
 
 export const FLAGS = {
 	CLIENT_SIDE_PAGINATION: false,
+	CONTROL_PAGINATION: false,
 	USE_TX_CACHE: true,
 };
 

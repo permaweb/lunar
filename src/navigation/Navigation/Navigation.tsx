@@ -10,6 +10,7 @@ import { getBlock } from 'api/blocks';
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { ASSETS, STYLING, URLS } from 'helpers/config';
+import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
 import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
@@ -52,6 +53,10 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
 	const [txResponse, setTxResponse] = React.useState<any | null>(null);
 	const [panelOpen, setPanelOpen] = React.useState<boolean>(false);
+	const [prices, setPrices] = React.useState<{ ao: number | null; ar: number | null }>({
+		ao: null,
+		ar: null,
+	});
 
 	React.useEffect(() => {
 		const header = document.getElementById('navigation-header');
@@ -126,6 +131,29 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 			window.removeEventListener('resize', debouncedResize);
 		};
 	}, [debouncedResize]);
+
+	React.useEffect(() => {
+		let cancelled = false;
+
+		async function fetchPrices() {
+			const [ao, ar] = await Promise.all([getAoPrice(), getArPrice()]);
+
+			if (!cancelled) {
+				setPrices({
+					ao: ao,
+					ar: ar,
+				});
+			}
+		}
+
+		fetchPrices();
+		const interval = window.setInterval(fetchPrices, 60 * 1000);
+
+		return () => {
+			cancelled = true;
+			window.clearInterval(interval);
+		};
+	}, []);
 
 	React.useEffect(() => {
 		(async function () {
@@ -243,6 +271,17 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		);
 	}
 
+	function formatUsdPrice(price: number | null) {
+		if (price === null) return '-';
+
+		return price.toLocaleString(undefined, {
+			style: 'currency',
+			currency: 'USD',
+			minimumFractionDigits: price >= 1 ? 2 : 4,
+			maximumFractionDigits: price >= 1 ? 2 : 6,
+		});
+	}
+
 	const isTabsView =
 		location.pathname.startsWith(URLS.explorer) ||
 		location.pathname.startsWith(URLS.aos) ||
@@ -281,6 +320,16 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						</S.DNavWrapper>
 					</S.C1Wrapper>
 					<S.ActionsWrapper>
+						<S.PriceWrapper>
+							<S.PriceItem>
+								<ReactSVG className={'ar-icon'} src={ASSETS.arweave} />
+								<p>{formatUsdPrice(prices.ar)}</p>
+							</S.PriceItem>
+							<S.PriceItem>
+								<ReactSVG src={ASSETS.ao} />
+								<p>{formatUsdPrice(prices.ao)}</p>
+							</S.PriceItem>
+						</S.PriceWrapper>
 						<S.DSearchWrapper>
 							<CloseHandler
 								callback={() => {

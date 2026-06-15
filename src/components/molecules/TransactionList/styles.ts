@@ -49,6 +49,7 @@ export const HeaderMain = styled.div`
 export const HeaderActions = styled.div`
 	display: flex;
 	align-items: center;
+	flex-wrap: wrap;
 	gap: 12.5px;
 `;
 
@@ -147,11 +148,10 @@ export const Type = styled(ElementItem)`
 `;
 
 export const TypeValue = styled(Type)<{ background?: string }>`
-	min-width: 190px;
-	width: 190px;
 	position: relative;
 	display: flex;
 	align-items: center;
+	justify-content: flex-start;
 	gap: 7.5px;
 
 	.type-indicator {
@@ -166,11 +166,13 @@ export const TypeValue = styled(Type)<{ background?: string }>`
 	}
 
 	p {
+		min-width: 0;
+		flex: 0 1 auto;
 		max-width: 100%;
 		color: ${(props) => props.theme.colors.font.primary} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
-		text-align: center;
+		text-align: left;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -181,11 +183,21 @@ export const TypeValue = styled(Type)<{ background?: string }>`
 export const Owner = styled(ElementItem)`
 	min-width: 165px;
 	width: 165px;
+	justify-content: flex-start;
+
+	p {
+		text-align: left;
+	}
 `;
 
 export const Recipient = styled(ElementItem)`
 	min-width: 165px;
 	width: 165px;
+	justify-content: flex-start;
+
+	p {
+		text-align: left;
+	}
 `;
 
 export const Size = styled(ElementItem)`

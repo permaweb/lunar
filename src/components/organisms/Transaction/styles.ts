@@ -663,7 +663,7 @@ export const UpdateWrapper = styled.div`
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
@@ -672,7 +672,52 @@ export const UpdateWrapper = styled.div`
 	}
 
 	p {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.xBold};
+		color: ${(props) => props.theme.colors.font.light1};
+		text-align: center;
+		text-transform: uppercase;
+	}
+`;
+
+export const UpdateWrapperType = styled.div`
+	width: fit-content;
+	padding: 4.5px 15px 4.5px 13.5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12.5px;
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+
+	div {
+		height: 12px;
+		width: 12px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	svg {
+		height: 12px;
+		width: 12px;
+		color: ${(props) => props.theme.colors.font.light2};
+		fill: ${(props) => props.theme.colors.font.light2};
+	}
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.light1};
+		text-align: center;
+		text-transform: uppercase;
+	}
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.xBold};
 		color: ${(props) => props.theme.colors.font.light1};

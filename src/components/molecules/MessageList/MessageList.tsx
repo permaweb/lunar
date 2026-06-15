@@ -11,14 +11,17 @@ import { Calendar } from 'components/atoms/Calendar';
 import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
+import { TransferAmount } from 'components/atoms/TransferAmount';
 import { TxAddress } from 'components/atoms/TxAddress';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { PaginationControls } from 'components/molecules/PaginationControls';
 import {
 	ASSETS,
 	DEFAULT_ACTIONS,
 	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
+	FLAGS,
 	MINT_ACTIONS,
 	STORAGE,
 	TAGS,
@@ -313,12 +316,16 @@ function Message(props: {
 	}
 
 	function getAction(useMaxWidth: boolean) {
+		const actionLabel = getActionLabel();
+		const target = props.element.node.recipient ?? getTagValue(props.element.node.tags, 'Target');
+
 		return (
 			<S.ActionValue background={getActionBackground()} useMaxWidth={useMaxWidth}>
 				<div className={'action-indicator'} />
-				<p>{getActionLabel()}</p>
+				<p>{actionLabel}</p>
+				<TransferAmount tags={props.element.node.tags} target={target} />
 				<S.ActionTooltip className={'info'}>
-					<span>{getActionLabel()}</span>
+					<span>{actionLabel}</span>
 				</S.ActionTooltip>
 			</S.ActionValue>
 		);
@@ -631,6 +638,12 @@ function normalizePerPageFilter(perPage: any) {
 	return Number.isInteger(parsed) && parsed > 0 ? parsed.toString() : DEFAULT_RESULTS_PER_PAGE.toString();
 }
 
+function parsePositiveInteger(value: string | number) {
+	const parsed = Number(value);
+
+	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 export default function MessageList(props: {
 	header?: string;
 	txId?: string;
@@ -723,10 +736,14 @@ export default function MessageList(props: {
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 
 	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
-	const [cursorHistory, setCursorHistory] = React.useState([]);
+	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
 	const [pageNumber, setPageNumber] = React.useState(1);
+	const [pageInput, setPageInput] = React.useState<string>('1');
 	const [perPage, setPerPage] = React.useState<string>(
+		loadedFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+	);
+	const [perPageInput, setPerPageInput] = React.useState<string>(
 		loadedFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
 	);
 	const [recipient, setRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
@@ -763,9 +780,18 @@ export default function MessageList(props: {
 
 		return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 	}, [perPage]);
-	const invalidPerPage = parsedPerPage === null;
-	const showLargeFetchWarning = parsedPerPage !== null && parsedPerPage > GQL_PAGE_CHUNK_SIZE;
+	const parsedPerPageInput = React.useMemo(() => {
+		const parsed = Number(perPageInput);
+
+		return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+	}, [perPageInput]);
+	const invalidPerPage = parsedPerPageInput === null;
+	const showLargeFetchWarning = parsedPerPageInput !== null && parsedPerPageInput > GQL_PAGE_CHUNK_SIZE;
 	const usingCustomPerPage = parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE;
+
+	React.useEffect(() => {
+		setPageInput(pageNumber.toString());
+	}, [pageNumber]);
 
 	function dateToTimestamp(date: { year: number; month: number; day: number }): number {
 		return Math.floor(new Date(date.year, date.month - 1, date.day).getTime() / 1000);
@@ -916,6 +942,98 @@ export default function MessageList(props: {
 			data: rows.slice(0, amount),
 			nextCursor: nextCursorValue,
 		};
+	}
+
+	async function getMessagePageQueryArgs(cursor: string | null) {
+		let tags = [];
+		if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+		const cursorArg = cursor ? { cursor: cursor } : {};
+
+		if (props.txId) {
+			if (props.childList || props.type === 'message') return null;
+
+			switch (currentFilter) {
+				case 'incoming': {
+					let incomingQueryArgs: any = {
+						...getQueryTagsArg(tags),
+						recipients: [props.txId],
+						...cursorArg,
+						sort: 'descending',
+					};
+
+					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
+						if (appliedFromAddressIsProcess) {
+							incomingQueryArgs = {
+								...incomingQueryArgs,
+								...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
+							};
+						} else {
+							incomingQueryArgs.owners = [appliedFromAddress];
+						}
+					}
+
+					if (appliedStartDate) {
+						incomingQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+					}
+					if (appliedEndDate) {
+						incomingQueryArgs.maxBlock = await timestampToBlockHeight(
+							dateToTimestamp({
+								...appliedEndDate,
+								day: appliedEndDate.day + 1,
+							})
+						);
+					}
+
+					return incomingQueryArgs;
+				}
+				case 'outgoing': {
+					let outgoingArgs: any = {
+						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+						...cursorArg,
+						sort: 'descending',
+						...(await getOutgoingGQLArgs(tags)),
+					};
+
+					if (appliedStartDate) {
+						outgoingArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+					}
+					if (appliedEndDate) {
+						outgoingArgs.maxBlock = await timestampToBlockHeight(
+							dateToTimestamp({
+								...appliedEndDate,
+								day: appliedEndDate.day + 1,
+							})
+						);
+					}
+
+					return outgoingArgs;
+				}
+				default:
+					return null;
+			}
+		}
+
+		tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
+
+		let globalQueryArgs: any = {
+			...getQueryTagsArg(tags),
+			...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+			...cursorArg,
+		};
+
+		if (appliedStartDate) {
+			globalQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+		}
+		if (appliedEndDate) {
+			globalQueryArgs.maxBlock = await timestampToBlockHeight(
+				dateToTimestamp({
+					...appliedEndDate,
+					day: appliedEndDate.day + 1,
+				})
+			);
+		}
+
+		return globalQueryArgs;
 	}
 
 	function handleExport() {
@@ -1269,8 +1387,101 @@ export default function MessageList(props: {
 
 	function handlePerPageReset() {
 		setPerPage(DEFAULT_RESULTS_PER_PAGE.toString());
+		setPerPageInput(DEFAULT_RESULTS_PER_PAGE.toString());
 		setToggleFilterChange((prev) => !prev);
 		handleClear();
+	}
+
+	function getActiveTotalCount() {
+		if (props.result || props.childList) return null;
+		if (props.txId) return currentFilter === 'incoming' ? incomingCount : outgoingCount;
+
+		return totalCount;
+	}
+
+	function getTotalPages() {
+		const count = getActiveTotalCount();
+		if (count === null || !parsedPerPage) return null;
+
+		return Math.max(1, Math.ceil(count / parsedPerPage));
+	}
+
+	function canUsePaginationControls() {
+		return !props.result && (!props.txId || (!props.childList && props.type !== 'message'));
+	}
+
+	async function handlePageSubmit() {
+		const parsedPage = parsePositiveInteger(pageInput);
+		if (!parsedPage || !parsedPerPage || !canUsePaginationControls() || loadingMessages) {
+			setPageInput(pageNumber.toString());
+			return;
+		}
+
+		const totalPages = getTotalPages();
+		const targetPage = totalPages ? Math.min(parsedPage, totalPages) : parsedPage;
+		setPageInput(targetPage.toString());
+		if (targetPage === pageNumber) return;
+
+		if (targetPage === 1) {
+			handleClear();
+			scrollToTop();
+			return;
+		}
+
+		const knownCursorIndex = targetPage - 1;
+		if (knownCursorIndex < cursorHistory.length) {
+			setCursorHistory(cursorHistory.slice(0, knownCursorIndex));
+			setPageCursor(cursorHistory[knownCursorIndex]);
+			setPageNumber(targetPage);
+			scrollToTop();
+			return;
+		}
+
+		setLoadingMessages(true);
+		try {
+			let cursor: string | null = null;
+			const nextHistory: (string | null)[] = [];
+
+			for (let page = 1; page < targetPage; page++) {
+				nextHistory.push(cursor);
+				const queryArgs = await getMessagePageQueryArgs(cursor);
+				if (!queryArgs) {
+					setPageInput(pageNumber.toString());
+					return;
+				}
+
+				const response = await fetchGqlDataPage(queryArgs, parsedPerPage);
+				if (!response.nextCursor) {
+					setPageInput(pageNumber.toString());
+					return;
+				}
+
+				cursor = response.nextCursor;
+			}
+
+			setCursorHistory(nextHistory);
+			setPageCursor(cursor);
+			setPageNumber(targetPage);
+			scrollToTop();
+		} catch (e: any) {
+			console.error(e);
+			setPageInput(pageNumber.toString());
+		} finally {
+			setLoadingMessages(false);
+		}
+	}
+
+	function handlePerPageSubmit() {
+		if (!parsedPerPageInput) {
+			setPerPageInput(perPage);
+			return;
+		}
+
+		setPerPage(parsedPerPageInput.toString());
+		setPerPageInput(parsedPerPageInput.toString());
+		setToggleFilterChange((prev) => !prev);
+		handleClear();
+		scrollToTop();
 	}
 
 	function handleActionChange(action: string) {
@@ -1278,6 +1489,8 @@ export default function MessageList(props: {
 	}
 
 	function handleFilterUpdate() {
+		if (!parsedPerPageInput) return;
+
 		// Update applied filter states
 		setAppliedAction(currentAction);
 		setAppliedVariant(currentVariant);
@@ -1286,6 +1499,8 @@ export default function MessageList(props: {
 		setAppliedFromAddressIsProcess(fromAddressIsProcess);
 		setAppliedStartDate(startDate);
 		setAppliedEndDate(endDate);
+		setPerPage(parsedPerPageInput.toString());
+		setPerPageInput(parsedPerPageInput.toString());
 
 		setToggleFilterChange((prev) => !prev);
 		setShowFilters(false);
@@ -1343,9 +1558,9 @@ export default function MessageList(props: {
 	}
 
 	function getPages() {
-		const count = totalCount ? totalCount : currentFilter === 'incoming' ? incomingCount : outgoingCount;
+		const totalPages = getTotalPages() ?? 1;
 		const activePerPage = parsedPerPage ?? 1;
-		const totalPages = count ? Math.ceil(count / activePerPage) : 1;
+
 		return (
 			<>
 				<p>{`Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`}</p>
@@ -1356,6 +1571,8 @@ export default function MessageList(props: {
 	}
 
 	function getPaginator(showPages: boolean) {
+		const paginationControlsDisabled = !canUsePaginationControls();
+
 		return (
 			<>
 				<Button
@@ -1364,14 +1581,48 @@ export default function MessageList(props: {
 					handlePress={handlePrevious}
 					disabled={cursorHistory.length === 0 || loadingMessages}
 				/>
-				{showPages && <S.DPageCounter>{getPages()}</S.DPageCounter>}
+				{showPages && FLAGS.CONTROL_PAGINATION && (
+					<S.DPageCounter>
+						<PaginationControls
+							pageInput={pageInput}
+							perPageInput={perPageInput}
+							totalPages={getTotalPages()}
+							disabled={loadingMessages}
+							pageDisabled={paginationControlsDisabled}
+							perPageDisabled={paginationControlsDisabled}
+							perPageSubmitDisabled={invalidPerPage}
+							onPageInputChange={setPageInput}
+							onPageSubmit={handlePageSubmit}
+							onPerPageInputChange={setPerPageInput}
+							onPerPageSubmit={handlePerPageSubmit}
+						/>
+					</S.DPageCounter>
+				)}
+				{showPages && !FLAGS.CONTROL_PAGINATION && <S.DPageCounter>{getPages()}</S.DPageCounter>}
 				<Button
 					type={'alt3'}
 					label={language.next}
 					handlePress={handleNext}
 					disabled={!nextCursor || loadingMessages}
 				/>
-				{showPages && <S.MPageCounter>{getPages()}</S.MPageCounter>}
+				{showPages && FLAGS.CONTROL_PAGINATION && (
+					<S.MPageCounter>
+						<PaginationControls
+							pageInput={pageInput}
+							perPageInput={perPageInput}
+							totalPages={getTotalPages()}
+							disabled={loadingMessages}
+							pageDisabled={paginationControlsDisabled}
+							perPageDisabled={paginationControlsDisabled}
+							perPageSubmitDisabled={invalidPerPage}
+							onPageInputChange={setPageInput}
+							onPageSubmit={handlePageSubmit}
+							onPerPageInputChange={setPerPageInput}
+							onPerPageSubmit={handlePerPageSubmit}
+						/>
+					</S.MPageCounter>
+				)}
+				{showPages && !FLAGS.CONTROL_PAGINATION && <S.MPageCounter>{getPages()}</S.MPageCounter>}
 			</>
 		);
 	}
@@ -1775,8 +2026,8 @@ export default function MessageList(props: {
 						<FormField
 							type={'number'}
 							label={language.resultsPerPage}
-							value={perPage}
-							onChange={(e: any) => setPerPage(e.target.value)}
+							value={perPageInput}
+							onChange={(e: any) => setPerPageInput(e.target.value)}
 							disabled={loadingMessages}
 							invalid={{ status: invalidPerPage, message: invalidPerPage ? language.valueGreaterThan0 : null }}
 						/>

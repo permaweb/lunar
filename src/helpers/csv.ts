@@ -72,6 +72,12 @@ export function getCsvTimestamp() {
 	return new Date().toISOString().replace(/[:.]/g, '-');
 }
 
+function isBundleTransaction(tags: any[]) {
+	return (
+		getTagValue(tags, 'Bundle-Format')?.toLowerCase() === 'binary' && getTagValue(tags, 'Bundle-Version') === '2.0.0'
+	);
+}
+
 export function mapBlockForCsv(entry: any): Record<string, unknown> {
 	const node = entry?.node ?? entry ?? {};
 	const metadata = node.metadata ?? {};
@@ -96,10 +102,11 @@ export function mapTransactionForCsv(entry: any): Record<string, unknown> {
 	const node = entry?.node ?? entry ?? {};
 	const tags = node.tags ?? [];
 	const timestamp = node.block?.timestamp;
+	const type = isBundleTransaction(tags) ? 'Bundle' : getTagValue(tags, 'Type') ?? '';
 
 	return {
 		id: node.id ?? '',
-		type: getTagValue(tags, 'Type') ?? '',
+		type: type,
 		action: getTagValue(tags, 'Action') ?? '',
 		owner: node.owner?.address ?? '',
 		recipient: node.recipient ?? getTagValue(tags, 'Target') ?? '',

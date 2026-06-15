@@ -2084,9 +2084,10 @@ function Transaction(props: {
 					<S.HeaderActionsWrapper>
 						{resolvedType && txResponse && (
 							<S.TxInfoWrapper>
-								<S.UpdateWrapper>
+								<S.UpdateWrapperType>
+									<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
 									<span>{resolvedType}</span>
-								</S.UpdateWrapper>
+								</S.UpdateWrapperType>
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 									<>
 										<S.UpdateWrapper>

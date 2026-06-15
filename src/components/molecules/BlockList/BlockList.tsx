@@ -7,16 +7,18 @@ import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
-import { ASSETS, STORAGE } from 'helpers/config';
+import { PaginationControls } from 'components/molecules/PaginationControls';
+import { ASSETS, FLAGS, STORAGE } from 'helpers/config';
 import { downloadCsv, getCsvTimestamp, mapBlockForCsv } from 'helpers/csv';
 import { checkValidAddress, formatBlockId, formatCount, formatDate, getByteSizeDisplay } from 'helpers/utils';
+import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as FilterS from '../MessageList/styles';
 
 import * as S from './styles';
 
-const BLOCKS_PER_PAGE = 50;
+const DEFAULT_BLOCKS_PER_PAGE = 50;
 
 type BlockListEdge = GQLEdge<
 	BlockNode & {
@@ -31,6 +33,12 @@ function parseHeightInput(value: string | number | null | undefined) {
 	const parsed = Number(trimmed);
 
 	return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parsePositiveInteger(value: string | number) {
+	const parsed = Number(value);
+
+	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function getStoredBlockFilterState() {
@@ -54,6 +62,83 @@ function getStoredBlockFilterState() {
 	}
 }
 
+function BlockRow(props: {
+	edge: BlockListEdge;
+	onMetadataLoaded: (height: number, metadata: BlockMetadata | null) => void;
+}) {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+
+	const shouldLoadMetadata = props.edge.node.metadata === undefined;
+	const fetchMetadata = React.useCallback(
+		() => getBlockMetadataByHeight(props.edge.node.height),
+		[props.edge.node.height]
+	);
+	const metadataResponse = useVisibleData<BlockMetadata>({
+		cacheKey: props.edge.node.height,
+		enabled: shouldLoadMetadata,
+		fetchData: fetchMetadata,
+	});
+	const metadata =
+		props.edge.node.metadata !== undefined ? props.edge.node.metadata : metadataResponse.data ?? undefined;
+	const metadataPending = metadata === undefined;
+	const blockId = metadata?.indep_hash ?? props.edge.node.id;
+	const previous = metadata?.previous_block ?? props.edge.node.previous;
+	const blockSizeValue = metadata?.block_size?.toString?.() ?? null;
+	const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
+	const miner = metadata?.reward_addr ?? metadata?.miner ?? null;
+	const txs = metadata?.txs;
+	const txCount = Array.isArray(txs) ? txs.length : null;
+	const timestamp = metadata?.timestamp ?? props.edge.node.timestamp;
+
+	React.useEffect(() => {
+		if (metadataResponse.data) {
+			props.onMetadataLoaded(props.edge.node.height, metadataResponse.data);
+		}
+	}, [metadataResponse.data, props.edge.node.height, props.onMetadataLoaded]);
+
+	React.useEffect(() => {
+		if (metadataResponse.error) {
+			console.error(metadataResponse.error);
+			props.onMetadataLoaded(props.edge.node.height, null);
+		}
+	}, [metadataResponse.error, props.edge.node.height, props.onMetadataLoaded]);
+
+	return (
+		<S.ElementWrapper ref={metadataResponse.ref} className={'block-list-element'}>
+			<S.Height>
+				<ExplorerLink value={props.edge.node.height} type={'block'} tooltipPosition={'right'} />
+			</S.Height>
+			<S.ID title={blockId}>
+				<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} tooltipPosition={'right'} />
+			</S.ID>
+			<S.Previous title={previous}>
+				<ExplorerLink value={previous} label={formatBlockId(previous, false)} tooltipPosition={'right'} />
+			</S.Previous>
+			<S.Miner title={miner ?? undefined}>
+				{miner ? (
+					checkValidAddress(miner) ? (
+						<TxAddress address={miner} tooltipPosition={'right'} />
+					) : (
+						<p>{miner}</p>
+					)
+				) : (
+					<p>-</p>
+				)}
+			</S.Miner>
+			<S.Size title={blockSizeValue ?? undefined}>
+				<p>{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : '-'}</p>
+			</S.Size>
+			<S.Transactions>
+				<p>{metadataPending ? `${language.loading}...` : txCount !== null ? formatCount(txCount.toString()) : '-'}</p>
+			</S.Transactions>
+			<S.Time>
+				<p>{formatDate(timestamp * 1000, 'timestamp', true)}</p>
+			</S.Time>
+		</S.ElementWrapper>
+	);
+}
+
 export default function BlockList(props: { header?: string }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -68,6 +153,9 @@ export default function BlockList(props: { header?: string }) {
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [pageNumber, setPageNumber] = React.useState<number>(1);
+	const [pageInput, setPageInput] = React.useState<string>('1');
+	const [perPage, setPerPage] = React.useState<number>(DEFAULT_BLOCKS_PER_PAGE);
+	const [perPageInput, setPerPageInput] = React.useState<string>(DEFAULT_BLOCKS_PER_PAGE.toString());
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 	const [refreshTrigger, setRefreshTrigger] = React.useState<boolean>(false);
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
@@ -83,6 +171,22 @@ export default function BlockList(props: { header?: string }) {
 	const invalidMinHeight = !!minHeightInput.trim() && parsedMinHeight === null;
 	const invalidMaxHeight = !!maxHeightInput.trim() && parsedMaxHeight === null;
 	const invalidRange = parsedMinHeight !== null && parsedMaxHeight !== null && parsedMinHeight > parsedMaxHeight;
+	const totalPages = totalCount !== null ? Math.max(1, Math.ceil(totalCount / perPage)) : null;
+
+	const fetchBlocksPage = React.useCallback(
+		(after: string | null) =>
+			getBlocks({
+				first: perPage,
+				after: after,
+				minHeight: activeRange.minHeight,
+				maxHeight: activeRange.maxHeight,
+			}),
+		[activeRange.minHeight, activeRange.maxHeight, perPage]
+	);
+
+	React.useEffect(() => {
+		setPageInput(pageNumber.toString());
+	}, [pageNumber]);
 
 	React.useEffect(() => {
 		try {
@@ -105,12 +209,7 @@ export default function BlockList(props: { header?: string }) {
 			setLoading(true);
 
 			try {
-				const response = await getBlocks({
-					first: BLOCKS_PER_PAGE,
-					after: pageCursor,
-					minHeight: activeRange.minHeight,
-					maxHeight: activeRange.maxHeight,
-				});
+				const response = await fetchBlocksPage(pageCursor);
 
 				if (!cancelled) {
 					const visibleEdges = response.blocks.edges.map((edge) => ({
@@ -126,47 +225,6 @@ export default function BlockList(props: { header?: string }) {
 					setNextCursor(response.blocks.pageInfo.hasNextPage ? lastEdge?.cursor ?? null : null);
 					setTotalCount(response.blocks.count ?? null);
 					setError(null);
-					setLoading(false);
-
-					visibleEdges.forEach((edge) => {
-						getBlockMetadataByHeight(edge.node.height)
-							.then((metadata) => {
-								if (cancelled) return;
-
-								setBlocks((currentBlocks) =>
-									currentBlocks.map((currentEdge) =>
-										currentEdge.node.height === edge.node.height
-											? {
-													...currentEdge,
-													node: {
-														...currentEdge.node,
-														metadata: metadata,
-													},
-											  }
-											: currentEdge
-									)
-								);
-							})
-							.catch((e: any) => {
-								console.error(e);
-
-								if (cancelled) return;
-
-								setBlocks((currentBlocks) =>
-									currentBlocks.map((currentEdge) =>
-										currentEdge.node.height === edge.node.height
-											? {
-													...currentEdge,
-													node: {
-														...currentEdge.node,
-														metadata: null,
-													},
-											  }
-											: currentEdge
-									)
-								);
-							});
-					});
 				}
 			} catch (e: any) {
 				console.error(e);
@@ -186,7 +244,7 @@ export default function BlockList(props: { header?: string }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [pageCursor, refreshTrigger, activeRange.minHeight, activeRange.maxHeight, language.errorFetchingData]);
+	}, [pageCursor, refreshTrigger, fetchBlocksPage, language.errorFetchingData]);
 
 	function resetPagination() {
 		setPageCursor(null);
@@ -226,6 +284,76 @@ export default function BlockList(props: { header?: string }) {
 
 	function handleRefresh() {
 		setRefreshTrigger((prev) => !prev);
+	}
+
+	async function handlePageSubmit() {
+		const parsedPage = parsePositiveInteger(pageInput);
+		if (!parsedPage || loading) {
+			setPageInput(pageNumber.toString());
+			return;
+		}
+
+		const targetPage = totalPages ? Math.min(parsedPage, totalPages) : parsedPage;
+		setPageInput(targetPage.toString());
+		if (targetPage === pageNumber) return;
+
+		if (targetPage === 1) {
+			resetPagination();
+			scrollToTop();
+			return;
+		}
+
+		const knownCursorIndex = targetPage - 1;
+		if (knownCursorIndex < cursorHistory.length) {
+			setCursorHistory(cursorHistory.slice(0, knownCursorIndex));
+			setPageCursor(cursorHistory[knownCursorIndex]);
+			setPageNumber(targetPage);
+			scrollToTop();
+			return;
+		}
+
+		setLoading(true);
+		try {
+			let cursor: string | null = null;
+			const nextHistory: (string | null)[] = [];
+
+			for (let page = 1; page < targetPage; page++) {
+				nextHistory.push(cursor);
+				const response = await fetchBlocksPage(cursor);
+				const lastEdge = response.blocks.edges[response.blocks.edges.length - 1];
+
+				if (!response.blocks.pageInfo.hasNextPage || !lastEdge) {
+					setPageInput(pageNumber.toString());
+					return;
+				}
+
+				cursor = lastEdge.cursor;
+			}
+
+			setCursorHistory(nextHistory);
+			setPageCursor(cursor);
+			setPageNumber(targetPage);
+			scrollToTop();
+		} catch (e: any) {
+			console.error(e);
+			setPageInput(pageNumber.toString());
+			setError(language.errorFetchingData);
+		} finally {
+			setLoading(false);
+		}
+	}
+
+	function handlePerPageSubmit() {
+		const parsedPerPage = parsePositiveInteger(perPageInput);
+		if (!parsedPerPage) {
+			setPerPageInput(perPage.toString());
+			return;
+		}
+
+		setPerPage(parsedPerPage);
+		setPerPageInput(parsedPerPage.toString());
+		resetPagination();
+		scrollToTop();
 	}
 
 	function handleApplyRange() {
@@ -275,6 +403,36 @@ export default function BlockList(props: { header?: string }) {
 		downloadCsv(`lunar-blocks-${getCsvTimestamp()}.csv`, csvRows);
 	}
 
+	const handleBlockMetadataLoaded = React.useCallback((height: number, metadata: BlockMetadata | null) => {
+		setBlocks((currentBlocks) =>
+			currentBlocks.map((edge) =>
+				edge.node.height === height
+					? {
+							...edge,
+							node: {
+								...edge.node,
+								metadata: metadata,
+							},
+					  }
+					: edge
+			)
+		);
+	}, []);
+
+	function getPages() {
+		return (
+			<>
+				<p>
+					{totalPages
+						? `Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`
+						: `Page (${formatCount(pageNumber.toString())})`}
+				</p>
+				<S.Divider />
+				<p>{language.perPage(perPage)}</p>
+			</>
+		);
+	}
+
 	function getMessage() {
 		let message = language.blocksNotFound;
 		if (loading) message = `${language.blocksLoading}...`;
@@ -287,22 +445,6 @@ export default function BlockList(props: { header?: string }) {
 		);
 	}
 
-	function getPages() {
-		const totalPages = totalCount ? Math.ceil(totalCount / BLOCKS_PER_PAGE) : null;
-
-		return (
-			<>
-				<p>
-					{totalPages
-						? `Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`
-						: `Page (${formatCount(pageNumber.toString())})`}
-				</p>
-				<S.Divider />
-				<p>{language.perPage(BLOCKS_PER_PAGE)}</p>
-			</>
-		);
-	}
-
 	function getPaginator(showPages: boolean) {
 		return (
 			<>
@@ -312,9 +454,37 @@ export default function BlockList(props: { header?: string }) {
 					handlePress={handlePrevious}
 					disabled={cursorHistory.length === 0 || loading}
 				/>
-				{showPages && <S.DPageCounter>{getPages()}</S.DPageCounter>}
+				{showPages && FLAGS.CONTROL_PAGINATION && (
+					<S.DPageCounter>
+						<PaginationControls
+							pageInput={pageInput}
+							perPageInput={perPageInput}
+							totalPages={totalPages}
+							disabled={loading}
+							onPageInputChange={setPageInput}
+							onPageSubmit={handlePageSubmit}
+							onPerPageInputChange={setPerPageInput}
+							onPerPageSubmit={handlePerPageSubmit}
+						/>
+					</S.DPageCounter>
+				)}
+				{showPages && !FLAGS.CONTROL_PAGINATION && <S.DPageCounter>{getPages()}</S.DPageCounter>}
 				<Button type={'alt3'} label={language.next} handlePress={handleNext} disabled={!nextCursor || loading} />
-				{showPages && <S.MPageCounter>{getPages()}</S.MPageCounter>}
+				{showPages && FLAGS.CONTROL_PAGINATION && (
+					<S.MPageCounter>
+						<PaginationControls
+							pageInput={pageInput}
+							perPageInput={perPageInput}
+							totalPages={totalPages}
+							disabled={loading}
+							onPageInputChange={setPageInput}
+							onPageSubmit={handlePageSubmit}
+							onPerPageInputChange={setPerPageInput}
+							onPerPageSubmit={handlePerPageSubmit}
+						/>
+					</S.MPageCounter>
+				)}
+				{showPages && !FLAGS.CONTROL_PAGINATION && <S.MPageCounter>{getPages()}</S.MPageCounter>}
 			</>
 		);
 	}
@@ -410,57 +580,9 @@ export default function BlockList(props: { header?: string }) {
 							</S.Time>
 						</S.HeaderWrapper>
 						<S.BodyWrapper className={'fade-in'}>
-							{blocks.map((edge) => {
-								const metadataPending = edge.node.metadata === undefined;
-								const blockId = edge.node.metadata?.indep_hash ?? edge.node.id;
-								const previous = edge.node.metadata?.previous_block ?? edge.node.previous;
-								const blockSizeValue = edge.node.metadata?.block_size?.toString?.() ?? null;
-								const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
-								const miner = edge.node.metadata?.reward_addr ?? edge.node.metadata?.miner ?? null;
-								const txs = edge.node.metadata?.txs;
-								const txCount = Array.isArray(txs) ? txs.length : null;
-								const timestamp = edge.node.metadata?.timestamp ?? edge.node.timestamp;
-
-								return (
-									<S.ElementWrapper key={edge.node.id} className={'block-list-element'}>
-										<S.Height>
-											<ExplorerLink value={edge.node.height} type={'block'} tooltipPosition={'right'} />
-										</S.Height>
-										<S.ID title={blockId}>
-											<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} tooltipPosition={'right'} />
-										</S.ID>
-										<S.Previous title={previous}>
-											<ExplorerLink value={previous} label={formatBlockId(previous, false)} tooltipPosition={'right'} />
-										</S.Previous>
-										<S.Miner title={miner ?? undefined}>
-											{miner ? (
-												checkValidAddress(miner) ? (
-													<TxAddress address={miner} tooltipPosition={'right'} />
-												) : (
-													<p>{miner}</p>
-												)
-											) : (
-												<p>-</p>
-											)}
-										</S.Miner>
-										<S.Size title={blockSizeValue ?? undefined}>
-											<p>{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : '-'}</p>
-										</S.Size>
-										<S.Transactions>
-											<p>
-												{metadataPending
-													? `${language.loading}...`
-													: txCount !== null
-													? formatCount(txCount.toString())
-													: '-'}
-											</p>
-										</S.Transactions>
-										<S.Time>
-											<p>{formatDate(timestamp * 1000, 'timestamp', true)}</p>
-										</S.Time>
-									</S.ElementWrapper>
-								);
-							})}
+							{blocks.map((edge) => (
+								<BlockRow key={edge.node.id} edge={edge} onMetadataLoaded={handleBlockMetadataLoaded} />
+							))}
 						</S.BodyWrapper>
 					</S.Wrapper>
 				) : (
