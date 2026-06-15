@@ -1342,7 +1342,7 @@ function Transaction(props: {
 						<span>{`${language.date}: `}</span>
 						<TxOverviewValue
 							primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'}
-							secondary={timestamp ? `(${getRelativeDate(timestamp * 1000)})` : null}
+							secondary={timestamp ? `${getRelativeDate(timestamp * 1000)}` : null}
 						/>
 					</S.MessageInfoLine>
 					<S.MessageInfoLine>
