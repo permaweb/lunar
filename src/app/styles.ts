@@ -345,34 +345,42 @@ export const App = styled.div`
 	flex-direction: column;
 `;
 
-export const NodeStatusButton = styled.button`
-	min-width: 250px;
+export const NodeStatusButton = styled.button<{ $isLifted?: boolean }>`
 	position: fixed;
 	right: 20px;
-	bottom: 20px;
+	bottom: ${(props) => (props.$isLifted ? '80px' : '20px')};
 	z-index: 10;
 	max-width: min(360px, calc(100vw - 40px));
 	display: flex;
 	align-items: center;
-	gap: 12.5px;
-	padding: 10px 14.5px;
+	gap: 0;
+	padding: 11.5px 14.5px 12.5px 14.5px;
 	background: ${(props) => props.theme.colors.contrast.background};
 	border: 1px solid ${(props) => props.theme.colors.contrast.border};
 	border-radius: ${STYLING.dimensions.radius.primary};
-	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	box-shadow: 0 3.5px 7.5px 0 ${(props) => props.theme.colors.shadow.primary};
 	color: ${(props) => props.theme.colors.font.primary};
 	text-align: left;
+	transition: bottom 180ms ease, gap 180ms ease, background 100ms, border-color 100ms;
 
 	&:hover,
 	&:focus {
+		gap: 12.5px;
 		background: ${(props) => props.theme.colors.contrast.active.background};
 		border-color: ${(props) => props.theme.colors.contrast.active.border};
 		outline: none;
+
+		> div:last-child {
+			max-width: 270px;
+			opacity: 1;
+			visibility: visible;
+			transition-delay: 0s;
+		}
 	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		right: 12px;
-		bottom: 12px;
+		bottom: ${(props) => (props.$isLifted ? '84px' : '12px')};
 		max-width: calc(100vw - 24px);
 	}
 `;
@@ -408,9 +416,14 @@ export const NodeStatusIndicator = styled.div<{ $isOnline: boolean; $isLoading: 
 
 export const NodeStatusText = styled.div`
 	min-width: 0;
+	max-width: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
+	opacity: 0;
+	overflow: hidden;
+	visibility: hidden;
+	transition: max-width 180ms ease, opacity 120ms ease, visibility 0s linear 180ms;
 
 	p {
 		min-width: 0;
@@ -475,9 +488,13 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 	gap: 15px;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0 0 20px 0;
+	margin: 20px 0 0 0;
+	padding: 30px 50px;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	p {
+		display: flex;
+		align-items: center;
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
@@ -485,6 +502,9 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 	}
 
 	a {
+		display: flex;
+		align-items: center;
+		gap: 3.5px;
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
@@ -499,5 +519,45 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		padding: 20px 0;
+	}
+`;
+
+export const FooterIcon = styled.span`
+	height: 16px;
+	width: 16px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 6px 0 0;
+
+	div {
+		height: 16px;
+		width: 16px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	svg {
+		height: 16px;
+		width: 16px;
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+	}
+
+	svg path {
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+	}
+
+	&.app-icon {
+		margin: 0 10.5px 0 0;
+	}
+
+	&.ar-icon,
+	&.ar-icon div,
+	&.ar-icon svg {
+		height: 14px;
+		width: 14px;
 	}
 `;

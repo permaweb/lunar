@@ -67,7 +67,7 @@ const common = {
 export const lightTheme = {
 	scheme: 'light',
 	neutral1: '#FFFFFF',
-	neutral2: '#F9F9F9',
+	neutral2: '#fbfbfb',
 	neutral3: '#eeeeee',
 	neutral4: '#D6D6D6',
 	neutral5: '#CCCCCC',
@@ -187,7 +187,7 @@ export const darkTheme = {
 	neutralA2: '#E8E8E8',
 	neutralA3: '#D8D8D8',
 	neutralA4: '#C4C4C4',
-	neutralA5: '#FFFFFF',
+	neutralA5: '#bababa',
 	neutralA6: '#929292',
 	neutralA7: '#767676',
 	primary1: '#5E66DB',
@@ -349,7 +349,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 				color: currentTheme.neutralA1,
 				active: {
 					background: currentTheme.neutral3,
-					border: currentTheme.neutral4,
+					border: currentTheme.neutral3,
 					color: currentTheme.neutralA1,
 				},
 				disabled: {

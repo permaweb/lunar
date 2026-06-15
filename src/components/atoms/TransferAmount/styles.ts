@@ -22,8 +22,8 @@ export const Wrapper = styled.span`
 	max-width: 100%;
 	display: inline-flex;
 	align-items: center;
-	color: ${(props) => props.theme.colors.font.primary};
-	font-size: ${(props) => props.theme.typography.size.xSmall};
+	color: ${(props) => props.theme.colors.font.alt2};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	font-family: ${(props) => props.theme.typography.family.alt1};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	white-space: nowrap;

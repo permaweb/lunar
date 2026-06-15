@@ -121,7 +121,7 @@ export const Wrapper = styled.div`
 	h5,
 	h6 {
 		font-size: clamp(32px, 3.25vw, 36px) !important;
-		font-weight: ${(props) => props.theme.typography.weight.xBold} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.alt1} !important;
 		color: ${(props) => props.theme.colors.font.primary} !important;
 		margin: 0 0 5px 0;

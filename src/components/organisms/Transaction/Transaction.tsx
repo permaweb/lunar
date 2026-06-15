@@ -764,7 +764,7 @@ function Transaction(props: {
 		);
 	};
 
-	const TagValue = ({ value }: { value: any }) => {
+	const TagValue = ({ value, tooltipPlacement = 'top' }: { value: any; tooltipPlacement?: 'top' | 'bottom' }) => {
 		const displayValue = value?.toString?.() ?? value;
 		const [copied, setCopied] = React.useState<boolean>(false);
 		const [tooltipVisible, setTooltipVisible] = React.useState<boolean>(false);
@@ -801,7 +801,9 @@ function Transaction(props: {
 			setTooltipVisible(true);
 		}
 
-		return (
+		return checkValidAddress(value) ? (
+			<TxAddress address={value} />
+		) : (
 			<S.TagValue
 				type={'button'}
 				onBlur={hideTooltip}
@@ -812,12 +814,17 @@ function Transaction(props: {
 				$tooltipVisible={tooltipVisible}
 			>
 				<p>{displayValue}</p>
-				<S.TagValueTooltip>{copied ? `${language.copied}!` : displayValue}</S.TagValueTooltip>
+				{tooltipVisible && (
+					<S.TagValueTooltip $placement={tooltipPlacement}>
+						{copied ? `${language.copied}!` : displayValue}
+					</S.TagValueTooltip>
+				)}
 			</S.TagValue>
 		);
 	};
 
 	const renderTagValue = (value: any) => <TagValue value={value} />;
+	const renderFirstTagValue = (value: any) => <TagValue value={value} tooltipPlacement={'bottom'} />;
 
 	const TxOverviewValue = ({
 		primary,
@@ -832,7 +839,7 @@ function Transaction(props: {
 			<S.TxOverviewValue>
 				<p>{primary}</p>
 				{indicator}
-				{secondary && <small>{secondary}</small>}
+				{secondary && <small>({secondary})</small>}
 			</S.TxOverviewValue>
 		);
 	};
@@ -921,7 +928,7 @@ function Transaction(props: {
 		const size = node?.data?.size ?? txResponse?.node?.data?.size ?? null;
 
 		function renderAddress(address: string | null | undefined) {
-			if (!address) return <p>-</p>;
+			if (!address) return <p>No Recipient</p>;
 			if (checkValidAddress(address)) return <TxAddress address={address} />;
 
 			return <p>{address}</p>;
@@ -958,7 +965,9 @@ function Transaction(props: {
 						<TxOverviewValue primary={formatDate(timestamp * 1000, 'timestamp', true)} />
 					</TxOverviewLine>
 					<TxOverviewLine label={language.age}>
-						<TxOverviewValue primary={timestamp ? getRelativeDate(timestamp * 1000).replace(/ ago$/, '') : '-'} />
+						<TxOverviewValue
+							primary={timestamp ? getRelativeDate(timestamp * 1000).replace(/ ago$/, '') : 'Not Yet Available'}
+						/>
 					</TxOverviewLine>
 					<TxOverviewLine label={language.height}>
 						<S.Height>
@@ -966,7 +975,9 @@ function Transaction(props: {
 						</S.Height>
 					</TxOverviewLine>
 					<TxOverviewLine label={language.confirmations}>
-						<TxOverviewValue primary={confirmations !== null ? formatCount(confirmations.toString()) : '-'} />
+						<TxOverviewValue
+							primary={confirmations !== null ? formatCount(confirmations.toString()) : 'Not Yet Available'}
+						/>
 					</TxOverviewLine>
 					<TxOverviewLine label={language.size}>
 						<TxOverviewValue primary={formatCompactByteSize(size !== null ? Number(size) : null)} />
@@ -1427,7 +1438,12 @@ function Transaction(props: {
 				</S.SectionHeader>
 				<S.OverviewWrapper>
 					{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-						<OverviewLine key={`${tag.name}-${index}`} label={tag.name} value={tag.value} render={renderTagValue} />
+						<OverviewLine
+							key={`${tag.name}-${index}`}
+							label={tag.name}
+							value={tag.value}
+							render={index === 0 ? renderFirstTagValue : renderTagValue}
+						/>
 					))}
 				</S.OverviewWrapper>
 			</S.Section>
@@ -1467,6 +1483,7 @@ function Transaction(props: {
 			<S.Section className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
 				<S.SectionHeader>
 					<p>{language.tags}</p>
+					<span>({filteredTags?.length ?? '-'})</span>
 				</S.SectionHeader>
 				<S.OverviewWrapper
 					ref={overviewWrapperRef}
@@ -1499,7 +1516,12 @@ function Transaction(props: {
 							{filteredTags?.length > 0 ? (
 								<>
 									{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-										<OverviewLine key={index} label={tag.name} value={tag.value} render={renderTagValue} />
+										<OverviewLine
+											key={index}
+											label={tag.name}
+											value={tag.value}
+											render={index === 0 ? renderFirstTagValue : renderTagValue}
+										/>
 									))}
 								</>
 							) : (
@@ -1900,15 +1922,6 @@ function Transaction(props: {
 					shouldFetch={shouldFetch}
 					useNaOnError={useNaOnError}
 				/>
-				<WalletBalanceSection
-					balanceSource={'process'}
-					processId={PROCESSES.pi}
-					tokenName={'PI'}
-					denomination={TOKEN_DENOMINATIONS.pi}
-					walletId={inputTxId}
-					shouldFetch={shouldFetch}
-					useNaOnError={useNaOnError}
-				/>
 				{resolvedType === 'wallet' && (
 					<WalletBalanceSection
 						balanceSource={'arweave'}
@@ -2052,14 +2065,13 @@ function Transaction(props: {
 								{previousBlockHeight !== null && (
 									<Button
 										type={'primary'}
-										label={'Previous Block'}
 										icon={ASSETS.arrowLeft}
 										iconLeftAlign
 										handlePress={() => handleBlockNavigation(previousBlockHeight)}
 										disabled={loadingTx}
 										height={32.5}
-										iconSize={13.5}
-										tooltip={`${formatCount(previousBlockHeight.toString())}`}
+										iconSize={14.5}
+										tooltip={`${language.previous}: ${formatCount(previousBlockHeight.toString())}`}
 										stopPropagation
 										preventDefault
 									/>
@@ -2067,13 +2079,12 @@ function Transaction(props: {
 								{nextBlockHeight !== null && (
 									<Button
 										type={'primary'}
-										label={'Next Block'}
 										icon={ASSETS.arrowRight}
 										handlePress={() => handleBlockNavigation(nextBlockHeight)}
 										disabled={loadingTx || nextBlockDisabled}
 										height={32.5}
-										iconSize={13.5}
-										tooltip={`${formatCount(nextBlockHeight.toString())}`}
+										iconSize={14.5}
+										tooltip={`${language.next}: ${formatCount(nextBlockHeight.toString())}`}
 										stopPropagation
 										preventDefault
 									/>

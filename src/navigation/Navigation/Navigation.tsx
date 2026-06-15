@@ -326,7 +326,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								<p>{formatUsdPrice(prices.ar)}</p>
 							</S.PriceItem>
 							<S.PriceItem>
-								<ReactSVG src={ASSETS.ao} />
+								<ReactSVG className={'ao-icon'} src={ASSETS.ao} />
 								<p>{formatUsdPrice(prices.ao)}</p>
 							</S.PriceItem>
 						</S.PriceWrapper>

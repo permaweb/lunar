@@ -331,31 +331,20 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 							</S.DHeaderWrapper>
 							<S.DBalanceWrapper>
 								<WalletBalanceSection
+									balanceSource={'arweave'}
+									tokenName={'AR'}
+									denomination={TOKEN_DENOMINATIONS.ar}
+									walletAddress={arProvider.walletAddress}
+									libs={permawebProvider.libs}
+									errorFetching={language.errorFetching}
+									loading={language.loading}
+									refresh={language.refresh}
+								/>
+								<WalletBalanceSection
 									balanceSource={'process'}
 									processId={PROCESSES.ao}
 									tokenName={'AO'}
 									denomination={TOKEN_DENOMINATIONS.ao}
-									walletAddress={arProvider.walletAddress}
-									libs={permawebProvider.libs}
-									errorFetching={language.errorFetching}
-									loading={language.loading}
-									refresh={language.refresh}
-								/>
-								<WalletBalanceSection
-									balanceSource={'process'}
-									processId={PROCESSES.pi}
-									tokenName={'PI'}
-									denomination={TOKEN_DENOMINATIONS.pi}
-									walletAddress={arProvider.walletAddress}
-									libs={permawebProvider.libs}
-									errorFetching={language.errorFetching}
-									loading={language.loading}
-									refresh={language.refresh}
-								/>
-								<WalletBalanceSection
-									balanceSource={'arweave'}
-									tokenName={'AR'}
-									denomination={TOKEN_DENOMINATIONS.ar}
 									walletAddress={arProvider.walletAddress}
 									libs={permawebProvider.libs}
 									errorFetching={language.errorFetching}

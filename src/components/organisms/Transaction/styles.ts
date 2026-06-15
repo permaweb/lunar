@@ -1,6 +1,30 @@
-import styled, { DefaultTheme } from 'styled-components';
+import styled, { DefaultTheme, keyframes } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
+
+const tooltipFadeIn = keyframes`
+	from {
+		opacity: 0;
+		transform: translateY(3px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+`;
+
+const tooltipFadeInBelow = keyframes`
+	from {
+		opacity: 0;
+		transform: translateY(-3px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+`;
 
 export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	width: 100%;
@@ -417,7 +441,7 @@ export const TransferInfoAmount = styled.div<{ isNumber: boolean }>`
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) =>
-			props.isNumber ? props.theme.typography.weight.xBold : props.theme.typography.weight.bold};
+			props.isNumber ? props.theme.typography.weight.bold : props.theme.typography.weight.bold};
 		color: ${(props) => (props.isNumber ? props.theme.colors.font.primary : props.theme.colors.font.primary)};
 		text-align: left;
 		text-transform: none;
@@ -570,11 +594,19 @@ export const SectionHeader = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	margin: 0 0 15px 0;
+
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
+	}
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.alt2};
 	}
 `;
 
@@ -633,7 +665,9 @@ export const BlockNavigationWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 7.5px;
+	gap: 15px;
+	padding: 0 0 0 15px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const InputActions = styled.div`
@@ -663,7 +697,7 @@ export const UpdateWrapper = styled.div`
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
@@ -672,9 +706,9 @@ export const UpdateWrapper = styled.div`
 	}
 
 	p {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.xBold};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
 		text-transform: uppercase;
@@ -708,7 +742,7 @@ export const UpdateWrapperType = styled.div`
 	}
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
@@ -717,9 +751,9 @@ export const UpdateWrapperType = styled.div`
 	}
 
 	p {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.xBold};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
 		text-transform: uppercase;
@@ -728,10 +762,10 @@ export const UpdateWrapperType = styled.div`
 
 export const BalanceWrapper = styled(UpdateWrapper)<{ isNumber: boolean }>`
 	p {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) =>
-			props.isNumber ? props.theme.typography.weight.xBold : props.theme.typography.weight.bold};
+			props.isNumber ? props.theme.typography.weight.bold : props.theme.typography.weight.bold};
 		color: ${(props) => (props.isNumber ? props.theme.colors.font.light1 : props.theme.colors.font.light2)};
 		text-align: center;
 		text-transform: none;
@@ -791,7 +825,14 @@ export const OverviewWrapper = styled.div<{ $fixedHeight?: number; $hasOverflow?
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	padding-right: ${(props) => (props.$hasOverflow ? '15px' : '0')};
+	padding-right: ${(props) => (props.$hasOverflow ? '12.5px' : '0')};
+
+	> * {
+		&:not(:last-child) {
+			padding: 0 0 10px 0;
+			border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
+		}
+	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		gap: 20px;
@@ -802,6 +843,7 @@ export const OverviewLine = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	max-height: 30px;
 
 	p,
 	span {
@@ -862,7 +904,7 @@ export const TagValue = styled.button<{ $tooltipVisible?: boolean }>`
 	> div {
 		opacity: ${(props) => (props.$tooltipVisible ? 1 : 0)};
 		visibility: ${(props) => (props.$tooltipVisible ? 'visible' : 'hidden')};
-		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : 'translateY(-3px)')};
+		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : 'translateY(3px)')};
 		transition-delay: ${(props) => (props.$tooltipVisible ? '0s' : '0s, 0s, 140ms')};
 	}
 
@@ -876,14 +918,14 @@ export const TagValue = styled.button<{ $tooltipVisible?: boolean }>`
 	}
 `;
 
-export const TagValueTooltip = styled.div`
+export const TagValueTooltip = styled.div<{ $placement?: 'top' | 'bottom' }>`
 	position: absolute;
 	z-index: 5;
-	top: calc(100% + 3.5px);
+	${(props) => (props.$placement === 'bottom' ? 'top: calc(100% + 3.5px);' : 'bottom: calc(100% + 3.5px);')}
 	right: 0;
 	opacity: 0;
 	visibility: hidden;
-	transform: translateY(-3px);
+	transform: ${(props) => (props.$placement === 'bottom' ? 'translateY(-3px)' : 'translateY(3px)')};
 	width: max-content;
 	max-width: 400px;
 	padding: 2.5px 5px;
@@ -900,6 +942,7 @@ export const TagValueTooltip = styled.div`
 	white-space: normal;
 	overflow-wrap: anywhere;
 	pointer-events: none;
+	animation: ${(props) => (props.$placement === 'bottom' ? tooltipFadeInBelow : tooltipFadeIn)} 140ms ease;
 	transition: opacity 140ms ease, transform 140ms ease, visibility 0s linear 140ms;
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {

@@ -135,7 +135,7 @@ export const BalanceWrapper = styled.div<{ isNumber: boolean }>`
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) =>
-			props.isNumber ? props.theme.typography.weight.xBold : props.theme.typography.weight.bold};
+			props.isNumber ? props.theme.typography.weight.bold : props.theme.typography.weight.bold};
 		color: ${(props) => (props.isNumber ? props.theme.colors.font.primary : props.theme.colors.font.primary)};
 		text-align: left;
 		text-transform: none;

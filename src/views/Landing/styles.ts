@@ -35,7 +35,7 @@ export const Subheader = styled.div`
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	span {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};

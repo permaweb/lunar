@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
+import { ReactSVG } from 'react-svg';
 
 import { serviceWorkerManager } from 'helpers/serviceWorkerManager';
 import { pruneTransactionCache } from 'store/transactions/reducer';
@@ -15,7 +16,7 @@ const Docs = getLazyImport('Docs');
 const NotFound = getLazyImport('NotFound');
 
 import { Loader } from 'components/atoms/Loader';
-import { DOM, LINKS, URLS } from 'helpers/config';
+import { ASSETS, DOM, LINKS, URLS } from 'helpers/config';
 import { stripUrlProtocol } from 'helpers/utils';
 import { Navigation } from 'navigation/Navigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -55,6 +56,7 @@ export default function App() {
 
 	const [isNodeOnline, setIsNodeOnline] = React.useState<boolean>(false);
 	const [isNodeStatusLoading, setIsNodeStatusLoading] = React.useState<boolean>(true);
+	const [isScrolledToPageBottom, setIsScrolledToPageBottom] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
 		const storedVersion = localStorage.getItem('app-version');
@@ -89,6 +91,44 @@ export default function App() {
 			}
 		}
 	}, [settings]);
+
+	React.useEffect(() => {
+		let frame: number | null = null;
+
+		function updateScrollState() {
+			frame = null;
+			const documentElement = document.documentElement;
+			const pageHeight = Math.max(documentElement.scrollHeight, document.body?.scrollHeight ?? 0);
+			const scrollPosition = window.scrollY + window.innerHeight;
+			const isPageScrollable = pageHeight - window.innerHeight > 2;
+
+			setIsScrolledToPageBottom(isPageScrollable && pageHeight - scrollPosition <= 2);
+		}
+
+		function scheduleUpdate() {
+			if (frame !== null) return;
+
+			frame = window.requestAnimationFrame(updateScrollState);
+		}
+
+		updateScrollState();
+
+		window.addEventListener('scroll', scheduleUpdate, { passive: true });
+		window.addEventListener('resize', scheduleUpdate);
+
+		const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleUpdate) : null;
+		if (observer) {
+			observer.observe(document.body);
+			observer.observe(document.documentElement);
+		}
+
+		return () => {
+			if (frame !== null) window.cancelAnimationFrame(frame);
+			if (observer) observer.disconnect();
+			window.removeEventListener('scroll', scheduleUpdate);
+			window.removeEventListener('resize', scheduleUpdate);
+		};
+	}, []);
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -176,16 +216,20 @@ export default function App() {
 					<S.ViewWrapper>
 						<S.Footer navigationOpen={settings.sidebarOpen}>
 							<p>
+								<S.FooterIcon className={'app-icon'}>
+									<ReactSVG src={ASSETS.logo} />
+								</S.FooterIcon>
 								{language.app} {new Date().getFullYear()}
 							</p>
 							<p>
+								<a href={LINKS.arweave} target={'_blank'}>
+									Arweave
+								</a>
+								&nbsp; / &nbsp;
 								<a href={LINKS.ao} target={'_blank'}>
 									AO
 								</a>{' '}
-								Explorer built on{' '}
-								<a href={LINKS.arweave} target={'_blank'}>
-									Arweave
-								</a>{' '}
+								&nbsp; Explorer
 							</p>
 						</S.Footer>
 					</S.ViewWrapper>
@@ -221,6 +265,7 @@ export default function App() {
 						<S.NodeStatusButton
 							type={'button'}
 							onClick={() => setShowNodeSettings(true)}
+							$isLifted={false}
 							aria-label={`${language.aoMainnet} ${language.node}: ${stripUrlProtocol(activeNode.url)}. ${
 								isNodeStatusLoading ? `${language.loading}...` : isNodeOnline ? language.online : language.offline
 							}`}

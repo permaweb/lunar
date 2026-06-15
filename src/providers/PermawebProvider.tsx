@@ -76,7 +76,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 				arweave: Arweave.init({}),
 				signer: signer,
 				node: { url: nodeUrl, authority: nodeAuthority, scheduler: DEFAULT_AO_NODE.scheduler },
-				gateway: DEFAULT_GATEWAYS.arweave,
+				gateway: DEFAULT_GATEWAYS.legacy, // TODO
 			};
 
 			const dependenciesLegacy = { ao: aoLegacy, ...dependenciesShared };

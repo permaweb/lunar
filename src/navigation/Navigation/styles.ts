@@ -8,7 +8,7 @@ export const Header = styled.header<{ navigationOpen: boolean }>`
 	width: 100%;
 	position: sticky;
 	top: 0;
-	z-index: 4;
+	z-index: 5;
 	background: ${(props) => props.theme.colors.view.background};
 	border-top: 0.5px solid transparent;
 	border-bottom: 1px solid transparent;
@@ -280,17 +280,17 @@ export const C1Wrapper = styled.div`
 `;
 
 export const LogoWrapper = styled.div`
-	height: 30px;
-	width: 30px;
+	height: 25px;
+	width: 25px;
 	svg {
-		height: 30px;
-		width: 30px;
+		height: 25px;
+		width: 25px;
 		padding: 2.5px 0 0 0;
-		color: ${(props) => props.theme.colors.icon.alt2.fill};
-		fill: ${(props) => props.theme.colors.icon.alt2.fill};
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
 		&:hover {
-			color: ${(props) => props.theme.colors.icon.alt2.active};
-			fill: ${(props) => props.theme.colors.icon.alt2.active};
+			color: ${(props) => props.theme.colors.font.alt1};
+			fill: ${(props) => props.theme.colors.font.alt1};
 		}
 	}
 `;
@@ -392,10 +392,14 @@ export const PriceItem = styled.div`
 		width: 14px;
 	}
 
+	.ao-icon svg {
+		margin: 0 0 -1px 0;
+	}
+
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.xBold};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
 		white-space: nowrap;
 	}

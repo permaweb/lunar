@@ -566,12 +566,10 @@ function Message(props: {
 				lastChild={props.lastChild}
 				childList={props.childList}
 			>
-				<S.ID>
-					{getID()}
-					<S.Variant className={'info'}>
-						<span>{getTransactionTypeLabel()}</span>
-					</S.Variant>
-				</S.ID>
+				<S.ID>{getID()}</S.ID>
+				<S.TypeValue>
+					<p>{getTransactionTypeLabel()}</p>
+				</S.TypeValue>
 				{getAction(true)}
 				{getFrom()}
 				{getTo()}
@@ -598,7 +596,7 @@ function Message(props: {
 							: 'Processing'}
 					</p>
 				</S.Time>
-				<S.Results open={open}>{canFetchAoResult && <ReactSVG src={ASSETS.arrow} />}</S.Results>
+				<S.Results open={open}>{canFetchAoResult ? <ReactSVG src={ASSETS.arrow} /> : <p>None</p>}</S.Results>
 			</S.ElementWrapper>
 			{open && canFetchAoResult && (
 				<MessageList
@@ -1808,8 +1806,11 @@ export default function MessageList(props: {
 						{!props.childList && (
 							<S.HeaderWrapper className={'fade-in'}>
 								<S.ID>
-									<p>{props.result ? language.type : language.id}</p>
+									<p>{language.id}</p>
 								</S.ID>
+								<S.Type>
+									<p>{language.type}</p>
+								</S.Type>
 								<S.Action>
 									<p>{language.action}</p>
 								</S.Action>

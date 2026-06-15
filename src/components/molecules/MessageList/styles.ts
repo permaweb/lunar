@@ -194,7 +194,7 @@ export const HeaderWrapper = styled.div`
 
 	> {
 		&:last-child,
-		&:nth-child(3) {
+		&:nth-child(4) {
 			display: flex;
 			justify-content: flex-end;
 			text-align: right;
@@ -313,8 +313,8 @@ export const ElementItem = styled.div`
 `;
 
 export const ID = styled(ElementItem)`
-	min-width: 305px;
-	width: 305px;
+	min-width: 165px;
+	width: 165px;
 	display: flex;
 	align-items: center;
 	gap: 5px;
@@ -351,24 +351,32 @@ export const ResultMessage = styled.div<{ clickable?: boolean }>`
 	}
 `;
 
-export const Variant = styled.div`
-	min-width: 52.5px;
+export const Type = styled(ElementItem)`
+	min-width: 155px;
+	width: 155px;
+`;
+
+export const TypeValue = styled(Type)`
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	background: ${(props) => props.theme.colors.container.primary.active};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-radius: ${STYLING.dimensions.radius.alt3} !important;
+	justify-content: flex-start;
 
-	span {
+	p {
+		max-width: 100%;
 		color: ${(props) => props.theme.colors.font.primary} !important;
-		text-transform: uppercase;
+		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-family: ${(props) => props.theme.typography.family.primary} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		text-align: left;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 `;
 
 export const Action = styled(ElementItem)`
-	min-width: 190px;
-	width: 190px;
+	min-width: 175px;
+	width: 175px;
 `;
 
 export const ActionTooltip = styled.div`
@@ -386,14 +394,14 @@ export const ActionTooltip = styled.div`
 `;
 
 export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: boolean }>`
-	min-width: 190px;
-	width: 190px;
 	position: relative;
 	display: flex;
 	align-items: center;
 	gap: 7.5px;
 
 	.action-indicator {
+		min-height: 10px;
+		min-width: 10px;
 		height: 10px;
 		width: 10px;
 		border-radius: 50%;
@@ -416,7 +424,7 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 		max-width: 100%;
 		color: ${(props) => props.theme.colors.font.primary} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
-		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		text-align: center;
 		white-space: nowrap;
 		overflow: hidden;
@@ -487,7 +495,7 @@ export const Results = styled(ElementItem)<{ open?: boolean }>`
 	svg {
 		height: 15px;
 		width: 15px;
-		margin: 0 0 -2.5px 0;
+		margin: 0 0 -1.5px 0;
 		transform: rotate(${(props) => (props.open ? '180deg' : '0deg')});
 		transition: transform 0.15s ease-in-out;
 	}
