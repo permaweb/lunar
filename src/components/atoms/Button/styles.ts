@@ -98,7 +98,7 @@ export const Tooltip = styled.div<{ position: string }>`
 
 	span {
 		display: block;
-		line-height: 1.65;
+		line-height: 1.1;
 	}
 `;
 
@@ -112,7 +112,7 @@ export const Wrapper = styled.div`
 	}
 
 	.info {
-		padding: 0 5px 1px 5px !important;
+		padding: 2px 5px !important;
 	}
 `;
 

@@ -336,8 +336,12 @@ export const DNavLink = styled.div<{ active: boolean }>`
 		text-transform: uppercase;
 		letter-spacing: 0;
 
+		padding: 0 0 3px 0;
+		border-bottom: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
+
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};
+			border-bottom: 2px solid ${(props) => props.theme.colors.border.alt5};
 		}
 	}
 `;

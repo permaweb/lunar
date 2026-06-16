@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 export const HeaderWrapper = styled.div`
 	width: 100%;
-	margin: 10px 0 35.5px 0;
+	margin: 13.5px 0 35.5px 0;
 `;
 
 export const HeaderContent = styled.div`

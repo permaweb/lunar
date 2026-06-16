@@ -70,11 +70,27 @@ type TransactionOverviewData = {
 	arUsdPrice: number | null;
 };
 
+type DisplayTag = {
+	name: string;
+	value: any;
+};
+
 const TRANSACTION_OVERVIEW_CACHE_LIMIT = 50;
 const transactionOverviewCache = new Map<string, TransactionOverviewData>();
 const transactionOverviewRequestCache = new Map<string, Promise<TransactionOverviewData>>();
 let arUsdPriceCache: number | null | undefined;
 let arUsdPriceRequestCache: Promise<number | null> | null = null;
+
+function sortTagsAlphabetically(tags: DisplayTag[]) {
+	return [...tags].sort((a, b) => {
+		const nameSort = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+		if (nameSort !== 0) return nameSort;
+
+		return (a.value?.toString?.() ?? '').localeCompare(b.value?.toString?.() ?? '', undefined, {
+			sensitivity: 'base',
+		});
+	});
+}
 
 function cacheTransactionOverview(cacheKey: string, data: TransactionOverviewData) {
 	transactionOverviewCache.set(cacheKey, data);
@@ -1242,7 +1258,7 @@ function Transaction(props: {
 							<p>
 								{txResponse?.node?.block?.timestamp
 									? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
-									: '-'}
+									: 'Not Found'}
 							</p>
 						</S.MessageInfoLine>
 						<S.MessageInfoLine>
@@ -1252,7 +1268,7 @@ function Transaction(props: {
 									<ExplorerLink value={txResponse.node.block.height} type={'block'} />
 								</S.Height>
 							) : (
-								<p>-</p>
+								<p>None</p>
 							)}
 						</S.MessageInfoLine>
 						{txResponse?.node?.slot ? (
@@ -1427,7 +1443,9 @@ function Transaction(props: {
 	const BundleTagsSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
 		const tags = txResponse?.node?.tags ?? [];
-		const filteredTags = tags.filter((tag: { name: string }) => !['type', 'name'].includes(tag.name.toLowerCase()));
+		const filteredTags = sortTagsAlphabetically(
+			tags.filter((tag: DisplayTag) => !['type', 'name'].includes(tag.name.toLowerCase()))
+		);
 
 		if (filteredTags.length <= 0) return null;
 
@@ -1437,7 +1455,7 @@ function Transaction(props: {
 					<p>{language.bundleTags}</p>
 				</S.SectionHeader>
 				<S.OverviewWrapper>
-					{filteredTags.map((tag: { name: string; value: string }, index: number) => (
+					{filteredTags.map((tag: DisplayTag, index: number) => (
 						<OverviewLine
 							key={`${tag.name}-${index}`}
 							label={tag.name}
@@ -1454,9 +1472,10 @@ function Transaction(props: {
 		const { txResponse } = React.useContext(TxResponseContext);
 		const overviewWrapperRef = React.useRef<HTMLDivElement | null>(null);
 		const [overviewHasOverflow, setOverviewHasOverflow] = React.useState<boolean>(false);
-		const excludedTagNames = [];
-		const filteredTags =
-			txResponse?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
+		const excludedTagNames: string[] = [];
+		const filteredTags = sortTagsAlphabetically(
+			txResponse?.node?.tags?.filter((tag: DisplayTag) => !excludedTagNames.includes(tag.name)) || []
+		);
 
 		React.useEffect(() => {
 			const element = overviewWrapperRef.current;
@@ -1515,7 +1534,7 @@ function Transaction(props: {
 						<>
 							{filteredTags?.length > 0 ? (
 								<>
-									{filteredTags.map((tag: { name: string; value: string }, index: number) => (
+									{filteredTags.map((tag: DisplayTag, index: number) => (
 										<OverviewLine
 											key={index}
 											label={tag.name}

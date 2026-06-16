@@ -309,16 +309,16 @@ export const ThemeSectionHeader = styled.div`
 	display: flex;
 	margin: 0 0 10px 0;
 	svg {
-		height: 16.5px;
-		width: 16.5px;
-		margin: 3.5px 9.5px 0 0;
+		height: 13.5px;
+		width: 13.5px;
+		margin: 0 9.5px 1.5px 0;
 		color: ${(props) => props.theme.colors.font.alt1};
 		fill: ${(props) => props.theme.colors.font.alt1};
 	}
 
 	p {
 		color: ${(props) => props.theme.colors.font.alt1};
-		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		text-transform: uppercase;

@@ -147,6 +147,7 @@ export const language = {
 		incoming: `Incoming`,
 		info: `Info`,
 		input: `Input`,
+		inspect: `Inspect`,
 		invalidJSON: `Invalid JSON`,
 		january: `January`,
 		july: `July`,

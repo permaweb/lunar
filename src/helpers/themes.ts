@@ -3,8 +3,8 @@ import { DefaultTheme } from 'styled-components';
 const common = {
 	positive1: '#28baa2',
 	caution1: '#eb9330',
-	negative1: '#ce3f7e',
-	negative2: '#c5276c',
+	negative1: '#cb4881',
+	negative2: '#c9417c',
 	dark1: '#151515',
 	dark2: '#333333',
 	light1: '#FFFFFF',
@@ -174,15 +174,15 @@ export const lightThemeAlt3 = {
 
 export const darkTheme = {
 	scheme: 'dark',
-	neutral1: '#121212',
-	neutral2: '#151515',
-	neutral3: '#252525',
-	neutral4: '#393939',
-	neutral5: '#979797',
-	neutral6: '#909090',
-	neutral7: '#5E5E5E',
-	neutral8: '#6A6A6A',
-	neutral9: '#767676',
+	neutral1: '#171717',
+	neutral2: '#1a1a1a',
+	neutral3: '#292929',
+	neutral4: '#3D3D3D',
+	neutral5: '#9B9B9B',
+	neutral6: '#949494',
+	neutral7: '#626262',
+	neutral8: '#6E6E6E',
+	neutral9: '#7A7A7A',
 	neutralA1: '#F6F6F6',
 	neutralA2: '#E8E8E8',
 	neutralA3: '#D8D8D8',
@@ -556,8 +556,8 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 	},
 	typography: {
 		family: {
-			primary: `'Open Sans', sans-serif`,
-			alt1: `'Open Sans', sans-serif`,
+			primary: `'DM Sans', sans-serif`,
+			alt1: `'DM Sans', sans-serif`,
 			alt2: `'Source Code Pro', serif`,
 		},
 		size: {
@@ -576,11 +576,11 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 			h4: 'clamp(28px, 3vw, 42px)',
 		},
 		weight: {
-			light: '300',
-			regular: '400',
-			medium: '500',
-			bold: '600',
-			xBold: '700',
+			light: '200',
+			regular: '300',
+			medium: '400',
+			bold: '500',
+			xBold: '600',
 		},
 	},
 });

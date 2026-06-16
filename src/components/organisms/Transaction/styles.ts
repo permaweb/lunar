@@ -686,8 +686,9 @@ export const TxInfoWrapper = styled.div`
 `;
 
 export const UpdateWrapper = styled.div`
+	min-height: 32.5px;
 	width: fit-content;
-	padding: 4.5px 15px;
+	padding: 5.5px 15px 4.5px 15px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -716,8 +717,9 @@ export const UpdateWrapper = styled.div`
 `;
 
 export const UpdateWrapperType = styled.div`
+	min-height: 32.5px;
 	width: fit-content;
-	padding: 4.5px 15px 4.5px 13.5px;
+	padding: 5.5px 15px 4.5px 13.5px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -851,6 +853,7 @@ export const OverviewLine = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		white-space: nowrap;
+		line-height: 1.05;
 	}
 
 	p {
@@ -937,7 +940,7 @@ export const TagValueTooltip = styled.div<{ $placement?: 'top' | 'bottom' }>`
 	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	font-family: ${(props) => props.theme.typography.family.primary};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	line-height: 1.45;
+	line-height: 1.2;
 	text-align: left;
 	white-space: normal;
 	overflow-wrap: anywhere;

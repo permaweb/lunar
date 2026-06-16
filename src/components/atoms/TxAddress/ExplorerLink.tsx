@@ -114,7 +114,7 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 				<S.IconWrapper>
 					{!copied && (
 						<S.Tooltip className={'info'} position={props.tooltipPosition ?? 'top-right'}>
-							<span>{isModifierKeyPressed ? language.copy : language.openInNewTab}</span>
+							<span>{isModifierKeyPressed ? language.copy : language.inspect}</span>
 						</S.Tooltip>
 					)}
 					<ReactSVG src={props.viewIcon ?? ASSETS.newTab} onClick={handleClick} />

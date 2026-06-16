@@ -6,7 +6,7 @@ import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
-import { ASSETS, DEFAULT_AO_NODE, STYLING } from 'helpers/config';
+import { ASSETS, DEFAULT_AO_NODE, DEFAULT_LEGACY_CU_URL, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
 import {
 	darkTheme,
@@ -53,6 +53,7 @@ interface Settings {
 	showTopicAction: boolean;
 	showLinkAction: boolean;
 	showNodeStatus: boolean;
+	legacyComputeNode: string;
 	nodes: NodeConfig[];
 }
 
@@ -82,6 +83,7 @@ const defaultSettings: Settings = {
 	showTopicAction: false,
 	showLinkAction: false,
 	showNodeStatus: true,
+	legacyComputeNode: DEFAULT_LEGACY_CU_URL,
 	nodes: [{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true }],
 };
 
@@ -119,6 +121,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				showTopicAction: parsedSettings.showTopicAction ?? false,
 				showLinkAction: parsedSettings.showLinkAction ?? false,
 				showNodeStatus: parsedSettings.showNodeStatus ?? true,
+				legacyComputeNode: parsedSettings.legacyComputeNode ?? DEFAULT_LEGACY_CU_URL,
 				syncWithSystem: parsedSettings.syncWithSystem ?? true,
 				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
 				preferredDarkTheme: parsedSettings.preferredDarkTheme ?? 'dark-primary',
@@ -380,6 +383,10 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		updateSettings('showNodeStatus', !settings.showNodeStatus);
 	}
 
+	function handleLegacyComputeNodeChange(e: React.ChangeEvent<HTMLInputElement>) {
+		updateSettings('legacyComputeNode', e.target.value);
+	}
+
 	return (
 		<SettingsContext.Provider
 			value={{ settings, updateSettings, addNode, removeNode, setActiveNode, showNodeSettings, setShowNodeSettings }}
@@ -448,6 +455,17 @@ export function SettingsProvider(props: SettingsProviderProps) {
 										fullWidth
 									/>
 								</S.NodeAddSection>
+								<FormField
+									label={'Legacy Compute Node'}
+									placeholder={DEFAULT_LEGACY_CU_URL}
+									value={settings.legacyComputeNode}
+									onChange={handleLegacyComputeNodeChange}
+									invalid={{
+										status: settings.legacyComputeNode ? !validateUrl(settings.legacyComputeNode) : false,
+										message: null,
+									}}
+									disabled={false}
+								/>
 								<S.NodeDisplayOption>
 									<Checkbox checked={settings.showNodeStatus} handleSelect={handleToggleNodeStatus} disabled={false} />
 									<S.NodeDisplayOptionText>

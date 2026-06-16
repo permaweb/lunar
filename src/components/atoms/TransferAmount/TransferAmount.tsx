@@ -95,7 +95,6 @@ function hasDenomination(metadata: TransferTokenMetadata | null) {
 }
 
 function mergeTokenMetadata(...metadataEntries: (TransferTokenMetadata | null)[]): TransferTokenMetadata | null {
-	console.log(metadataEntries);
 	const metadata = metadataEntries.reduce<TransferTokenMetadata | null>((acc, entry) => {
 		if (!entry) return acc;
 
@@ -106,8 +105,6 @@ function mergeTokenMetadata(...metadataEntries: (TransferTokenMetadata | null)[]
 	}, null);
 
 	if (!metadata?.ticker && metadata?.denomination === null) return null;
-
-	console.log(metadata);
 
 	return metadata;
 }

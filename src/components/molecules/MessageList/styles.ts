@@ -400,10 +400,10 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 	gap: 7.5px;
 
 	.action-indicator {
-		min-height: 10px;
-		min-width: 10px;
-		height: 10px;
-		width: 10px;
+		min-height: 8px;
+		min-width: 8px;
+		height: 8px;
+		width: 8px;
 		border-radius: 50%;
 		position: relative;
 		display: flex;
@@ -495,7 +495,7 @@ export const Results = styled(ElementItem)<{ open?: boolean }>`
 	svg {
 		height: 15px;
 		width: 15px;
-		margin: 0 0 -1.5px 0;
+		margin: 0 0 -2.5px 0;
 		transform: rotate(${(props) => (props.open ? '180deg' : '0deg')});
 		transition: transform 0.15s ease-in-out;
 	}
@@ -618,7 +618,7 @@ export const OverlayTagValueTooltip = styled.div`
 	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	font-family: ${(props) => props.theme.typography.family.primary};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	line-height: 1.45;
+	line-height: 1.2;
 	text-align: left;
 	white-space: normal;
 	overflow-wrap: anywhere;

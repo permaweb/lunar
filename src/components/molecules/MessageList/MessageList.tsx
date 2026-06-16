@@ -19,6 +19,7 @@ import { PaginationControls } from 'components/molecules/PaginationControls';
 import {
 	ASSETS,
 	DEFAULT_ACTIONS,
+	DEFAULT_GATEWAYS,
 	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
 	FLAGS,
@@ -824,6 +825,14 @@ export default function MessageList(props: {
 		return queryTags.length > 0 ? { tags: queryTags } : {};
 	}
 
+	function withProcessMessageGateway<T extends Record<string, any>>(args: T): T & { gateway?: string } {
+		return props.type === 'process' ? { ...args, gateway: DEFAULT_GATEWAYS.legacy } : args;
+	}
+
+	function withProcessMessageTags(tags: { name: string; values: string[] }[]) {
+		return props.type === 'process' ? [...DEFAULT_MESSAGE_TAGS, ...tags] : tags;
+	}
+
 	async function timestampToBlockHeight(timestamp: number): Promise<number> {
 		try {
 			// Fetch current network height
@@ -894,7 +903,7 @@ export default function MessageList(props: {
 		switch (props.type) {
 			case 'process':
 			case 'message':
-				let tags = [...outgoingTags];
+				let tags = withProcessMessageTags(outgoingTags);
 
 				tags.push({ name: 'From-Process', values: [props.txId] });
 
@@ -918,11 +927,13 @@ export default function MessageList(props: {
 		let count: number | null = null;
 
 		while (rows.length < amount) {
-			const response = await permawebProvider.libs.getGQLData({
-				...baseArgs,
-				paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
-				...(cursor ? { cursor } : {}),
-			});
+			const response = await permawebProvider.libs.getGQLData(
+				withProcessMessageGateway({
+					...baseArgs,
+					paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
+					...(cursor ? { cursor } : {}),
+				})
+			);
 			const pageRows = response?.data ?? [];
 			const responseNextCursor = response?.nextCursor && response.nextCursor !== 'END' ? response.nextCursor : null;
 
@@ -953,17 +964,20 @@ export default function MessageList(props: {
 			switch (currentFilter) {
 				case 'incoming': {
 					let incomingQueryArgs: any = {
-						...getQueryTagsArg(tags),
+						...getQueryTagsArg(withProcessMessageTags(tags)),
 						recipients: [props.txId],
 						...cursorArg,
-						sort: 'descending',
+						// sort: 'descending',
 					};
 
 					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
 						if (appliedFromAddressIsProcess) {
 							incomingQueryArgs = {
 								...incomingQueryArgs,
-								...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
+								...getQueryTagsArg([
+									...withProcessMessageTags(tags),
+									{ name: 'From-Process', values: [appliedFromAddress] },
+								]),
 							};
 						} else {
 							incomingQueryArgs.owners = [appliedFromAddress];
@@ -988,7 +1002,7 @@ export default function MessageList(props: {
 					let outgoingArgs: any = {
 						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 						...cursorArg,
-						sort: 'descending',
+						// sort: 'descending',
 						...(await getOutgoingGQLArgs(tags)),
 					};
 
@@ -1079,7 +1093,7 @@ export default function MessageList(props: {
 				try {
 					// Build incoming query args
 					let incomingQueryArgs: any = {
-						...getQueryTagsArg(baseTags),
+						...getQueryTagsArg(withProcessMessageTags(baseTags)),
 						recipients: [props.txId],
 					};
 
@@ -1088,7 +1102,10 @@ export default function MessageList(props: {
 						if (appliedFromAddressIsProcess) {
 							incomingQueryArgs = {
 								...incomingQueryArgs,
-								...getQueryTagsArg([...baseTags, { name: 'From-Process', values: [appliedFromAddress] }]),
+								...getQueryTagsArg([
+									...withProcessMessageTags(baseTags),
+									{ name: 'From-Process', values: [appliedFromAddress] },
+								]),
 							};
 						} else {
 							incomingQueryArgs.owners = [appliedFromAddress];
@@ -1127,8 +1144,8 @@ export default function MessageList(props: {
 					}
 
 					const [gqlResponseIncoming, gqlResponseOutgoing] = await Promise.all([
-						permawebProvider.libs.getGQLData(incomingQueryArgs),
-						permawebProvider.libs.getGQLData(outgoingQueryArgs),
+						permawebProvider.libs.getGQLData(withProcessMessageGateway(incomingQueryArgs)),
+						permawebProvider.libs.getGQLData(withProcessMessageGateway(outgoingQueryArgs)),
 					]);
 					setIncomingCount(gqlResponseIncoming.count);
 					setOutgoingCount(gqlResponseOutgoing.count);
@@ -1137,7 +1154,7 @@ export default function MessageList(props: {
 				}
 			}
 		})();
-	}, [props.txId, props.variant, toggleFilterChange]);
+	}, [props.txId, props.type, props.variant, toggleFilterChange]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -1159,10 +1176,10 @@ export default function MessageList(props: {
 						switch (currentFilter) {
 							case 'incoming':
 								let incomingQueryArgs: any = {
-									...getQueryTagsArg(tags),
+									...getQueryTagsArg(withProcessMessageTags(tags)),
 									recipients: [props.txId],
 									...(pageCursor ? { cursor: pageCursor } : {}),
-									sort: 'descending',
+									// sort: 'descending',
 								};
 
 								// Add fromAddress filter if applicable
@@ -1170,7 +1187,10 @@ export default function MessageList(props: {
 									if (appliedFromAddressIsProcess) {
 										incomingQueryArgs = {
 											...incomingQueryArgs,
-											...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
+											...getQueryTagsArg([
+												...withProcessMessageTags(tags),
+												{ name: 'From-Process', values: [appliedFromAddress] },
+											]),
 										};
 									} else {
 										incomingQueryArgs.owners = [appliedFromAddress];
@@ -1198,7 +1218,7 @@ export default function MessageList(props: {
 										? { recipients: [appliedRecipient] }
 										: {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
-									sort: 'descending',
+									// sort: 'descending',
 									...(await getOutgoingGQLArgs(tags)),
 								};
 
@@ -1328,6 +1348,7 @@ export default function MessageList(props: {
 		})();
 	}, [
 		props.txId,
+		props.type,
 		props.variant,
 		props.recipient,
 		props.result,

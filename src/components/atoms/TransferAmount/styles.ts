@@ -12,7 +12,7 @@ export const Tooltip = styled.span`
 
 	span {
 		display: block;
-		line-height: 1.65;
+		line-height: 1.1;
 	}
 `;
 
@@ -35,7 +35,7 @@ export const Wrapper = styled.span`
 	}
 
 	.info {
-		padding: 0 5px 1px 5px !important;
+		padding: 2px 5px !important;
 	}
 `;
 

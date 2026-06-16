@@ -56,7 +56,7 @@ export default function App() {
 
 	const [isNodeOnline, setIsNodeOnline] = React.useState<boolean>(false);
 	const [isNodeStatusLoading, setIsNodeStatusLoading] = React.useState<boolean>(true);
-	const [isScrolledToPageBottom, setIsScrolledToPageBottom] = React.useState<boolean>(false);
+	const [_isScrolledToPageBottom, setIsScrolledToPageBottom] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
 		const storedVersion = localStorage.getItem('app-version');
@@ -217,7 +217,7 @@ export default function App() {
 						<S.Footer navigationOpen={settings.sidebarOpen}>
 							<p>
 								<S.FooterIcon className={'app-icon'}>
-									<ReactSVG src={ASSETS.logo} />
+									<ReactSVG src={ASSETS.logo} wrapper={'span'} />
 								</S.FooterIcon>
 								{language.app} {new Date().getFullYear()}
 							</p>

@@ -14,7 +14,7 @@ export const Header = styled.div`
 	justify-content: space-between;
 	flex-wrap: wrap;
 	gap: 15px;
-	margin: 0 0 2.5px 0;
+	padding: 15px 15px 12.5px 15px;
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
 		font-family: ${(props) => props.theme.typography.family.alt1};
@@ -29,17 +29,18 @@ export const EditorWrapper = styled.div<{ useFixedHeight: boolean }>`
 	width: 100%;
 	min-width: 0;
 	display: flex;
+	flex-direction: column;
 	align-items: flex-start;
 	position: relative;
 `;
 
-export const Editor = styled.div`
+export const Editor = styled.div<{ $hasHeader?: boolean }>`
 	height: 100%;
 	width: 100%;
 	min-width: 0;
 	flex: 1;
 	position: relative;
-	padding: 18.5px 0 0 0;
+	padding: ${(props) => (props.$hasHeader ? '0 0 15px 0' : '18.5px 0 15px 0')};
 	background: ${(props) => props.theme.colors.container.alt1.background};
 
 	> div {

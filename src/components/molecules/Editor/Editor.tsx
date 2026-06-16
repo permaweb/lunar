@@ -287,11 +287,6 @@ export default function _Editor(props: {
 
 	return data !== null ? (
 		<S.Wrapper>
-			{props.header && (
-				<S.Header>
-					<p>{props.header}</p>
-				</S.Header>
-			)}
 			<S.EditorWrapper
 				ref={editorRef}
 				style={{
@@ -302,7 +297,12 @@ export default function _Editor(props: {
 				useFixedHeight={props.useFixedHeight}
 				className={'border-wrapper-alt3 scroll-wrapper'}
 			>
-				<S.Editor>
+				{props.header && (
+					<S.Header>
+						<p>{props.header}</p>
+					</S.Header>
+				)}
+				<S.Editor $hasHeader={props.header !== undefined}>
 					<Editor
 						height={'100%'}
 						defaultLanguage={props.language}

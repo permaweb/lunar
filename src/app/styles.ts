@@ -232,7 +232,7 @@ export const GlobalStyle = createGlobalStyle`
 	}
 
   .info {
-    padding: 0 5px 0.5px 5px;
+    padding: 2px 5px;
     background: ${(props) => props.theme.colors.contrast.background};
     border: 1px solid ${(props) => props.theme.colors.contrast.background};
     border-radius: ${STYLING.dimensions.radius.alt2};
@@ -243,6 +243,7 @@ export const GlobalStyle = createGlobalStyle`
       font-family: ${(props) => props.theme.typography.family.primary} !important;
       font-size: ${(props) => props.theme.typography.size.xxxxSmall} !important;
       font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+			line-height: 1.1 !important;
 			text-transform: none !important;
       white-space: nowrap !important;
 	  }
@@ -530,6 +531,7 @@ export const FooterIcon = styled.span`
 	justify-content: center;
 	margin: 0 6px 0 0;
 
+	> span,
 	div {
 		height: 16px;
 		width: 16px;
@@ -551,7 +553,7 @@ export const FooterIcon = styled.span`
 	}
 
 	&.app-icon {
-		margin: 0 10.5px 0 0;
+		margin: 0 10.5px -2.5px 0;
 	}
 
 	&.ar-icon,

@@ -11,9 +11,10 @@ export const DEFAULT_AO_NODE = {
 export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
 export const DEFAULT_LEGACY_SCHEDULER_URL = 'https://su-router.ao-testnet.xyz';
 export const DEFAULT_LEGACY_AUTHORITY = 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY';
+export const DEFAULT_LEGACY_CU_URL = 'https://cu.ao-testnet.xyz';
 
 export const DEFAULT_GATEWAYS = {
-	legacy: 'https://ao-search-gateway.goldsky.com',
+	legacy: 'ao-search-gateway.goldsky.com',
 	fallback: 'https://cache.forward.computer/~query@1.0/graphql',
 	arweave: 'https://arweave.net/graphql',
 };

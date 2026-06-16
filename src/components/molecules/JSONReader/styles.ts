@@ -183,7 +183,7 @@ export const JSONNull = styled.span`
 `;
 
 export const JSONUndefined = styled.span`
-	color: ${(props) => props.theme.colors.font.alt2};
+	color: ${(props) => props.theme.colors.font.alt1};
 `;
 
 export const JSONBracket = styled.span`
