@@ -60,7 +60,7 @@ export const FlexAction = styled.div`
 
 export const Dropdown = styled.div`
 	max-height: 65vh;
-	width: 300px;
+	width: 290px;
 	max-width: 75vw;
 	padding: 11.5px 10px;
 	position: absolute;
@@ -222,11 +222,11 @@ export const DBodyWrapper = styled.ul`
 		padding: 0 7.5px;
 
 		svg {
-			height: 16.5px;
-			width: 16.5px;
+			height: 14px;
+			width: 14px;
 			margin: 5.5px 9.5px 0 0;
-			color: ${(props) => props.theme.colors.font.alt1};
-			fill: ${(props) => props.theme.colors.font.alt1};
+			color: ${(props) => props.theme.colors.font.alt2};
+			fill: ${(props) => props.theme.colors.font.alt2};
 		}
 
 		&:hover {

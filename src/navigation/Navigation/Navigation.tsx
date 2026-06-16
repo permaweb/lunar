@@ -9,7 +9,7 @@ import { getBlock } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { ASSETS, STYLING, URLS } from 'helpers/config';
+import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
 import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
 import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
@@ -326,7 +326,9 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								<p>{formatUsdPrice(prices.ar)}</p>
 							</S.PriceItem>
 							<S.PriceItem>
-								<ReactSVG className={'ao-icon'} src={ASSETS.ao} />
+								<Link to={`${URLS.explorer}${PROCESSES.ao}`}>
+									<ReactSVG className={'ao-icon'} src={ASSETS.ao} />
+								</Link>
 								<p>{formatUsdPrice(prices.ao)}</p>
 							</S.PriceItem>
 						</S.PriceWrapper>

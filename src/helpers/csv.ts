@@ -78,6 +78,25 @@ function isBundleTransaction(tags: any[]) {
 	);
 }
 
+function getTransactionType(tags: any[]) {
+	if (isBundleTransaction(tags)) return 'Bundle';
+
+	return getTagValue(tags, 'Type') ?? 'Transaction';
+}
+
+function getActionFallback(tags: any[]) {
+	if (tags.length === 1) return tags[0]?.name ?? 'None';
+
+	const fallbackTagNames = ['App-Name', 'Content-Type', 'Name', 'Title', 'Protocol-Name', 'Bundle-Format'];
+
+	for (const tagName of fallbackTagNames) {
+		const value = getTagValue(tags, tagName);
+		if (value) return value;
+	}
+
+	return 'None';
+}
+
 export function mapBlockForCsv(entry: any): Record<string, unknown> {
 	const node = entry?.node ?? entry ?? {};
 	const metadata = node.metadata ?? {};
@@ -102,14 +121,19 @@ export function mapTransactionForCsv(entry: any): Record<string, unknown> {
 	const node = entry?.node ?? entry ?? {};
 	const tags = node.tags ?? [];
 	const timestamp = node.block?.timestamp;
-	const type = isBundleTransaction(tags) ? 'Bundle' : getTagValue(tags, 'Type') ?? '';
+	const type = getTransactionType(tags);
+	const action = getTagValue(tags, 'Action') ?? getActionFallback(tags);
 
 	return {
 		id: node.id ?? '',
 		type: type,
-		action: getTagValue(tags, 'Action') ?? '',
+		action: action,
 		owner: node.owner?.address ?? '',
 		recipient: node.recipient ?? getTagValue(tags, 'Target') ?? '',
+		quantity_winston: node.quantity?.winston ?? '',
+		quantity_ar: node.quantity?.ar ?? '',
+		fee_winston: node.fee?.winston ?? '',
+		fee_ar: node.fee?.ar ?? '',
 		block_height: node.block?.height ?? '',
 		timestamp: timestamp ?? '',
 		date: timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '',

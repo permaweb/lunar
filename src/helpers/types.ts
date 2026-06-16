@@ -36,6 +36,14 @@ export type GQLNodeResponseType = {
 			size: string;
 			type: string;
 		};
+		quantity?: {
+			winston?: string;
+			ar?: string;
+		};
+		fee?: {
+			winston?: string;
+			ar?: string;
+		};
 		block?: {
 			height: number;
 			timestamp: number;

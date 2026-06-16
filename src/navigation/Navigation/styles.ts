@@ -288,9 +288,12 @@ export const LogoWrapper = styled.div`
 		padding: 2.5px 0 0 0;
 		color: ${(props) => props.theme.colors.font.primary};
 		fill: ${(props) => props.theme.colors.font.primary};
+		opacity: 0.8;
+
 		&:hover {
 			color: ${(props) => props.theme.colors.font.alt1};
 			fill: ${(props) => props.theme.colors.font.alt1};
+			opacity: 0.8;
 		}
 	}
 `;

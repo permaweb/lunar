@@ -17,6 +17,7 @@ export interface ITProps {
 
 export interface ICProps {
 	tabs: URLViewType[];
+	activeUrl: string;
 }
 
 export interface IUProps {

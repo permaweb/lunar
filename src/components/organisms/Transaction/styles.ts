@@ -540,7 +540,7 @@ export const TransferInfoStatusIndicator = styled.div<{ pending?: boolean; succe
 	border-radius: 50%;
 	background: ${(props) =>
 		props.pending
-			? props.theme.colors.container.alt2.background
+			? props.theme.colors.warning.caution
 			: props.success
 			? props.theme.colors.indicator.active
 			: props.theme.colors.warning.primary};
@@ -564,6 +564,7 @@ export const Section = styled.div<{ $fixedHeight?: number }>`
 	height: ${(props) => (props.$fixedHeight ? `${props.$fixedHeight}px` : 'fit-content')};
 	flex: 1;
 	padding: 15px;
+	overflow: hidden;
 
 	img,
 	video {
@@ -686,7 +687,7 @@ export const TxInfoWrapper = styled.div`
 `;
 
 export const UpdateWrapper = styled.div`
-	min-height: 32.5px;
+	min-height: 30px;
 	width: fit-content;
 	padding: 5.5px 15px 4.5px 15px;
 	display: flex;
@@ -698,7 +699,7 @@ export const UpdateWrapper = styled.div`
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
@@ -717,7 +718,7 @@ export const UpdateWrapper = styled.div`
 `;
 
 export const UpdateWrapperType = styled.div`
-	min-height: 32.5px;
+	min-height: 30px;
 	width: fit-content;
 	padding: 5.5px 15px 4.5px 13.5px;
 	display: flex;
@@ -744,7 +745,7 @@ export const UpdateWrapperType = styled.div`
 	}
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
@@ -921,16 +922,27 @@ export const TagValue = styled.button<{ $tooltipVisible?: boolean }>`
 	}
 `;
 
-export const TagValueTooltip = styled.div<{ $placement?: 'top' | 'bottom' }>`
-	position: absolute;
-	z-index: 5;
-	${(props) => (props.$placement === 'bottom' ? 'top: calc(100% + 3.5px);' : 'bottom: calc(100% + 3.5px);')}
-	right: 0;
-	opacity: 0;
-	visibility: hidden;
-	transform: ${(props) => (props.$placement === 'bottom' ? 'translateY(-3px)' : 'translateY(3px)')};
+export const TagValueTooltip = styled.div<{
+	$placement?: 'top' | 'bottom';
+	$position?: {
+		top?: number;
+		bottom?: number;
+		left?: number;
+		right?: number;
+		maxWidth: number;
+	} | null;
+}>`
+	position: fixed;
+	z-index: 1000;
+	top: ${(props) => (props.$position?.top !== undefined ? `${props.$position.top}px` : 'auto')};
+	bottom: ${(props) => (props.$position?.bottom !== undefined ? `${props.$position.bottom}px` : 'auto')};
+	left: ${(props) => (props.$position?.left !== undefined ? `${props.$position.left}px` : 'auto')};
+	right: ${(props) => (props.$position?.right !== undefined ? `${props.$position.right}px` : 'auto')};
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
 	width: max-content;
-	max-width: 400px;
+	max-width: ${(props) => (props.$position ? `${props.$position.maxWidth}px` : '400px')};
 	padding: 2.5px 5px;
 	background: ${(props) => props.theme.colors.container.alt8.background};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
@@ -947,11 +959,6 @@ export const TagValueTooltip = styled.div<{ $placement?: 'top' | 'bottom' }>`
 	pointer-events: none;
 	animation: ${(props) => (props.$placement === 'bottom' ? tooltipFadeInBelow : tooltipFadeIn)} 140ms ease;
 	transition: opacity 140ms ease, transform 140ms ease, visibility 0s linear 140ms;
-
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		right: auto;
-		left: 0;
-	}
 `;
 
 export const OverviewDivider = styled.div`

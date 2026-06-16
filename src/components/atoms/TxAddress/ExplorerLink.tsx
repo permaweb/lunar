@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
 import { ASSETS, URLS } from 'helpers/config';
@@ -13,6 +13,7 @@ import { ExplorerLinkProps } from './types';
 
 export default function ExplorerLink(props: ExplorerLinkProps) {
 	const navigate = useNavigate();
+	const location = useLocation();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -21,6 +22,9 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 	const [isModifierKeyPressed, setIsModifierKeyPressed] = React.useState<boolean>(false);
 
 	const value = props.value !== null && props.value !== undefined ? props.value.toString() : '';
+
+	// Check if the current value is already in the URL (already on this explorer tab)
+	const isCurrentTab = location.pathname.includes(`${URLS.explorer}${value}`);
 
 	const copyValue = React.useCallback(
 		async (e: any) => {
@@ -72,7 +76,10 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 		(e: any) => {
 			e.stopPropagation();
 			if (value && !copied) {
-				if (e.metaKey || e.ctrlKey) {
+				// If already on current tab, only allow copy
+				if (isCurrentTab) {
+					copyValue(e);
+				} else if (e.metaKey || e.ctrlKey) {
 					copyValue(e);
 				} else {
 					if (props.handlePress) props.handlePress();
@@ -80,7 +87,7 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 				}
 			}
 		},
-		[value, copied, copyValue, navigate, props.handlePress]
+		[value, copied, copyValue, navigate, props.handlePress, isCurrentTab]
 	);
 
 	function getLabel() {
@@ -114,10 +121,10 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 				<S.IconWrapper>
 					{!copied && (
 						<S.Tooltip className={'info'} position={props.tooltipPosition ?? 'top-right'}>
-							<span>{isModifierKeyPressed ? language.copy : language.inspect}</span>
+							<span>{isCurrentTab ? language.copy : isModifierKeyPressed ? language.copy : language.inspect}</span>
 						</S.Tooltip>
 					)}
-					<ReactSVG src={props.viewIcon ?? ASSETS.newTab} onClick={handleClick} />
+					<ReactSVG src={isCurrentTab ? ASSETS.copy : props.viewIcon ?? ASSETS.newTab} onClick={handleClick} />
 				</S.IconWrapper>
 			)}
 		</S.Wrapper>

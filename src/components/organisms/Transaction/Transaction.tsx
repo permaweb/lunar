@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
@@ -26,7 +27,6 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
-import { getBundlerLabel } from 'helpers/bundlers';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
@@ -304,6 +304,8 @@ function Transaction(props: {
 	const [messageResult, setMessageResult] = React.useState<any>(null);
 
 	const [idCopied, setIdCopied] = React.useState<boolean>(false);
+	const [urlCopied, setUrlCopied] = React.useState<boolean>(false);
+	const [bundleTransactionCount, setBundleTransactionCount] = React.useState<number | null>(null);
 
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const messageListRef = React.useRef<HTMLDivElement>(null);
@@ -408,6 +410,10 @@ function Transaction(props: {
 
 		return getTransactionTypeFromTags(txResponse.node?.tags);
 	}, [txResponse, props.type]);
+
+	React.useEffect(() => {
+		setBundleTransactionCount(null);
+	}, [inputTxId, resolvedType]);
 
 	React.useEffect(() => {
 		setInputTxId(props.txId);
@@ -782,15 +788,62 @@ function Transaction(props: {
 
 	const TagValue = ({ value, tooltipPlacement = 'top' }: { value: any; tooltipPlacement?: 'top' | 'bottom' }) => {
 		const displayValue = value?.toString?.() ?? value;
+		const buttonRef = React.useRef<HTMLButtonElement | null>(null);
 		const [copied, setCopied] = React.useState<boolean>(false);
 		const [tooltipVisible, setTooltipVisible] = React.useState<boolean>(false);
+		const [tooltipPosition, setTooltipPosition] = React.useState<{
+			top?: number;
+			bottom?: number;
+			left?: number;
+			right?: number;
+			maxWidth: number;
+		} | null>(null);
 		const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+		const updateTooltipPosition = React.useCallback(() => {
+			const element = buttonRef.current;
+			if (!element) return;
+
+			const rect = element.getBoundingClientRect();
+			const viewportPadding = 10;
+			const gap = 3.5;
+			const minReadableWidth = 160;
+			const shouldAlignLeft = rect.right - viewportPadding < minReadableWidth;
+			const horizontalPosition = shouldAlignLeft
+				? {
+						left: Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - viewportPadding)),
+						maxWidth: Math.min(400, window.innerWidth - Math.max(viewportPadding, rect.left) - viewportPadding),
+				  }
+				: {
+						right: window.innerWidth - Math.min(rect.right, window.innerWidth - viewportPadding),
+						maxWidth: Math.min(400, rect.right - viewportPadding),
+				  };
+
+			setTooltipPosition(
+				tooltipPlacement === 'bottom'
+					? { top: rect.bottom + gap, ...horizontalPosition }
+					: { bottom: window.innerHeight - rect.top + gap, ...horizontalPosition }
+			);
+		}, [tooltipPlacement]);
 
 		React.useEffect(() => {
 			return () => {
 				if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
 			};
 		}, []);
+
+		React.useEffect(() => {
+			if (!tooltipVisible) return;
+
+			updateTooltipPosition();
+			window.addEventListener('resize', updateTooltipPosition);
+			window.addEventListener('scroll', updateTooltipPosition, true);
+
+			return () => {
+				window.removeEventListener('resize', updateTooltipPosition);
+				window.removeEventListener('scroll', updateTooltipPosition, true);
+			};
+		}, [tooltipVisible, updateTooltipPosition]);
 
 		async function handleCopy(e: React.MouseEvent) {
 			e.preventDefault();
@@ -814,6 +867,7 @@ function Transaction(props: {
 		}
 
 		function showTooltip() {
+			updateTooltipPosition();
 			setTooltipVisible(true);
 		}
 
@@ -821,6 +875,7 @@ function Transaction(props: {
 			<TxAddress address={value} />
 		) : (
 			<S.TagValue
+				ref={buttonRef}
 				type={'button'}
 				onBlur={hideTooltip}
 				onClick={handleCopy}
@@ -830,11 +885,15 @@ function Transaction(props: {
 				$tooltipVisible={tooltipVisible}
 			>
 				<p>{displayValue}</p>
-				{tooltipVisible && (
-					<S.TagValueTooltip $placement={tooltipPlacement}>
-						{copied ? `${language.copied}!` : displayValue}
-					</S.TagValueTooltip>
-				)}
+				{tooltipVisible &&
+					tooltipPosition &&
+					typeof document !== 'undefined' &&
+					ReactDOM.createPortal(
+						<S.TagValueTooltip $placement={tooltipPlacement} $position={tooltipPosition}>
+							{copied ? `${language.copied}!` : displayValue}
+						</S.TagValueTooltip>,
+						document.body
+					)}
 			</S.TagValue>
 		);
 	};
@@ -898,6 +957,7 @@ function Transaction(props: {
 
 	const TransactionOverviewSection = () => {
 		const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
+		const isBundle = resolvedType === 'bundle';
 
 		const [txMetadata, setTxMetadata] = React.useState<any | null>(null);
 		const [currentBlockHeight, setCurrentBlockHeight] = React.useState<number | null>(null);
@@ -935,12 +995,23 @@ function Transaction(props: {
 		const timestamp = node?.block?.timestamp ?? txResponse?.node?.block?.timestamp ?? null;
 		const confirmations =
 			currentBlockHeight !== null && blockHeight !== null ? Math.max(currentBlockHeight - blockHeight, 0) : null;
-		const pending = confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : !blockHeight;
+		const statusLoading = blockHeight !== null && confirmations === null;
+		const pending =
+			!statusLoading && (confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : !blockHeight);
+		const statusLabel = statusLoading ? `${language.loading}...` : pending ? language.pending : language.confirmed;
 		const statusEta = pending ? formatStatusEta(confirmations) : null;
 		const fee = node?.fee;
 		const quantity = node?.quantity;
-		const feeAr = fee?.ar ?? winstonToArString(fee?.winston);
-		const feeUsd = feeAr && arUsdPrice !== null ? formatUsdDisplay(Number(feeAr) * arUsdPrice) : null;
+		const getArUsdValue = (ar?: string | number | null, winston?: string | number | null) => {
+			const rawAr = ar !== null && ar !== undefined ? ar.toString() : winstonToArString(winston);
+			if (!rawAr || arUsdPrice === null) return null;
+
+			const parsedAr = Number(rawAr);
+
+			return Number.isFinite(parsedAr) ? formatUsdDisplay(parsedAr * arUsdPrice) : null;
+		};
+		const quantityUsd = getArUsdValue(quantity?.ar, quantity?.winston);
+		const feeUsd = getArUsdValue(fee?.ar, fee?.winston);
 		const size = node?.data?.size ?? txResponse?.node?.data?.size ?? null;
 
 		function renderAddress(address: string | null | undefined) {
@@ -953,39 +1024,51 @@ function Transaction(props: {
 		return (
 			<S.MessageInfo className={'border-wrapper-primary'}>
 				<S.MessageInfoHeader>
-					<p>{language.transactionOverview}</p>
+					<p>{isBundle ? language.bundleOverview : language.transactionOverview}</p>
 					<S.MessageInfoID>
 						<TxOverviewValue
-							primary={`Status: ${pending ? language.pending : language.confirmed}`}
+							primary={`Status: ${statusLabel}`}
 							secondary={statusEta}
 							indicator={
-								!pending ? (
-									<S.TransferInfoStatusIndicator success>
-										<ReactSVG src={ASSETS.success} />
+								statusLoading ? null : (
+									<S.TransferInfoStatusIndicator pending={pending} success={!pending}>
+										<ReactSVG src={pending ? ASSETS.pending : ASSETS.success} />
 									</S.TransferInfoStatusIndicator>
-								) : null
+								)
 							}
 						/>
 					</S.MessageInfoID>
 				</S.MessageInfoHeader>
 				<S.MessageInfoBody $desktopItemCount={9}>
 					<TxOverviewLine label={language.value}>
-						<TxOverviewValue primary={formatArDisplay(quantity?.ar, quantity?.winston)} />
+						<TxOverviewValue primary={formatArDisplay(quantity?.ar, quantity?.winston)} secondary={quantityUsd} />
 					</TxOverviewLine>
-					<TxOverviewLine label={language.from}>{renderAddress(from)}</TxOverviewLine>
-					<TxOverviewLine label={language.to}>{renderAddress(to)}</TxOverviewLine>
+					<TxOverviewLine label={isBundle ? language.bundler : language.from}>{renderAddress(from)}</TxOverviewLine>
+					{isBundle ? (
+						<TxOverviewLine label={language.transactions}>
+							<TxOverviewValue
+								primary={
+									bundleTransactionCount !== null
+										? formatCount(bundleTransactionCount.toString())
+										: `${language.loading}...`
+								}
+							/>
+						</TxOverviewLine>
+					) : (
+						<TxOverviewLine label={language.to}>{renderAddress(to)}</TxOverviewLine>
+					)}
 					<TxOverviewLine label={language.fee}>
 						<TxOverviewValue primary={formatArDisplay(fee?.ar, fee?.winston)} secondary={feeUsd} />
 					</TxOverviewLine>
 					<TxOverviewLine label={language.date}>
-						<TxOverviewValue primary={formatDate(timestamp * 1000, 'timestamp', true)} />
+						<TxOverviewValue primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'} />
 					</TxOverviewLine>
 					<TxOverviewLine label={language.age}>
 						<TxOverviewValue
 							primary={timestamp ? getRelativeDate(timestamp * 1000).replace(/ ago$/, '') : 'Not Yet Available'}
 						/>
 					</TxOverviewLine>
-					<TxOverviewLine label={language.height}>
+					<TxOverviewLine label={language.blockHeightActual}>
 						<S.Height>
 							<ExplorerLink value={blockHeight} type={'block'} />
 						</S.Height>
@@ -1228,8 +1311,8 @@ function Transaction(props: {
 							<TxAddress address={txResponse?.node?.id} />
 						</S.MessageInfoID>
 					</S.MessageInfoHeader>
-					<S.MessageInfoBody>
-						<S.MessageInfoLine>
+					<S.MessageInfoBody $desktopItemCount={6}>
+						{/* <S.MessageInfoLine>
 							<span>{`${language.from}: `}</span>
 							<TxAddress address={from} />
 						</S.MessageInfoLine>
@@ -1240,7 +1323,7 @@ function Transaction(props: {
 						<S.MessageInfoLine>
 							<span>{`${language.owner}: `}</span>
 							<TxAddress address={txResponse?.node?.owner?.address} />
-						</S.MessageInfoLine>
+						</S.MessageInfoLine> */}
 						<S.MessageInfoLine>
 							<span>{`${language.action}: `}</span>
 							<p>{action}</p>
@@ -1376,70 +1459,6 @@ function Transaction(props: {
 		);
 	};
 
-	const BundleInfoSection = () => {
-		const { txResponse } = React.useContext(TxResponseContext);
-		const tags = txResponse?.node?.tags ?? [];
-		const bundleFormat = getTagValue(tags, 'bundle-format');
-		const bundleVersion = getTagValue(tags, 'bundle-version');
-		const ownerAddress = txResponse?.node?.owner?.address ?? null;
-		const bundlerLabel = getBundlerLabel(ownerAddress, tags);
-
-		return (
-			<S.MessageInfo className={'border-wrapper-primary'}>
-				<S.MessageInfoHeader>
-					<p>{language.bundleOverview}</p>
-					<S.MessageInfoID>
-						<span>{`${language.id}: `}</span>
-						<TxAddress address={txResponse?.node?.id} />
-					</S.MessageInfoID>
-				</S.MessageInfoHeader>
-				<S.MessageInfoBody $hideDesktopLastRowBorder>
-					<S.MessageInfoLine>
-						<span>{`${language.bundler}: `}</span>
-						{ownerAddress ? (
-							<S.LabeledAddress>
-								<TxAddress address={ownerAddress} />
-								{bundlerLabel && <S.AddressLabel>{bundlerLabel}</S.AddressLabel>}
-							</S.LabeledAddress>
-						) : (
-							<p>-</p>
-						)}
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.blockHeightActual}: `}</span>
-						{txResponse?.node?.block?.height ? (
-							<S.Height>
-								<ExplorerLink value={txResponse.node.block.height} type={'block'} />
-							</S.Height>
-						) : (
-							<p>-</p>
-						)}
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.date}: `}</span>
-						<p>
-							{txResponse?.node?.block?.timestamp
-								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
-								: '-'}
-						</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.size}: `}</span>
-						<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) || 0)}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.bundleFormat}: `}</span>
-						<p>{bundleFormat ?? '-'}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
-						<span>{`${language.bundleVersion}: `}</span>
-						<p>{bundleVersion ?? '-'}</p>
-					</S.MessageInfoLine>
-				</S.MessageInfoBody>
-			</S.MessageInfo>
-		);
-	};
-
 	const BundleTagsSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
 		const tags = txResponse?.node?.tags ?? [];
@@ -1454,7 +1473,7 @@ function Transaction(props: {
 				<S.SectionHeader>
 					<p>{language.bundleTags}</p>
 				</S.SectionHeader>
-				<S.OverviewWrapper>
+				<S.OverviewWrapper className={'scroll-wrapper'}>
 					{filteredTags.map((tag: DisplayTag, index: number) => (
 						<OverviewLine
 							key={`${tag.name}-${index}`}
@@ -1476,6 +1495,19 @@ function Transaction(props: {
 		const filteredTags = sortTagsAlphabetically(
 			txResponse?.node?.tags?.filter((tag: DisplayTag) => !excludedTagNames.includes(tag.name)) || []
 		);
+		const displayTags = txResponse
+			? sortTagsAlphabetically([
+					...(resolvedType === 'process'
+						? [
+								{
+									name: language.owner,
+									value: txResponse?.node?.owner?.address,
+								},
+						  ]
+						: []),
+					...filteredTags,
+			  ])
+			: [];
 
 		React.useEffect(() => {
 			const element = overviewWrapperRef.current;
@@ -1502,7 +1534,7 @@ function Transaction(props: {
 			<S.Section className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
 				<S.SectionHeader>
 					<p>{language.tags}</p>
-					<span>({filteredTags?.length ?? '-'})</span>
+					<span>({txResponse ? displayTags.length : '-'})</span>
 				</S.SectionHeader>
 				<S.OverviewWrapper
 					ref={overviewWrapperRef}
@@ -1510,31 +1542,11 @@ function Transaction(props: {
 					$hasOverflow={overviewHasOverflow}
 					className={'scroll-wrapper'}
 				>
-					{resolvedType === 'process' && (
-						<>
-							<OverviewLine label={language.owner} value={txResponse?.node?.owner?.address} />
-							<OverviewLine
-								label={language.authority}
-								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Authority')}
-								render={renderTagValue}
-							/>
-							<OverviewLine
-								label={language.module}
-								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Module')}
-								render={renderTagValue}
-							/>
-							<OverviewLine
-								label={language.scheduler}
-								value={txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Scheduler')}
-								render={renderTagValue}
-							/>
-						</>
-					)}
 					{txResponse ? (
 						<>
-							{filteredTags?.length > 0 ? (
+							{displayTags.length > 0 ? (
 								<>
-									{filteredTags.map((tag: DisplayTag, index: number) => (
+									{displayTags.map((tag: DisplayTag, index: number) => (
 										<OverviewLine
 											key={index}
 											label={tag.name}
@@ -1651,7 +1663,7 @@ function Transaction(props: {
 			return (
 				<Editor
 					initialData={data}
-					header={null}
+					header={'Data'}
 					language={'lua'}
 					readOnly
 					loading={false}
@@ -1706,13 +1718,14 @@ function Transaction(props: {
 						case 'bundle':
 							return (
 								<S.ColumnFlexWrapper>
-									<BundleInfoSection />
+									<TransactionOverviewSection />
 									<BundleTagsSection />
 									<TransactionList
 										key={refreshKey}
 										mode={'bundle'}
 										bundleId={inputTxId}
 										header={language.transactions}
+										onTotalCountChange={setBundleTransactionCount}
 									/>
 								</S.ColumnFlexWrapper>
 							);
@@ -1720,6 +1733,7 @@ function Transaction(props: {
 						case 'message':
 							return (
 								<S.ColumnFlexWrapper>
+									<TransactionOverviewSection />
 									{showOverview && <MessageInfoSection />}
 									{showRead && (
 										<S.InfoWrapper>
@@ -2051,6 +2065,22 @@ function Transaction(props: {
 							noMinWidth
 							iconSize={14.5}
 							tooltip={idCopied ? `${language.copied}!` : language.copyId}
+							stopPropagation
+							preventDefault
+						/>
+						<Button
+							type={'alt1'}
+							icon={ASSETS.link}
+							handlePress={async () => {
+								await navigator.clipboard.writeText(window.location.href);
+								setUrlCopied(true);
+								setTimeout(() => setUrlCopied(false), 2000);
+							}}
+							height={32.5}
+							width={32.5}
+							noMinWidth
+							iconSize={14.5}
+							tooltip={urlCopied ? `${language.copied}!` : language.copyUrl || 'Copy URL'}
 							stopPropagation
 							preventDefault
 						/>

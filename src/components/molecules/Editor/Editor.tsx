@@ -302,7 +302,7 @@ export default function _Editor(props: {
 						<p>{props.header}</p>
 					</S.Header>
 				)}
-				<S.Editor $hasHeader={props.header !== undefined}>
+				<S.Editor $hasHeader={props.header !== null && props.header !== undefined}>
 					<Editor
 						height={'100%'}
 						defaultLanguage={props.language}

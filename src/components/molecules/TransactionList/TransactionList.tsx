@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from 'styled-components';
 
 import {
@@ -18,7 +19,7 @@ import { TransferAmount } from 'components/atoms/TransferAmount';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { PaginationControls } from 'components/molecules/PaginationControls';
 import { getBundlerLabel } from 'helpers/bundlers';
-import { ASSETS, DEFAULT_ACTIONS, FLAGS } from 'helpers/config';
+import { ASSETS, DEFAULT_ACTIONS, FLAGS, URLS } from 'helpers/config';
 import { downloadCsv, getCsvTimestamp, mapTransactionForCsv } from 'helpers/csv';
 import { searchTxById } from 'helpers/search';
 import { formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
@@ -78,6 +79,7 @@ function isTransferTransaction(transaction: TransactionNode) {
 function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (transaction: TransactionNode) => void }) {
 	const currentTheme: any = useTheme();
 	const dispatch = useDispatch();
+	const navigate = useNavigate();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -117,6 +119,10 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 			console.error(hydratedTransaction.error);
 		}
 	}, [hydratedTransaction.error]);
+
+	function handleRowClick() {
+		navigate(`${URLS.explorer}${transaction.id}`);
+	}
 
 	function getPendingLabel() {
 		return pendingHydration ? `${language.loading}...` : '-';
@@ -163,7 +169,7 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 	}
 
 	return (
-		<S.ElementWrapper ref={hydratedTransaction.ref} className={'transaction-list-element'}>
+		<S.ElementWrapper ref={hydratedTransaction.ref} className={'transaction-list-element'} onClick={handleRowClick}>
 			<S.ID title={transaction.id}>
 				<S.LinkLabel>
 					<ExplorerLink value={transaction.id} type={'transaction'} />
@@ -211,6 +217,7 @@ export default function TransactionList(props: {
 	blockId?: string;
 	bundleId?: string;
 	header?: string;
+	onTotalCountChange?: (count: number | null) => void;
 }) {
 	const dispatch = useDispatch();
 	const permawebProvider = usePermawebProvider();
@@ -287,6 +294,7 @@ export default function TransactionList(props: {
 			if (!canLoad) {
 				setTransactions([]);
 				setLoading(false);
+				props.onTotalCountChange?.(null);
 				return;
 			}
 
@@ -329,9 +337,11 @@ export default function TransactionList(props: {
 					setTransactions(edges);
 					setNextCursor(response.transactions.pageInfo.hasNextPage ? lastEdge?.cursor ?? null : null);
 					if (response.transactions.count !== undefined) {
+						props.onTotalCountChange?.(response.transactions.count ?? null);
 						setTotalCount(needsClientTypeFilter ? null : response.transactions.count ?? null);
 					} else if (!pageCursor) {
 						setTotalCount(null);
+						props.onTotalCountChange?.(null);
 					}
 					setError(null);
 				}
@@ -342,6 +352,7 @@ export default function TransactionList(props: {
 					setTransactions([]);
 					setNextCursor(null);
 					setTotalCount(null);
+					props.onTotalCountChange?.(null);
 					setError(language.errorFetchingData);
 				}
 			}
@@ -362,6 +373,7 @@ export default function TransactionList(props: {
 		pageCursor,
 		fetchTransactionsPage,
 		language.errorFetchingData,
+		props.onTotalCountChange,
 	]);
 
 	const scrollToTop = React.useCallback(() => {

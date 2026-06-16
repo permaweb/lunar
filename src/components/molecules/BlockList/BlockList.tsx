@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { BlockMetadata, BlockNode, getBlockMetadataByHeight, getBlocks, GQLEdge } from 'api/blocks';
 
@@ -8,7 +9,7 @@ import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { PaginationControls } from 'components/molecules/PaginationControls';
-import { ASSETS, FLAGS, STORAGE } from 'helpers/config';
+import { ASSETS, FLAGS, STORAGE, URLS } from 'helpers/config';
 import { downloadCsv, getCsvTimestamp, mapBlockForCsv } from 'helpers/csv';
 import { checkValidAddress, formatBlockId, formatCount, formatDate, getByteSizeDisplay } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
@@ -66,6 +67,8 @@ function BlockRow(props: {
 	edge: BlockListEdge;
 	onMetadataLoaded: (height: number, metadata: BlockMetadata | null) => void;
 }) {
+	const navigate = useNavigate();
+
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -104,8 +107,12 @@ function BlockRow(props: {
 		}
 	}, [metadataResponse.error, props.edge.node.height, props.onMetadataLoaded]);
 
+	function handleRowClick() {
+		navigate(`${URLS.explorer}${props.edge.node.height}`);
+	}
+
 	return (
-		<S.ElementWrapper ref={metadataResponse.ref} className={'block-list-element'}>
+		<S.ElementWrapper ref={metadataResponse.ref} className={'block-list-element'} onClick={handleRowClick}>
 			<S.Height>
 				<ExplorerLink value={props.edge.node.height} type={'block'} tooltipPosition={'right'} />
 			</S.Height>

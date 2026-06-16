@@ -114,6 +114,7 @@ export const ElementWrapper = styled.div`
 	justify-content: space-between;
 	gap: 15px;
 	padding: 0 15px;
+	cursor: pointer;
 	transition: all 75ms;
 	background: ${(props) => props.theme.colors.container.primary.background};
 
@@ -129,6 +130,22 @@ export const ElementWrapper = styled.div`
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
+		border-left: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
+		border-right: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
+	}
+
+	&:hover::after {
+		content: '';
+		position: absolute;
+		height: 1px;
+		width: calc(100% + 2px);
+		top: -1px;
+		left: -1px;
+		right: 0;
+		bottom: 0;
+		border-top: 1px solid ${(props) => props.theme.colors.border.alt4};
+		transition: all 100ms;
 	}
 `;
 

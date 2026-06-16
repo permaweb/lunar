@@ -37,6 +37,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const loadingCallbacksRef = React.useRef<Map<string, (loading: boolean) => void>>(new Map());
 	const isDeletingRef = React.useRef<boolean>(false);
 	const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+	const activeTabIndexRef = React.useRef<number>(0);
+	const locationPathRef = React.useRef<string>(location.pathname);
 
 	const storageKey = `${props.type}-transactions`;
 
@@ -60,6 +62,14 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const [activeTabIndex, setActiveTabIndex] = React.useState<number>(getInitialIndex());
 	const [visitedTabs, setVisitedTabs] = React.useState<Set<number>>(() => new Set([getInitialIndex()]));
 	const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
+
+	React.useEffect(() => {
+		activeTabIndexRef.current = activeTabIndex;
+	}, [activeTabIndex]);
+
+	React.useEffect(() => {
+		locationPathRef.current = location.pathname;
+	}, [location.pathname]);
 
 	React.useEffect(() => {
 		const { txId, subPath, txType } = extractTxDetailsFromPath(location.pathname);
@@ -90,7 +100,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				setVisitedTabs((prev) => new Set(prev).add(newIndex));
 			}
 
-			navigate(route);
+			navigateIfNeeded(route);
 		} else if (txId) {
 			const tabIndex = transactions.findIndex((tab) => isSameTab(tab, txId, txType));
 			if (tabIndex !== -1) {
@@ -139,10 +149,10 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			const { txId, txType } = extractTxDetailsFromPath(location.pathname);
 			const activeTab = transactions[activeTabIndex];
 
-			// If the URL doesn't match the active tab, navigate to the active tab's route
-			if (activeTab && (activeTab.id !== txId || activeTab.type !== txType)) {
+			// If a concrete id is already in the URL, let the path-sync effect open/switch to that tab.
+			if (!txId && activeTab && (activeTab.id !== txId || activeTab.type !== txType)) {
 				const route = activeTab.lastRoute || getRouteForTab(activeTab);
-				navigate(route, { replace: true });
+				navigateIfNeeded(route, { replace: true });
 			}
 
 			// Scroll the active tab into view within the tabs container
@@ -171,6 +181,17 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		if (props.type === 'aos') return `${URLS.aos}${tab.id}${subPath}`;
 
 		return `${URLS.explorer}${tab.id}${subPath}`;
+	}
+
+	function normalizeRoute(route: string) {
+		return route.replace(/\/+$/, '') || '/';
+	}
+
+	function navigateIfNeeded(route: string, options?: { replace?: boolean }) {
+		if (normalizeRoute(locationPathRef.current) !== normalizeRoute(route)) {
+			locationPathRef.current = route;
+			navigate(route, options);
+		}
 	}
 
 	function isSameTab(tab: ExplorerTabType, id: string, type: TransactionTabType['type']) {
@@ -234,7 +255,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 					const nextType = type as TransactionTabType['type'];
 					const nextRoute = getRouteForTab({ id: newTx.node.id, type: nextType });
 					const shouldNavigate =
-						tabIndex === activeTabIndex &&
+						tabIndex === activeTabIndexRef.current &&
 						(updated[tabIndex].id !== newTx.node.id || updated[tabIndex].type !== nextType);
 
 					updated[tabIndex] = {
@@ -246,7 +267,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 					};
 
 					if (shouldNavigate) {
-						navigate(nextRoute);
+						navigateIfNeeded(nextRoute);
 					}
 				} else {
 					const nextType = type as TransactionTabType['type'];
@@ -278,7 +299,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		if (!skipNavigation) {
 			const targetTab = transactions[index];
 			const route = targetTab.lastRoute || getRouteForTab(targetTab);
-			navigate(route);
+			navigateIfNeeded(route);
 		}
 	};
 
@@ -307,7 +328,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				}
 			}, 0);
 
-			navigate(id ? getRouteForTab(newTab) : URLS[props.type]);
+			navigateIfNeeded(id ? getRouteForTab(newTab) : URLS[props.type]);
 		},
 		[props.type, navigate]
 	);
@@ -344,12 +365,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			setTransactions(updatedTransactions);
 			setActiveTabIndex(newActiveIndex);
 			const nextTab = updatedTransactions[newActiveIndex];
-			navigate(nextTab ? getRouteForTab(nextTab) : URLS[props.type]);
+			navigateIfNeeded(nextTab ? getRouteForTab(nextTab) : URLS[props.type]);
 		} else {
 			setTransactions([{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }]);
 			setActiveTabIndex(0);
 			setVisitedTabs(new Set([0]));
-			navigate(URLS[props.type], { replace: true });
+			navigateIfNeeded(URLS[props.type], { replace: true });
 		}
 
 		setTimeout(() => {
@@ -361,7 +382,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		setTransactions([{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }]);
 		setActiveTabIndex(0);
 		setVisitedTabs(new Set([0]));
-		navigate(URLS[props.type], { replace: true });
+		navigateIfNeeded(URLS[props.type], { replace: true });
 	};
 
 	const renderTabLabel = (tab: ExplorerTabType) => {

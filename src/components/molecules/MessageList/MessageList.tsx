@@ -1,6 +1,7 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
@@ -26,6 +27,7 @@ import {
 	MINT_ACTIONS,
 	STORAGE,
 	TAGS,
+	URLS,
 } from 'helpers/config';
 import { downloadCsv, getCsvTimestamp, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
@@ -104,6 +106,7 @@ function Message(props: {
 	clickableResultMessageLabel?: boolean;
 }) {
 	const currentTheme: any = useTheme();
+	const navigate = useNavigate();
 
 	const permawebProvider = usePermawebProvider();
 
@@ -538,7 +541,18 @@ function Message(props: {
 		variant: props.variant,
 		recipient: props.element.node.recipient,
 	});
-	const rowClickable = Boolean(props.element.node.id && canFetchAoResult);
+	const rowClickable = Boolean(props.element.node.id);
+
+	function handleRowClick() {
+		if (!props.element.node.id) return;
+
+		if (canFetchAoResult) {
+			setOpen((prev) => !prev);
+			return;
+		}
+
+		navigate(`${URLS.explorer}${props.element.node.id}`);
+	}
 
 	return filterMessage ? (
 		<S.ElementWrapper
@@ -560,7 +574,7 @@ function Message(props: {
 			<S.ElementWrapper
 				key={props.element.node.id}
 				className={'message-list-element'}
-				onClick={rowClickable ? () => setOpen((prev) => !prev) : undefined}
+				onClick={rowClickable ? handleRowClick : undefined}
 				disabled={!props.element.node.id}
 				clickable={rowClickable}
 				open={open && canFetchAoResult}
@@ -1053,7 +1067,7 @@ export default function MessageList(props: {
 
 		if (csvRows.length <= 0) return;
 
-		downloadCsv(`lunar-messages-${getCsvTimestamp()}.csv`, csvRows);
+		downloadCsv(`lunar-transactions-${getCsvTimestamp()}.csv`, csvRows);
 	}
 
 	// Check if fromAddress is a process whenever it changes
@@ -1086,6 +1100,8 @@ export default function MessageList(props: {
 
 	React.useEffect(() => {
 		(async function () {
+			if (props.type === 'wallet') return;
+
 			const baseTags = [];
 			if (appliedAction) baseTags.push({ name: 'Action', values: [appliedAction] });
 
@@ -1243,6 +1259,13 @@ export default function MessageList(props: {
 
 						setCurrentData(gqlResponse.data);
 						setNextCursor(gqlResponse.nextCursor);
+						if (props.type === 'wallet') {
+							if (currentFilter === 'incoming') {
+								setIncomingCount(gqlResponse.count);
+							} else {
+								setOutgoingCount(gqlResponse.count);
+							}
+						}
 					} else {
 						if (props.recipient) {
 							try {

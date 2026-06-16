@@ -289,9 +289,9 @@ export const ElementWrapper = styled.div<{
 		css`
 			border-left: 1px solid ${props.theme.colors.border.alt4} !important;
 			border-right: 1px solid ${props.theme.colors.border.alt4} !important;
-			border-bottom: 1px solid ${props.theme.colors.border.alt4} !important;
+			border-bottom: 1px solid ${props.theme.colors.border.primary} !important;
 
-			background: ${props.theme.colors.container.primary.active};
+			background: ${props.theme.colors.container.alt1.background};
 
 			&::after {
 				content: '';
@@ -313,8 +313,8 @@ export const ElementItem = styled.div`
 `;
 
 export const ID = styled(ElementItem)`
-	min-width: 165px;
-	width: 165px;
+	min-width: 155px;
+	width: 155px;
 	display: flex;
 	align-items: center;
 	gap: 5px;
@@ -375,8 +375,8 @@ export const TypeValue = styled(Type)`
 `;
 
 export const Action = styled(ElementItem)`
-	min-width: 175px;
-	width: 175px;
+	min-width: 195px;
+	width: 195px;
 `;
 
 export const ActionTooltip = styled.div`
@@ -726,6 +726,7 @@ export const MPageCounter = styled(PageCounter)`
 
 export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 	padding: ${(props) => (props.childList ? '15px' : '0 15px 15px 15px')};
+	border-top: 0.15px solid ${(props) => (props.childList ? props.theme.colors.border.alt4 : 'transparent')};
 	border-left: 1px solid
 		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
 	border-right: 1px solid

@@ -13,6 +13,58 @@ const RANGE_SIZE = 2500;
 const AUTO_COLLAPSE_THRESHOLD = 2500;
 const INITIAL_RENDER_THRESHOLD = 25;
 
+function normalizeDisplayString(input: string) {
+	if (!input) return '';
+
+	return input
+		.toString()
+		.replace(/\x1B\[[0-9;]*m/g, '')
+		.replace(/\\+27\[[0-9;]*m/g, '')
+		.replace(/\r\n/g, '\n');
+}
+
+function normalizeLuaString(input: string) {
+	const normalized = normalizeDisplayString(input);
+	const escapedNewlineCount = (normalized.match(/\\n/g) ?? []).length;
+	const realNewlineCount = (normalized.match(/\n/g) ?? []).length;
+
+	return (escapedNewlineCount > 1 && realNewlineCount === 0 ? normalized.replace(/\\n/g, '\n') : normalized).replace(
+		/\\\n/g,
+		'\n'
+	);
+}
+
+function isLikelyLuaString(value: string) {
+	const normalized = normalizeLuaString(value).trim();
+	if (normalized.length < 12) return false;
+
+	const startsLikeLuaTable = normalized.startsWith('{') || normalized.startsWith('return {');
+	if (!startsLikeLuaTable) return false;
+
+	const luaSignals = [
+		/[\w-]+\s*=/,
+		/\[\d+\]\s*=/,
+		/function:\s*0x[0-9a-f]+/i,
+		/\{\s*\}/,
+		/\b(local|return|function|end|then|do)\b/,
+	];
+
+	return luaSignals.some((pattern) => pattern.test(normalized));
+}
+
+function getLuaTokenType(token: string) {
+	if (/^--/.test(token)) return 'comment';
+	if (/^"(?:\\.|[^"\\])*"$|^'(?:\\.|[^'\\])*'$/.test(token)) return 'string';
+	if (/^function:\s*0x[0-9a-f]+$/i.test(token)) return 'function';
+	if (/^(true|false|nil)\b/.test(token)) return 'literal';
+	if (/^\b(local|return|function|end|then|do|if|else|elseif|for|while|repeat|until|in)\b/.test(token)) return 'keyword';
+	if (/^-?\d+(?:\.\d+)?$/.test(token)) return 'number';
+	if (/^[A-Za-z_][\w-]*(?=\s*=)/.test(token)) return 'key';
+	if (/^[{}\[\](),=]$/.test(token)) return 'punctuation';
+
+	return 'text';
+}
+
 export default function _JSONTree(props: {
 	data: any;
 	header?: string;
@@ -116,7 +168,7 @@ export default function _JSONTree(props: {
 
 	const parseJSON = (input) => {
 		if (typeof input === 'string') {
-			const strippedInput = stripAnsiChars(input);
+			const strippedInput = normalizeDisplayString(stripAnsiChars(input) ?? input);
 			try {
 				// Use json-bigint to parse, which preserves large numbers as strings
 				const parsed = JSONbig({ storeAsString: true }).parse(strippedInput);
@@ -181,6 +233,47 @@ export default function _JSONTree(props: {
 			await navigator.clipboard.writeText(value);
 			setCopiedValue(value);
 			setTimeout(() => setCopiedValue(null), 1000);
+		}, []);
+
+		const renderLuaCode = React.useCallback((value: string) => {
+			const lua = normalizeLuaString(value);
+			const lines = lua.split('\n');
+			const tokenPattern =
+				/(--.*$|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|function:\s*0x[0-9a-f]+|\b(?:local|return|function|end|then|do|if|else|elseif|for|while|repeat|until|in|true|false|nil)\b|-?\d+(?:\.\d+)?|[A-Za-z_][\w-]*(?=\s*=)|[{}\[\](),=])/gim;
+
+			return (
+				<S.LuaPre>
+					{lines.map((line, lineIndex) => {
+						const parts: React.ReactNode[] = [];
+						let lastIndex = 0;
+
+						line.replace(tokenPattern, (token, _match, offset) => {
+							if (offset > lastIndex) {
+								parts.push(line.slice(lastIndex, offset));
+							}
+
+							parts.push(
+								<S.LuaToken key={`${lineIndex}-${offset}`} $tokenType={getLuaTokenType(token)}>
+									{token}
+								</S.LuaToken>
+							);
+							lastIndex = offset + token.length;
+							return token;
+						});
+
+						if (lastIndex < line.length) {
+							parts.push(line.slice(lastIndex));
+						}
+
+						return (
+							<React.Fragment key={lineIndex}>
+								{parts}
+								{lineIndex < lines.length - 1 && '\n'}
+							</React.Fragment>
+						);
+					})}
+				</S.LuaPre>
+			);
 		}, []);
 
 		const toggleCollapse = React.useCallback((path: string) => {
@@ -342,10 +435,18 @@ export default function _JSONTree(props: {
 								>
 									"{value}"
 								</S.JSONStringID>
-								<S.JSONStringIDOpen onClick={() => navigate(`${URLS.explorer}/${value}`)}>
+								<S.JSONStringIDOpen onClick={() => navigate(`${URLS.explorer}${value}`)}>
 									({language.open})
 								</S.JSONStringIDOpen>
 							</S.JSONStringIDFlex>
+							{!isLast && <S.JSONComma>,</S.JSONComma>}
+						</>
+					);
+				}
+				if (isLikelyLuaString(value)) {
+					return (
+						<>
+							<S.LuaBlock>{renderLuaCode(value)}</S.LuaBlock>
 							{!isLast && <S.JSONComma>,</S.JSONComma>}
 						</>
 					);
