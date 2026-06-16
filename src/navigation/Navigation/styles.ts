@@ -332,7 +332,7 @@ export const DNavWrapper = styled.div`
 
 export const DNavLink = styled.div<{ active: boolean }>`
 	a {
-		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};
+		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};

@@ -10,7 +10,7 @@ import * as S from './styles';
 import { ICProps, ITProps, IUProps } from './types';
 
 function normalizePath(path?: string) {
-	return (path ?? '').replace(/\/+$/, '');
+	return (path ?? '').split('?')[0].replace(/\/+$/, '');
 }
 
 function resolveTabUrl(tab: { url: any }, id: string) {

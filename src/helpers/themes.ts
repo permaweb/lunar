@@ -192,8 +192,8 @@ export const darkTheme = {
 	neutralA7: '#767676',
 	primary1: '#6D74CB',
 	primary2: '#545bbb',
-	link1: '#6AA8E0',
-	link2: '#5A9AD2',
+	link1: '#4191dd',
+	link2: '#3b8fdd',
 	editor: { ...common.editorDark },
 	...common,
 	...common.dark,
@@ -349,7 +349,7 @@ export const theme = (currentTheme: any): DefaultTheme => ({
 				color: currentTheme.neutralA1,
 				active: {
 					background: currentTheme.neutral3,
-					border: currentTheme.neutral3,
+					border: currentTheme.neutral4,
 					color: currentTheme.neutralA1,
 				},
 				disabled: {

@@ -568,11 +568,9 @@ export const Section = styled.div<{ $fixedHeight?: number }>`
 
 	img,
 	video {
-		max-height: calc(100vh - 275px);
+		max-height: calc(100vh - 245px);
 		margin: 0 auto;
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	}
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {

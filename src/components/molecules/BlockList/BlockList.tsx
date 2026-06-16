@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { BlockMetadata, BlockNode, getBlockMetadataByHeight, getBlocks, GQLEdge } from 'api/blocks';
 
@@ -10,7 +10,8 @@ import { Modal } from 'components/atoms/Modal';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { PaginationControls } from 'components/molecules/PaginationControls';
 import { ASSETS, FLAGS, STORAGE, URLS } from 'helpers/config';
-import { downloadCsv, getCsvTimestamp, mapBlockForCsv } from 'helpers/csv';
+import { buildCsvFilename, downloadCsv, mapBlockForCsv } from 'helpers/csv';
+import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { checkValidAddress, formatBlockId, formatCount, formatDate, getByteSizeDisplay } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -20,6 +21,13 @@ import * as FilterS from '../MessageList/styles';
 import * as S from './styles';
 
 const DEFAULT_BLOCKS_PER_PAGE = 50;
+const BLOCK_QUERY_KEYS = {
+	minHeight: 'blockMinHeight',
+	maxHeight: 'blockMaxHeight',
+	limit: 'blockLimit',
+	after: 'blockAfter',
+	page: 'blockPage',
+};
 
 type BlockListEdge = GQLEdge<
 	BlockNode & {
@@ -61,6 +69,31 @@ function getStoredBlockFilterState() {
 		console.error('Failed to load block filters:', e);
 		return null;
 	}
+}
+
+function getBlockQueryState(searchParams: URLSearchParams) {
+	const minHeight = parseHeightInput(getSearchParam(searchParams, BLOCK_QUERY_KEYS.minHeight));
+	const maxHeight = parseHeightInput(getSearchParam(searchParams, BLOCK_QUERY_KEYS.maxHeight));
+	const limit = parsePositiveInteger(getSearchParam(searchParams, BLOCK_QUERY_KEYS.limit) ?? '');
+	const page = parsePositiveInteger(getSearchParam(searchParams, BLOCK_QUERY_KEYS.page) ?? '');
+	const after = getSearchParam(searchParams, BLOCK_QUERY_KEYS.after);
+	const hasQuery =
+		searchParams.has(BLOCK_QUERY_KEYS.minHeight) ||
+		searchParams.has(BLOCK_QUERY_KEYS.maxHeight) ||
+		searchParams.has(BLOCK_QUERY_KEYS.limit) ||
+		searchParams.has(BLOCK_QUERY_KEYS.after) ||
+		searchParams.has(BLOCK_QUERY_KEYS.page);
+
+	return {
+		hasQuery: hasQuery,
+		minHeight: minHeight,
+		maxHeight: maxHeight,
+		minHeightInput: minHeight !== null ? minHeight.toString() : '',
+		maxHeightInput: maxHeight !== null ? maxHeight.toString() : '',
+		limit: limit,
+		after: after,
+		page: page,
+	};
 }
 
 function BlockRow(props: {
@@ -147,30 +180,35 @@ function BlockRow(props: {
 }
 
 export default function BlockList(props: { header?: string }) {
+	const [searchParams, setSearchParams] = useSearchParams();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
+	const queryFilterState = React.useMemo(() => getBlockQueryState(searchParams), []);
 	const loadedFilterState = React.useMemo(() => getStoredBlockFilterState(), []);
+	const initialFilterState = queryFilterState.hasQuery ? queryFilterState : loadedFilterState;
 
 	const [blocks, setBlocks] = React.useState<BlockListEdge[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(true);
 	const [error, setError] = React.useState<string | null>(null);
-	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
+	const [pageCursor, setPageCursor] = React.useState<string | null>(queryFilterState.after ?? null);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
-	const [pageNumber, setPageNumber] = React.useState<number>(1);
-	const [pageInput, setPageInput] = React.useState<string>('1');
-	const [perPage, setPerPage] = React.useState<number>(DEFAULT_BLOCKS_PER_PAGE);
-	const [perPageInput, setPerPageInput] = React.useState<string>(DEFAULT_BLOCKS_PER_PAGE.toString());
+	const [pageNumber, setPageNumber] = React.useState<number>(queryFilterState.page ?? 1);
+	const [pageInput, setPageInput] = React.useState<string>((queryFilterState.page ?? 1).toString());
+	const [perPage, setPerPage] = React.useState<number>(queryFilterState.limit ?? DEFAULT_BLOCKS_PER_PAGE);
+	const [perPageInput, setPerPageInput] = React.useState<string>(
+		(queryFilterState.limit ?? DEFAULT_BLOCKS_PER_PAGE).toString()
+	);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 	const [refreshTrigger, setRefreshTrigger] = React.useState<boolean>(false);
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
-	const [minHeightInput, setMinHeightInput] = React.useState<string>(loadedFilterState?.minHeightInput ?? '');
-	const [maxHeightInput, setMaxHeightInput] = React.useState<string>(loadedFilterState?.maxHeightInput ?? '');
+	const [minHeightInput, setMinHeightInput] = React.useState<string>(initialFilterState?.minHeightInput ?? '');
+	const [maxHeightInput, setMaxHeightInput] = React.useState<string>(initialFilterState?.maxHeightInput ?? '');
 	const [activeRange, setActiveRange] = React.useState<{ minHeight: number | null; maxHeight: number | null }>({
-		minHeight: loadedFilterState?.minHeight ?? null,
-		maxHeight: loadedFilterState?.maxHeight ?? null,
+		minHeight: initialFilterState?.minHeight ?? null,
+		maxHeight: initialFilterState?.maxHeight ?? null,
 	});
 
 	const parsedMinHeight = parseHeightInput(minHeightInput);
@@ -194,6 +232,16 @@ export default function BlockList(props: { header?: string }) {
 	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
 	}, [pageNumber]);
+
+	React.useEffect(() => {
+		updateSearchParams(searchParams, setSearchParams, {
+			[BLOCK_QUERY_KEYS.minHeight]: activeRange.minHeight,
+			[BLOCK_QUERY_KEYS.maxHeight]: activeRange.maxHeight,
+			[BLOCK_QUERY_KEYS.limit]: perPage !== DEFAULT_BLOCKS_PER_PAGE ? perPage : null,
+			[BLOCK_QUERY_KEYS.after]: pageCursor,
+			[BLOCK_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+		});
+	}, [activeRange.minHeight, activeRange.maxHeight, pageCursor, pageNumber, perPage, searchParams, setSearchParams]);
 
 	React.useEffect(() => {
 		try {
@@ -407,7 +455,23 @@ export default function BlockList(props: { header?: string }) {
 
 		if (csvRows.length <= 0) return;
 
-		downloadCsv(`lunar-blocks-${getCsvTimestamp()}.csv`, csvRows);
+		const visibleHeights = blocks
+			.map((edge) => edge.node.metadata?.height ?? edge.node.height)
+			.filter((height): height is number => Number.isFinite(height));
+		const minVisibleHeight = visibleHeights.length > 0 ? Math.min(...visibleHeights) : null;
+		const maxVisibleHeight = visibleHeights.length > 0 ? Math.max(...visibleHeights) : null;
+
+		downloadCsv(
+			buildCsvFilename([
+				'blocks',
+				minVisibleHeight !== null && maxVisibleHeight !== null
+					? `visible-heights-${minVisibleHeight}-to-${maxVisibleHeight}`
+					: null,
+				`page-${pageNumber}`,
+				`limit-${perPage}`,
+			]),
+			csvRows
+		);
 	}
 
 	const handleBlockMetadataLoaded = React.useCallback((height: number, metadata: BlockMetadata | null) => {

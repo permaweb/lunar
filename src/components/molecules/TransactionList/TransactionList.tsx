@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from 'styled-components';
 
 import {
@@ -20,9 +20,10 @@ import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { PaginationControls } from 'components/molecules/PaginationControls';
 import { getBundlerLabel } from 'helpers/bundlers';
 import { ASSETS, DEFAULT_ACTIONS, FLAGS, URLS } from 'helpers/config';
-import { downloadCsv, getCsvTimestamp, mapTransactionForCsv } from 'helpers/csv';
+import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
+import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
-import { formatCount, formatDate, getByteSizeDisplay, getTagValue } from 'helpers/utils';
+import { formatCount, formatDate, getByteSizeDisplay, getTagValue, isNativeArTransfer } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -34,6 +35,12 @@ import * as S from './styles';
 
 const DEFAULT_TRANSACTIONS_PER_PAGE = 50;
 const TYPE_FILTER_OPTIONS: TransactionTypeFilter[] = ['message', 'assignment', 'bundle', 'transaction'];
+const TRANSACTION_QUERY_KEYS = {
+	type: 'txType',
+	limit: 'txLimit',
+	after: 'txAfter',
+	page: 'txPage',
+};
 
 function parsePositiveInteger(value: string | number) {
 	const parsed = Number(value);
@@ -72,8 +79,28 @@ function transactionMatchesTypeFilter(transaction: TransactionNode, typeFilter: 
 	return getTransactionTypeFilterValue(transaction) === typeFilter;
 }
 
+function normalizeTypeFilter(value: string | null): TransactionTypeFilter | null {
+	if ((TYPE_FILTER_OPTIONS as string[]).includes(value ?? '')) return value as TransactionTypeFilter;
+
+	return null;
+}
+
+function getTransactionQueryState(searchParams: URLSearchParams) {
+	const type = normalizeTypeFilter(getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.type));
+	const limit = parsePositiveInteger(getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.limit) ?? '');
+	const page = parsePositiveInteger(getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.page) ?? '');
+	const after = getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.after);
+
+	return {
+		type: type,
+		limit: limit,
+		page: page,
+		after: after,
+	};
+}
+
 function isTransferTransaction(transaction: TransactionNode) {
-	return getTagValue(transaction.tags, 'Action') === DEFAULT_ACTIONS.transfer.name;
+	return getTagValue(transaction.tags, 'Action') === DEFAULT_ACTIONS.transfer.name || isNativeArTransfer(transaction);
 }
 
 function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (transaction: TransactionNode) => void }) {
@@ -178,7 +205,7 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 			<S.TypeValue background={getTypeBackground(transaction)}>
 				<div className={'type-indicator'} />
 				<p>{getTransactionType(transaction)}</p>
-				<TransferAmount tags={tags} target={transferTarget} />
+				<TransferAmount tags={tags} target={transferTarget} quantity={transaction.quantity} />
 			</S.TypeValue>
 			<S.Owner>
 				{transaction.owner?.address ? (
@@ -219,6 +246,7 @@ export default function TransactionList(props: {
 	header?: string;
 	onTotalCountChange?: (count: number | null) => void;
 }) {
+	const [searchParams, setSearchParams] = useSearchParams();
 	const dispatch = useDispatch();
 	const permawebProvider = usePermawebProvider();
 
@@ -226,21 +254,26 @@ export default function TransactionList(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
+	const queryFilterState = React.useMemo(() => getTransactionQueryState(searchParams), []);
 
 	const [transactions, setTransactions] = React.useState<GQLEdge<TransactionNode>[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(true);
 	const [error, setError] = React.useState<string | null>(null);
-	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
+	const [pageCursor, setPageCursor] = React.useState<string | null>(queryFilterState.after ?? null);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
-	const [pageNumber, setPageNumber] = React.useState<number>(1);
-	const [pageInput, setPageInput] = React.useState<string>('1');
-	const [perPage, setPerPage] = React.useState<number>(DEFAULT_TRANSACTIONS_PER_PAGE);
-	const [perPageInput, setPerPageInput] = React.useState<string>(DEFAULT_TRANSACTIONS_PER_PAGE.toString());
+	const [pageNumber, setPageNumber] = React.useState<number>(queryFilterState.page ?? 1);
+	const [pageInput, setPageInput] = React.useState<string>((queryFilterState.page ?? 1).toString());
+	const [perPage, setPerPage] = React.useState<number>(queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE);
+	const [perPageInput, setPerPageInput] = React.useState<string>(
+		(queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE).toString()
+	);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
-	const [typeFilter, setTypeFilter] = React.useState<TransactionTypeFilter | null>(null);
-	const [activeTypeFilter, setActiveTypeFilter] = React.useState<TransactionTypeFilter | null>(null);
+	const [typeFilter, setTypeFilter] = React.useState<TransactionTypeFilter | null>(queryFilterState.type ?? null);
+	const [activeTypeFilter, setActiveTypeFilter] = React.useState<TransactionTypeFilter | null>(
+		queryFilterState.type ?? null
+	);
 	const totalPages = totalCount !== null ? Math.max(1, Math.ceil(totalCount / perPage)) : null;
 	const needsClientTypeFilter = !!activeTypeFilter && (props.mode === 'bundle' || activeTypeFilter === 'transaction');
 
@@ -286,6 +319,15 @@ export default function TransactionList(props: {
 	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
 	}, [pageNumber]);
+
+	React.useEffect(() => {
+		updateSearchParams(searchParams, setSearchParams, {
+			[TRANSACTION_QUERY_KEYS.type]: activeTypeFilter,
+			[TRANSACTION_QUERY_KEYS.limit]: perPage !== DEFAULT_TRANSACTIONS_PER_PAGE ? perPage : null,
+			[TRANSACTION_QUERY_KEYS.after]: pageCursor,
+			[TRANSACTION_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+		});
+	}, [activeTypeFilter, pageCursor, pageNumber, perPage, searchParams, setSearchParams]);
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -519,7 +561,18 @@ export default function TransactionList(props: {
 
 		if (csvRows.length <= 0) return;
 
-		downloadCsv(`lunar-transactions-${getCsvTimestamp()}.csv`, csvRows);
+		const scope =
+			props.mode === 'block'
+				? props.blockHeight !== undefined
+					? `block-height-${props.blockHeight}`
+					: props.blockId
+					? `block-${props.blockId}`
+					: 'block'
+				: props.bundleId
+				? `bundle-${props.bundleId}`
+				: 'bundle';
+
+		downloadCsv(buildCsvFilename(['transactions', scope, `page-${pageNumber}`, `limit-${perPage}`]), csvRows);
 	}
 
 	const handleTransactionHydrated = React.useCallback((transaction: TransactionNode) => {

@@ -39,6 +39,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const tabsContainerRef = React.useRef<HTMLDivElement>(null);
 	const activeTabIndexRef = React.useRef<number>(0);
 	const locationPathRef = React.useRef<string>(location.pathname);
+	const previousLocationPathRef = React.useRef<string | null>(null);
 
 	const storageKey = `${props.type}-transactions`;
 
@@ -74,6 +75,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	React.useEffect(() => {
 		const { txId, subPath, txType } = extractTxDetailsFromPath(location.pathname);
 		const route = getRouteForTab({ id: txId, type: txType }, subPath);
+		const insertNewTabsNextToActive = props.type === 'explorer' && isExplorerPath(previousLocationPathRef.current);
 
 		if (txId && !transactions.some((tab) => isSameTab(tab, txId, txType)) && !isDeletingRef.current) {
 			if (transactions.length === 1 && transactions[0].id === '') {
@@ -85,19 +87,20 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				setActiveTabIndex(0);
 				setVisitedTabs(new Set([0]));
 			} else {
-				const newIndex = transactions.length;
-				setTransactions((prev) => [
-					...prev,
-					{
+				setTransactions((prev) => {
+					const newIndex = getNewTabIndex(prev.length, insertNewTabsNextToActive);
+					const updated = [...prev];
+					updated.splice(newIndex, 0, {
 						id: txId,
 						label: txId,
 						type: txType,
 						lastRoute: route,
 						tabKey: `tab-${Date.now()}-${Math.random()}`,
-					},
-				]);
-				setActiveTabIndex(newIndex);
-				setVisitedTabs((prev) => new Set(prev).add(newIndex));
+					});
+					setActiveTabIndex(newIndex);
+					setVisitedTabs((prevVisited) => getVisitedTabsAfterInsert(prevVisited, newIndex));
+					return updated;
+				});
 			}
 
 			navigateIfNeeded(route);
@@ -115,6 +118,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				});
 			}
 		}
+		previousLocationPathRef.current = location.pathname;
 	}, [location.pathname]);
 
 	React.useEffect(() => {
@@ -185,6 +189,31 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 
 	function normalizeRoute(route: string) {
 		return route.replace(/\/+$/, '') || '/';
+	}
+
+	function isExplorerPath(pathname: string | null) {
+		if (!pathname) return false;
+
+		const explorerBase = URLS.explorer.replace(/\/+$/, '');
+
+		return pathname === explorerBase || pathname.startsWith(`${explorerBase}/`);
+	}
+
+	function getNewTabIndex(tabCount: number, insertNextToActive: boolean) {
+		if (!insertNextToActive) return tabCount;
+
+		return Math.min(activeTabIndexRef.current + 1, tabCount);
+	}
+
+	function getVisitedTabsAfterInsert(visited: Set<number>, insertIndex: number) {
+		const nextVisited = new Set<number>();
+
+		visited.forEach((index) => {
+			nextVisited.add(index >= insertIndex ? index + 1 : index);
+		});
+		nextVisited.add(insertIndex);
+
+		return nextVisited;
 	}
 
 	function navigateIfNeeded(route: string, options?: { replace?: boolean }) {
@@ -306,6 +335,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const handleAddTab = React.useCallback(
 		(id?: string) => {
 			const untitledId = id ? id : `untitled-${Date.now()}`;
+			const insertNewTabsNextToActive = props.type === 'explorer' && !!id;
 			const newTab = {
 				id: id ?? '',
 				label: id ?? '',
@@ -315,18 +345,21 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			} as ExplorerTabType;
 
 			setTransactions((prev) => {
-				const updated = [...prev, newTab];
-				const newIndex = updated.length - 1;
+				const newIndex = getNewTabIndex(prev.length, insertNewTabsNextToActive);
+				const updated = [...prev];
+				updated.splice(newIndex, 0, newTab);
 				setActiveTabIndex(newIndex);
-				setVisitedTabs((prevVisited) => new Set(prevVisited).add(newIndex));
+				setVisitedTabs((prevVisited) => getVisitedTabsAfterInsert(prevVisited, newIndex));
 				return updated;
 			});
 
-			setTimeout(() => {
-				if (tabsContainerRef.current) {
-					tabsContainerRef.current.scrollTo({ left: tabsContainerRef.current.scrollWidth });
-				}
-			}, 0);
+			if (!insertNewTabsNextToActive) {
+				setTimeout(() => {
+					if (tabsContainerRef.current) {
+						tabsContainerRef.current.scrollTo({ left: tabsContainerRef.current.scrollWidth });
+					}
+				}, 0);
+			}
 
 			navigateIfNeeded(id ? getRouteForTab(newTab) : URLS[props.type]);
 		},

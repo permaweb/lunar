@@ -264,6 +264,7 @@ export const Primary = styled.button<{
 		width: fit-content;
 		text-overflow: ellipsis;
 		overflow: hidden;
+		white-space: nowrap !important;
 		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;

@@ -445,6 +445,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 					};
 
 					cacheTransaction(walletResponse as Types.GQLNodeResponseType, args, { skipBlockHeightCheck: true });
+					return walletResponse as Types.GQLNodeResponseType;
 				}
 			} catch (e: any) {
 				console.error(e);

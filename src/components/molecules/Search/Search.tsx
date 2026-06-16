@@ -106,12 +106,7 @@ export default function Search(props: SearchProps) {
 								id: inputValue,
 							});
 						} else {
-							// Check if it might be a wallet
-							setSearchResult({
-								type: 'wallet',
-								data: { id: inputValue },
-								id: inputValue,
-							});
+							setSearchResult({ type: 'not-found' });
 						}
 					}
 				} catch (e: any) {
@@ -166,7 +161,7 @@ export default function Search(props: SearchProps) {
 		if (searchResult.type === 'not-found') {
 			return (
 				<S.SearchOutputPlaceholder>
-					<p>{language.txNotFound || 'Not found'}</p>
+					<p>{language.txCannotBeFoundYet || language.txNotFound || 'Not found'}</p>
 				</S.SearchOutputPlaceholder>
 			);
 		}

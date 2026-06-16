@@ -54,6 +54,15 @@ export const FilterWrapper = styled.div`
 	position: relative;
 	display: flex;
 	align-items: center;
+	justify-content: flex-end;
+	gap: 12.5px;
+`;
+
+export const AppliedActionsWrapper = styled.div`
+	max-width: 65%;
+	position: relative;
+	display: flex;
+	align-items: center;
 	gap: 12.5px;
 `;
 
@@ -126,10 +135,6 @@ export const DateRangeHeader = styled.div`
 	flex-direction: column;
 	gap: 15px;
 	width: 100%;
-
-	button {
-		border-radius: ${STYLING.dimensions.radius.alt2} !important;
-	}
 `;
 
 export const DateLabel = styled.div`
@@ -139,9 +144,9 @@ export const DateLabel = styled.div`
 `;
 
 export const ClearDateButton = styled.button`
-	background: ${(props) => props.theme.colors.button.alt1.background};
-	color: ${(props) => props.theme.colors.button.alt1.color};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	background: ${(props) => props.theme.colors.button.primary.background};
+	color: ${(props) => props.theme.colors.button.primary.color};
+	border: 1px solid ${(props) => props.theme.colors.button.primary.border};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	padding: 5px 10px;
 	font-family: ${(props) => props.theme.typography.family.primary};

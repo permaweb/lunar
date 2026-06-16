@@ -69,7 +69,30 @@ export function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
 }
 
 export function getCsvTimestamp() {
-	return new Date().toISOString().replace(/[:.]/g, '-');
+	const date = new Date();
+	const pad = (value: number) => value.toString().padStart(2, '0');
+	const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+	const timePart = `${pad(date.getHours())}-${pad(date.getMinutes())}`;
+
+	return `${datePart}_at_${timePart}`;
+}
+
+function sanitizeFilenamePart(value: string | number) {
+	return value
+		.toString()
+		.trim()
+		.replace(/[^a-z0-9_-]+/gi, '-')
+		.replace(/-+/g, '-')
+		.replace(/^-|-$/g, '')
+		.slice(0, 100);
+}
+
+export function buildCsvFilename(parts: (string | number | null | undefined | false)[]) {
+	const normalizedParts = ['lunar', ...parts, getCsvTimestamp()]
+		.map((part) => (part === false || part === null || part === undefined ? '' : sanitizeFilenamePart(part)))
+		.filter(Boolean);
+
+	return `${normalizedParts.join('-')}.csv`;
 }
 
 function isBundleTransaction(tags: any[]) {

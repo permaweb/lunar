@@ -574,25 +574,6 @@ function Transaction(props: {
 							setMessageResult({ Response: e.message ?? 'Error Getting Result' });
 						}
 					}
-				} else {
-					/* No response found, create a wallet type */
-					const walletResponse = {
-						cursor: null,
-						node: {
-							id: inputTxId,
-							tags: [{ name: 'Type', value: 'Wallet' }],
-							data: null,
-							owner: {
-								address: null,
-							},
-							block: {
-								height: null,
-								timestamp: null,
-							},
-						},
-					};
-					setTxResponse(walletResponse);
-					if (props.onTxChange) props.onTxChange(walletResponse);
 				}
 			} catch (e: any) {
 				addNotification(e.message ?? language.errorFetchingTx, 'warning');
@@ -1065,7 +1046,7 @@ function Transaction(props: {
 					</TxOverviewLine>
 					<TxOverviewLine label={language.age}>
 						<TxOverviewValue
-							primary={timestamp ? getRelativeDate(timestamp * 1000).replace(/ ago$/, '') : 'Not Yet Available'}
+							primary={timestamp ? `~${getRelativeDate(timestamp * 1000).replace(/ ago$/, '')}` : 'Not Yet Available'}
 						/>
 					</TxOverviewLine>
 					<TxOverviewLine label={language.blockHeightActual}>
@@ -1312,18 +1293,6 @@ function Transaction(props: {
 						</S.MessageInfoID>
 					</S.MessageInfoHeader>
 					<S.MessageInfoBody $desktopItemCount={6}>
-						{/* <S.MessageInfoLine>
-							<span>{`${language.from}: `}</span>
-							<TxAddress address={from} />
-						</S.MessageInfoLine>
-						<S.MessageInfoLine>
-							<span>{`${language.target}: `}</span>
-							<TxAddress address={target} />
-						</S.MessageInfoLine>
-						<S.MessageInfoLine>
-							<span>{`${language.owner}: `}</span>
-							<TxAddress address={txResponse?.node?.owner?.address} />
-						</S.MessageInfoLine> */}
 						<S.MessageInfoLine>
 							<span>{`${language.action}: `}</span>
 							<p>{action}</p>
@@ -1471,7 +1440,7 @@ function Transaction(props: {
 		return (
 			<S.Section className={'border-wrapper-alt3'}>
 				<S.SectionHeader>
-					<p>{language.bundleTags}</p>
+					<p>{language.tags}</p>
 				</S.SectionHeader>
 				<S.OverviewWrapper className={'scroll-wrapper'}>
 					{filteredTags.map((tag: DisplayTag, index: number) => (
@@ -1970,23 +1939,37 @@ function Transaction(props: {
 
 	const transactionTabs = React.useMemo(() => {
 		if (!TABS) return null;
-		const matchingTab = TABS.find((tab) => tab.url === currentHash);
+		const currentHashPath = currentHash.split('?')[0];
+		const matchingTab = TABS.find((tab) => tab.url === currentHashPath);
 		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
 		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy isParentActive={props.active} />;
 	}, [TABS, currentHash, props.tabKey, props.active]); // Keep URLTabs from recreating
 
 	function getTransaction() {
 		const showPlaceholder = !inputTxId || !txResponse;
+		const showMissingTransaction = !!inputTxId && hasFetched && !loadingTx && !txResponse;
+		const placeholderIcon = showMissingTransaction ? ASSETS.pending : ASSETS.transaction;
+		const placeholderTitle = loadingTx
+			? `${language.loading}...`
+			: showMissingTransaction
+			? language.txCannotBeFoundYet ?? 'Transaction cannot be found yet'
+			: language.explorerSearchInput;
 
 		return (
 			<>
 				{showPlaceholder && (
 					<S.Placeholder>
 						<S.PlaceholderIcon>
-							<ReactSVG src={ASSETS.process} />
+							<ReactSVG src={placeholderIcon} />
 						</S.PlaceholderIcon>
 						<S.PlaceholderDescription>
-							<p>{loadingTx ? `${language.loading}...` : language.explorerSearchInput}</p>
+							<p>{placeholderTitle}</p>
+							{showMissingTransaction && (
+								<span>
+									{language.txCannotBeFoundYetInfo ??
+										'It may still be propagating or waiting to be indexed. Try refreshing in a moment.'}
+								</span>
+							)}
 						</S.PlaceholderDescription>
 					</S.Placeholder>
 				)}

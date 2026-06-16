@@ -1,7 +1,7 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
@@ -29,8 +29,9 @@ import {
 	TAGS,
 	URLS,
 } from 'helpers/config';
-import { downloadCsv, getCsvTimestamp, mapTransactionForCsv } from 'helpers/csv';
+import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
 import { MessageFilterType, MessageVariantEnum, ResultMessageType, TransactionType } from 'helpers/types';
 import {
@@ -40,6 +41,7 @@ import {
 	formatCount,
 	getRelativeDate,
 	getTagValue,
+	isNativeArTransfer,
 	lowercaseTagKeys,
 	removeCommitments,
 	resolveLibDeps,
@@ -64,6 +66,18 @@ const NON_MESSAGE_ACTION_FALLBACK_TAGS = [
 ];
 const GQL_PAGE_CHUNK_SIZE = 100;
 const DEFAULT_RESULTS_PER_PAGE = 50;
+const MESSAGE_QUERY_KEYS = {
+	direction: 'messageDirection',
+	action: 'messageAction',
+	variant: 'messageVariant',
+	recipient: 'messageRecipient',
+	from: 'messageFrom',
+	start: 'messageStart',
+	end: 'messageEnd',
+	limit: 'messageLimit',
+	after: 'messageAfter',
+	page: 'messagePage',
+};
 
 function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
 	return getTagValue(tags, name)?.toLowerCase() === value.toLowerCase();
@@ -255,6 +269,8 @@ function Message(props: {
 	}
 
 	function getActionLabel() {
+		if (isNativeArTransfer(props.element.node)) return DEFAULT_ACTIONS.transfer.name;
+
 		const action = getTagValue(props.element.node.tags, 'Action');
 		if (action) return action;
 		if (shouldUseMessageActionFallback) return getNonMessageActionFallback(props.element.node.tags) ?? language.none;
@@ -327,7 +343,7 @@ function Message(props: {
 			<S.ActionValue background={getActionBackground()} useMaxWidth={useMaxWidth}>
 				<div className={'action-indicator'} />
 				<p>{actionLabel}</p>
-				<TransferAmount tags={props.element.node.tags} target={target} />
+				<TransferAmount tags={props.element.node.tags} target={target} quantity={props.element.node.quantity} />
 				<S.ActionTooltip className={'info'}>
 					<span>{actionLabel}</span>
 				</S.ActionTooltip>
@@ -657,6 +673,97 @@ function parsePositiveInteger(value: string | number) {
 	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+function normalizeDirectionFilter(value: string | null): MessageFilterType | null {
+	return value === 'incoming' || value === 'outgoing' ? value : null;
+}
+
+function parseDateFilter(value: string | null) {
+	if (!value) return null;
+
+	const [year, month, day] = value.split('-').map((part) => Number(part));
+	if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+
+	const date = new Date(year, month - 1, day);
+	if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+
+	return { year, month, day };
+}
+
+function formatDateFilter(date: { year: number; month: number; day: number } | null) {
+	if (!date) return null;
+
+	return [date.year, date.month.toString().padStart(2, '0'), date.day.toString().padStart(2, '0')].join('-');
+}
+
+function getMessageQueryState(searchParams: URLSearchParams) {
+	const direction = normalizeDirectionFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.direction));
+	const action = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.action);
+	const variant = normalizeVariantFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.variant));
+	const recipient = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.recipient) ?? '';
+	const fromAddress = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.from) ?? '';
+	const startDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.start));
+	const endDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.end));
+	const perPage = normalizePerPageFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.limit));
+	const page = parsePositiveInteger(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.page) ?? '');
+	const after = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.after);
+	const hasQuery = Object.values(MESSAGE_QUERY_KEYS).some((key) => searchParams.has(key));
+
+	return {
+		hasQuery: hasQuery,
+		filter: direction,
+		action: action,
+		variant: variant,
+		recipient: recipient,
+		fromAddress: fromAddress,
+		startDate: startDate,
+		endDate: endDate,
+		perPage: perPage,
+		page: page,
+		after: after,
+	};
+}
+
+function getHashRouteSearch() {
+	if (typeof window === 'undefined') return '';
+
+	const searchIndex = window.location.hash.indexOf('?');
+
+	return searchIndex >= 0 ? window.location.hash.slice(searchIndex) : '';
+}
+
+function getRouteSearch(locationSearch: string, searchParams: URLSearchParams) {
+	if (locationSearch) return locationSearch;
+
+	const searchParamString = searchParams.toString();
+	if (searchParamString) return `?${searchParamString}`;
+
+	return getHashRouteSearch();
+}
+
+function normalizePathname(pathname: string) {
+	return pathname.replace(/\/+$/, '') || '/';
+}
+
+function shouldSyncMessageQueryParams(args: {
+	pathname: string;
+	txId?: string;
+	type?: TransactionType;
+	childList?: boolean;
+	result?: any;
+}) {
+	if (args.childList || args.result) return false;
+
+	const pathname = normalizePathname(args.pathname);
+	if (!args.txId) return pathname === normalizePathname(URLS.base);
+
+	const explorerPath = normalizePathname(`${URLS.explorer}${args.txId}`);
+
+	if (args.type === 'process') return pathname === `${explorerPath}/messages`;
+	if (args.type === 'wallet') return pathname === explorerPath || pathname === `${explorerPath}/info`;
+
+	return false;
+}
+
 export default function MessageList(props: {
 	header?: string;
 	txId?: string;
@@ -678,6 +785,8 @@ export default function MessageList(props: {
 	showResultMessageLabel?: boolean;
 	clickableResultMessageLabel?: boolean;
 }) {
+	const location = useLocation();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const dispatch = useDispatch();
 
 	const permawebProvider = usePermawebProvider();
@@ -686,6 +795,23 @@ export default function MessageList(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef(null);
+	const syncQueryParams = shouldSyncMessageQueryParams({
+		pathname: location.pathname,
+		txId: props.txId,
+		type: props.type,
+		childList: props.childList,
+		result: props.result,
+	});
+	const routeSearch = React.useMemo(
+		() => getRouteSearch(location.search, searchParams),
+		[location.search, searchParams]
+	);
+	const routeSearchParams = React.useMemo(() => new URLSearchParams(routeSearch), [routeSearch]);
+	const queryFilterState = React.useMemo(
+		() => (syncQueryParams ? getMessageQueryState(routeSearchParams) : null),
+		[syncQueryParams, routeSearch]
+	);
+	const skipNextQueryWriteRef = React.useRef<boolean>(queryFilterState?.hasQuery ?? false);
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
 	const filterStorageKey = React.useMemo(() => {
@@ -717,13 +843,14 @@ export default function MessageList(props: {
 		}
 		return null;
 	}, [filterStorageKey]);
+	const initialFilterState = queryFilterState?.hasQuery ? queryFilterState : loadedFilterState;
 
 	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(
-		props.currentFilter ?? loadedFilterState?.filter ?? 'outgoing'
+		props.currentFilter ?? initialFilterState?.filter ?? 'outgoing'
 	);
-	const [currentAction, setCurrentAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
+	const [currentAction, setCurrentAction] = React.useState<string | null>(initialFilterState?.action ?? null);
 	const [currentVariant, setCurrentVariant] = React.useState<MessageVariantEnum | null>(
-		loadedFilterState?.variant ?? null
+		initialFilterState?.variant ?? null
 	);
 	const [actionOptions, setActionOptions] = React.useState<string[]>(() => {
 		const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
@@ -748,44 +875,44 @@ export default function MessageList(props: {
 	const [outgoingCount, setOutgoingCount] = React.useState<number | null>(null);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 
-	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
+	const [pageCursor, setPageCursor] = React.useState<string | null>(queryFilterState?.after ?? null);
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
-	const [pageNumber, setPageNumber] = React.useState(1);
-	const [pageInput, setPageInput] = React.useState<string>('1');
+	const [pageNumber, setPageNumber] = React.useState(queryFilterState?.page ?? 1);
+	const [pageInput, setPageInput] = React.useState<string>((queryFilterState?.page ?? 1).toString());
 	const [perPage, setPerPage] = React.useState<string>(
-		loadedFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
 	);
 	const [perPageInput, setPerPageInput] = React.useState<string>(
-		loadedFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
 	);
-	const [recipient, setRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
-	const [fromAddress, setFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
+	const [recipient, setRecipient] = React.useState<string>(initialFilterState?.recipient ?? '');
+	const [fromAddress, setFromAddress] = React.useState<string>(initialFilterState?.fromAddress ?? '');
 	const [fromAddressIsProcess, setFromAddressIsProcess] = React.useState<boolean>(false);
 
 	// Time range filter states
 	const [startDate, setStartDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.startDate ?? null
+		initialFilterState?.startDate ?? null
 	);
 	const [endDate, setEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.endDate ?? null
+		initialFilterState?.endDate ?? null
 	);
 	const [showStartCalendar, setShowStartCalendar] = React.useState<boolean>(false);
 	const [showEndCalendar, setShowEndCalendar] = React.useState<boolean>(false);
 
 	// Applied filter states (only updated when "Apply Filters" is clicked)
-	const [appliedAction, setAppliedAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
+	const [appliedAction, setAppliedAction] = React.useState<string | null>(initialFilterState?.action ?? null);
 	const [appliedVariant, setAppliedVariant] = React.useState<MessageVariantEnum | null>(
-		loadedFilterState?.variant ?? null
+		initialFilterState?.variant ?? null
 	);
-	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
-	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
+	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(initialFilterState?.recipient ?? '');
+	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(initialFilterState?.fromAddress ?? '');
 	const [appliedFromAddressIsProcess, setAppliedFromAddressIsProcess] = React.useState<boolean>(false);
 	const [appliedStartDate, setAppliedStartDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.startDate ?? null
+		initialFilterState?.startDate ?? null
 	);
 	const [appliedEndDate, setAppliedEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.endDate ?? null
+		initialFilterState?.endDate ?? null
 	);
 
 	const parsedPerPage = React.useMemo(() => {
@@ -801,10 +928,83 @@ export default function MessageList(props: {
 	const invalidPerPage = parsedPerPageInput === null;
 	const showLargeFetchWarning = parsedPerPageInput !== null && parsedPerPageInput > GQL_PAGE_CHUNK_SIZE;
 	const usingCustomPerPage = parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE;
+	const hasAppliedFilters = Boolean(
+		appliedAction ||
+			appliedVariant ||
+			(appliedRecipient && checkValidAddress(appliedRecipient)) ||
+			(appliedFromAddress && checkValidAddress(appliedFromAddress)) ||
+			appliedStartDate ||
+			appliedEndDate ||
+			usingCustomPerPage
+	);
 
 	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
 	}, [pageNumber]);
+
+	React.useEffect(() => {
+		if (!syncQueryParams || !queryFilterState?.hasQuery) return;
+
+		const nextFilter = props.currentFilter ?? queryFilterState.filter ?? 'outgoing';
+
+		setCurrentFilter(nextFilter);
+		setCurrentAction(queryFilterState.action);
+		setCurrentVariant(queryFilterState.variant);
+		setRecipient(queryFilterState.recipient);
+		setAppliedRecipient(queryFilterState.recipient);
+		setFromAddress(queryFilterState.fromAddress);
+		setAppliedFromAddress(queryFilterState.fromAddress);
+		setStartDate(queryFilterState.startDate);
+		setAppliedStartDate(queryFilterState.startDate);
+		setEndDate(queryFilterState.endDate);
+		setAppliedEndDate(queryFilterState.endDate);
+		setPerPage(queryFilterState.perPage);
+		setPerPageInput(queryFilterState.perPage);
+		setPageCursor(queryFilterState.after);
+		setPageNumber(queryFilterState.page ?? 1);
+	}, [props.currentFilter, queryFilterState, syncQueryParams]);
+
+	React.useEffect(() => {
+		if (!syncQueryParams) return;
+		if (skipNextQueryWriteRef.current) {
+			skipNextQueryWriteRef.current = false;
+			return;
+		}
+
+		const directionAffectsQuery = !!props.type && props.type !== 'message';
+		const recipientAffectsQuery = currentFilter !== 'incoming' || !props.txId;
+		const fromAffectsQuery = currentFilter === 'incoming' && !!props.txId;
+
+		updateSearchParams(routeSearchParams, setSearchParams, {
+			[MESSAGE_QUERY_KEYS.direction]: directionAffectsQuery ? currentFilter : null,
+			[MESSAGE_QUERY_KEYS.action]: appliedAction,
+			[MESSAGE_QUERY_KEYS.variant]: appliedVariant,
+			[MESSAGE_QUERY_KEYS.recipient]: recipientAffectsQuery ? appliedRecipient : null,
+			[MESSAGE_QUERY_KEYS.from]: fromAffectsQuery ? appliedFromAddress : null,
+			[MESSAGE_QUERY_KEYS.start]: formatDateFilter(appliedStartDate),
+			[MESSAGE_QUERY_KEYS.end]: formatDateFilter(appliedEndDate),
+			[MESSAGE_QUERY_KEYS.limit]:
+				parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE ? parsedPerPage : null,
+			[MESSAGE_QUERY_KEYS.after]: pageCursor,
+			[MESSAGE_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+		});
+	}, [
+		appliedAction,
+		appliedEndDate,
+		appliedFromAddress,
+		appliedRecipient,
+		appliedStartDate,
+		appliedVariant,
+		currentFilter,
+		pageCursor,
+		pageNumber,
+		parsedPerPage,
+		props.txId,
+		props.type,
+		routeSearchParams,
+		setSearchParams,
+		syncQueryParams,
+	]);
 
 	function dateToTimestamp(date: { year: number; month: number; day: number }): number {
 		return Math.floor(new Date(date.year, date.month - 1, date.day).getTime() / 1000);
@@ -1067,7 +1267,13 @@ export default function MessageList(props: {
 
 		if (csvRows.length <= 0) return;
 
-		downloadCsv(`lunar-transactions-${getCsvTimestamp()}.csv`, csvRows);
+		const exportType = props.type === 'wallet' ? 'wallet-transactions' : props.txId ? 'messages' : 'recent-messages';
+		const source = props.txId ? `${props.type ?? 'source'}-${props.txId}` : 'global';
+
+		downloadCsv(
+			buildCsvFilename([exportType, source, `page-${pageNumber}`, parsedPerPage ? `limit-${parsedPerPage}` : null]),
+			csvRows
+		);
 	}
 
 	// Check if fromAddress is a process whenever it changes
@@ -1085,8 +1291,8 @@ export default function MessageList(props: {
 	// Initialize appliedFromAddressIsProcess on mount if there's a loaded fromAddress
 	React.useEffect(() => {
 		(async function () {
-			if (loadedFilterState?.fromAddress && checkValidAddress(loadedFilterState.fromAddress)) {
-				const isProcess = await checkIsProcess(loadedFilterState.fromAddress);
+			if (initialFilterState?.fromAddress && checkValidAddress(initialFilterState.fromAddress)) {
+				const isProcess = await checkIsProcess(initialFilterState.fromAddress);
 				setAppliedFromAddressIsProcess(isProcess);
 				setFromAddressIsProcess(isProcess);
 			}
@@ -1711,113 +1917,119 @@ export default function MessageList(props: {
 										<S.Divider />
 									</>
 								)}
-								{appliedAction && (
-									<Button
-										type={'alt3'}
-										label={`Action (${appliedAction})`}
-										handlePress={() => {
-											setCurrentAction(null);
-											setAppliedAction(null);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedVariant && (
-									<Button
-										type={'alt3'}
-										label={`${language.variant} (${appliedVariant})`}
-										handlePress={() => {
-											setCurrentVariant(null);
-											setAppliedVariant(null);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedRecipient && checkValidAddress(appliedRecipient) && (
-									<Button
-										type={'alt3'}
-										label={`To (${formatAddress(appliedRecipient, false)})`}
-										handlePress={() => {
-											setRecipient('');
-											setAppliedRecipient('');
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
-									<Button
-										type={'alt3'}
-										label={`From (${formatAddress(appliedFromAddress, false)})`}
-										handlePress={() => {
-											setFromAddress('');
-											setAppliedFromAddress('');
-											setAppliedFromAddressIsProcess(false);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedStartDate && (
-									<Button
-										type={'alt3'}
-										label={`Start (${
-											appliedStartDate
-												? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
-												: '-'
-										})`}
-										handlePress={() => {
-											setStartDate(null);
-											setAppliedStartDate(null);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedEndDate && (
-									<Button
-										type={'alt3'}
-										label={`End (${
-											appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
-										})`}
-										handlePress={() => {
-											setEndDate(null);
-											setAppliedEndDate(null);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{usingCustomPerPage && (
-									<Button
-										type={'alt3'}
-										label={`${language.resultsPerPage} (${formatCount(parsedPerPage.toString())})`}
-										handlePress={handlePerPageReset}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
+								<S.AppliedActionsWrapper className={'scroll-wrapper-hidden'}>
+									{!hasAppliedFilters && (
+										<Button type={'alt2'} label={'No Filters Applied'} handlePress={() => {}} disabled={true} noFocus />
+									)}
+									{appliedAction && (
+										<Button
+											type={'alt3'}
+											label={`Action (${appliedAction})`}
+											handlePress={() => {
+												setCurrentAction(null);
+												setAppliedAction(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedVariant && (
+										<Button
+											type={'alt3'}
+											label={`${language.variant} (${appliedVariant})`}
+											handlePress={() => {
+												setCurrentVariant(null);
+												setAppliedVariant(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedRecipient && checkValidAddress(appliedRecipient) && (
+										<Button
+											type={'alt3'}
+											label={`To (${formatAddress(appliedRecipient, false)})`}
+											handlePress={() => {
+												setRecipient('');
+												setAppliedRecipient('');
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
+										<Button
+											type={'alt3'}
+											label={`From (${formatAddress(appliedFromAddress, false)})`}
+											handlePress={() => {
+												setFromAddress('');
+												setAppliedFromAddress('');
+												setAppliedFromAddressIsProcess(false);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedStartDate && (
+										<Button
+											type={'alt3'}
+											label={`Start (${
+												appliedStartDate
+													? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
+													: '-'
+											})`}
+											handlePress={() => {
+												setStartDate(null);
+												setAppliedStartDate(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedEndDate && (
+										<Button
+											type={'alt3'}
+											label={`End (${
+												appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
+											})`}
+											handlePress={() => {
+												setEndDate(null);
+												setAppliedEndDate(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{usingCustomPerPage && (
+										<Button
+											type={'alt3'}
+											label={`${language.resultsPerPage} (${formatCount(parsedPerPage.toString())})`}
+											handlePress={handlePerPageReset}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+								</S.AppliedActionsWrapper>
+								<S.Divider />
 								<S.FilterWrapper>
 									<Button
 										type={'alt3'}
@@ -2014,14 +2226,14 @@ export default function MessageList(props: {
 										fullWidth
 									/>
 									{startDate && (
-										<S.ClearDateButton
-											onClick={() => {
+										<Button
+											type={'alt3'}
+											label={language.clear}
+											handlePress={() => {
 												setStartDate(null);
 												setShowStartCalendar(false);
 											}}
-										>
-											{language.clear}
-										</S.ClearDateButton>
+										/>
 									)}
 								</S.DateRangeHeader>
 								{showStartCalendar && (
@@ -2045,14 +2257,14 @@ export default function MessageList(props: {
 										fullWidth
 									/>
 									{endDate && (
-										<S.ClearDateButton
-											onClick={() => {
+										<Button
+											type={'alt3'}
+											label={language.clear}
+											handlePress={() => {
 												setEndDate(null);
 												setShowEndCalendar(false);
 											}}
-										>
-											{language.clear}
-										</S.ClearDateButton>
+										/>
 									)}
 								</S.DateRangeHeader>
 								{showEndCalendar && (

@@ -315,6 +315,8 @@ export const language = {
 		transferFrom: `Transfer From`,
 		tuesday: `Tuesday`,
 		tuesdayShort: `Tu`,
+		txCannotBeFoundYet: `Transaction cannot be found yet`,
+		txCannotBeFoundYetInfo: `It may still be propagating or waiting to be indexed. Try refreshing in a moment.`,
 		txNotFound: `Transaction not found`,
 		type: `Type`,
 		unhealthy: `Unhealthy`,

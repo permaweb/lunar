@@ -75,6 +75,33 @@ export function getTransactionTypeFromTags(tags: TagType[] | undefined): Transac
 	}
 }
 
+export function hasPositiveAmount(value: string | number | null | undefined) {
+	if (value === null || value === undefined) return false;
+
+	const normalized = value.toString().trim();
+	if (!normalized) return false;
+
+	if (/^\d+$/.test(normalized)) {
+		return BigInt(normalized) > BigInt(0);
+	}
+
+	const parsed = Number(normalized);
+
+	return Number.isFinite(parsed) && parsed > 0;
+}
+
+export function isNativeArTransfer(transaction: {
+	recipient?: string | null;
+	quantity?: {
+		winston?: string | number | null;
+		ar?: string | number | null;
+	} | null;
+}) {
+	if (!transaction?.recipient) return false;
+
+	return hasPositiveAmount(transaction.quantity?.winston) || hasPositiveAmount(transaction.quantity?.ar);
+}
+
 export function formatCount(count: string): string {
 	if (count === '0' || !Number(count)) return '0';
 

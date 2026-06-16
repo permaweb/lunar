@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { DEFAULT_ACTIONS, PROCESSES, TOKEN_DENOMINATIONS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
 import { TagType } from 'helpers/types';
-import { formatUnits, getTagValue, removeCommitments } from 'helpers/utils';
+import { formatUnits, getTagValue, hasPositiveAmount, removeCommitments } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
@@ -16,6 +16,44 @@ type TransferTokenMetadata = {
 	denomination: number | null;
 	ticker?: string | null;
 };
+
+type NativeArQuantity = {
+	winston?: string | number | null;
+	ar?: string | number | null;
+};
+
+type TransferQuantity = {
+	value: string;
+	metadata: TransferTokenMetadata;
+};
+
+function getNativeArQuantity(quantity: NativeArQuantity | null | undefined): TransferQuantity | null {
+	if (!quantity) return null;
+
+	const metadata = {
+		denomination: TOKEN_DENOMINATIONS.ar,
+		ticker: 'AR',
+	};
+
+	if (hasPositiveAmount(quantity.winston)) {
+		return {
+			value: quantity.winston.toString(),
+			metadata: metadata,
+		};
+	}
+
+	if (hasPositiveAmount(quantity.ar)) {
+		return {
+			value: quantity.ar.toString(),
+			metadata: {
+				...metadata,
+				denomination: null,
+			},
+		};
+	}
+
+	return null;
+}
 
 function getTokenKey(target: string | null | undefined) {
 	if (!target) return null;
@@ -161,14 +199,20 @@ async function readTokenInfo(processId: string, permawebProvider: any) {
 	}
 }
 
-export default function TransferAmount(props: { tags?: TagType[]; target?: string | null }) {
+export default function TransferAmount(props: {
+	tags?: TagType[];
+	target?: string | null;
+	quantity?: NativeArQuantity | null;
+}) {
 	const dispatch = useDispatch();
 	const permawebProvider = usePermawebProvider();
 
 	const action = getTagValue(props.tags, 'Action');
-	const quantity = getTagValue(props.tags, 'Quantity');
+	const nativeArQuantity = getNativeArQuantity(props.quantity);
+	const quantity = nativeArQuantity?.value ?? getTagValue(props.tags, 'Quantity');
 	const target = props.target ?? getTagValue(props.tags, 'Target');
-	const isTransfer = action === DEFAULT_ACTIONS.transfer.name;
+	const isTaggedTransfer = action === DEFAULT_ACTIONS.transfer.name;
+	const isTransfer = isTaggedTransfer || !!nativeArQuantity;
 
 	const knownMetadata = React.useMemo(() => getKnownTokenMetadata(target), [target]);
 	const cachedTarget = React.useMemo(() => {
@@ -181,7 +225,7 @@ export default function TransferAmount(props: { tags?: TagType[]; target?: strin
 	const knownHasDenomination = hasDenomination(knownMetadata);
 
 	const shouldFetchMetadata =
-		isTransfer &&
+		isTaggedTransfer &&
 		!!quantity &&
 		!!target &&
 		(!cachedTarget || (!cachedHasDenomination && !knownHasDenomination)) &&
@@ -238,7 +282,7 @@ export default function TransferAmount(props: { tags?: TagType[]; target?: strin
 
 	if (!isTransfer || !quantity) return null;
 
-	const metadata = mergeTokenMetadata(knownMetadata, cachedMetadata, fetchedMetadata);
+	const metadata = nativeArQuantity?.metadata ?? mergeTokenMetadata(knownMetadata, cachedMetadata, fetchedMetadata);
 	const formattedQuantity = formatTransferQuantity(quantity, metadata);
 	const title = metadata?.ticker ? `${formattedQuantity} ${metadata.ticker}` : formattedQuantity;
 
