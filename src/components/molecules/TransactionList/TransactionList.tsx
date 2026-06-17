@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from 'styled-components';
 
 import {
@@ -40,6 +40,12 @@ const TRANSACTION_QUERY_KEYS = {
 	limit: 'txLimit',
 	after: 'txAfter',
 	page: 'txPage',
+};
+const BUNDLE_TRANSACTION_QUERY_KEYS = {
+	type: 'bundleTxType',
+	limit: 'bundleTxLimit',
+	after: 'bundleTxAfter',
+	page: 'bundleTxPage',
 };
 
 function parsePositiveInteger(value: string | number) {
@@ -85,18 +91,65 @@ function normalizeTypeFilter(value: string | null): TransactionTypeFilter | null
 	return null;
 }
 
-function getTransactionQueryState(searchParams: URLSearchParams) {
-	const type = normalizeTypeFilter(getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.type));
-	const limit = parsePositiveInteger(getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.limit) ?? '');
-	const page = parsePositiveInteger(getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.page) ?? '');
-	const after = getSearchParam(searchParams, TRANSACTION_QUERY_KEYS.after);
+function getTransactionQueryKeys(mode: 'block' | 'bundle') {
+	return mode === 'bundle' ? BUNDLE_TRANSACTION_QUERY_KEYS : TRANSACTION_QUERY_KEYS;
+}
+
+function getTransactionQueryState(searchParams: URLSearchParams, queryKeys: typeof TRANSACTION_QUERY_KEYS) {
+	const type = normalizeTypeFilter(getSearchParam(searchParams, queryKeys.type));
+	const limit = parsePositiveInteger(getSearchParam(searchParams, queryKeys.limit) ?? '');
+	const page = parsePositiveInteger(getSearchParam(searchParams, queryKeys.page) ?? '');
+	const after = getSearchParam(searchParams, queryKeys.after);
+	const hasQuery = Object.values(queryKeys).some((key) => searchParams.has(key));
 
 	return {
+		hasQuery: hasQuery,
 		type: type,
 		limit: limit,
 		page: page,
 		after: after,
 	};
+}
+
+function getHashRouteSearch() {
+	if (typeof window === 'undefined') return '';
+
+	const searchIndex = window.location.hash.indexOf('?');
+
+	return searchIndex >= 0 ? window.location.hash.slice(searchIndex) : '';
+}
+
+function getRouteSearch(locationSearch: string, searchParamString: string) {
+	if (locationSearch) return locationSearch;
+	if (searchParamString) return `?${searchParamString}`;
+
+	return getHashRouteSearch();
+}
+
+function normalizePathname(pathname: string) {
+	return pathname.replace(/\/+$/, '') || '/';
+}
+
+function shouldSyncTransactionQueryParams(args: {
+	pathname: string;
+	mode: 'block' | 'bundle';
+	blockHeight?: number;
+	blockId?: string;
+	bundleId?: string;
+}) {
+	const parts = normalizePathname(args.pathname).split('/').filter(Boolean);
+	if (parts[0] !== 'explorer') return false;
+
+	const routeId = parts[1] ?? '';
+	const subPath = parts.slice(2).join('/');
+	if (subPath && subPath !== 'info') return false;
+
+	if (args.mode === 'bundle') return !!args.bundleId && routeId === args.bundleId;
+
+	return (
+		(args.blockHeight !== undefined && routeId === args.blockHeight.toString()) ||
+		(!!args.blockId && routeId === args.blockId)
+	);
 }
 
 function isTransferTransaction(transaction: TransactionNode) {
@@ -170,20 +223,20 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 
 		const type = getTransactionType(transaction);
 
-		// Use the same color scheme as MessageList actions
 		if (type === language.bundle) {
-			return currentTheme.colors.actions.transfer; // Orange for bundles
+			return currentTheme.colors.actions.debitNotice;
 		} else if (type === language.transaction) {
-			return currentTheme.colors.actions.balance; // Blue for transactions
+			return currentTheme.colors.actions.balance;
 		} else {
-			// Check if it's a specific transaction type from tags
 			const tagType = getTagValue(tags, 'Type');
 			if (tagType === 'Message') {
-				return currentTheme.colors.actions.info; // Purple for messages
+				return currentTheme.colors.actions.info;
 			} else if (tagType === 'Process') {
-				return currentTheme.colors.actions.eval; // Teal for processes
+				return currentTheme.colors.actions.eval;
+			} else if (tagType === 'Assignment') {
+				return currentTheme.colors.actions.other;
 			}
-			return currentTheme.colors.actions.other; // Default blue
+			return currentTheme.colors.actions.other;
 		}
 	}
 
@@ -246,6 +299,7 @@ export default function TransactionList(props: {
 	header?: string;
 	onTotalCountChange?: (count: number | null) => void;
 }) {
+	const location = useLocation();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const dispatch = useDispatch();
 	const permawebProvider = usePermawebProvider();
@@ -254,7 +308,35 @@ export default function TransactionList(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
-	const queryFilterState = React.useMemo(() => getTransactionQueryState(searchParams), []);
+	const transactionQueryKeys = React.useMemo(() => getTransactionQueryKeys(props.mode), [props.mode]);
+	const searchParamString = searchParams.toString();
+	const routeSearch = React.useMemo(
+		() => getRouteSearch(location.search, searchParamString),
+		[location.search, searchParamString]
+	);
+	const routeSearchParams = React.useMemo(() => new URLSearchParams(routeSearch), [routeSearch]);
+	const queryFilterState = React.useMemo(
+		() => getTransactionQueryState(routeSearchParams, transactionQueryKeys),
+		[routeSearchParams, transactionQueryKeys]
+	);
+	const syncQueryParams = React.useMemo(
+		() =>
+			shouldSyncTransactionQueryParams({
+				pathname: location.pathname,
+				mode: props.mode,
+				blockHeight: props.blockHeight,
+				blockId: props.blockId,
+				bundleId: props.bundleId,
+			}),
+		[location.pathname, props.mode, props.blockHeight, props.blockId, props.bundleId]
+	);
+	const skipNextQueryWriteRef = React.useRef<boolean>(syncQueryParams && queryFilterState.hasQuery);
+	const dataScopeKey = React.useMemo(() => {
+		if (props.mode === 'bundle') return `bundle:${props.bundleId ?? ''}`;
+
+		return `block:${props.blockHeight ?? props.blockId ?? ''}`;
+	}, [props.mode, props.blockHeight, props.blockId, props.bundleId]);
+	const previousDataScopeKeyRef = React.useRef<string>(dataScopeKey);
 
 	const [transactions, setTransactions] = React.useState<GQLEdge<TransactionNode>[]>([]);
 	const [loading, setLoading] = React.useState<boolean>(true);
@@ -294,9 +376,10 @@ export default function TransactionList(props: {
 						first: perPage,
 						after: after,
 						typeFilter: activeTypeFilter,
+						includeCount: !!props.onTotalCountChange || !after,
 				  });
 		},
-		[props.mode, props.blockHeight, props.blockId, props.bundleId, perPage, activeTypeFilter]
+		[props.mode, props.blockHeight, props.blockId, props.bundleId, props.onTotalCountChange, perPage, activeTypeFilter]
 	);
 
 	const hydrateTransactionForFilter = React.useCallback(
@@ -321,13 +404,59 @@ export default function TransactionList(props: {
 	}, [pageNumber]);
 
 	React.useEffect(() => {
-		updateSearchParams(searchParams, setSearchParams, {
-			[TRANSACTION_QUERY_KEYS.type]: activeTypeFilter,
-			[TRANSACTION_QUERY_KEYS.limit]: perPage !== DEFAULT_TRANSACTIONS_PER_PAGE ? perPage : null,
-			[TRANSACTION_QUERY_KEYS.after]: pageCursor,
-			[TRANSACTION_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+		if (previousDataScopeKeyRef.current === dataScopeKey) return;
+
+		previousDataScopeKeyRef.current = dataScopeKey;
+		skipNextQueryWriteRef.current = true;
+
+		setTransactions([]);
+		setTotalCount(null);
+		setError(null);
+		setCursorHistory([]);
+		setPageCursor(null);
+		setNextCursor(null);
+		setPageNumber(1);
+	}, [dataScopeKey]);
+
+	React.useEffect(() => {
+		if (!syncQueryParams || !queryFilterState.hasQuery) return;
+
+		skipNextQueryWriteRef.current = true;
+
+		const nextPerPage = queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE;
+		const nextPage = queryFilterState.page ?? 1;
+
+		setTypeFilter(queryFilterState.type ?? null);
+		setActiveTypeFilter(queryFilterState.type ?? null);
+		setPerPage(nextPerPage);
+		setPerPageInput(nextPerPage.toString());
+		setPageCursor(queryFilterState.after ?? null);
+		setPageNumber(nextPage);
+	}, [queryFilterState, syncQueryParams]);
+
+	React.useEffect(() => {
+		if (!syncQueryParams) return;
+		if (skipNextQueryWriteRef.current) {
+			skipNextQueryWriteRef.current = false;
+			return;
+		}
+
+		updateSearchParams(routeSearchParams, setSearchParams, {
+			[transactionQueryKeys.type]: activeTypeFilter,
+			[transactionQueryKeys.limit]: perPage !== DEFAULT_TRANSACTIONS_PER_PAGE ? perPage : null,
+			[transactionQueryKeys.after]: pageCursor,
+			[transactionQueryKeys.page]: pageNumber > 1 ? pageNumber : null,
 		});
-	}, [activeTypeFilter, pageCursor, pageNumber, perPage, searchParams, setSearchParams]);
+	}, [
+		activeTypeFilter,
+		pageCursor,
+		pageNumber,
+		perPage,
+		routeSearchParams,
+		setSearchParams,
+		syncQueryParams,
+		transactionQueryKeys,
+	]);
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -381,7 +510,7 @@ export default function TransactionList(props: {
 					if (response.transactions.count !== undefined) {
 						props.onTotalCountChange?.(response.transactions.count ?? null);
 						setTotalCount(needsClientTypeFilter ? null : response.transactions.count ?? null);
-					} else if (!pageCursor) {
+					} else if (!pageCursor || props.onTotalCountChange) {
 						setTotalCount(null);
 						props.onTotalCountChange?.(null);
 					}

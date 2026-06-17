@@ -713,17 +713,9 @@ export const UpdateWrapper = styled.div`
 	}
 `;
 
-export const UpdateWrapperType = styled.div`
-	min-height: 30px;
-	width: fit-content;
+export const UpdateWrapperType = styled(UpdateWrapper)`
 	padding: 5.5px 15px 4.5px 13.5px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 12.5px;
-	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
-	border-radius: ${STYLING.dimensions.radius.alt2};
+	gap: 9.5px;
 
 	div {
 		height: 12px;
@@ -738,22 +730,6 @@ export const UpdateWrapperType = styled.div`
 		width: 12px;
 		color: ${(props) => props.theme.colors.font.light2};
 		fill: ${(props) => props.theme.colors.font.light2};
-	}
-
-	span {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.light1};
-		text-align: center;
-	}
-
-	p {
-		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.light1};
-		text-align: center;
 	}
 `;
 

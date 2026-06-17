@@ -1467,7 +1467,7 @@ export default function MessageList(props: {
 
 						setCurrentData(gqlResponse.data);
 						setNextCursor(gqlResponse.nextCursor);
-						if (props.type === 'wallet') {
+						if (props.type === 'wallet' && !pageCursor) {
 							if (currentFilter === 'incoming') {
 								setIncomingCount(gqlResponse.count);
 							} else {
@@ -1571,7 +1571,7 @@ export default function MessageList(props: {
 
 				const gqlResponse = await fetchGqlDataPage(globalQueryArgs, parsedPerPage);
 
-				setTotalCount(gqlResponse.count);
+				if (!pageCursor) setTotalCount(gqlResponse.count);
 				setCurrentData(gqlResponse.data);
 				setNextCursor(gqlResponse.nextCursor);
 			}
@@ -1808,12 +1808,16 @@ export default function MessageList(props: {
 	}
 
 	function getPages() {
-		const totalPages = getTotalPages() ?? 1;
+		const totalPages = getTotalPages();
 		const activePerPage = parsedPerPage ?? 1;
 
 		return (
 			<>
-				<p>{`Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`}</p>
+				<p>
+					{totalPages
+						? `Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`
+						: `Page (${formatCount(pageNumber.toString())})`}
+				</p>
 				<S.Divider />
 				<p>{language.perPage(!showFilters ? formatCount(activePerPage.toString()) : '-')}</p>
 			</>

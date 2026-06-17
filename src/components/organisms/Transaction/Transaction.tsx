@@ -310,6 +310,16 @@ function Transaction(props: {
 
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const messageListRef = React.useRef<HTMLDivElement>(null);
+	const messageResultRequestRef = React.useRef<number>(0);
+	const mountedRef = React.useRef<boolean>(true);
+
+	React.useEffect(() => {
+		mountedRef.current = true;
+		return () => {
+			mountedRef.current = false;
+			messageResultRequestRef.current += 1;
+		};
+	}, []);
 
 	function isValidExplorerInput(value: string) {
 		if (checkValidBlockHeight(value) || checkValidBlockId(value)) return true;
@@ -424,6 +434,7 @@ function Transaction(props: {
 		setHasFetched(false);
 		setTxResponse(null);
 		setMessageResult(null);
+		messageResultRequestRef.current += 1;
 	}, [inputTxId]);
 
 	React.useEffect(() => {
@@ -439,6 +450,7 @@ function Transaction(props: {
 		if (inputTxId && isValidExplorerInput(inputTxId)) {
 			setLoadingTx(true);
 			setRefreshKey((prev) => prev + 1);
+			const messageResultRequestId = ++messageResultRequestRef.current;
 			setMessageResult(null);
 			try {
 				if (checkValidBlockHeight(inputTxId) || checkValidBlockId(inputTxId)) {
@@ -524,57 +536,68 @@ function Transaction(props: {
 				if (responseData) {
 					if (props.onTxChange) props.onTxChange(responseData);
 
+					setLoadingTx(false);
+					setHasFetched(true);
+
 					// Fetch message result if this is a message type
 					// Check both props.type and the actual transaction tags to determine if it's a message
 					const txType = getTransactionTypeFromTags(responseData.node.tags);
 					const isMessage = txType === 'message';
 
 					if (isMessage) {
-						try {
-							let variant = getTagValue(responseData.node.tags, 'Variant') as MessageVariantEnum;
-							const recipient = responseData.node?.recipient ?? getTagValue(responseData.node?.tags, 'Target');
+						void (async () => {
+							try {
+								let variant = getTagValue(responseData.node.tags, 'Variant') as MessageVariantEnum;
+								const recipient = responseData.node?.recipient ?? getTagValue(responseData.node?.tags, 'Target');
 
-							if (recipient && checkValidAddress(recipient)) {
-								// Find the variant of the recipient process to handle messages between networks
-								try {
-									const processLookup = await permawebProvider.libs.getGQLData({
-										ids: [recipient],
+								if (recipient && checkValidAddress(recipient)) {
+									// Find the variant of the recipient process to handle messages between networks
+									try {
+										const processLookup = await permawebProvider.libs.getGQLData({
+											ids: [recipient],
+										});
+
+										if (processLookup.data?.length > 0) {
+											const node = processLookup.data[0].node;
+											const processVariant = getTagValue(node.tags, 'Variant') as MessageVariantEnum;
+
+											if (processVariant) variant = processVariant;
+										}
+									} catch (e: any) {
+										console.error(e);
+									}
+
+									const deps = resolveLibDeps({
+										variant: variant,
+										permawebProvider: permawebProvider,
 									});
 
-									if (processLookup.data?.length > 0) {
-										const node = processLookup.data[0].node;
-										const processVariant = getTagValue(node.tags, 'Variant') as MessageVariantEnum;
+									const messageId = await resolveMessageId({
+										messageId: inputTxId,
+										variant: variant,
+										target: recipient,
+										permawebProvider: permawebProvider,
+									});
 
-										if (processVariant) variant = processVariant;
+									const resultResponse = await deps.ao.result({
+										process: recipient,
+										message: messageId,
+									});
+
+									if (mountedRef.current && messageResultRequestRef.current === messageResultRequestId) {
+										setMessageResult(removeCommitments(resultResponse));
 									}
-								} catch (e: any) {
-									console.error(e);
 								}
-
-								const deps = resolveLibDeps({
-									variant: variant,
-									permawebProvider: permawebProvider,
-								});
-
-								const messageId = await resolveMessageId({
-									messageId: inputTxId,
-									variant: variant,
-									target: recipient,
-									permawebProvider: permawebProvider,
-								});
-
-								const resultResponse = await deps.ao.result({
-									process: recipient,
-									message: messageId,
-								});
-
-								setMessageResult(removeCommitments(resultResponse));
+							} catch (e: any) {
+								console.error('Error fetching message result:', e);
+								if (mountedRef.current && messageResultRequestRef.current === messageResultRequestId) {
+									setMessageResult({ Response: e.message ?? 'Error Getting Result' });
+								}
 							}
-						} catch (e: any) {
-							console.error('Error fetching message result:', e);
-							setMessageResult({ Response: e.message ?? 'Error Getting Result' });
-						}
+						})();
 					}
+
+					return;
 				}
 			} catch (e: any) {
 				addNotification(e.message ?? language.errorFetchingTx, 'warning');
@@ -1912,6 +1935,7 @@ function Transaction(props: {
 		language,
 		messageResult,
 		isFullscreen,
+		bundleTransactionCount,
 	]);
 
 	const contextValue = React.useMemo(

@@ -1,4 +1,5 @@
-import { formatDate, getTagValue } from './utils';
+import { DEFAULT_ACTIONS, PROCESSES, TOKEN_DENOMINATIONS } from './config';
+import { formatDate, formatUnits, getTagValue } from './utils';
 
 export const DEFAULT_CSV_EXPORT_AMOUNT = 100;
 
@@ -120,6 +121,127 @@ function getActionFallback(tags: any[]) {
 	return 'None';
 }
 
+function matchesIgnoreCase(value: string | null | undefined, expected: string) {
+	return value?.toLowerCase() === expected.toLowerCase();
+}
+
+function getAoTransferAction(action: string | null | undefined) {
+	const transferActions = [
+		DEFAULT_ACTIONS.transfer.name,
+		DEFAULT_ACTIONS.debitNotice.name,
+		DEFAULT_ACTIONS.creditNotice.name,
+	];
+
+	return transferActions.find((transferAction) => matchesIgnoreCase(action, transferAction)) ?? null;
+}
+
+function getKnownTokenKey(tokenProcess: string | null | undefined) {
+	if (!tokenProcess) return null;
+
+	for (const [tokenKey, processId] of Object.entries(PROCESSES)) {
+		if (processId === tokenProcess) return tokenKey;
+	}
+
+	return null;
+}
+
+function getKnownTokenTicker(tokenKey: string | null) {
+	if (!tokenKey) return null;
+
+	switch (tokenKey) {
+		case 'ao':
+			return 'AO';
+		case 'pi':
+			return 'PI';
+		default:
+			return tokenKey.toUpperCase();
+	}
+}
+
+function getAoTransferTokenProcess(node: any, tags: any[], transferAction: string | null) {
+	if (!transferAction) return '';
+
+	if (matchesIgnoreCase(transferAction, DEFAULT_ACTIONS.transfer.name)) {
+		return node.recipient ?? getTagValue(tags, 'Target') ?? '';
+	}
+
+	return (
+		getTagValue(tags, 'From-Process') ??
+		getTagValue(tags, 'Token-Process') ??
+		getTagValue(tags, 'Token') ??
+		node.recipient ??
+		getTagValue(tags, 'Target') ??
+		''
+	);
+}
+
+function getAoTransferQuantity(tags: any[]) {
+	return getTagValue(tags, 'Quantity') ?? getTagValue(tags, 'Amount') ?? '';
+}
+
+function getAoTransferDenomination(tags: any[], tokenKey: string | null) {
+	const rawDenomination = getTagValue(tags, 'Denomination') ?? getTagValue(tags, 'Decimals');
+	const hasRawDenomination = rawDenomination !== null && rawDenomination !== undefined && rawDenomination !== '';
+	const parsedDenomination = Number(rawDenomination);
+
+	if (hasRawDenomination && Number.isInteger(parsedDenomination) && parsedDenomination >= 0) return parsedDenomination;
+	if (tokenKey && TOKEN_DENOMINATIONS[tokenKey] !== undefined) return TOKEN_DENOMINATIONS[tokenKey];
+
+	return null;
+}
+
+function formatAoTransferQuantity(quantity: string, denomination: number | null) {
+	if (!quantity || denomination === null) return quantity;
+	if (!/^-?\d+$/.test(quantity.trim())) return quantity;
+
+	try {
+		return formatUnits(quantity, denomination);
+	} catch (e: any) {
+		console.error(e);
+		return quantity;
+	}
+}
+
+function getAoTransferFrom(node: any, tags: any[], transferAction: string | null) {
+	if (!transferAction) return '';
+
+	if (matchesIgnoreCase(transferAction, DEFAULT_ACTIONS.transfer.name)) {
+		return getTagValue(tags, 'From-Process') ?? node.owner?.address ?? getTagValue(tags, 'Sender') ?? '';
+	}
+
+	return getTagValue(tags, 'Sender') ?? getTagValue(tags, 'From') ?? node.owner?.address ?? '';
+}
+
+function getAoTransferTo(node: any, tags: any[], transferAction: string | null) {
+	if (!transferAction) return '';
+
+	return getTagValue(tags, 'Recipient') ?? node.recipient ?? getTagValue(tags, 'Target') ?? '';
+}
+
+function getAoTransferFields(node: any, tags: any[], action: string) {
+	const transferAction = getAoTransferAction(action);
+	const tokenProcess = getAoTransferTokenProcess(node, tags, transferAction);
+	const tokenKey = getKnownTokenKey(tokenProcess);
+	const ticker = getTagValue(tags, 'Ticker') ?? getKnownTokenTicker(tokenKey) ?? '';
+	const quantity = getAoTransferQuantity(tags);
+	const denomination = getAoTransferDenomination(tags, tokenKey);
+
+	return {
+		ao_transfer: !!transferAction,
+		ao_transfer_action: transferAction ?? '',
+		ao_transfer_token: ticker || tokenProcess,
+		ao_transfer_token_process: tokenProcess,
+		ao_transfer_quantity: transferAction ? quantity : '',
+		ao_transfer_quantity_formatted: transferAction ? formatAoTransferQuantity(quantity, denomination) : '',
+		ao_transfer_denomination: transferAction && denomination !== null ? denomination : '',
+		ao_transfer_from: getAoTransferFrom(node, tags, transferAction),
+		ao_transfer_to: getAoTransferTo(node, tags, transferAction),
+		ao_transfer_reference: transferAction
+			? getTagValue(tags, 'Reference') ?? getTagValue(tags, 'Pushed-For') ?? getTagValue(tags, 'X-Reference') ?? ''
+			: '',
+	};
+}
+
 export function mapBlockForCsv(entry: any): Record<string, unknown> {
 	const node = entry?.node ?? entry ?? {};
 	const metadata = node.metadata ?? {};
@@ -146,6 +268,7 @@ export function mapTransactionForCsv(entry: any): Record<string, unknown> {
 	const timestamp = node.block?.timestamp;
 	const type = getTransactionType(tags);
 	const action = getTagValue(tags, 'Action') ?? getActionFallback(tags);
+	const aoTransferFields = getAoTransferFields(node, tags, action);
 
 	return {
 		id: node.id ?? '',
@@ -163,6 +286,7 @@ export function mapTransactionForCsv(entry: any): Record<string, unknown> {
 		data_size: node.data?.size ?? '',
 		data_type: node.data?.type ?? '',
 		bundled_in: node.bundledIn?.id ?? '',
+		...aoTransferFields,
 		tags: tags,
 	};
 }

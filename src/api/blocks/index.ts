@@ -1,3 +1,5 @@
+import { FLAGS } from 'helpers/config';
+
 export type BlockNode = {
 	id: string;
 	timestamp: number;
@@ -108,6 +110,7 @@ export type GetTransactionsByBundleArgs = {
 	first?: number;
 	after?: string | null;
 	typeFilter?: TransactionTypeFilter | null;
+	includeCount?: boolean;
 	gateway?: string;
 };
 
@@ -282,6 +285,22 @@ const BUNDLES_BY_BLOCK_PAGINATED_QUERY = `
 			after: $after
 			sort: HEIGHT_DESC
 		) {
+			${TRANSACTION_FIELDS}
+		}
+	}
+`;
+
+const TRANSACTIONS_BY_BUNDLE_QUERY = `
+	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
+		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
+			${TRANSACTION_FIELDS_WITH_COUNT}
+		}
+	}
+`;
+
+const TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY = `
+	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
+		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
 			${TRANSACTION_FIELDS}
 		}
 	}
@@ -661,6 +680,23 @@ export async function getTransactionsByBlock(
 }
 
 export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs): Promise<TransactionsQueryResponse> {
+	if (!FLAGS.USE_GATEWAY_BUNDLE_REQUEST) {
+		const includeCount = args.includeCount ?? !args.after;
+		const response = await queryGraphQL<TransactionsQueryResponse>({
+			query: includeCount ? TRANSACTIONS_BY_BUNDLE_QUERY : TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY,
+			variables: {
+				bundleId: [args.bundleId],
+				first: getFirst(args.first),
+				after: args.after ?? null,
+			},
+			gateway: args.gateway,
+		});
+
+		return {
+			transactions: normalizeTransactionConnection(response.transactions),
+		};
+	}
+
 	const ids = await getBundleTransactionIds(args);
 	const first = getFirst(args.first);
 	const startIndex = getBundleStartIndex(args.after);
