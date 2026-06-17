@@ -702,7 +702,6 @@ export const UpdateWrapper = styled.div`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
-		text-transform: uppercase;
 	}
 
 	p {
@@ -711,7 +710,6 @@ export const UpdateWrapper = styled.div`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
-		text-transform: uppercase;
 	}
 `;
 
@@ -748,7 +746,6 @@ export const UpdateWrapperType = styled.div`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
-		text-transform: uppercase;
 	}
 
 	p {
@@ -757,7 +754,6 @@ export const UpdateWrapperType = styled.div`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
-		text-transform: uppercase;
 	}
 `;
 

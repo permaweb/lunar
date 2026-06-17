@@ -202,7 +202,7 @@ export const darkTheme = {
 export const darkThemeAlt1 = {
 	scheme: 'dark',
 	neutral1: '#16161c',
-	neutral2: '#1b1c22',
+	neutral2: '#18181f',
 	neutral3: '#23242A',
 	neutral4: '#282930',
 	neutral5: '#3f414d',
@@ -308,7 +308,8 @@ export const darkThemeAlt3 = {
 	...common.dark,
 };
 
-export const theme = (currentTheme: any): DefaultTheme => ({
+export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
+	id,
 	scheme: currentTheme.scheme,
 	colors: {
 		accordion: {

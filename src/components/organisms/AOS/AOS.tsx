@@ -216,6 +216,8 @@ function AOS(props: {
 
 	// Re-process result lines when theme changes
 	React.useEffect(() => {
+		if (!props.active) return;
+
 		setResultLines((prev) =>
 			prev.map((line) => {
 				if (line.isHtml && line.rawText) {
@@ -224,7 +226,7 @@ function AOS(props: {
 				return line;
 			})
 		);
-	}, [theme, ansiToHtml]);
+	}, [props.active, ansiToHtml]);
 
 	// Load process data or list of processes
 	React.useEffect(() => {

@@ -945,6 +945,8 @@ export default function MessageList(props: {
 	React.useEffect(() => {
 		if (!syncQueryParams || !queryFilterState?.hasQuery) return;
 
+		skipNextQueryWriteRef.current = true;
+
 		const nextFilter = props.currentFilter ?? queryFilterState.filter ?? 'outgoing';
 
 		setCurrentFilter(nextFilter);

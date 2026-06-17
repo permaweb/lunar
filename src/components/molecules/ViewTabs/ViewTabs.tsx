@@ -42,8 +42,12 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 	const [showClearConfirmation, setShowClearConfirmation] = React.useState<boolean>(false);
 	const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
 	const [dropPosition, setDropPosition] = React.useState<{ index: number; side: 'left' | 'right' } | null>(null);
+	const [editingTabIndex, setEditingTabIndex] = React.useState<number | null>(null);
+	const [editingTabValue, setEditingTabValue] = React.useState<string>('');
 	const mouseDownPosRef = React.useRef<{ x: number; y: number } | null>(null);
 	const didDragOccurRef = React.useRef<boolean>(false);
+	const editInputRef = React.useRef<HTMLInputElement | null>(null);
+	const skipRenameCommitRef = React.useRef<boolean>(false);
 
 	React.useEffect(() => {
 		if (props.onMount) {
@@ -82,12 +86,23 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 		};
 	}, []);
 
+	React.useEffect(() => {
+		if (editingTabIndex === null) return;
+
+		requestAnimationFrame(() => {
+			editInputRef.current?.focus();
+			editInputRef.current?.select();
+		});
+	}, [editingTabIndex]);
+
 	const handleMouseDown = (e: React.MouseEvent) => {
 		mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
 		didDragOccurRef.current = false;
 	};
 
 	const handleTabClick = (e: React.MouseEvent, index: number) => {
+		if (editingTabIndex !== null) return;
+
 		// If a drag just occurred, prevent the click
 		if (didDragOccurRef.current) {
 			e.preventDefault();
@@ -111,6 +126,43 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 		mouseDownPosRef.current = null;
 		props.onActiveTabChange(index);
 		props.onVisitedTabsChange(new Set(props.visitedTabs).add(index));
+	};
+
+	const handleStartRename = (e: React.MouseEvent, index: number, label: string) => {
+		if (!props.onRenameTab || isAnyLoading) return;
+
+		e.preventDefault();
+		e.stopPropagation();
+		didDragOccurRef.current = false;
+		mouseDownPosRef.current = null;
+		skipRenameCommitRef.current = false;
+		setEditingTabIndex(index);
+		setEditingTabValue(label);
+	};
+
+	const handleCommitRename = () => {
+		if (editingTabIndex === null) return;
+		if (skipRenameCommitRef.current) {
+			skipRenameCommitRef.current = false;
+			return;
+		}
+
+		const nextLabel = editingTabValue.trim();
+		const tab = props.tabs[editingTabIndex];
+		const currentLabel = tab ? props.renderTabLabel(tab) : '';
+
+		if (nextLabel && nextLabel !== currentLabel) {
+			props.onRenameTab?.(editingTabIndex, nextLabel);
+		}
+
+		setEditingTabIndex(null);
+		setEditingTabValue('');
+	};
+
+	const handleCancelRename = () => {
+		skipRenameCommitRef.current = true;
+		setEditingTabIndex(null);
+		setEditingTabValue('');
 	};
 
 	const handleAddTab = React.useCallback(() => {
@@ -194,6 +246,11 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 	};
 
 	const handleDragStart = (e: React.DragEvent, index: number) => {
+		if (editingTabIndex !== null) {
+			e.preventDefault();
+			return;
+		}
+
 		e.stopPropagation();
 		setDraggedIndex(index);
 		didDragOccurRef.current = true; // Set to true immediately when drag starts
@@ -321,7 +378,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 								onClick={(e) => handleTabClick(e, index)}
 								disabled={false}
 								data-tab-index={index}
-								draggable
+								draggable={editingTabIndex === null}
 								onDragStart={(e) => handleDragStart(e, index)}
 								onDragOver={(e) => handleDragOver(e, index)}
 								onDragEnd={handleDragEnd}
@@ -350,7 +407,31 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 										/>
 									</div>
 								</div>
-								{label}
+								{editingTabIndex === index ? (
+									<S.TabTitleInput
+										ref={editInputRef}
+										value={editingTabValue}
+										onChange={(e) => setEditingTabValue(e.target.value)}
+										onClick={(e) => e.stopPropagation()}
+										onDoubleClick={(e) => e.stopPropagation()}
+										onMouseDown={(e) => e.stopPropagation()}
+										onBlur={handleCommitRename}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter') {
+												e.preventDefault();
+												handleCommitRename();
+											}
+											if (e.key === 'Escape') {
+												e.preventDefault();
+												handleCancelRename();
+											}
+										}}
+									/>
+								) : (
+									<S.TabTitle onDoubleClick={(e) => handleStartRename(e, index, label)} title={label}>
+										{label}
+									</S.TabTitle>
+								)}
 							</S.TabAction>
 						</React.Fragment>
 					);
@@ -362,7 +443,17 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 				<S.Placeholder />
 			</S.TabsContent>
 		);
-	}, [props.tabs, props.activeTabIndex, props.languageLabels, isAnyLoading, draggedIndex, dropPosition]);
+	}, [
+		props.tabs,
+		props.activeTabIndex,
+		props.languageLabels,
+		props.onRenameTab,
+		isAnyLoading,
+		draggedIndex,
+		dropPosition,
+		editingTabIndex,
+		editingTabValue,
+	]);
 
 	return (
 		<>

@@ -32,6 +32,7 @@ import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
 import { MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
+	capitalize,
 	checkValidAddress,
 	formatAddress,
 	formatBlockId,
@@ -1070,7 +1071,7 @@ function Transaction(props: {
 	const MessageInfoSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
 
-		const action = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || '-' : '-';
+		const action = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || 'None' : 'None';
 		const from = txResponse
 			? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse?.node?.owner?.address
 			: undefined;
@@ -1844,7 +1845,7 @@ function Transaction(props: {
 						const variant = txResponse
 							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
 							: undefined;
-						return <ProcessEditor processId={inputTxId} variant={variant} type={'read'} />;
+						return <ProcessEditor processId={inputTxId} variant={variant} type={'read'} isFullscreen={isFullscreen} />;
 					},
 				},
 				{
@@ -1858,7 +1859,7 @@ function Transaction(props: {
 						const variant = txResponse
 							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
 							: undefined;
-						return <ProcessEditor processId={inputTxId} variant={variant} type={'write'} />;
+						return <ProcessEditor processId={inputTxId} variant={variant} type={'write'} isFullscreen={isFullscreen} />;
 					},
 				},
 				{
@@ -1902,7 +1903,16 @@ function Transaction(props: {
 		}
 
 		return tabs;
-	}, [props.type, resolvedType, inputTxId, arProvider.walletAddress, ownerAddress, language, messageResult]);
+	}, [
+		props.type,
+		resolvedType,
+		inputTxId,
+		arProvider.walletAddress,
+		ownerAddress,
+		language,
+		messageResult,
+		isFullscreen,
+	]);
 
 	const contextValue = React.useMemo(
 		() => ({ txResponse, inputTxId, type: resolvedType, refreshKey }),
@@ -2004,6 +2014,17 @@ function Transaction(props: {
 				console.error('Error attempting to exit fullscreen:', err);
 			}
 		}
+	}, []);
+
+	React.useEffect(() => {
+		const handleFullscreenChange = () => {
+			setIsFullscreen(document.fullscreenElement === wrapperRef.current);
+		};
+
+		document.addEventListener('fullscreenchange', handleFullscreenChange);
+		return () => {
+			document.removeEventListener('fullscreenchange', handleFullscreenChange);
+		};
 	}, []);
 
 	const handleBlockNavigation = React.useCallback(
@@ -2129,7 +2150,7 @@ function Transaction(props: {
 							<S.TxInfoWrapper>
 								<S.UpdateWrapperType>
 									<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
-									<span>{resolvedType}</span>
+									<span>{capitalize(resolvedType)}</span>
 								</S.UpdateWrapperType>
 								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 									<>

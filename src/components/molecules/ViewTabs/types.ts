@@ -17,6 +17,7 @@ export interface TabsContainerProps<T extends BaseTabType> {
 	onAddTab?: (id?: string) => void;
 	onDeleteTab?: (index: number) => void;
 	onClearTabs?: () => void;
+	onRenameTab?: (index: number, label: string) => void;
 	onMount?: (tabsRef: React.RefObject<HTMLDivElement>) => void;
 	languageLabels: {
 		newTab: string;

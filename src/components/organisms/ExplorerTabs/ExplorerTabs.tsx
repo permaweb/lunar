@@ -21,6 +21,7 @@ import { Transaction } from '../Transaction';
 type ExplorerTabType = BaseTabType & {
 	type: TransactionTabType['type'];
 	lastRoute?: string;
+	labelEdited?: boolean;
 };
 
 function checkValidBlockId(id: string | null) {
@@ -38,7 +39,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const isDeletingRef = React.useRef<boolean>(false);
 	const tabsContainerRef = React.useRef<HTMLDivElement>(null);
 	const activeTabIndexRef = React.useRef<number>(0);
-	const locationPathRef = React.useRef<string>(location.pathname);
+	const locationRouteRef = React.useRef<string>(getLocationRoute());
 	const previousLocationPathRef = React.useRef<string | null>(null);
 
 	const storageKey = `${props.type}-transactions`;
@@ -53,7 +54,9 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			return parsed.length > 0
 				? parsed.map((tx: any) => ({
 						...tx,
-						lastRoute: tx.id ? getRouteForTab(tx, getStoredSubPath(tx.lastRoute)) : undefined,
+						lastRoute: tx.id
+							? getRouteForTab(tx, getStoredSubPath(tx.lastRoute), getStoredSearch(tx.lastRoute))
+							: undefined,
 						tabKey: tx.tabKey || `tab-${Date.now()}-${Math.random()}`,
 				  }))
 				: [{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }];
@@ -69,12 +72,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	}, [activeTabIndex]);
 
 	React.useEffect(() => {
-		locationPathRef.current = location.pathname;
-	}, [location.pathname]);
+		locationRouteRef.current = getLocationRoute();
+	}, [location.pathname, location.search]);
 
 	React.useEffect(() => {
 		const { txId, subPath, txType } = extractTxDetailsFromPath(location.pathname);
-		const route = getRouteForTab({ id: txId, type: txType }, subPath);
+		const route = getRouteForTab({ id: txId, type: txType }, subPath, getLocationSearch());
 		const insertNewTabsNextToActive = props.type === 'explorer' && isExplorerPath(previousLocationPathRef.current);
 
 		if (txId && !transactions.some((tab) => isSameTab(tab, txId, txType)) && !isDeletingRef.current) {
@@ -119,7 +122,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			}
 		}
 		previousLocationPathRef.current = location.pathname;
-	}, [location.pathname]);
+	}, [location.pathname, location.search]);
 
 	React.useEffect(() => {
 		localStorage.setItem(storageKey, JSON.stringify(transactions));
@@ -180,15 +183,33 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		[location.pathname, transactions, activeTabIndex, props.type, navigate]
 	);
 
-	function getRouteForTab(tab: Pick<ExplorerTabType, 'id' | 'type'>, subPath: string = '') {
+	function getRouteForTab(tab: Pick<ExplorerTabType, 'id' | 'type'>, subPath: string = '', search: string = '') {
 		if (!tab.id) return URLS[props.type];
-		if (props.type === 'aos') return `${URLS.aos}${tab.id}${subPath}`;
+		if (props.type === 'aos') return `${URLS.aos}${tab.id}${subPath}${search}`;
 
-		return `${URLS.explorer}${tab.id}${subPath}`;
+		return `${URLS.explorer}${tab.id}${subPath}${search}`;
 	}
 
 	function normalizeRoute(route: string) {
-		return route.replace(/\/+$/, '') || '/';
+		const routeWithoutHash = route.split('#')[0];
+		const searchIndex = routeWithoutHash.indexOf('?');
+		const path = searchIndex >= 0 ? routeWithoutHash.slice(0, searchIndex) : routeWithoutHash;
+		const search = searchIndex >= 0 ? routeWithoutHash.slice(searchIndex) : '';
+
+		return `${path.replace(/\/+$/, '') || '/'}${search}`;
+	}
+
+	function getLocationSearch() {
+		if (location.search) return location.search;
+		if (typeof window === 'undefined') return '';
+
+		const searchIndex = window.location.hash.indexOf('?');
+
+		return searchIndex >= 0 ? window.location.hash.slice(searchIndex) : '';
+	}
+
+	function getLocationRoute() {
+		return `${location.pathname}${getLocationSearch()}`;
 	}
 
 	function isExplorerPath(pathname: string | null) {
@@ -217,8 +238,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	}
 
 	function navigateIfNeeded(route: string, options?: { replace?: boolean }) {
-		if (normalizeRoute(locationPathRef.current) !== normalizeRoute(route)) {
-			locationPathRef.current = route;
+		if (normalizeRoute(locationRouteRef.current) !== normalizeRoute(route)) {
+			locationRouteRef.current = route;
 			navigate(route, options);
 		}
 	}
@@ -232,7 +253,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	function getStoredSubPath(route?: string) {
 		if (!route) return '';
 
-		const parts = route.replace(/#.*/, '').split('/').filter(Boolean);
+		const path = route.split('#')[0].split('?')[0];
+		const parts = path.split('/').filter(Boolean);
 		const subPathParts =
 			props.type === 'explorer' && ['block', 'bundle'].includes(parts[1]) ? parts.slice(3) : parts.slice(2);
 		const subPath = subPathParts.join('/') || '';
@@ -240,8 +262,18 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		return subPath ? `/${subPath}` : '';
 	}
 
+	function getStoredSearch(route?: string) {
+		if (!route) return '';
+
+		const routeWithoutHash = route.split('#')[0];
+		const searchIndex = routeWithoutHash.indexOf('?');
+
+		return searchIndex >= 0 ? routeWithoutHash.slice(searchIndex) : '';
+	}
+
 	function extractTxDetailsFromPath(pathname: string) {
-		const parts = pathname.replace(/#.*/, '').split('/').filter(Boolean);
+		const path = pathname.split('#')[0].split('?')[0];
+		const parts = path.split('/').filter(Boolean);
 		const txId = parts[1] || '';
 		const subPathParts = parts.slice(2);
 		const subPath = subPathParts.join('/') || '';
@@ -281,16 +313,22 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			setTransactions((prev) => {
 				const updated = [...prev];
 				if (updated[tabIndex]) {
+					const previousTab = updated[tabIndex];
 					const nextType = type as TransactionTabType['type'];
-					const nextRoute = getRouteForTab({ id: newTx.node.id, type: nextType });
+					const shouldPreserveCurrentRoute = previousTab.id === newTx.node.id;
+					const nextRoute = getRouteForTab(
+						{ id: newTx.node.id, type: nextType },
+						shouldPreserveCurrentRoute ? getStoredSubPath(previousTab.lastRoute) : '',
+						shouldPreserveCurrentRoute ? getStoredSearch(previousTab.lastRoute) : ''
+					);
 					const shouldNavigate =
 						tabIndex === activeTabIndexRef.current &&
-						(updated[tabIndex].id !== newTx.node.id || updated[tabIndex].type !== nextType);
+						(previousTab.id !== newTx.node.id || previousTab.type !== nextType);
 
 					updated[tabIndex] = {
-						...updated[tabIndex],
+						...previousTab,
 						id: newTx.node.id,
-						label: name ?? newTx.node.id,
+						label: previousTab.labelEdited ? previousTab.label : name ?? newTx.node.id,
 						type: nextType,
 						lastRoute: nextRoute,
 					};
@@ -418,10 +456,29 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		navigateIfNeeded(URLS[props.type], { replace: true });
 	};
 
+	const handleRenameTab = React.useCallback((index: number, label: string) => {
+		setTransactions((prev) => {
+			const updated = [...prev];
+			const tab = updated[index];
+
+			if (!tab) return prev;
+
+			updated[index] = {
+				...tab,
+				label: label,
+				labelEdited: true,
+			};
+
+			return updated;
+		});
+	}, []);
+
 	const renderTabLabel = (tab: ExplorerTabType) => {
 		let label = language.untitled;
 		if (tab.label) {
-			if (checkValidBlockId(tab.label)) {
+			if (tab.labelEdited) {
+				label = tab.label;
+			} else if (checkValidBlockId(tab.label)) {
 				label = formatBlockId(tab.label, false);
 			} else {
 				label = checkValidAddress(tab.label) ? formatAddress(tab.label, false) : tab.label;
@@ -488,6 +545,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			onAddTab={handleAddTab}
 			onDeleteTab={handleDeleteTab}
 			onClearTabs={handleClearTabs}
+			onRenameTab={handleRenameTab}
 			onMount={handleMount}
 			renderTabIcon={renderTabIcon}
 			renderTabLabel={renderTabLabel}

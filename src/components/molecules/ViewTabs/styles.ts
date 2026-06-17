@@ -92,7 +92,7 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 	transition: all 100ms;
 
 	&[draggable='true']:active {
-		background: ${(props) => props.theme.colors.container.alt2.background};
+		background: ${(props) => props.theme.colors.container.alt1.background};
 		border-top: 2px solid ${(props) => props.theme.colors.border.alt1};
 	}
 
@@ -200,6 +200,27 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 		background: ${(props) => (props.active ? props.theme.colors.border.primary : 'transparent')};
 		pointer-events: none;
 	}
+`;
+
+export const TabTitle = styled.span`
+	display: block;
+	max-width: 240px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+`;
+
+export const TabTitleInput = styled.input`
+	width: 98px;
+	max-width: 98px;
+	min-width: 98px;
+	padding: 0;
+	border: none;
+	border-bottom: 1px solid ${(props) => props.theme.colors.form.valid.outline};
+	color: ${(props) => props.theme.colors.font.primary};
+	font-size: ${(props) => props.theme.typography.size.xSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	outline: none;
 `;
 
 export const TabActiveIndicator = styled.div`
