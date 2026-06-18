@@ -276,15 +276,12 @@ function Message(props: {
 	}
 
 	function getTo() {
-		return (
-			<S.To>
-				{props.element.node.recipient ? (
-					<TxAddress address={props.element.node.recipient} tooltipPosition={'right'} />
-				) : (
-					<p>No Recipient</p>
-				)}
-			</S.To>
-		);
+		let recipient = props.element?.node?.recipient;
+
+		const sendToRecipient = getTagValue(props.element?.node?.tags, 'Recipient');
+		if (sendToRecipient) recipient = sendToRecipient;
+
+		return <S.To>{recipient ? <TxAddress address={recipient} tooltipPosition={'right'} /> : <p>No Recipient</p>}</S.To>;
 	}
 
 	function getActionBackground() {

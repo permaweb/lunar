@@ -770,6 +770,7 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
 		text-transform: uppercase;
+		line-height: 1;
 	}
 `;
 

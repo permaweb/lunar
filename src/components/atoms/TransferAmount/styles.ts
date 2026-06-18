@@ -23,7 +23,7 @@ export const Wrapper = styled.span`
 	display: inline-flex;
 	align-items: center;
 	color: ${(props) => props.theme.colors.font.alt2};
-	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-family: ${(props) => props.theme.typography.family.alt1};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	white-space: nowrap;
@@ -41,7 +41,7 @@ export const Wrapper = styled.span`
 
 export const Quantity = styled.span`
 	min-width: 0;
-	max-width: 60px;
+	max-width: 80px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 `;
@@ -50,4 +50,7 @@ export const Ticker = styled.span`
 	flex: 0 0 auto;
 	margin: 0 0 0 3.5px;
 	text-transform: uppercase;
+	max-width: 40px;
+	overflow: hidden;
+	text-overflow: ellipsis;
 `;
