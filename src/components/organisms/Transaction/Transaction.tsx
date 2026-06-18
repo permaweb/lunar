@@ -23,6 +23,7 @@ import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { MarkdownViewer } from 'components/molecules/MarkdownViewer';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
@@ -967,6 +968,7 @@ function Transaction(props: {
 		const [txMetadata, setTxMetadata] = React.useState<any | null>(null);
 		const [currentBlockHeight, setCurrentBlockHeight] = React.useState<number | null>(null);
 		const [arUsdPrice, setArUsdPrice] = React.useState<number | null>(null);
+		const [overviewLoading, setOverviewLoading] = React.useState<boolean>(true);
 
 		React.useEffect(() => {
 			if (!inputTxId || !checkValidAddress(inputTxId)) return;
@@ -976,6 +978,7 @@ function Transaction(props: {
 			setTxMetadata(null);
 			setCurrentBlockHeight(null);
 			setArUsdPrice(null);
+			setOverviewLoading(true);
 
 			(async () => {
 				const overview = await fetchTransactionOverview(inputTxId, refreshKey);
@@ -985,6 +988,7 @@ function Transaction(props: {
 				setTxMetadata(overview.metadata);
 				setCurrentBlockHeight(overview.currentBlockHeight);
 				setArUsdPrice(overview.arUsdPrice);
+				setOverviewLoading(false);
 			})();
 
 			return () => {
@@ -1000,10 +1004,19 @@ function Transaction(props: {
 		const timestamp = node?.block?.timestamp ?? txResponse?.node?.block?.timestamp ?? null;
 		const confirmations =
 			currentBlockHeight !== null && blockHeight !== null ? Math.max(currentBlockHeight - blockHeight, 0) : null;
-		const statusLoading = blockHeight !== null && confirmations === null;
+		const notYetFound = !overviewLoading && !txMetadata && blockHeight === null;
+		const statusLoading = overviewLoading || (blockHeight !== null && confirmations === null);
 		const pending =
-			!statusLoading && (confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : !blockHeight);
-		const statusLabel = statusLoading ? `${language.loading}...` : pending ? language.pending : language.confirmed;
+			!statusLoading &&
+			!notYetFound &&
+			(confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : blockHeight === null);
+		const statusLabel = statusLoading
+			? `${language.loading}...`
+			: notYetFound
+			? language.notYetFound
+			: pending
+			? language.pending
+			: language.confirmed;
 		const statusEta = pending ? formatStatusEta(confirmations) : null;
 		const fee = node?.fee;
 		const quantity = node?.quantity;
@@ -1035,7 +1048,7 @@ function Transaction(props: {
 							primary={`Status: ${statusLabel}`}
 							secondary={statusEta}
 							indicator={
-								statusLoading ? null : (
+								statusLoading || notYetFound ? null : (
 									<S.TransferInfoStatusIndicator pending={pending} success={!pending}>
 										<ReactSVG src={pending ? ASSETS.pending : ASSETS.success} />
 									</S.TransferInfoStatusIndicator>
@@ -1569,7 +1582,14 @@ function Transaction(props: {
 		const [data, setData] = React.useState<any>(null);
 		const [loading, setLoading] = React.useState<boolean>(false);
 
-		const contentType = txResponse?.node?.tags ? getTagValue(txResponse.node.tags, 'Content-Type') : null;
+		const contentType =
+			(txResponse?.node?.tags ? getTagValue(txResponse.node.tags, 'Content-Type') : null) ??
+			txResponse?.node?.data?.type ??
+			null;
+		const normalizedContentType = contentType?.split(';')[0].trim().toLowerCase();
+		const isMarkdown = ['text/markdown', 'text/x-markdown', 'application/markdown'].includes(
+			normalizedContentType ?? ''
+		);
 
 		React.useEffect(() => {
 			(async function () {
@@ -1584,6 +1604,8 @@ function Transaction(props: {
 
 						if (trimmed === '') {
 							setData(language.noData);
+						} else if (isMarkdown) {
+							setData(trimmed);
 						} else {
 							try {
 								const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
@@ -1618,7 +1640,7 @@ function Transaction(props: {
 			}
 
 			// Render HTML directly
-			if (contentType === 'text/html') {
+			if (normalizedContentType === 'text/html') {
 				return (
 					<S.Section className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
 						<S.SectionHeader>
@@ -1630,7 +1652,7 @@ function Transaction(props: {
 			}
 
 			// Render images
-			if (contentType && contentType.startsWith('image/')) {
+			if (normalizedContentType?.startsWith('image/')) {
 				return (
 					<S.DataSection $fixedHeight={props.fixedHeight}>
 						<img
@@ -1639,6 +1661,19 @@ function Transaction(props: {
 							style={{ maxWidth: '100%', height: 'auto' }}
 						/>
 					</S.DataSection>
+				);
+			}
+
+			if (isMarkdown && typeof data === 'string') {
+				return (
+					<MarkdownViewer
+						markdown={data}
+						header={props.dataHeader ?? language.data}
+						fixedHeight={props.fixedHeight ?? 600}
+						embedded
+						compact
+						className={'border-wrapper-primary'}
+					/>
 				);
 			}
 

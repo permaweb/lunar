@@ -1,6 +1,6 @@
 # Lunar
 
-Lunar is a decentralized explorer application built on top of [Arweave](https://arweave/org) and [AO](https://ao.arweave.net). It provides an interface for discovering, inspecting, and interacting with messages exchanged across the AO network. By surfacing AO messages and processes, Lunar aims to improve traceability for users of the network, and developer utility for building their permaweb applications.
+Lunar is an explorer for [Arweave](https://arweave.org) and [AO](https://ao.arweave.net). It provides interfaces for inspecting Arweave blocks, transactions, bundles, data, and wallets alongside AO processes, messages, results, and process interactions.
 
 ## Prerequisites
 

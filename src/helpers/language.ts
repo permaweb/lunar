@@ -195,6 +195,7 @@ export const language = {
 		nodeConfiguration: `Node Configuration`,
 		nodes: `Nodes`,
 		none: `None`,
+		notYetFound: `Not Yet Found`,
 		november: `November`,
 		october: `October`,
 		offline: `Offline`,

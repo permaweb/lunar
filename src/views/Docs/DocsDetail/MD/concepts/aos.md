@@ -1,109 +1,89 @@
 # AOS
 
-AOS is the interactive development environment for the AO network. It provides a Lua-based programming interface for creating and controlling processes. Understanding AOS is essential for building applications on AO.
+AOS is a Lua-oriented operating environment for AO processes. It provides process state, handlers, messaging helpers, and an interactive evaluation workflow.
 
-AOS is available as a CLI, a package with JavaScript bindings (aoconnect), and inside Lunar as a browser-based tool.
+Lunar embeds an AOS console and editor for processes owned by the connected wallet.
 
-AOS is available as a CLI, a package with JavaScript bindings (aoconnect), and inside Lunar as a browser-based tool.
+#### AOS in the Arweave and AO Stack
 
-#### What is AOS?
+AOS commands are sent as AO messages to a process. The message is signed by the connected Arweave wallet, evaluated by AO, and can produce output or more messages.
 
-AOS is:
+This means an AOS session involves both layers:
 
-- **Interactive Environment**: Real-time Lua console for process interaction
-- **Development Tool**: Write and test handlers on the fly
-- **Programming Interface**: Full access to process state and capabilities
-- **Message Framework**: Simplified message handling and routing
-- **Standard Library**: Common utilities and patterns
+- Arweave wallet identity and signed records
+- AO process execution, state, handlers, and results
 
-#### AOS Documentation
+#### Access in Lunar
 
-The canonical source for AOS documentation is maintained separately and should be a 1:1 reference for Lunar's browser
-embed of AOS.
+To use AOS:
 
-For further reading:
+1. Connect a Wander wallet.
+2. Open **Console** or an owned process in Explorer.
+3. Select an existing process or create a named mainnet process.
+4. Confirm that the connected address matches the process owner.
+5. Send Lua from the console input or editor.
 
-- [aos GitHub README](https://github.com/permaweb/aos)
-- [AO cookbook aos guide](https://cookbook_ao.arweave.net/guides/aos/index.html)
-- [LLMs documentation for AO, including AOS reference](https://cookbook_ao.ar.io/llms-full.txt)
+The standalone Console lists indexed processes owned by the connected wallet. The AOS tab in Explorer appears only for an owned process.
 
-#### Using the AOS Console in Lunar
+#### Console Input
 
-**Accessing the Console:**
+The console sends input with the `Eval` action and raw Lua data.
 
-1. Navigate to **Console** view from sidebar
-2. Enter existing process ID or create new process
-3. Wallet connection required for owned processes
-4. Console loads with process information
+```lua
+State = State or {}
+State.Counter = (State.Counter or 0) + 1
+return State.Counter
+```
 
-**Console Features:**
+Use the Up and Down arrow keys to move through commands entered during the current session. Shift+Enter inserts a line break in the console input.
 
-**Command Execution:**
+#### Editor
 
-- Type Lua commands at the prompt
-- Press Enter to execute
-- View output immediately
-- Errors shown in red
+The editor is intended for longer Lua snippets:
 
-**Command History:**
+```lua
+Handlers.add(
+  "hello",
+  Handlers.utils.hasMatchingTag("Action", "Hello"),
+  function(msg)
+    msg.reply({ Data = "Hello from " .. ao.id })
+  end
+)
+```
 
-- Arrow Up: Previous command
-- Arrow Down: Next command
-- Persists during session
-- Navigate through history easily
+Submitting the editor contents sends the script to the active process. Output and errors appear in the console.
 
-**Multi-line Input:**
+#### Process Output
 
-- Type complete code blocks
-- Console detects incomplete statements
-- Supports function definitions
-- Indentation preserved
+Lunar requests the result of each submitted evaluation and also polls process results for new printed output. ANSI color codes are rendered in the terminal.
 
-**Editor Mode:**
+Output can include:
 
-- Toggle between console and editor
-- Write longer scripts
-- Syntax highlighting
-- Execute entire script
+- Returned data
+- Printed text
+- AOS prompts
+- Runtime errors
+- Output produced after another message reaches the process
 
-**Output Display:**
+#### Creating a Process
 
-- Print statements shown in real-time
-- Return values displayed
-- Errors highlighted
-- ANSI color support
+The Console can create a named AO mainnet process through the connected wallet. After creation, Lunar opens the new process and records its process ID, owner, variant, and scheduler in the local tab state.
 
-#### Best Practices
+Process creation and indexing are asynchronous. If a new process is not immediately discoverable elsewhere, wait for propagation and refresh.
 
-**Development Workflow:**
+#### Safety
 
-1. **Create Process**: Start with new AOS process
-2. **Define State**: Set up initial state structure
-3. **Add Handlers**: Create handlers one at a time
-4. **Test**: Use console to test each handler
-5. **Iterate**: Refine based on testing
-6. **Document**: Add comments and descriptions
+Lua sent through AOS can change process state. Before evaluating code:
 
-**Handler Design:**
+- Confirm the process ID and connected wallet.
+- Read the existing source and handlers.
+- Test small changes first.
+- Keep authorization checks inside handlers.
+- Avoid loading code you have not reviewed.
 
-- **Single Responsibility**: Each handler does one thing well
-- **Validation**: Check inputs before processing
-- **Error Handling**: Use assert for requirements
-- **Responses**: Always send response to message sender
-- **Logging**: Use print for debugging
+#### Further Reading
 
-**State Management:**
-
-- **Initialize**: Always use `State = State or {}`
-- **Defaults**: Provide sensible default values
-- **Consistency**: Keep state structure predictable
-- **Cleanup**: Remove unused state data
-- **Documentation**: Comment complex state structures
-
-**Security:**
-
-- **Validate Inputs**: Never trust message data blindly
-- **Check Permissions**: Verify sender authorization
-- **Limit Actions**: Restrict dangerous operations
-- **Bounds Checking**: Prevent overflow/underflow
-- **Rate Limiting**: Guard against spam
+- [Console](/docs/views/console)
+- [Processes](/docs/concepts/processes)
+- [aos repository](https://github.com/permaweb/aos)
+- [AO cookbook AOS guide](https://cookbook_ao.arweave.net/guides/aos/index.html)

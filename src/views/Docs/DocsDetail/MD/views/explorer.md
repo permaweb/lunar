@@ -1,421 +1,178 @@
 # Explorer
 
-![](list.png)
+Explorer is Lunar's unified inspector for Arweave and AO. It accepts network identifiers, determines what they represent, and opens the appropriate metadata, data, execution, and relationship views.
 
-The Explorer is Lunar's most comprehensive view, providing deep inspection and interaction capabilities for processes, messages, and wallets on the AO network. It features a multi-tab interface that lets you explore multiple transactions simultaneously.
+#### Supported Inputs
 
-#### Overview
+Explorer accepts:
 
-The Explorer allows you to:
+- A 43-character transaction, data item, process, message, or wallet identifier
+- A decimal Arweave block height
+- A 64-character Arweave block hash
 
-- **Search** any transaction by its 43-character ID
-- **Inspect** processes, messages, and wallets in detail
-- **Read** process state without sending transactions
-- **Write** messages to processes (requires wallet)
-- **Filter** and analyze message flows
-- **Navigate** between related transactions seamlessly
+For a 43-character identifier, Lunar attempts a direct gateway lookup and then falls back to configured GraphQL indexes. Tags and metadata are used to classify the record.
 
-#### Getting Started
+#### Detected Types
 
-**Opening the Explorer:**
+Explorer can display:
 
-1. Click **Explorer** in the sidebar navigation
-2. A blank tab opens automatically
-3. Enter a transaction ID in the search field
-4. Press Enter or click the search icon
+- **Block**
+- **Transaction**
+- **Bundle**
+- **Wallet**
+- **Process**
+- **Message**
 
-**Transaction ID Format:**
+AO assignments can appear in block and bundle lists and open as transaction-like records.
 
-- 43 characters (Arweave transaction ID)
-- Alphanumeric with dashes and underscores
-- Example: `0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc`
+The detected type is shown in the Explorer header. Related identifiers throughout the page are clickable and open in Explorer.
 
-**Auto-Detection:**
+#### Common Controls
 
-Lunar automatically detects the transaction type:
+Each Explorer tab includes controls to:
 
-- **Process**: Shows process inspection tabs
-- **Message**: Shows message details
-- **Wallet**: Shows wallet balances and messages
+- Search or replace the active identifier
+- Copy the identifier
+- Copy the current URL
+- Enter fullscreen
+- Refresh the record
 
-#### Process Inspection
+Explorer supports multiple persistent tabs. Opening a related record adds or selects a tab without losing the current inspection path.
 
-When viewing a process, you get multiple specialized tabs:
+#### Generic Transactions
 
-#### Overview Tab
+A native Arweave transaction page shows:
 
-Displays comprehensive process information:
+- Pending, confirmed, or not-yet-indexed status
+- AR value and estimated USD value
+- Owner and recipient
+- Fee and estimated USD value
+- Timestamp and age
+- Block height and confirmations
+- Data size
+- Tags
+- Transaction data
 
-**Process Metadata:**
+The Data panel uses the transaction content type where available. JSON is shown as structured data, Markdown is rendered, HTML is displayed, images are previewed, and other content is shown as text.
 
-- Transaction ID (clickable, copyable)
-- Owner address
-- Creation timestamp
-- Network variant (Mainnet/Legacynet)
+Native AR transfers are recognized from a positive transaction quantity and recipient.
 
-**Components:**
+#### Blocks
 
-- **Module**: Process behavior definition
-- **Scheduler**: Message coordination service
-- **Authority**: Operation validation service
-- Each component displays its transaction ID
+A block can be opened by height or hash. Its overview includes:
 
-**Process Tags:**
-
-- All tags displayed in expandable list
-- Standard tags (Data-Protocol, Type, Variant)
-- Custom tags (Name, Description, etc.)
-- Click to copy tag values
-
-**Process State:**
-
-- Read current state with ProcessRead component
-- Shows return value of state queries
-- No wallet required
-- Formatted output
-
-#### Messages Tab
-
-View and filter all process messages:
-
-**Message List:**
-
-- Incoming messages (to this process)
-- Outgoing messages (from this process)
-- Chronological ordering
-- Pagination support
-
-**Filtering Options:**
-
-**By Action:**
-
-- Select from standard actions (Eval, Transfer, Balance, etc.)
-- Add custom actions
-- Multiple action selection
-- Action color coding
-
-**By Participant:**
-
-- **Recipient**: Filter messages to specific address
-- **Sender**: Filter messages from specific address
-- Support for both wallet and process addresses
-
-**By Date:**
-
-- Start date: Show messages after this date
-- End date: Show messages before this date
-- Calendar picker interface
-- Combine with other filters
-
-**Results Per Page:**
-
-- Configure pagination (10, 25, 50, 100)
-- Preference persists per process
-- Navigate with Previous/Next buttons
-
-**Message Display:**
-
-- Message ID (clickable to inspect)
-- From/To addresses (clickable to navigate)
-- Action label (color-coded)
-- Timestamp or relative time
-- Click to expand full details
-
-#### Read Tab
-
-Execute read-only operations on the process:
-
-**Purpose:**
-
-- Query process state without transactions
-- Test process responses
-- No wallet required
-- No fees
-
-**Features:**
-
-**Code Editor:**
-
-- Monaco editor with Lua syntax highlighting
-- Multi-line code support
-- Syntax checking
-- Auto-completion
-
-**Action Field:**
-
-- Specify message action (default: Eval)
-- Required for proper handling
-- Suggestions for common actions
-
-**Additional Tags:**
-
-- Add custom tags to message
-- Key-value pairs
-- Support process-specific parameters
-
-**Execute Button:**
-
-- Send read message
-- Wait for response
-- Display result
-- Error handling
-
-**Result Display:**
-
-- Formatted JSON output
-- Syntax highlighting
-- Collapsible sections
-- Copy result option
-
-#### Write Tab
-
-Send state-changing messages to the process:
-
-**Requirements:**
-
-- Connected wallet
-- Sufficient AR balance for fees
-- Proper action and parameters
-
-**Features:**
-
-**Code Editor:**
-
-- Same as Read tab
-- Write Lua code or data
-- Syntax highlighting
-- Multi-line support
-
-**Action Field:**
-
-- Specify action (Transfer, Mint, etc.)
-- Must match process handlers
-- Case-sensitive
-
-**Additional Tags:**
-
-- Required for many actions
-- Example: Recipient, Quantity for Transfer
-- Process-specific tags
-
-**Send Button:**
-
-- Signs transaction with wallet
-- Submits to network
-- Waits for confirmation
-- Shows result
-
-**Result Display:**
-
-- Transaction ID
-- Process response
-- Resulting messages
-- Error messages if failed
-
-**Common Write Operations:**
-
-```lua
--- Simple Eval
-State.Counter = (State.Counter or 0) + 1
-```
-
-For **Transfer**, use tags:
-
-- Action: `Transfer`
-- Recipient: `wallet-address`
-- Quantity: `1000000000000`
-
-**Best Practices:**
-
-- Always read state first
-- Verify action spelling
-- Include all required tags
-- Test with small amounts
-- Check balance before large transfers
-
-#### Data Tab
-
-View raw process data:
-
-**Content Types:**
-
-**JSON:**
-
-- Formatted and syntax highlighted
-- Collapsible tree view
-- Copy entire structure
-- Download as file
-
-**Lua:**
-
-- Syntax highlighting
-- View source code
-- Copy code blocks
-- Export to file
-
-**HTML:**
-
-- Rendered preview
-- View source option
-- Responsive display
-- Full HTML support
-
-**Images:**
-
-- Display embedded images
-- PNG, JPG, SVG support
-- Zoom and download
-- Metadata display
-
-**Text:**
-
-- Plain text display
-- Markdown rendering
-- Copy content
-- Search within text
-
-#### Source Tab
-
-Inspect process source code:
-
-**OnBoot Handler:**
-
-- Initialization code
-- Handler definitions
-- State setup
-- Configuration
-
-**Display Features:**
-
-- Syntax highlighting for Lua
-- Line numbers
-- Copy code option
-- Search within code
-- Collapsible sections
-
-**Understanding Source:**
-
-- See available handlers
-- Understand actions
-- Find required parameters
-- Learn process behavior
-
-#### AOS Tab
-
-Interactive console for process owners:
-
-**Requirements:**
-
-- Must be process owner
-- Wallet must be connected
-- Owner address must match process owner
-
-**Features:**
-
-- Interactive Lua terminal
-- Real-time command execution
-- Output streaming
-- Command history
-- ANSI color support
-
-**See Also:**
-
-For detailed AOS usage, see the [Console documentation](../views/console.md) and [AOS concepts](../concepts/aos.md).
-
-#### Message Inspection
-
-When viewing a message (not a process), you see:
-
-**Message Info:**
-
-- Message ID
-- From address (clickable)
-- To address (clickable)
-- Owner address
-- Action label
+- Height and block hash
+- Previous block hash
+- Transaction root
+- Miner and reward
+- Transaction count
 - Timestamp
-- Block height
+- Confirmations
+- Block size
 
-**Message Input:**
+The transaction list supports pagination, CSV download, and filters for messages, assignments, bundles, or other transactions.
 
-- Original message data
-- Lua code for Eval messages
-- JSON for structured data
-- Plain text display
-- Copy input content
+Previous and next block controls appear in the header. The next control is disabled when the current block is the latest known height.
 
-**Message Output:**
+#### Bundles
 
-- Process response
-- Return values
-- Error messages
-- Formatted display
-- Copy output content
+Lunar detects ANS-104 binary bundles from their bundle format and version tags.
 
-**Resulting Messages:**
+A bundle page shows:
 
-- Messages spawned by this message
-- Debit/Credit notices from transfers
-- Process-to-process messages
-- Expandable tree view
-- Click to inspect each result
+- Outer transaction status, value, bundler, fee, block, confirmations, and size
+- Bundle format, version, and other tags
+- Number of indexed bundled records
+- Paginated bundle contents
 
-#### Wallet Inspection
+Bundle contents can be filtered by message, assignment, bundle, or transaction and downloaded as CSV.
 
-When viewing a wallet address, you see:
+#### AO Processes
 
-**Balance Display:**
+A process receives additional tabs:
 
-- **AO Token**: Balance in AO
-- **PI Token**: Balance in PI
-- **AR Balance**: Arweave balance
-- Refresh buttons for each
-- Formatted with proper decimals
+**Overview**
 
-**Message History:**
+Shows Arweave transaction metadata, owner, AO balance, process tags, and an automatic process read.
 
-- All messages involving this wallet
-- Incoming and outgoing
-- Filter by action, date, etc.
-- Same filtering as process messages
+**Messages**
 
-**Transaction List:**
+Lists messages involving the process. Filters and CSV export help isolate actions, participants, dates, and execution paths.
 
-- Transfers sent and received
-- Token purchases
-- Process interactions
-- Complete history
+**Read**
 
-#### Common Workflows
+Runs a read-only process query without asking the wallet to sign a new message.
 
-**Investigating a Token:**
+**Write**
 
-1. Search for token process ID
-2. Check Overview for metadata
-3. View Messages tab to see transfers
-4. Use Read tab to check your balance
-5. Source tab to understand token logic
+Submits a signed message to the process. The connected wallet and the process's own handler rules determine what is authorized.
 
-**Debugging a Process:**
+**Data**
 
-1. Open process in Explorer
-2. Check recent messages for errors
-3. Use Read tab to query state
-4. View Source to understand handlers
-5. AOS tab for interactive debugging (if owner)
+Displays data attached to the process record.
 
-**Tracking a Transfer:**
+**Source**
 
-1. Find transfer message ID
-2. View message details
-3. Check resulting messages for Debit/Credit notices
-4. Navigate to sender/recipient
-5. Verify balances updated
+Loads available process source or `On-Boot` code.
 
-**Analyzing Network Activity:**
+**AOS**
 
-1. Open multiple related processes
-2. Filter messages by date range
-3. Track message flow between processes
-4. Export data for further analysis
-5. Monitor for patterns
+Appears when the connected wallet address matches the process owner.
+
+#### AO Messages
+
+A message overview combines Arweave and AO information:
+
+- Transaction status, owner, target, fee, block, confirmations, and size
+- Action, variant, data protocol, date, scheduled block height, or slot
+- Input data and tags
+- Computation output or error
+- Resulting messages
+
+For `Transfer` messages, Lunar can display the token process, sender, recipient, quantity, execution status, and debit or credit notices.
+
+Click a resulting message to continue following the execution graph.
+
+#### Wallets
+
+When a valid address has indexed owner activity but no transaction record, Lunar presents it as a wallet.
+
+The wallet view includes:
+
+- Native AR balance
+- AO token balance
+- Indexed incoming and outgoing activity
+
+The wallet does not need to be connected for inspection. Connection is required only for signing actions.
+
+#### Lists, Filters, and Export
+
+Transaction and message lists use cursor pagination. Depending on the view, filters can include:
+
+- Record type
+- Action
+- Sender
+- Recipient
+- Date range
+- Block height range
+
+List state is reflected in URL parameters where supported. CSV downloads export the currently loaded page rather than the entire result set.
+
+#### Lookup and Indexing Behavior
+
+A record can exist before all sources agree about it. Lunar may retrieve data directly from an Arweave gateway while GraphQL block metadata or AO results are still propagating.
+
+If a known record appears incomplete:
+
+1. Refresh the Explorer tab.
+2. Confirm the ID or block hash format.
+3. Check the GraphQL Playground with another gateway.
+4. For AO messages, confirm the target process and variant.
+
+#### Related Reading
+
+- [Arweave overview](/docs/overview/arweave)
+- [AO overview](/docs/overview/ao)
+- [Blocks](/docs/views/blocks)
+- [Processes](/docs/concepts/processes)
+- [Messages](/docs/concepts/messages)

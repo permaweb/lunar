@@ -584,6 +584,10 @@ export const DataSection = styled(Section)`
 	padding: 0;
 `;
 
+export const MarkdownSection = styled.div`
+	padding: 10px 0 0 0;
+`;
+
 export const SectionFull = styled.div`
 	width: 100%;
 `;

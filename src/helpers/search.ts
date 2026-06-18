@@ -249,7 +249,6 @@ async function buildDirectLookupResponse(
 
 	const headers = directLookup.headers;
 	const tags = getDirectLookupTags(headers);
-	if (tags.length <= 0 || !getTagValue(tags, 'Type')) return null;
 
 	const signatureInput = headers.get('signature-input');
 	const ownerAddress = await getOwnerAddressFromSignatureInput(signatureInput);
@@ -265,8 +264,8 @@ async function buildDirectLookupResponse(
 			recipient: recipient ?? undefined,
 			tags: tags,
 			data: {
-				size: getTagValue(tags, 'Data-Size') ?? headers.get('content-length') ?? '0',
-				type: getTagValue(tags, 'Content-Type'),
+				size: getTagValue(tags, 'Data-Size') ?? headers.get('content-length') ?? undefined,
+				type: getTagValue(tags, 'Content-Type') ?? headers.get('content-type') ?? undefined,
 			},
 			owner: {
 				address: ownerAddress,

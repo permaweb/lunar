@@ -1,64 +1,78 @@
 # Introduction
 
-Lunar is an interface for exploring and interacting with AO processes, messages and entities.
+Lunar is an explorer for Arweave and AO. It brings permanent network data and message-driven computation into one interface so you can follow an identifier from its Arweave record to its AO meaning.
 
-It centers on entities and relationships you can inspect directly: processes, messages, wallets, and transaction-linked data. In practice, Lunar is useful when you need to move from an ID to context: what this entity is, what it is connected to, and what happened around it.
+Lunar can inspect:
 
-#### What Lunar Is
+- Arweave blocks, transactions, bundles, data, and wallet activity
+- Native AR transfers, fees, confirmations, owners, and recipients
+- AO processes, messages, assignments, results, and token transfers
+- Relationships between blocks, bundles, transactions, processes, messages, and wallets
 
-Lunar provides:
+#### Arweave and AO Together
 
-- Explorer-based inspection of process, message, and wallet records
-- Read and write surfaces for process interaction
-- Console access for interactive AOS workflows
-- GraphQL querying for broader AO/Arweave data retrieval
+Arweave is the permanent data layer. It provides the block history, signed transactions, wallet identities, tags, and retrievable data that make up the permaweb.
 
-#### Exploring AO
+AO is the computation layer. Processes receive messages, execute logic, and emit results or more messages. AO records use Arweave-compatible identifiers and are discoverable through gateways and AO services.
 
-AO is a decentralized hyperparallel computer built around message flow and process execution. The core framing from the [cookbook](https://cookbook_ao.arweave.net) is:
+Lunar treats these as connected layers:
 
-> "The `ao` computer takes messages and sends them to Processes in which those Processes can output messages that can be sent to other Processes. The result is a complex system built on simple modular logic containers."
+1. Start with a block height, block hash, transaction ID, process ID, message ID, or wallet address.
+2. Inspect the underlying Arweave metadata and data.
+3. When the record belongs to AO, continue into process state, message results, related messages, source, or AOS.
 
-AO is built on a few fundamental principles that form its foundation:
-
-- **Two core types**: Messages and Processes - the basic building blocks of the AO ecosystem
-- **No shared state, only Holographic State** - a unique approach to distributed computing
-- **Decentralized Computer** - enabling truly distributed applications
-
-That maps directly to Lunar's data model. Most screens in Lunar are effectively different ways to inspect either a process, a message, or the relationships between them.
-
-In Lunar, what you see in Explorer and GraphQL is not static data; it is a permanent log of message-driven computation over time.
+See [Arweave](/docs/overview/arweave) and [AO](/docs/overview/ao) for a closer look at each layer.
 
 #### Main Views
 
-- **Explorer**: inspect process, message, and wallet data, including linked history
-- **Console**: interactive AOS terminal and process session management
-- **GraphQL**: query editor and response viewer for AO/Arweave gateways
+- **Blocks** lists recent Arweave blocks, supports height-range filters, and opens each block in Explorer.
+- **Explorer** identifies and displays blocks, transactions, bundles, wallets, AO processes, and AO messages.
+- **Console** provides an owner-only AOS interface for creating and interacting with AO processes.
+- **GraphQL** runs queries against Arweave-compatible gateways and exposes each gateway's schema.
+- **Docs** explains the network concepts and the way Lunar maps them into the interface.
 
-#### What You Can Inspect in Lunar
+#### What You Can Search
 
-- Process metadata, source, message history, read/write interfaces
-- Message input, tags, output, and resulting messages
-- Wallet balances and observed transaction participation
-- Network-oriented data through configured GraphQL gateways
+The global search and Explorer accept:
 
-**Processes**
+- A 43-character transaction ID, data item ID, process ID, message ID, or wallet address
+- A decimal Arweave block height
+- A 64-character Arweave block hash
 
-![](intro-process.png)
+Lunar uses record tags and metadata to classify valid 43-character identifiers as a transaction, bundle, wallet, process, or message.
 
-> Processes possess the capability to engage in communication via message passing, both receiving and dispatching messages within the network. Additionally, they hold the potential to instantiate further processes, enhancing the network's computational fabric. This dynamic method of data dissemination and interaction within the network is referred to as a 'holographic state', underpinning the shared and persistent state of the network.
+#### Common Workflows
 
-**Messages**
+**Investigate a block**
 
-![](intro-message.png)
+1. Open **Blocks** or search for a block height.
+2. Review the block hash, previous block, miner, reward, size, timestamp, and confirmations.
+3. Filter the block's transaction list by transaction, bundle, message, or assignment.
+4. Open any row in Explorer for the full record.
 
-> In ao, every process runs in parallel, creating a highly scalable environment. Traditional direct function calls between processes aren't feasible because each process operates independently and asynchronously. Messaging addresses this by enabling asynchronous communication. Processes send and receive messages rather than directly invoking functions on each other. This method allows for flexible and efficient interaction, where processes can respond to messages, enhancing the system's scalability and responsiveness.
+**Inspect permanent data**
 
-#### Related AO Reading
+1. Search for a transaction ID.
+2. Review status, value, owner, recipient, fee, block, confirmations, size, and tags.
+3. Inspect the transaction data rendered according to its content type.
+4. Follow links to its block, owner, recipient, or containing bundle.
 
-For protocol-level details, these AO cookbook sections are the relevant companions to Lunar docs:
+**Trace AO execution**
 
-- Concepts index: [https://cookbook_ao.arweave.net/concepts/index.html](https://cookbook_ao.arweave.net/concepts/index.html)
-- How messaging works: [https://cookbook_ao.arweave.net/concepts/how-it-works.html](https://cookbook_ao.arweave.net/concepts/how-it-works.html)
-- Processes: [https://cookbook_ao.arweave.net/concepts/processes.html](https://cookbook_ao.arweave.net/concepts/processes.html)
-- Messages: [https://cookbook_ao.arweave.net/concepts/messages.html](https://cookbook_ao.arweave.net/concepts/messages.html)
+1. Open a process or message ID.
+2. Use process tags and Source to understand the program.
+3. Use Messages and message results to follow execution.
+4. Use Read for queries, Write for signed messages, or AOS when you own the process.
+
+#### Data Sources and Availability
+
+Lunar reads from Arweave gateways, GraphQL indexes, and configured AO services. A newly submitted record can be available from one source before another, so a transaction may briefly appear as pending or not yet indexed.
+
+Gateway and AO node availability can also affect which metadata, results, or source records are immediately visible. Refreshing or trying another GraphQL gateway can help distinguish delayed indexing from missing data.
+
+#### Further Reading
+
+- [Arweave](https://arweave.org)
+- [Arweave documentation](https://docs.arweave.org)
+- [AO](https://ao.arweave.net)
+- [AO cookbook](https://cookbook_ao.arweave.net)

@@ -1,576 +1,128 @@
 # Console
 
-![](aos.png)
+The Console is Lunar's browser interface for AOS. It lets an owner create an AO mainnet process, connect to an owned process, send Lua evaluations, and inspect process output.
 
-The Console provides an interactive AOS terminal for real-time process interaction. It's the primary tool for developing, testing, and managing AOS processes through a Lua command-line interface.
+#### Requirements
 
-#### Overview
+- A connected Wander wallet
+- Ownership of the process you want to use
+- A valid 43-character process ID for an existing process
 
-The Console enables you to:
+Lunar compares the process owner with the connected wallet address. A process can be inspected without ownership in Explorer, but AOS execution is owner-only.
 
-- **Create** new AOS processes
-- **Connect** to existing processes you own
-- **Execute** Lua commands interactively
-- **Develop** handlers and state logic
-- **Test** process functionality in real-time
-- **Debug** process behavior with immediate feedback
+#### Process Selection
 
-#### Getting Started
+When no process is active, the Console:
 
-**Opening the Console:**
+- Lists indexed processes owned by the connected wallet
+- Shows each process name or shortened ID and its variant
+- Supports Previous and Next pagination
+- Accepts a process ID directly
+- Opens a panel for creating a named process
 
-1. Click **Console** in the sidebar navigation
-2. Console view opens with process connection options
-3. Connect wallet for process creation/access
-4. Enter existing process ID or create new
+The process list is based on owner and `Type: Process` tags, so a newly created process may take time to appear in indexed results.
 
-**Requirements:**
+#### Creating a Process
 
-- Arweave wallet connection (ArConnect, Othent, or Wander)
-- Process ownership for console access
-- Sufficient AR balance for new process creation
+To create a process:
 
-#### Connecting to a Process
+1. Connect Wander.
+2. Open **Console**.
+3. Select **Create New Process**.
+4. Enter a process name.
+5. Approve the wallet request.
 
-**Existing Process:**
+Lunar creates an AO mainnet process using the configured scheduler and opens it in the active tab.
 
-1. Enter the 43-character process ID
-2. Click **Connect** or press Enter
-3. Lunar verifies you own the process
-4. Console loads with process welcome screen
+Creation is asynchronous. Keep the returned process ID even if gateway indexing has not caught up yet.
 
-**Creating New Process:**
+#### Connecting to an Existing Process
 
-1. Click **Create New Process** button
-2. Wallet prompts for transaction signature
-3. Process spawns on AO network
-4. Console connects automatically
-5. Process ID displayed in header
+Enter a process ID or select one from the owned-process list. Lunar loads the process record, checks its owner, reads its `Variant`, and selects the matching AO dependencies.
 
-**Process List:**
+Mainnet and legacy processes can both be opened when their tags and configured services are available.
 
-- View all your processes
-- Shows process ID and variant (Mainnet/Legacynet)
-- Click any process to connect
-- Pagination for many processes
+#### Console Input
 
-#### Console Interface
-
-**Main Components:**
-
-**Header:**
-
-- Process ID (copyable)
-- Network variant indicator
-- Fullscreen toggle
-- Editor mode toggle
-- Refresh button
-
-**Terminal Area:**
-
-- Welcome splash screen
-- Command prompt (`aos>`)
-- Output display with colors
-- Auto-scrolling
-- ANSI color support
-
-**Input Area:**
-
-- Command line at bottom
-- Multi-line support
-- Command history
-- Auto-completion
-- Syntax awareness
-
-#### Basic Usage
-
-**Executing Commands:**
-
-Type Lua code and press Enter:
+Console input is sent to the process as raw Lua using `Action: Eval`.
 
 ```lua
-aos> print("Hello AO")
-Hello AO
-```
-
-```lua
-aos> return 2 + 2
-4
-```
-
-```lua
-aos> State = State or {}
-aos> State.Counter = 0
-```
-
-**Multi-line Commands:**
-
-The console detects incomplete statements:
-
-```lua
-aos> function hello(name)
-...>   return "Hello " .. name
-...> end
-aos> hello("World")
-Hello World
-```
-
-**Return Values:**
-
-Use `return` to see values:
-
-```lua
-aos> return State
-{Counter = 0, Name = "My Process"}
-```
-
-#### Command History
-
-**Navigation:**
-
-- **Arrow Up**: Previous command
-- **Arrow Down**: Next command
-- **Home**: First command in history
-- **End**: Most recent command
-
-**Features:**
-
-- Persists during session
-- Recent commands easily accessible
-- Edit previous commands
-- Re-execute with Enter
-
-#### Editor Mode
-
-**Switching to Editor:**
-
-1. Click **Editor** toggle button
-2. Full code editor appears
-3. Write multi-line scripts
-4. Execute entire script at once
-
-**Editor Features:**
-
-**Monaco Editor:**
-
-- Syntax highlighting for Lua
-- Auto-indentation
-- Code completion
-- Error detection
-- Line numbers
-
-**Execution:**
-
-- Click **Execute** button
-- Or use Cmd/Ctrl+Enter
-- Entire script runs on process
-- Output shown below editor
-
-**Use Cases:**
-
-- Writing complex handlers
-- Defining multiple functions
-- Large state updates
-- Testing complete features
-
-**Example:**
-
-```lua
--- Define state
 State = State or {}
-State.Balances = State.Balances or {}
+State.Counter = (State.Counter or 0) + 1
+return State.Counter
+```
 
--- Add handler
+Keyboard behavior:
+
+- **Enter** submits the current input.
+- **Shift+Enter** inserts a new line.
+- **Arrow Up** moves backward through this session's command history.
+- **Arrow Down** moves forward through command history.
+
+Commands beginning with a dot are treated as local console commands. Unsupported local commands are rejected instead of being sent to the process.
+
+#### Editor
+
+The editor is useful for longer Lua programs:
+
+```lua
 Handlers.add(
   "balance",
   Handlers.utils.hasMatchingTag("Action", "Balance"),
   function(msg)
-    local target = msg.Tags.Target or msg.From
-    local balance = State.Balances[target] or 0
-    Send({Target = msg.From, Data = tostring(balance)})
-  end
-)
-
--- Initialize balance
-State.Balances["test-address"] = 1000
-
-print("Balance handler added!")
-```
-
-#### Common Console Operations
-
-**State Management:**
-
-```lua
--- Initialize state
-State = State or {}
-State.Counter = 0
-State.Name = "My Process"
-
--- View state
-return State
-
--- Update state
-State.Counter = State.Counter + 1
-return State.Counter
-```
-
-**Adding Handlers:**
-
-```lua
-Handlers.add(
-  "hello",
-  Handlers.utils.hasMatchingTag("Action", "Hello"),
-  function(msg)
-    print("Received hello from: " .. msg.From)
-    Send({Target = msg.From, Data = "Hello back!"})
+    local account = msg.Tags.Recipient or msg.From
+    msg.reply({ Data = tostring(Balances[account] or 0) })
   end
 )
 ```
 
-**Listing Handlers:**
+Use the editor action to submit the entire script to the active process. The editor and console share the same process session.
 
-```lua
--- View all handlers
-Handlers.list
+#### Output
 
--- Remove handler
-Handlers.remove("hello")
-```
+After each evaluation, Lunar requests the message result and displays returned output or errors.
 
-**Sending Messages:**
+While connected, Lunar also polls the process for new printed output. This is useful when another message triggers a handler after your initial command.
 
-```lua
--- Send to another process
-Send({
-  Target = "process-id-here",
-  Action = "Info"
-})
+The terminal supports ANSI foreground colors and updates the prompt when the process returns a new one.
 
--- Send with data
-Send({
-  Target = "process-id-here",
-  Action = "Store",
-  Data = "Some data to store"
-})
-```
+#### Multiple Tabs
 
-**Receiving Responses:**
+Console tabs are stored in local browser storage. Each tab can track a different process and keeps its own active route.
 
-```lua
--- Send and wait for response
-Send({Target = "process-id", Action = "Info"})
-local response = Receive()
-print(response.Data)
-```
+You can:
 
-#### Output Display
+- Add a blank tab
+- Switch between processes
+- Close a tab
+- Clear saved tabs
+- Open the Console in fullscreen
 
-**Types of Output:**
+Command history itself is held for the current mounted session rather than written to permanent network storage.
 
-**Print Statements:**
+#### Troubleshooting
 
-```lua
-print("Debug message")
-print("Balance:", State.Balance)
-```
+**Process remains on Loading AOS**
 
-**Return Values:**
+- Confirm the connected address owns the process.
+- Refresh the process record in Explorer.
+- Check that the process has a recognized `Variant`.
+- Verify the configured AO node or legacy compute endpoint.
 
-```lua
-return State.Balance
--- Output: 1000
-```
+**A new process does not appear in the list**
 
-**Errors:**
+- Use the process ID returned at creation.
+- Wait for gateway indexing and refresh.
+- Confirm that the owner and `Type: Process` tags are indexed.
 
-```lua
-error("Something went wrong")
--- Output: Error: Something went wrong
-```
+**No output appears**
 
-**Handler Output:**
+- Some Lua changes do not return or print a value.
+- Add `return` or `print` while debugging.
+- Check the result for a runtime error.
 
-- Automatically displayed when messages processed
-- Shows handler name and result
-- Indicates success or failure
+#### Related Reading
 
-**Colors:**
-
-- **White**: Normal output
-- **Green**: Success messages
-- **Red**: Errors and failures
-- **Yellow**: Warnings
-- **Cyan**: System messages
-- **Gray**: Comments and info
-
-#### Tab Management
-
-**Multiple Console Tabs:**
-
-Like Explorer, Console supports multiple tabs:
-
-- Open multiple processes simultaneously
-- Switch between processes easily
-- Independent command history per tab
-- Each tab maintains separate state
-
-**Tab Actions:**
-
-- **+** button to add new console tab
-- **X** to close current tab
-- **Clear All** to remove all tabs
-- Tabs persist across sessions
-
-#### Process Management
-
-**Your Processes:**
-
-View and manage all your AOS processes:
-
-- List shows all processes you own
-- Process ID and variant displayed
-- Click to connect to any process
-- Create new from the list view
-
-**Process Information:**
-
-Each console session displays:
-
-- Process ID (copyable)
-- Network variant (Mainnet/Legacynet)
-- Connection status
-- Last message timestamp
-
-#### Best Practices
-
-**Development Workflow:**
-
-1. **Start Simple**: Initialize state first
-2. **Test Incrementally**: Add handlers one at a time
-3. **Print Debug Info**: Use print() liberally
-4. **Verify State**: Check State after operations
-5. **Handle Errors**: Use assert() for validation
-
-**Code Organization:**
-
-```lua
--- 1. Initialize state
-State = State or {}
-State.Value = State.Value or 0
-
--- 2. Define helpers
-function validateInput(value)
-  assert(type(value) == "number", "Must be number")
-  assert(value > 0, "Must be positive")
-end
-
--- 3. Add handlers
-Handlers.add(
-  "update",
-  Handlers.utils.hasMatchingTag("Action", "Update"),
-  function(msg)
-    local newValue = tonumber(msg.Tags.Value)
-    validateInput(newValue)
-    State.Value = newValue
-    print("Updated to:", State.Value)
-  end
-)
-
--- 4. Test
-print("Setup complete!")
-```
-
-**Debugging Tips:**
-
-**Check Handler Order:**
-
-```lua
-Handlers.list
-```
-
-**Test Handler Manually:**
-
-```lua
--- Simulate incoming message
-Handlers.evaluate({
-  From = "test-sender",
-  Action = "Test",
-  Tags = {Key = "Value"}
-})
-```
-
-**Inspect Variables:**
-
-```lua
--- View type
-print(type(State.Balance))
-
--- View contents
-for k, v in pairs(State) do
-  print(k, "=", v)
-end
-```
-
-**Error Handling:**
-
-```lua
-local success, err = pcall(function()
-  -- Code that might fail
-  riskyOperation()
-end)
-
-if not success then
-  print("Error:", err)
-end
-```
-
-#### Advanced Features
-
-**Working with JSON:**
-
-```lua
-local json = require("json")
-
--- Encode to JSON
-local data = {name = "Alice", balance = 1000}
-local encoded = json.encode(data)
-Send({Target = "process-id", Data = encoded})
-
--- Decode from JSON
-local decoded = json.decode('{"name":"Bob"}')
-print(decoded.name) -- Bob
-```
-
-**Table Utilities:**
-
-```lua
-local utils = require(".utils")
-
--- Check if value in table
-utils.includes({"a", "b", "c"}, "b") -- true
-
--- Map over table
-local doubled = utils.map({1, 2, 3}, function(x) return x * 2 end)
--- {2, 4, 6}
-
--- Filter table
-local evens = utils.filter({1, 2, 3, 4}, function(x) return x % 2 == 0 end)
--- {2, 4}
-```
-
-**Cron Handlers:**
-
-```lua
--- Periodic execution
-Handlers.add(
-  "cron-tick",
-  Handlers.utils.hasMatchingTag("Action", "Cron"),
-  function(msg)
-    State.LastTick = msg.Timestamp
-    print("Tick at:", msg.Timestamp)
-  end
-)
-```
-
-**Spawning Processes:**
-
-```lua
--- Create child process
-Spawn("module-id", {
-  Tags = {
-    Name = "Child Process",
-    Parent = ao.id
-  }
-})
-```
-
-#### Keyboard Shortcuts
-
-- **Enter**: Execute command
-- **Shift+Enter**: New line (multi-line mode)
-- **Arrow Up/Down**: Command history
-- **Ctrl/Cmd+C**: Cancel current input
-- **Ctrl/Cmd+L**: Clear screen
-- **Tab**: Auto-complete (where supported)
-
-#### Common Issues
-
-**Can't Connect:**
-
-- Verify you own the process
-- Check wallet is connected
-- Confirm process ID is correct
-- Ensure network connection
-
-**Commands Not Working:**
-
-- Check Lua syntax
-- Verify handler names are correct
-- Ensure state is initialized
-- Look for error messages in output
-
-**No Output:**
-
-- Some commands don't return values
-- Check if handler completed
-- Use print() for debugging
-- Verify Send() targets are correct
-
-**Process Slow:**
-
-- Large state can slow operations
-- Reduce print statements in handlers
-- Optimize complex loops
-- Consider pagination for large data
-
-#### Example Session
-
-Here's a complete example session creating a simple counter:
-
-```lua
-aos> -- Initialize state
-aos> State = State or {}
-aos> State.Counter = 0
-
-aos> -- Add increment handler
-aos> Handlers.add(
-...>   "increment",
-...>   Handlers.utils.hasMatchingTag("Action", "Increment"),
-...>   function(msg)
-...>     State.Counter = State.Counter + 1
-...>     print("Counter:", State.Counter)
-...>     Send({Target = msg.From, Data = tostring(State.Counter)})
-...>   end
-...> )
-
-aos> -- Test manually
-aos> Handlers.evaluate({From = "test", Action = "Increment"})
-Counter: 1
-
-aos> -- Check state
-aos> return State.Counter
-1
-
-aos> print("Counter process ready!")
-Counter process ready!
-```
-
-#### Integration with Explorer
-
-The Console works seamlessly with Explorer:
-
-- Processes created in Console appear in Explorer
-- AOS tab in Explorer uses same console
-- State changes reflect in both views
-- Copy process ID to share
-
-**Workflow:**
-
-1. Create process in Console
-2. Copy process ID
-3. Open in Explorer to inspect
-4. Use AOS Tab for continued development
-5. Share process ID with others
-
-Remember: The Console is your development environment for AO. Master it to build sophisticated processes efficiently with immediate feedback and powerful debugging capabilities.
+- [AOS](/docs/concepts/aos)
+- [Processes](/docs/concepts/processes)
+- [Wallet Integration](/docs/guides/wallets)

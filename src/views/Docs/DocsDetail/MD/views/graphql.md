@@ -1,441 +1,78 @@
 # GraphQL Playground
 
-![](gql.png)
+The GraphQL Playground runs read-only queries against Arweave-compatible GraphQL gateways. It is useful for searching Arweave blocks and transactions, finding bundle contents, and filtering AO records by tags.
 
-The GraphQL Playground provides an interactive interface for querying Arweave and AO network data. Use it to build custom queries, explore transaction data, and extract information for analysis.
+#### Playground Features
 
-Lunar exposes a simple interface for testing GraphQL queries without needing to use cURL or code.
+The Playground provides:
 
-For full documentation on using GraphQL to query the permaweb, refer to the [cookbook](https://cookbook.arweave.net/guides/graphql/index.html).
+- Multiple persistent query tabs
+- A selectable and editable gateway
+- Saved custom gateways
+- Query variables
+- JSON response display
+- Fullscreen mode
+- Gateway schema introspection
+- One-click query templates generated from schema fields
 
-#### Overview
+No wallet connection is required.
 
-The GraphQL Playground allows you to:
+#### Default Gateways
 
-- **Query** transactions and blocks from Arweave
-- **Filter** by tags, owners, recipients, and more
-- **Explore** AO network messages and processes
-- **Test** queries with live data
-- **Export** results for further analysis
-- **Use** multiple gateways for data access
+Lunar starts with:
 
-#### Getting Started
+- `ao-search-gateway.goldsky.com`
+- `arweave-search.goldsky.com`
+- `arweave.net`
 
-**Opening the Playground:**
+The first gateway is selected by default. Enter another gateway base URL and save it to add it to the local list.
 
-1. Click **GraphQL** in the sidebar navigation
-2. Playground opens with default query
-3. Select or add a gateway
-4. Modify query as needed
-5. Execute with button or Cmd/Ctrl+Enter
+Lunar appends `/graphql` when needed. Gateways can expose different schemas, indexes, or freshness, so a query that works on one gateway may need adjustment on another.
 
-**No Wallet Required:**
+#### Running a Query
 
-GraphQL queries are read-only and don't require wallet connection or transaction fees.
+1. Open **GraphQL**.
+2. Select or enter a gateway.
+3. Write a query in the left editor.
+4. Optionally enable Variables and enter a JSON object.
+5. Execute the query.
+6. Inspect the JSON response on the right.
 
-#### Gateway Configuration
+If the editor contains a bare field selection rather than `query { ... }`, Lunar wraps it in a query operation before sending it.
 
-**Available Gateways:**
-
-`arweave.net` is the default Arweave gateway supported in Lunar GraphQL.
-
-**Adding Custom Gateway:**
-
-1. Click **Add Gateway** button
-2. Enter gateway URL
-3. Include protocol (https://)
-4. Save and select
-
-#### Basic GraphQL Syntax
-
-**Query Structure:**
+#### Query Recent Arweave Blocks
 
 ```graphql
-query {
-	transactions {
+query RecentBlocks {
+	blocks(first: 10, sort: HEIGHT_DESC) {
 		edges {
+			cursor
 			node {
 				id
-				owner {
-					address
-				}
-				tags {
-					name
-					value
-				}
+				height
+				timestamp
+				previous
 			}
 		}
 	}
 }
 ```
 
-**With Filters:**
+The exact block fields and arguments depend on the selected gateway schema.
 
-```graphql
-query {
-	transactions(tags: [{ name: "Data-Protocol", values: ["ao"] }], first: 10) {
-		edges {
-			node {
-				id
-				tags {
-					name
-					value
-				}
-			}
-		}
-	}
-}
-```
-
-**With Variables:**
-
-Query:
-
-```graphql
-query GetProcess($processId: [String!]) {
-	transactions(ids: $processId) {
-		edges {
-			node {
-				id
-				owner {
-					address
-				}
-				tags {
-					name
-					value
-				}
-			}
-		}
-	}
-}
-```
-
-Variables:
-
-```json
-{
-	"processId": ["process-id-here"]
-}
-```
-
-#### Common Query Patterns
-
-**Find AO Processes:**
-
-```graphql
-query {
-	transactions(tags: [{ name: "Data-Protocol", values: ["ao"] }, { name: "Type", values: ["Process"] }], first: 20) {
-		edges {
-			node {
-				id
-				owner {
-					address
-				}
-				tags {
-					name
-					value
-				}
-				block {
-					timestamp
-				}
-			}
-		}
-	}
-}
-```
-
-**Find AO Messages:**
-
-```graphql
-query {
-	transactions(tags: [{ name: "Data-Protocol", values: ["ao"] }, { name: "Type", values: ["Message"] }], first: 50) {
-		edges {
-			node {
-				id
-				tags {
-					name
-					value
-				}
-			}
-		}
-	}
-}
-```
-
-**Find Specific Action:**
-
-```graphql
-query {
-	transactions(
-		tags: [{ name: "Data-Protocol", values: ["ao"] }, { name: "Action", values: ["Transfer"] }]
-		first: 100
-	) {
-		edges {
-			node {
-				id
-				tags {
-					name
-					value
-				}
-				block {
-					timestamp
-					height
-				}
-			}
-		}
-	}
-}
-```
-
-**Messages to Process:**
-
-```graphql
-query GetMessages($processId: [String!]) {
-	transactions(recipients: $processId, tags: [{ name: "Data-Protocol", values: ["ao"] }], first: 50) {
-		edges {
-			node {
-				id
-				owner {
-					address
-				}
-				tags {
-					name
-					value
-				}
-			}
-		}
-	}
-}
-```
-
-Variables:
-
-```json
-{
-	"processId": ["your-process-id"]
-}
-```
-
-**Transactions by Owner:**
-
-```graphql
-query GetByOwner($ownerAddress: String!) {
-	transactions(owners: [$ownerAddress], tags: [{ name: "Data-Protocol", values: ["ao"] }]) {
-		edges {
-			node {
-				id
-				tags {
-					name
-					value
-				}
-			}
-		}
-	}
-}
-```
-
-Variables:
-
-```json
-{
-	"ownerAddress": "wallet-address-here"
-}
-```
-
-**Time-based Queries:**
+#### Query Arweave Transactions
 
 ```graphql
 query RecentTransactions {
-	transactions(tags: [{ name: "Data-Protocol", values: ["ao"] }], first: 100, sort: HEIGHT_DESC) {
+	transactions(first: 10, sort: HEIGHT_DESC) {
 		edges {
-			node {
-				id
-				block {
-					timestamp
-					height
-				}
-			}
-		}
-	}
-}
-```
-
-#### Query Parameters
-
-**Pagination:**
-
-- `first: 10` - Limit results to 10
-- `after: "cursor"` - Results after cursor
-- Use cursors from previous results for next page
-
-**Sorting:**
-
-- `sort: HEIGHT_DESC` - Newest first
-- `sort: HEIGHT_ASC` - Oldest first
-
-**Filters:**
-
-**By Tags:**
-
-```graphql
-tags: [
-  { name: "Tag-Name", values: ["value1", "value2"] }
-]
-```
-
-**By Owner:**
-
-```graphql
-owners: ["address1", "address2"]
-```
-
-**By Recipient:**
-
-```graphql
-recipients: ["address1", "address2"]
-```
-
-**By IDs:**
-
-```graphql
-ids: ["id1", "id2"]
-```
-
-**By Block:**
-
-```graphql
-block: {
-  min: 1000000,
-  max: 1100000
-}
-```
-
-#### Using Variables
-
-**Defining Variables:**
-
-In query:
-
-```graphql
-query GetData($owner: String!, $limit: Int) {
-  transactions(
-    owners: [$owner]
-    first: $limit
-  ) {
-    # query body
-  }
-}
-```
-
-In variables panel:
-
-```json
-{
-	"owner": "wallet-address",
-	"limit": 50
-}
-```
-
-**Variable Types:**
-
-- `String` - Text values
-- `Int` - Whole numbers
-- `Boolean` - true/false
-- `[String]` - Array of strings
-- `String!` - Required (non-null)
-
-#### Response Analysis
-
-**Understanding Results:**
-
-```json
-{
-	"data": {
-		"transactions": {
-			"edges": [
-				{
-					"node": {
-						"id": "transaction-id",
-						"owner": {
-							"address": "owner-address"
-						},
-						"tags": [
-							{ "name": "Data-Protocol", "value": "ao" },
-							{ "name": "Type", "value": "Process" }
-						]
-					}
-				}
-			]
-		}
-	}
-}
-```
-
-**Structure:**
-
-- `data` - Successful response data
-- `edges` - Array of results
-- `node` - Individual transaction
-- `cursor` - For pagination
-
-**Errors:**
-
-```json
-{
-	"errors": [
-		{
-			"message": "Error description",
-			"locations": [{ "line": 2, "column": 5 }]
-		}
-	]
-}
-```
-
-#### Best Practices
-
-**Query Optimization:**
-
-- Request only needed fields
-- Use pagination (first/after)
-- Apply filters to reduce results
-- Limit tag array size
-- Sort for relevance
-
-**Example - Optimized:**
-
-```graphql
-query {
-	transactions(tags: [{ name: "Data-Protocol", values: ["ao"] }, { name: "Type", values: ["Process"] }], first: 20) {
-		edges {
-			node {
-				id
-				tags {
-					name
-					value
-				}
-			}
-		}
-	}
-}
-```
-
-**Example - Not Optimized:**
-
-```graphql
-query {
-	transactions {
-		edges {
+			cursor
 			node {
 				id
 				owner {
 					address
-					key
 				}
 				recipient
-				tags {
-					name
-					value
-				}
 				quantity {
 					ar
 					winston
@@ -444,113 +81,31 @@ query {
 					ar
 					winston
 				}
-				block {
-					id
-					timestamp
-					height
-					previous
-				}
-				parent {
-					id
-				}
 				data {
 					size
 					type
 				}
+				block {
+					height
+					timestamp
+				}
 			}
 		}
 	}
 }
 ```
 
-**Testing Queries:**
+Leaving out AO tag filters is important when you want general Arweave activity rather than only AO records.
 
-1. Start with simple query
-2. Add filters incrementally
-3. Verify results at each step
-4. Test with different gateways
-5. Save working queries
-
-**Variable Usage:**
-
-- Use variables for reusable queries
-- Validate JSON in variables panel
-- Test with different variable values
-- Document expected types
-
-**Gateway Selection:**
-
-- Use AO gateway for AO data
-- Use Arweave gateway for general data
-- Test multiple gateways if issues
-- Add custom gateway if needed
-
-#### Advanced Patterns
-
-**Pagination Loop:**
-
-To get all results:
-
-1. Execute query with `first: 100`
-2. Get last cursor from results
-3. Use cursor in `after` parameter
-4. Repeat until no more results
-
-**Multiple Filters:**
+#### Query AO Processes
 
 ```graphql
-query {
+query AOProcesses {
 	transactions(
-		tags: [
-			{ name: "Data-Protocol", values: ["ao"] }
-			{ name: "Type", values: ["Message"] }
-			{ name: "Action", values: ["Transfer", "Balance"] }
-		]
-		owners: ["wallet-address"]
-		first: 50
+		first: 20
+		sort: HEIGHT_DESC
+		tags: [{ name: "Data-Protocol", values: ["ao"] }, { name: "Type", values: ["Process"] }]
 	) {
-		edges {
-			node {
-				id
-				tags {
-					name
-					value
-				}
-			}
-		}
-	}
-}
-```
-
-**Nested Queries:**
-
-```graphql
-query {
-	transactions(first: 10) {
-		edges {
-			node {
-				id
-				parent {
-					id
-				}
-				bundledIn {
-					id
-				}
-			}
-		}
-	}
-}
-```
-
-#### Common Use Cases
-
-**Token Transfers:**
-
-Find all transfers of a specific token:
-
-```graphql
-query TokenTransfers($tokenId: [String!]) {
-	transactions(recipients: $tokenId, tags: [{ name: "Action", values: ["Transfer"] }], first: 100) {
 		edges {
 			node {
 				id
@@ -561,27 +116,8 @@ query TokenTransfers($tokenId: [String!]) {
 					name
 					value
 				}
-			}
-		}
-	}
-}
-```
-
-**Process Activity:**
-
-Monitor a process:
-
-```graphql
-query ProcessActivity($processId: [String!]) {
-	transactions(recipients: $processId, first: 50, sort: HEIGHT_DESC) {
-		edges {
-			node {
-				id
-				tags {
-					name
-					value
-				}
 				block {
+					height
 					timestamp
 				}
 			}
@@ -590,16 +126,24 @@ query ProcessActivity($processId: [String!]) {
 }
 ```
 
-**User Activity:**
+Replace `Process` with `Message` or `Assignment` to inspect other AO record types.
 
-Track wallet transactions:
+#### Query Bundle Contents
 
 ```graphql
-query UserActivity($wallet: String!) {
-	transactions(owners: [$wallet], tags: [{ name: "Data-Protocol", values: ["ao"] }], first: 100) {
+query BundleContents($bundleId: [ID!]) {
+	transactions(bundledIn: $bundleId, first: 50, sort: HEIGHT_DESC) {
+		pageInfo {
+			hasNextPage
+		}
 		edges {
+			cursor
 			node {
 				id
+				owner {
+					address
+				}
+				recipient
 				tags {
 					name
 					value
@@ -610,37 +154,115 @@ query UserActivity($wallet: String!) {
 }
 ```
 
-#### Keyboard Shortcuts
+Variables:
 
-- **Cmd/Ctrl+Enter**: Execute query
-- **Cmd/Ctrl+/**: Toggle comment
-- **Cmd/Ctrl+Space**: Trigger auto-completion
-- **Cmd/Ctrl+F**: Find in editor
-- **Tab**: Indent
-- **Shift+Tab**: Unindent
+```json
+{
+	"bundleId": ["bundle-transaction-id"]
+}
+```
 
-#### Troubleshooting
+#### Query by Owner or Recipient
 
-**No Results:**
+```graphql
+query Activity($owner: String!, $recipient: String!) {
+	owned: transactions(owners: [$owner], first: 25) {
+		edges {
+			node {
+				id
+			}
+		}
+	}
+	received: transactions(recipients: [$recipient], first: 25) {
+		edges {
+			node {
+				id
+			}
+		}
+	}
+}
+```
 
-- Check filter criteria
-- Verify gateway is correct
-- Try different gateway
-- Remove filters to broaden search
-- Check for typos in tag names
+Variables:
 
-**Errors:**
+```json
+{
+	"owner": "wallet-address",
+	"recipient": "recipient-address"
+}
+```
 
-- Validate GraphQL syntax
-- Check variable JSON format
-- Verify field names are correct
-- Ensure required fields included
-- Check gateway status
+Some gateways use `ID` rather than `String` for address arguments. Use the schema panel to confirm the selected gateway's types.
 
-**Slow Queries:**
+#### Variables
 
-- Reduce `first` parameter
-- Add more specific filters
-- Use pagination
-- Try different gateway
-- Avoid requesting all fields
+Enable Variables to show a JSON editor below the query. Variable contents and visibility are stored per Playground tab in local browser storage.
+
+The variables value must be a JSON object:
+
+```json
+{
+	"ids": ["transaction-id"],
+	"limit": 25
+}
+```
+
+Invalid JSON is not sent with the request, so validate the object if a variable-based query returns an unexpected error.
+
+#### Schema Documentation
+
+Open **Docs** in the Playground to introspect the active gateway.
+
+The panel lists:
+
+- Queries
+- Mutations, if exposed
+- Subscriptions, if exposed
+- Arguments and types
+- Field descriptions
+- Deprecated fields
+- Named schema types
+
+Select **Use** beside a root field to generate a starter operation. Required arguments are added as variables with `null` placeholders.
+
+Schema introspection can fail when a gateway disables introspection or does not support the requested codec.
+
+#### Pagination
+
+Transaction connections usually return cursors:
+
+```graphql
+query NextPage($after: String) {
+	transactions(first: 100, after: $after, sort: HEIGHT_DESC) {
+		pageInfo {
+			hasNextPage
+		}
+		edges {
+			cursor
+			node {
+				id
+			}
+		}
+	}
+}
+```
+
+Use the final edge cursor as the next `after` value until `hasNextPage` is false.
+
+#### Gateway Differences
+
+Use another gateway when:
+
+- A recent record has not been indexed yet.
+- An AO-specific gateway exposes fields absent from a general Arweave gateway.
+- A query times out or returns a schema error.
+- You want to compare indexing results.
+
+The Playground sends requests directly from the browser, so gateway CORS policy and availability also matter.
+
+#### Related Reading
+
+- [Arweave overview](/docs/overview/arweave)
+- [AO overview](/docs/overview/ao)
+- [Blocks](/docs/views/blocks)
+- [Arweave GraphQL guide](https://cookbook.arweave.net/guides/graphql/index.html)

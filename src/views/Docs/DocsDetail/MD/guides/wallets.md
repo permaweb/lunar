@@ -1,304 +1,157 @@
 # Wallet Integration
 
-Wallets are essential for interacting with the AO network through Lunar. They enable you to sign transactions, create processes, send messages, and prove ownership. This guide covers everything you need to know about using wallets with Lunar.
+Lunar uses an Arweave wallet as both an Arweave identity and the signer for AO actions. You can browse public Arweave and AO data without connecting; a wallet is required only when Lunar needs your address or signature.
 
 #### Supported Wallet
 
-**Wander**
+Lunar currently exposes **Wander** in the connection dialog.
 
-- Browser extension wallet for Chrome, Firefox, Brave
-- iOS and Android support
-- Most popular Arweave wallet
-- Local key storage
-- Download: [wander.app](https://wander.app)
+Wander implements the browser `arweaveWallet` API used by Lunar. Install or create a wallet at [wander.app](https://wander.app).
 
-#### Connecting Your Wallet
+#### Connecting
 
-1. Install Wander browser extension
-2. Create or import wallet
-3. Click **Connect Wallet** in Lunar
-4. Select **Wander**
-5. Approve connection in popup
-6. Wallet address appears in header
+1. Install and unlock Wander.
+2. Select **Connect** in Lunar.
+3. Choose **Wander**.
+4. Review and approve the requested permissions.
+5. Confirm that the expected address appears in Lunar.
 
-#### Wallet-Required Features
+Lunar remembers the selected wallet type in local browser storage and attempts to reconnect on a later visit.
 
-Some Lunar features require a connected wallet:
+#### Requested Permissions
 
-**Writing to Processes:**
+The current integration requests:
 
-- Send messages that modify state
-- Execute Write operations in Explorer
-- Requires AR balance for transaction fees
-- Wallet signs each transaction
+- `ACCESS_ADDRESS`
+- `ACCESS_PUBLIC_KEY`
+- `SIGN_TRANSACTION`
+- `DISPATCH`
+- `SIGNATURE`
 
-**Creating Processes:**
+These permissions let Lunar read the active address, create an AO signer, request signatures, and dispatch approved records.
 
-- Spawn new AOS processes
-- Requires AR balance
-- You become the process owner
-- Only owners can access AOS console
+The wallet extension controls private keys and approval behavior. Lunar does not receive your seed phrase or private key.
 
-**AOS Console Access:**
+#### What Requires a Wallet
 
-- Interactive terminal requires ownership
-- Must own process to connect
-- Wallet verifies ownership
-- Full control over process
+**AO process writes**
 
-**Token Transfers:**
+The Write tab submits a signed AO message to a process.
 
-- Send AO, PI, or other tokens
-- Sign transfer transactions
-- Specify recipient and amount
-- Pay network fees
+**AOS**
 
-#### Wallet Permissions
+The Console and AOS process tab require a connected wallet whose address matches the process owner.
 
-When connecting, Lunar requests these permissions:
+**Process creation**
 
-**Basic Permissions:**
+Creating a process signs and submits the process record through the AO libraries.
 
-- **ADDRESS**: View your wallet address
-- **SIGN_TRANSACTION**: Sign transactions
-- **DISPATCH**: Submit transactions to network
+**Profile actions**
 
-**What Lunar Can Do:**
+Creating or updating a permaweb profile uses the connected identity.
 
-- View your address
-- Request transaction signatures
-- Submit signed transactions
-- Check AR balance
+Public exploration, block browsing, GraphQL queries, process reads, transaction data, and message results do not require a wallet.
 
-**What Lunar Cannot Do:**
+#### Balances
 
-- Access your private keys
-- Sign transactions without approval
-- Transfer funds without consent
-- Modify wallet settings
+The connected-wallet menu displays:
 
-**Using Lunar Safely:**
+- **AR**, read from an Arweave gateway balance endpoint
+- **AO**, read from the AO token process
 
-- Verify you're on the correct Lunar URL
-- Don't connect wallet to untrusted processes
-- Review process source before writing
-- Start with small test amounts
-- Disconnect wallet when not in use
+Explorer also displays AO balance for process and wallet identifiers, and AR balance for wallet identifiers.
 
-#### Viewing Balances
+Balances are converted from their base units using 12 decimal places. Use Refresh when you expect a recent change.
 
-Lunar displays multiple token balances:
+#### Wallets in Explorer
 
-**AR Balance:**
+Enter a 43-character wallet address in Explorer to inspect:
 
-- Native Arweave token
-- Used for transaction fees
-- Displayed in AR (not winston)
-- Required for network operations
-
-**AO Balance:**
-
-- AO network token
-- Displayed with 12 decimal places
-- Used for AO ecosystem transactions
-- Check in wallet view or process inspector
-
-**PI Balance:**
-
-- Process Intelligence token
-- Displayed with 12 decimal places
-- Part of AO ecosystem
-- Check in wallet view
-
-**Refreshing Balances:**
-
-- Click refresh icon next to balance
-- Updates from network
-- May take a few seconds
-- Shows latest confirmed amount
-
-#### Transaction Signing
-
-**How Signing Works:**
-
-1. You initiate action requiring transaction
-2. Lunar prepares transaction data
-3. Wallet popup shows transaction details
-4. You review and approve/reject
-5. Wallet signs with private key
-6. Lunar submits to network
-7. Confirmation displayed
-
-**What to Review:**
-
-**Process Write:**
-
-- Target process ID
-- Action being performed
-- Data being sent
-- Tags being included
-
-**Token Transfer:**
-
-- Recipient address
-- Token amount
-- Token type
-- Transaction fee
-
-**Process Creation:**
-
-- Module being used
-- Scheduler selection
-- Initial tags
-- Creation fee
-
-**Transaction Fees:**
-
-- All transactions cost AR
-- Fee depends on data size
-- Shown before signing
-- Deducted from AR balance
-- Non-refundable once submitted
-
-#### Wallet View Features
-
-**Viewing Your Wallet:**
-
-1. Connect wallet
-2. Open Explorer
-3. Enter your wallet address
-4. View comprehensive wallet info
-
-**Wallet Information:**
-
-**Balances:**
-
-- AR balance from Arweave
+- Native AR balance
 - AO token balance
-- PI token balance
-- Refresh each independently
+- Indexed activity involving the address
+- Transactions and messages owned by or related to the address
 
-**Transaction History:**
+The address does not have to be the currently connected wallet.
 
-- All incoming messages
-- All outgoing messages
-- Filter by action type
-- Filter by date range
-- Pagination support
+Wallet classification depends on indexed activity. An unused valid address may not have enough indexed data for Lunar to distinguish it from a missing transaction ID.
 
-**Process Ownership:**
+#### Arweave and AO Signing
 
-- View processes you own
-- Access via Console
-- Check process status
-- Monitor process activity
+The same wallet identity participates in two kinds of activity:
 
-#### Disconnecting Wallet
+- **Arweave transaction signing** creates a signed Arweave record or dispatches data through compatible infrastructure.
+- **AO message signing** creates a signed message for an AO process.
 
-**Manual Disconnect:**
+An AO token transfer is not the same as a native AR transfer. Always verify whether the UI is asking you to sign:
 
-1. Click wallet address in header
-2. Select **Disconnect** option
-3. Wallet connection removed
-4. Wallet-required features disabled
+- An Arweave transaction with a recipient and AR quantity
+- An AO message with a target process and tags such as `Action`, `Recipient`, and `Quantity`
 
-#### Common Issues
+#### Reviewing a Request
 
-**Connection Failed:**
+Before approving a wallet prompt, verify:
 
-- Ensure wallet extension is installed
-- Check wallet is unlocked
-- Try refreshing page
-- Clear browser cache
-- Check for extension updates
+- The active wallet address
+- The target process or Arweave recipient
+- The action and tags
+- The data payload
+- The token and base-unit quantity
+- Any fee or dispatch information shown by the wallet
 
-**Transaction Rejected:**
+For an unfamiliar AO process, inspect its Source and recent Messages first.
 
-- Review transaction details carefully
-- Ensure sufficient AR balance
-- Check wallet didn't auto-lock
-- Verify process permissions
-- Try transaction again
+#### Disconnecting
 
-**Insufficient Balance:**
+Open the wallet menu and select **Disconnect**. Lunar removes the remembered wallet type and asks the browser wallet to disconnect.
 
-- Need AR for transaction fees
-- Get AR from exchange
-- Or use faucet for testing
-- Check actual balance in wallet
-- Wait for pending deposits
+Disconnecting does not delete:
 
-**Wrong Network:**
+- Explorer tabs
+- GraphQL tabs
+- Saved filters
+- Public data
 
-- Wander supports mainnet only
-- Ensure wallet is on correct network
-- Check Lunar network setting
-- Processes must match network
+Those are stored separately in local browser storage.
 
-**Signature Errors:**
+#### Troubleshooting
 
-- Wallet may have locked
-- Unlock and try again
-- Check wallet connection
-- Reconnect if needed
-- Verify wallet permissions
+**Wander does not appear**
 
-#### Getting AR Tokens
+- Confirm the extension is installed and enabled.
+- Unlock the wallet.
+- Refresh after the wallet has loaded.
 
-**For Production (Mainnet):**
+**Connection is not restored**
 
-- Purchase from cryptocurrency exchange
-- Transfer to your wallet
-- Ensure sufficient balance for fees
+- Reopen Wander and approve access again.
+- Disconnect from Lunar and reconnect.
+- Check whether the active account changed.
 
-**How Much AR Needed:**
+**AOS is unavailable for a process**
 
-- Typical transaction: 0.0001-0.001 AR
-- Depends on data size
-- Keep small balance for regular use
+- Confirm the connected address exactly matches the process owner.
+- Wait for a newly created process to be indexed.
+- Verify the process has a supported AO `Variant`.
 
-#### Advanced Wallet Features
+**Balance looks stale**
 
-**Custom Wallet Integration:**
+- Use Refresh beside the balance.
+- Allow time for the Arweave transaction or AO message to confirm and execute.
+- Compare the record through Explorer and GraphQL.
 
-For developers wanting to integrate other wallets, Lunar uses standard Arweave wallet APIs:
+#### Security
 
-- `arweaveWallet.connect(permissions)`
-- `arweaveWallet.disconnect()`
-- `arweaveWallet.getActiveAddress()`
-- `arweaveWallet.sign(transaction)`
-- `arweaveWallet.dispatch(transaction)`
+- Never share a seed phrase or private key.
+- Read wallet prompts before approving them.
+- Verify Lunar's URL.
+- Treat process code as untrusted until reviewed.
+- Test new process interactions with small quantities.
+- Disconnect when using a shared browser.
 
-**Wallet Events:**
+#### Further Reading
 
-Lunar listens for wallet events:
-
-- Account changes
-- Connection status
-- Network switches
-- Permission updates
-
-**Programmatic Usage:**
-
-Via AOS console, you can:
-
-```lua
--- Your address automatically available
-print(ao.id) -- Process ID
-print(Owner) -- Owner address
-
--- Sign and send messages
-Send({
-  Target = "process-id",
-  Action = "Transfer",
-  Recipient = "recipient-address",
-  Quantity = "1000"
-})
-```
-
-#### Getting Help with Wander wallet
-
-- [Wander knowledge base](https://www.wander.app/help)
-- [Wander Discord community](https://discord.com/invite/YGXJbuz44K)
-
-Remember: Your wallet is your identity on the AO network. Protect it carefully, verify all transactions, and never share private keys. With proper wallet security, you can safely build and interact with decentralized processes on AO.
+- [Wander](https://wander.app)
+- [Wander help](https://www.wander.app/help)
+- [Arweave overview](/docs/overview/arweave)
+- [AO overview](/docs/overview/ao)
