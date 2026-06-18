@@ -150,7 +150,6 @@ export const Primary = styled.button<{
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	box-shadow: ${(props) => (props.iconOnly ? 'none' : `${props.theme.colors.shadow.primary} 0px 1px 2px 0.5px`)};
 	border: 1px solid
 		${(props) =>
 			props.warning

@@ -42,7 +42,8 @@ export const TOCList = styled.ul`
 	flex-direction: column;
 	gap: 10px;
 	margin: 0 !important;
-	padding: 0 !important;
+	padding: 0 0 0 15px !important;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const TOCItem = styled.li<{ $active?: boolean }>`
@@ -59,38 +60,15 @@ export const TOCItem = styled.li<{ $active?: boolean }>`
 		width: 100%;
 		display: flex;
 		cursor: pointer;
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
-		color: ${(props) =>
-			props.$active ? props.theme.colors.button.primary.active.color : props.theme.colors.button.primary.color};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		color: ${(props) => (props.$active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		line-height: 1.75;
 		text-align: left;
-		border-radius: ${STYLING.dimensions.radius.alt2};
-		border: 1px solid
-			${(props) =>
-				props.$active ? props.theme.colors.button.primary.active.border : props.theme.colors.button.primary.border};
-		background: ${(props) =>
-			props.$active
-				? props.theme.colors.button.primary.active.background
-				: props.theme.colors.container.alt2.background};
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
-		padding: 5px 10.5px 4.75px 10.5px;
 		transition: all 100ms;
 
 		&:hover {
-			color: ${(props) =>
-				props.$active
-					? props.theme.colors.button.primary.active.color
-					: props.theme.colors.button.primary.active.color};
-			background: ${(props) =>
-				props.$active
-					? props.theme.colors.button.primary.active.background
-					: props.theme.colors.button.primary.active.background};
-			border: 1px solid
-				${(props) =>
-					props.$active
-						? props.theme.colors.button.primary.active.border
-						: props.theme.colors.button.primary.active.border};
+			color: ${(props) => props.theme.colors.font.primary};
 		}
 	}
 `;

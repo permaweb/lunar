@@ -121,7 +121,6 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.alt1} !important;
 		color: ${(props) => props.theme.colors.font.primary} !important;
-		margin: 0 0 5px 0;
 		padding: 0 0 2.5px 0;
 
 		code {

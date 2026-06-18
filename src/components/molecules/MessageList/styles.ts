@@ -2,6 +2,29 @@ import styled, { css } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
+const NESTED_BORDER_OPACITY_STEP = 0.25;
+const MIN_NESTED_BORDER_OPACITY = 0.25;
+
+function getNestedBorderColor(color: string, nestingLevel: number = 1) {
+	const opacity = Math.max(MIN_NESTED_BORDER_OPACITY, 1 - Math.max(nestingLevel - 1, 0) * NESTED_BORDER_OPACITY_STEP);
+	const normalizedColor = color.replace('#', '');
+	const hexColor =
+		normalizedColor.length === 3
+			? normalizedColor
+					.split('')
+					.map((character) => `${character}${character}`)
+					.join('')
+			: normalizedColor;
+
+	if (!/^[0-9a-f]{6}$/i.test(hexColor)) return color;
+
+	const red = parseInt(hexColor.slice(0, 2), 16);
+	const green = parseInt(hexColor.slice(2, 4), 16);
+	const blue = parseInt(hexColor.slice(4, 6), 16);
+
+	return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+}
+
 export const Container = styled.div`
 	scroll-margin-top: 80px;
 `;
@@ -210,6 +233,7 @@ export const HeaderWrapper = styled.div`
 export const BodyWrapper = styled.div<{
 	childList?: boolean;
 	isOverallLast?: boolean;
+	$nestingLevel?: number;
 }>`
 	width: 100%;
 
@@ -217,15 +241,22 @@ export const BodyWrapper = styled.div<{
 		border-bottom: 1px solid
 			${(props) =>
 				props.childList && !props.isOverallLast
-					? props.theme.colors.border.alt4
+					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
 					: props.theme.colors.border.primary} !important;
 	}
 
 	.message-list-element {
+		border-top: 0.5px solid transparent;
 		border-left: 1px solid
-			${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
+			${(props) =>
+				props.childList
+					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
+					: props.theme.colors.border.primary};
 		border-right: 1px solid
-			${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
+			${(props) =>
+				props.childList
+					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
+					: props.theme.colors.border.primary};
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
@@ -235,6 +266,7 @@ export const ElementWrapper = styled.div<{
 	lastChild?: boolean;
 	childList?: boolean;
 	clickable?: boolean;
+	$nestingLevel?: number;
 }>`
 	height: 40px;
 	min-width: 100%;
@@ -270,9 +302,10 @@ export const ElementWrapper = styled.div<{
 		css`
 			&:hover {
 				background: ${props.theme.colors.container.primary.active};
-				border-left: 1px solid ${props.theme.colors.border.alt4} !important;
-				border-right: 1px solid ${props.theme.colors.border.alt4} !important;
-				border-bottom: 1px solid ${props.theme.colors.border.alt4} !important;
+				border-top: 0.5px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-bottom: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 			}
 
 			&:hover::after {
@@ -284,7 +317,7 @@ export const ElementWrapper = styled.div<{
 				left: -1px;
 				right: 0;
 				bottom: 0;
-				border-top: 1px solid ${props.theme.colors.border.alt4};
+				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
 				transition: all 100ms;
 			}
 		`}
@@ -292,8 +325,8 @@ export const ElementWrapper = styled.div<{
 	${(props) =>
 		props.open &&
 		css`
-			border-left: 1px solid ${props.theme.colors.border.alt4} !important;
-			border-right: 1px solid ${props.theme.colors.border.alt4} !important;
+			border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+			border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 			border-bottom: 1px solid ${props.theme.colors.border.primary} !important;
 
 			background: ${props.theme.colors.container.alt1.background};
@@ -307,7 +340,7 @@ export const ElementWrapper = styled.div<{
 				left: -1px;
 				right: 0;
 				bottom: 0;
-				border-top: 1px solid ${props.theme.colors.border.alt4};
+				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
 				transition: all 100ms;
 			}
 		`}
@@ -330,12 +363,12 @@ export const TxAddress = styled.div`
 	width: 165px;
 `;
 
-export const ResultMessage = styled.div<{ clickable?: boolean }>`
+export const ResultMessage = styled.div`
 	min-width: 165px;
 	width: 165px;
 
-	span {
-		color: ${(props) => (props.clickable ? props.theme.colors.link.color : props.theme.colors.font.alt1)} !important;
+	> span {
+		color: ${(props) => props.theme.colors.font.alt1} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -343,16 +376,6 @@ export const ResultMessage = styled.div<{ clickable?: boolean }>`
 		transition: all 100ms;
 		display: block;
 		width: fit-content;
-	}
-
-	&:hover {
-		cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
-
-		span {
-			color: ${(props) => (props.clickable ? props.theme.colors.link.active : props.theme.colors.font.alt1)};
-			text-decoration: ${(props) => (props.clickable ? 'underline' : 'none')};
-			text-decoration-thickness: ${(props) => (props.clickable ? '1.25px' : '0')};
-		}
 	}
 `;
 

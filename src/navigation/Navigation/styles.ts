@@ -170,7 +170,6 @@ export const SearchInputWrapper = styled.div`
 	input {
 		background: transparent;
 		padding: 10px 10px 10px 43.5px !important;
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	}
 
 	svg {

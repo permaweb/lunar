@@ -106,6 +106,22 @@ function Heading(props: { level: 1 | 2 | 3 | 4 | 5 | 6; children: ReactNode }) {
 	return React.createElement(`h${props.level}`, id ? { id } : undefined, props.children);
 }
 
+function scrollToTop(e: React.MouseEvent<HTMLAnchorElement>) {
+	if (
+		e.defaultPrevented ||
+		e.button !== 0 ||
+		e.metaKey ||
+		e.ctrlKey ||
+		e.shiftKey ||
+		e.altKey ||
+		e.currentTarget.target === '_blank'
+	) {
+		return;
+	}
+
+	window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 export default function MarkdownViewer(props: {
 	markdown: string;
 	header?: string | null;
@@ -176,7 +192,7 @@ export default function MarkdownViewer(props: {
 		a: ({ href, children, ...anchorProps }: any) => {
 			if (href?.startsWith('#') || href?.startsWith('/')) {
 				return (
-					<Link {...anchorProps} to={href}>
+					<Link {...anchorProps} to={href} onClick={href.startsWith('/') ? scrollToTop : undefined}>
 						{children}
 					</Link>
 				);

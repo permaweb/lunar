@@ -1815,7 +1815,6 @@ function Transaction(props: {
 													showFilteredMessages={true}
 													hydrateAoTransferNotices={hydrateAoTransferNotices}
 													showResultMessageLabel={true}
-													clickableResultMessageLabel={hydrateAoTransferNotices}
 												/>
 											)}
 										</S.MessageHeaderWrapper>

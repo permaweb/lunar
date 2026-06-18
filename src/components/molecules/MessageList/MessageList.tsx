@@ -13,7 +13,7 @@ import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
 import { TransferAmount } from 'components/atoms/TransferAmount';
-import { TxAddress } from 'components/atoms/TxAddress';
+import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { PaginationControls } from 'components/molecules/PaginationControls';
@@ -116,8 +116,8 @@ function Message(props: {
 	timestamp?: number;
 	showFilteredMessages?: boolean;
 	childList?: boolean;
+	nestingLevel?: number;
 	showResultMessageLabel?: boolean;
-	clickableResultMessageLabel?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 	const navigate = useNavigate();
@@ -257,15 +257,6 @@ function Message(props: {
 		e.preventDefault();
 		e.stopPropagation();
 		setShowViewResult((prev) => !prev);
-	}
-
-	function handleResultMessageOpen(e: any) {
-		e.preventDefault();
-		e.stopPropagation();
-
-		if (props.element.node.id && props.handleOpen) {
-			props.handleOpen(props.element.node.id);
-		}
 	}
 
 	function getActionLabel() {
@@ -519,11 +510,22 @@ function Message(props: {
 
 	function getID() {
 		if (props.showResultMessageLabel) {
+			if (props.element.node.id) {
+				return (
+					<S.ResultMessage>
+						<ExplorerLink
+							value={props.element.node.id}
+							type={'transaction'}
+							label={'Result Message'}
+							tooltipPosition={'right'}
+							handlePress={props.handleOpen ? () => props.handleOpen(props.element.node.id) : undefined}
+						/>
+					</S.ResultMessage>
+				);
+			}
+
 			return (
-				<S.ResultMessage
-					clickable={Boolean(props.element.node.id && props.clickableResultMessageLabel)}
-					onClick={props.element.node.id && props.clickableResultMessageLabel ? handleResultMessageOpen : undefined}
-				>
+				<S.ResultMessage>
 					<span>Result Message</span>
 				</S.ResultMessage>
 			);
@@ -579,6 +581,7 @@ function Message(props: {
 			clickable={false}
 			open={false}
 			lastChild={props.lastChild}
+			$nestingLevel={(props.nestingLevel ?? 0) + 1}
 			style={{ pointerEvents: 'none' }}
 		>
 			<S.InfoWrapper>
@@ -596,6 +599,7 @@ function Message(props: {
 				open={open && canFetchAoResult}
 				lastChild={props.lastChild}
 				childList={props.childList}
+				$nestingLevel={(props.nestingLevel ?? 0) + 1}
 			>
 				<S.ID>{getID()}</S.ID>
 				<S.TypeValue>
@@ -644,9 +648,9 @@ function Message(props: {
 					showFilteredMessages
 					hydrateAoTransferNotices={hydrateNestedAoTransferNotices}
 					showResultMessageLabel={true}
-					clickableResultMessageLabel={hydrateNestedAoTransferNotices}
 					handleMessageOpen={props.handleOpen ? (id: string) => props.handleOpen(id) : null}
 					childList
+					nestingLevel={(props.nestingLevel ?? 0) + 1}
 					isOverallLast={props.isOverallLast && props.lastChild}
 				/>
 			)}
@@ -774,6 +778,7 @@ export default function MessageList(props: {
 	parentId?: string;
 	handleMessageOpen?: (id: string) => void;
 	childList?: boolean;
+	nestingLevel?: number;
 	isOverallLast?: boolean;
 	result?: any;
 	willHaveResult?: boolean;
@@ -783,7 +788,6 @@ export default function MessageList(props: {
 	showFilteredMessages?: boolean;
 	hydrateAoTransferNotices?: boolean;
 	showResultMessageLabel?: boolean;
-	clickableResultMessageLabel?: boolean;
 }) {
 	const location = useLocation();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -2098,7 +2102,12 @@ export default function MessageList(props: {
 								</S.Results>
 							</S.HeaderWrapper>
 						)}
-						<S.BodyWrapper childList={props.childList} isOverallLast={props.isOverallLast} className={'fade-in'}>
+						<S.BodyWrapper
+							childList={props.childList}
+							isOverallLast={props.isOverallLast}
+							$nestingLevel={props.nestingLevel}
+							className={'fade-in'}
+						>
 							{currentData.map((element: any, index: number) => {
 								const isLastChild = index === currentData.length - 1;
 
@@ -2115,8 +2124,8 @@ export default function MessageList(props: {
 										isOverallLast={props.isOverallLast && isLastChild}
 										showFilteredMessages={props.showFilteredMessages}
 										childList={props.childList}
+										nestingLevel={props.nestingLevel}
 										showResultMessageLabel={props.showResultMessageLabel}
-										clickableResultMessageLabel={props.clickableResultMessageLabel}
 									/>
 								);
 							})}
