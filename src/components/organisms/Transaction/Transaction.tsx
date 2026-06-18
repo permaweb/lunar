@@ -1639,18 +1639,6 @@ function Transaction(props: {
 				) : null;
 			}
 
-			// Render HTML directly
-			if (normalizedContentType === 'text/html') {
-				return (
-					<S.Section className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
-						<S.SectionHeader>
-							<p>{language.data}</p>
-						</S.SectionHeader>
-						<div dangerouslySetInnerHTML={{ __html: data }} />
-					</S.Section>
-				);
-			}
-
 			// Render images
 			if (normalizedContentType?.startsWith('image/')) {
 				return (
