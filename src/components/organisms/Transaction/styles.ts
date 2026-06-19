@@ -584,6 +584,83 @@ export const DataSection = styled(Section)`
 	padding: 0;
 `;
 
+export const UnsupportedContent = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 60px 20px;
+	gap: 10px;
+	text-align: center;
+	min-height: 200px;
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+		margin: 0;
+	}
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		color: ${(props) => props.theme.colors.font.primary};
+		margin: 0;
+		padding: 6px 14px;
+		background: ${(props) => props.theme.colors.container.alt2.background};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border-radius: ${STYLING.dimensions.radius.primary};
+		font-family: monospace;
+	}
+
+	small {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.regular};
+		color: ${(props) => props.theme.colors.font.secondary};
+		margin: 0;
+	}
+
+	a {
+		margin-top: 10px;
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		color: ${(props) => props.theme.colors.font.link};
+		text-decoration: none;
+		transition: all 100ms;
+
+		&:hover {
+			text-decoration: underline;
+			text-decoration-thickness: 1.25px;
+		}
+	}
+`;
+
+export const MediaWrapper = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	min-height: 200px;
+	width: 100%;
+
+	video {
+		max-width: 100%;
+		max-height: 500px;
+		border-radius: ${STYLING.dimensions.radius.primary};
+		background: ${(props) => props.theme.colors.container.primary.background};
+	}
+
+	audio {
+		width: 100%;
+		max-width: 600px;
+	}
+`;
+
 export const MarkdownSection = styled.div`
 	padding: 10px 0 0 0;
 `;

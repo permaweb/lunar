@@ -1589,6 +1589,40 @@ function Transaction(props: {
 			txResponse?.node?.data?.type ??
 			null;
 		const normalizedContentType = contentType?.split(';')[0].trim().toLowerCase();
+
+		// Check for video and audio content types
+		const isVideo = normalizedContentType?.startsWith('video/');
+		const isAudio = normalizedContentType?.startsWith('audio/');
+
+		// Unsupported binary content types that can't be rendered
+		const unsupportedContentTypes = [
+			'application/beam-archive',
+			'application/octet-stream',
+			'application/zip',
+			'application/x-tar',
+			'application/x-gzip',
+			'application/x-bzip2',
+			'application/x-rar-compressed',
+			'application/x-7z-compressed',
+			'application/pdf',
+			'application/vnd.ms-excel',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			'application/msword',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'application/vnd.ms-powerpoint',
+			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+			'application/x-shockwave-flash',
+			'application/x-executable',
+			'application/x-deb',
+			'application/x-rpm',
+			'font/', // Any font type
+			'model/', // Any 3D model type
+		];
+
+		const isUnsupported =
+			normalizedContentType &&
+			unsupportedContentTypes.some((unsupportedType) => normalizedContentType.startsWith(unsupportedType));
+
 		const isMarkdown = ['text/markdown', 'text/x-markdown', 'application/markdown'].includes(
 			normalizedContentType ?? ''
 		);
@@ -1641,6 +1675,50 @@ function Transaction(props: {
 				return props.fixedHeight ? (
 					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight} />
 				) : null;
+			}
+
+			// Check for unsupported content types
+			if (isUnsupported) {
+				return (
+					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
+						<S.UnsupportedContent>
+							<p>Unsupported Content Type</p>
+							<span>{contentType || 'Unknown'}</span>
+							<small>This format cannot be rendered</small>
+							<a href={`https://arweave.net/${inputTxId}`} target="_blank" rel="noopener noreferrer">
+								See on Arweave
+							</a>
+						</S.UnsupportedContent>
+					</S.DataSection>
+				);
+			}
+
+			// Render video
+			if (isVideo) {
+				return (
+					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
+						<S.MediaWrapper>
+							<video controls style={{ maxWidth: '100%', height: 'auto' }} preload="metadata">
+								<source src={getTxEndpoint(inputTxId)} type={contentType || undefined} />
+								Your browser does not support the video tag.
+							</video>
+						</S.MediaWrapper>
+					</S.DataSection>
+				);
+			}
+
+			// Render audio
+			if (isAudio) {
+				return (
+					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
+						<S.MediaWrapper>
+							<audio controls style={{ width: '100%' }} preload="metadata">
+								<source src={getTxEndpoint(inputTxId)} type={contentType || undefined} />
+								Your browser does not support the audio tag.
+							</audio>
+						</S.MediaWrapper>
+					</S.DataSection>
+				);
 			}
 
 			// Render images
