@@ -21,7 +21,9 @@ import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
+import { CSVViewer } from 'components/molecules/CSVViewer';
 import { Editor } from 'components/molecules/Editor';
+import { HTMLViewer } from 'components/molecules/HTMLViewer';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { MarkdownViewer } from 'components/molecules/MarkdownViewer';
 import { MessageList } from 'components/molecules/MessageList';
@@ -1590,6 +1592,8 @@ function Transaction(props: {
 		const isMarkdown = ['text/markdown', 'text/x-markdown', 'application/markdown'].includes(
 			normalizedContentType ?? ''
 		);
+		const isCSV = ['text/csv', 'application/csv', 'text/comma-separated-values'].includes(normalizedContentType ?? '');
+		const isHTML = ['text/html', 'application/xhtml+xml'].includes(normalizedContentType ?? '');
 
 		React.useEffect(() => {
 			(async function () {
@@ -1604,7 +1608,7 @@ function Transaction(props: {
 
 						if (trimmed === '') {
 							setData(language.noData);
-						} else if (isMarkdown) {
+						} else if (isMarkdown || isCSV || isHTML) {
 							setData(trimmed);
 						} else {
 							try {
@@ -1649,6 +1653,29 @@ function Transaction(props: {
 							style={{ maxWidth: '100%', height: 'auto' }}
 						/>
 					</S.DataSection>
+				);
+			}
+
+			if (isHTML && typeof data === 'string') {
+				return (
+					<HTMLViewer
+						src={getTxEndpoint(inputTxId)}
+						header={props.dataHeader ?? language.data}
+						fixedHeight={props.fixedHeight ?? 600}
+						className={'border-wrapper-primary'}
+						title={language.transactionData}
+					/>
+				);
+			}
+
+			if (isCSV && typeof data === 'string') {
+				return (
+					<CSVViewer
+						csv={data}
+						header={props.dataHeader ?? language.data}
+						fixedHeight={props.fixedHeight ?? 600}
+						filename={inputTxId}
+					/>
 				);
 			}
 
