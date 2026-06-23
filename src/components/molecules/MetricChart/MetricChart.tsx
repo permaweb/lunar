@@ -1,6 +1,7 @@
 import React from 'react';
-import { Line } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import {
+	BarElement,
 	CategoryScale,
 	Chart as ChartJS,
 	Filler,
@@ -18,7 +19,7 @@ import { formatCount, formatDate } from 'helpers/utils';
 
 import * as S from './styles';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 const crosshairPlugin = {
 	id: 'crosshairPlugin',
@@ -27,11 +28,17 @@ const crosshairPlugin = {
 
 		if (pluginOptions.currentDate !== undefined && pluginOptions.currentDate >= 0) {
 			const currentDateIndex = pluginOptions.currentDate;
-			const xCoord = scales.x.getPixelForValue(currentDateIndex);
 			ctx.save();
 			ctx.beginPath();
-			ctx.moveTo(xCoord, scales.y.top);
-			ctx.lineTo(xCoord, scales.y.bottom);
+			if (chart.options.indexAxis === 'y') {
+				const yCoord = scales.y.getPixelForValue(currentDateIndex);
+				ctx.moveTo(scales.x.left, yCoord);
+				ctx.lineTo(scales.x.right, yCoord);
+			} else {
+				const xCoord = scales.x.getPixelForValue(currentDateIndex);
+				ctx.moveTo(xCoord, scales.y.top);
+				ctx.lineTo(xCoord, scales.y.bottom);
+			}
 			ctx.lineWidth = pluginOptions.currentLine?.lineWidth ?? 2;
 			ctx.strokeStyle = pluginOptions.currentLine?.borderColor || 'red';
 			if (pluginOptions.currentLine?.borderDash) {
@@ -91,16 +98,29 @@ const crosshairPlugin = {
 ChartJS.register(crosshairPlugin);
 
 export default function MetricChart(props: {
+	chartType?: 'horizontal-bar' | 'line' | 'vertical-bar';
 	dataList: MetricDataPoint[];
 	metric: keyof MetricDataPoint;
 	totalField: keyof MetricDataPoint;
 	chartLabel: string;
+	loadingDelay?: number;
+	totalLabel?: string;
+	valueFormatter?: (value: string | number) => string;
 }) {
 	const theme = useTheme();
 	const chartRef = React.useRef<any>(null);
+	const chartType = props.chartType ?? 'line';
 
 	const [currentDate, setCurrentDate] = React.useState<string | null>(null);
 	const [currentValue, setCurrentValue] = React.useState<string | number | null>(null);
+	const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
+	React.useEffect(() => {
+		setIsLoading(true);
+		const timer = window.setTimeout(() => setIsLoading(false), props.loadingDelay ?? 1000);
+
+		return () => window.clearTimeout(timer);
+	}, [props.dataList, props.loadingDelay]);
 
 	React.useEffect(() => {
 		if (props.dataList.length > 0) {
@@ -119,8 +139,9 @@ export default function MetricChart(props: {
 
 	const total = React.useMemo(() => {
 		const value = props.dataList?.[props.dataList.length - 1][props.totalField];
-		return value ? formatCount(value.toString()) : '-';
-	}, [props.dataList, props.totalField]);
+		if (value === undefined || value === null) return '-';
+		return props.valueFormatter ? props.valueFormatter(value) : formatCount(value.toString());
+	}, [props.dataList, props.totalField, props.valueFormatter]);
 
 	const datasetData = React.useMemo(() => {
 		return props.dataList.map((item) => item[props.metric]);
@@ -157,10 +178,12 @@ export default function MetricChart(props: {
 					fill: true,
 					backgroundColor: createDottedPattern(),
 					borderColor: theme.colors.border.alt5,
+					borderWidth: 1.5,
 					pointBackgroundColor: theme.colors.border.alt6,
 					pointBorderColor: theme.colors.border.alt5,
-					pointRadius: 1,
+					pointRadius: 0,
 					lineTension: 0.1,
+					maxBarThickness: 32,
 				},
 			],
 		};
@@ -171,10 +194,12 @@ export default function MetricChart(props: {
 			if (activeElements && activeElements.length > 0) {
 				const activeElem = activeElements[0].element;
 				chart.$activeElement = activeElem;
-				const xIndex = chart.scales.x.getValueForPixel(activeElem.x);
-				const yIndex = chart.scales.y.getValueForPixel(activeElem.y);
-				if (xIndex !== null && yIndex !== null) {
-					const element = props.dataList[xIndex];
+				const dataIndex =
+					chart.options.indexAxis === 'y'
+						? chart.scales.y.getValueForPixel(activeElem.y)
+						: chart.scales.x.getValueForPixel(activeElem.x);
+				if (dataIndex !== null) {
+					const element = props.dataList[dataIndex];
 					setCurrentDate(element.day);
 					setCurrentValue(element[props.metric]);
 				}
@@ -189,6 +214,7 @@ export default function MetricChart(props: {
 		responsive: true,
 		maintainAspectRatio: false,
 		animation: false as any,
+		indexAxis: chartType === 'horizontal-bar' ? ('y' as const) : ('x' as const),
 		plugins: {
 			tooltip: { enabled: false },
 			legend: { display: false, labels: { usePointStyle: true } },
@@ -243,12 +269,16 @@ export default function MetricChart(props: {
 		onHover: handleHover,
 	};
 
+	if (isLoading) {
+		return <S.Placeholder className={'border-wrapper-alt4'} />;
+	}
+
 	return (
 		<S.Wrapper className={'border-wrapper-alt4'}>
 			<S.HeaderWrapper>
 				<S.HeaderSection>
 					<S.HeaderLabel>
-						<span>{props.chartLabel}</span>
+						<span>{props.totalLabel ?? props.chartLabel}</span>
 					</S.HeaderLabel>
 					<S.HeaderValue>
 						<p>{total}</p>
@@ -259,13 +289,23 @@ export default function MetricChart(props: {
 						<span>{currentDate ? formatDate(currentDate, 'dateString') : '-'}</span>
 					</S.HeaderLabel>
 					<S.HeaderValue>
-						<p>{currentValue ? formatCount(currentValue.toString()) : '-'}</p>
+						<p>
+							{currentValue !== null
+								? props.valueFormatter
+									? props.valueFormatter(currentValue)
+									: formatCount(currentValue.toString())
+								: '-'}
+						</p>
 					</S.HeaderValue>
 				</S.HeaderSection>
 			</S.HeaderWrapper>
 			<S.BodyWrapper>
 				<S.ChartWrapper>
-					<Line ref={chartRef} data={chartData} options={options} />
+					{chartType === 'line' ? (
+						<Line ref={chartRef} data={chartData} options={options} />
+					) : (
+						<Bar ref={chartRef} data={chartData} options={options} />
+					)}
 				</S.ChartWrapper>
 			</S.BodyWrapper>
 		</S.Wrapper>

@@ -392,7 +392,7 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 		},
 		checkbox: {
 			active: {
-				background: currentTheme.primary1,
+				background: currentTheme.neutralA2,
 			},
 			background: currentTheme.neutral1,
 			hover: currentTheme.neutral3,

@@ -34,12 +34,11 @@ export const Subheader = styled.div`
 	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.light1};
 		text-align: center;
-		text-transform: uppercase;
 	}
 `;
 
@@ -97,6 +96,10 @@ export const NodesWrapper = styled.div`
 	margin: 0 0 30px 0;
 `;
 
+export const MetricsSectionWrapper = styled.div`
+	margin: 0 0 30px 0;
+`;
+
 export const DividerWrapper = styled.div`
 	width: 100%;
 	display: flex;
@@ -111,11 +114,10 @@ export const DividerWrapper = styled.div`
 	}
 
 	span {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
 		text-align: center;
-		text-transform: uppercase;
 	}
 `;

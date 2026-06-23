@@ -23,8 +23,8 @@ export function getRendererEndpoint(renderWith: string, tx: string) {
 	}
 }
 
-export function getMetricsEndpoint(days: number, network: 'mainnet' | 'legacynet') {
-	return `https://atlas-server.decent.land/${network === 'mainnet' ? 'mainnet/' : ''}explorer/days?limit=${days}`;
+export function getMetricsEndpoint() {
+	return '/arweave-metrics.json';
 }
 
 export function getRoutesEndpoint(routerUrl: string) {

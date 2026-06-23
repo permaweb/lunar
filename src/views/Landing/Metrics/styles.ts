@@ -38,3 +38,50 @@ export const Placeholder = styled.div`
 		}
 	}
 `;
+
+export const TotalsWrapper = styled.div`
+	width: 100%;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 25px;
+	margin: 0 0 30px 0;
+
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		grid-template-columns: 1fr;
+	}
+`;
+
+export const TotalCard = styled.div`
+	min-height: 102px;
+	padding: 17.5px 20px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 8px;
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.alt1};
+	}
+
+	p {
+		font-size: clamp(18px, 1.5vw, 24px);
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+	}
+`;
+
+export const TotalPlaceholder = styled(Placeholder)`
+	height: 102px;
+`;
+
+export const ErrorWrapper = styled.div`
+	width: 100%;
+	padding: 20px;
+	color: ${(props) => props.theme.colors.warning.primary};
+	background: ${(props) => props.theme.colors.container.primary.background};
+	border-radius: ${STYLING.dimensions.radius.alt1};
+`;

@@ -110,18 +110,37 @@ export type TransactionTabType = {
 };
 
 export type MetricDataPoint = {
-	active_processes_over_blocks: number;
-	active_users_over_blocks: number;
 	day: string;
-	evals: number;
-	modules_roll: number;
-	new_modules_over_blocks: number;
-	new_processes_over_blocks: number;
-	processed_blocks: number;
-	processes_roll: number;
-	transfers: number;
-	txs: number;
-	txs_roll: number;
+	[key: string]: number | string;
+};
+
+export type NetworkMetricValue = {
+	bytes?: string;
+	endBytes?: string;
+	lowerBound?: number | null;
+	reason?: string | null;
+	source: string;
+	startBytes?: string;
+	unit?: string;
+	value?: string | null;
+	variant?: string;
+	windowBlocks?: number;
+	windowSeconds?: string;
+	winston?: string;
+};
+
+export type NetworkMetricsSnapshot = {
+	gateway: string;
+	generatedAt: string;
+	height: number;
+	metrics: Record<string, NetworkMetricValue>;
+	schema: string;
+	window: {
+		blocks: number;
+		endHeight: number;
+		seconds: string;
+		startHeight: number;
+	};
 };
 
 export type MessageFilterType = 'incoming' | 'outgoing';

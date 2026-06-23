@@ -1,0 +1,98 @@
+{
+	"schema": "arweave-metrics@1.0",
+	"generatedAt": "2026-06-23T14:39:56.438Z",
+	"gateway": "https://arweave.net",
+	"height": 1944663,
+	"window": {
+		"blocks": 720,
+		"endHeight": 1944663,
+		"seconds": "92460",
+		"startHeight": 1943943
+	},
+	"metrics": {
+		"total-txs": {
+			"source": "graphql.transactions.count",
+			"value": "6865202399"
+		},
+		"txs-rolling": {
+			"source": "graphql.transactions.count",
+			"value": "851952",
+			"windowBlocks": 720
+		},
+		"current-tps": {
+			"source": "graphql.transactions.count/block-time",
+			"value": "7.860066",
+			"windowBlocks": 10,
+			"windowSeconds": "1808"
+		},
+		"storage-cost-ar-per-gib": {
+			"source": "/price/1073741824",
+			"value": "10.351616913616",
+			"winston": "10351616913616"
+		},
+		"total-weave-size": {
+			"bytes": "388482763366646",
+			"source": "block.weave_size"
+		},
+		"network-size": {
+			"bytes": "16920000000000000",
+			"source": "block difficulty, VDF, and proof fields",
+			"windowBlocks": 720
+		},
+		"proof-rate": {
+			"source": "cumulative-difficulty-delta/block-time",
+			"unit": "proofs-per-second",
+			"value": "1774527.594225",
+			"windowBlocks": 720
+		},
+		"data-uploaded-rolling": {
+			"bytes": "21292384256",
+			"source": "weave-size-delta",
+			"windowBlocks": 720
+		},
+		"ao-mainnet-messages-total": {
+			"source": "graphql.transactions.count",
+			"value": "126332",
+			"variant": "ao.N.1"
+		},
+		"ao-mainnet-messages-rolling": {
+			"source": "graphql.transactions.count",
+			"value": "520",
+			"variant": "ao.N.1",
+			"windowBlocks": 720
+		},
+		"ao-mainnet-processes-total": {
+			"source": "graphql.transactions.count",
+			"value": "19262",
+			"variant": "ao.N.1"
+		},
+		"ao-mainnet-processes-rolling": {
+			"source": "graphql.transactions.count",
+			"value": "53",
+			"variant": "ao.N.1",
+			"windowBlocks": 720
+		},
+		"ao-legacynet-messages-total": {
+			"source": "graphql.transactions.count",
+			"value": "1653974923",
+			"variant": "ao.TN.1"
+		},
+		"ao-legacynet-messages-rolling": {
+			"source": "graphql.transactions.count",
+			"value": "30164",
+			"variant": "ao.TN.1",
+			"windowBlocks": 720
+		},
+		"ao-legacynet-processes-total": {
+			"source": "graphql.transactions.count",
+			"value": "611484",
+			"variant": "ao.TN.1"
+		},
+		"ao-legacynet-processes-rolling": {
+			"source": "graphql.transactions.count",
+			"value": "0",
+			"variant": "ao.TN.1",
+			"windowBlocks": 720
+		}
+	}
+}
