@@ -96,11 +96,11 @@ export const BodyWrapper = styled.div`
 	width: 100%;
 `;
 
-export const ChartWrapper = styled.div`
+export const ChartWrapper = styled.div<{ $showCrosshair?: boolean }>`
 	height: 240.5px;
 	width: 100%;
 	position: relative;
-	cursor: crosshair;
+	cursor: ${(props) => (props.$showCrosshair ? 'crosshair' : 'default')};
 	overflow: hidden;
 	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};

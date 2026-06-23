@@ -1,51 +1,60 @@
 import React from 'react';
 
 import { MetricChart } from 'components/molecules/MetricChart';
-import { getMetricsEndpoint } from 'helpers/endpoints';
+import { getMetricsEndpoint, getMetricsFallbackEndpoint } from 'helpers/endpoints';
 import { MetricDataPoint, NetworkMetricsSnapshot } from 'helpers/types';
-import { formatCount } from 'helpers/utils';
 
 import * as S from './styles';
 
 type MetricsSection = 'arweave-txs' | 'arweave' | 'legacynet' | 'mainnet';
 
-type MockPoint = {
-	activity: number;
-	daysAgo: number;
-	legacyProcesses: number;
-	price: number;
-	proof: number;
-	storage: number;
-	throughput: number;
-};
-
-const MOCK_POINTS: MockPoint[] = [
-	{ activity: 0.72, daysAgo: 10, legacyProcesses: 9, price: 1.034, proof: 0.982, storage: 0.7, throughput: 0.81 },
-	{ activity: 0.79, daysAgo: 9, legacyProcesses: 7, price: 1.026, proof: 0.991, storage: 0.77, throughput: 0.86 },
-	{ activity: 0.75, daysAgo: 8, legacyProcesses: 6, price: 1.031, proof: 0.976, storage: 0.74, throughput: 0.78 },
-	{ activity: 0.86, daysAgo: 7, legacyProcesses: 5, price: 1.019, proof: 1.008, storage: 0.82, throughput: 0.91 },
-	{ activity: 0.81, daysAgo: 6, legacyProcesses: 4, price: 1.022, proof: 0.997, storage: 0.8, throughput: 0.84 },
-	{ activity: 0.9, daysAgo: 5, legacyProcesses: 4, price: 1.014, proof: 1.014, storage: 0.87, throughput: 0.95 },
-	{ activity: 0.88, daysAgo: 4, legacyProcesses: 3, price: 1.012, proof: 1.006, storage: 0.9, throughput: 0.92 },
-	{ activity: 0.94, daysAgo: 3, legacyProcesses: 2, price: 1.008, proof: 1.021, storage: 0.93, throughput: 0.97 },
-	{ activity: 0.91, daysAgo: 2, legacyProcesses: 1, price: 1.006, proof: 1.011, storage: 0.96, throughput: 0.94 },
-	{ activity: 0.97, daysAgo: 1, legacyProcesses: 1, price: 1.002, proof: 1.004, storage: 0.98, throughput: 0.99 },
-	{ activity: 1, daysAgo: 0, legacyProcesses: 0, price: 1, proof: 1, storage: 1, throughput: 1 },
-];
-
 let metricsRequest: Promise<NetworkMetricsSnapshot> | null = null;
 
-function fetchMetrics() {
-	if (!metricsRequest) {
-		metricsRequest = fetch(getMetricsEndpoint()).then(async (response) => {
-			if (!response.ok) {
-				throw new Error(`Metrics request failed with HTTP ${response.status}`);
-			}
+const METRICS_SOURCES = [
+	{ label: 'AO process', url: getMetricsEndpoint() },
+	{ label: 'S3 fallback', url: getMetricsFallbackEndpoint() },
+];
 
-			return (await response.json()) as NetworkMetricsSnapshot;
-		});
+function normalizeMetricsSnapshot(payload: any, sourceLabel: string): NetworkMetricsSnapshot {
+	const generatedAt = payload?.generatedAt ?? payload?.generatedat;
+
+	if (typeof generatedAt !== 'string' || !payload?.metrics || !payload?.window) {
+		throw new Error(`${sourceLabel} returned an invalid metrics payload`);
 	}
 
+	return {
+		...payload,
+		generatedAt,
+		history: Array.isArray(payload.history) ? payload.history : [],
+	} as NetworkMetricsSnapshot;
+}
+
+async function fetchMetricsFromSource(source: (typeof METRICS_SOURCES)[number]) {
+	const response = await fetch(source.url, { headers: { Accept: 'application/json' } });
+
+	if (!response.ok) {
+		throw new Error(`${source.label} request failed with HTTP ${response.status}`);
+	}
+
+	return normalizeMetricsSnapshot(await response.json(), source.label);
+}
+
+async function requestMetrics() {
+	const errors: string[] = [];
+
+	for (const source of METRICS_SOURCES) {
+		try {
+			return await fetchMetricsFromSource(source);
+		} catch (error) {
+			errors.push(`${source.label}: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	}
+
+	throw new Error(`Metrics request failed (${errors.join('; ')})`);
+}
+
+function fetchMetrics() {
+	if (!metricsRequest) metricsRequest = requestMetrics();
 	return metricsRequest;
 }
 
@@ -77,42 +86,30 @@ function getMetric(snapshot: NetworkMetricsSnapshot, key: string, field: 'bytes'
 	return value === null || value === undefined ? 0 : Number(value);
 }
 
+function buildCurrentMetricPoint(snapshot: NetworkMetricsSnapshot): MetricDataPoint {
+	return {
+		day: snapshot.generatedAt,
+		mainnet_messages_rolling: getMetric(snapshot, 'ao-mainnet-messages-rolling'),
+		mainnet_messages_total: getMetric(snapshot, 'ao-mainnet-messages-total'),
+		mainnet_processes_rolling: getMetric(snapshot, 'ao-mainnet-processes-rolling'),
+		mainnet_processes_total: getMetric(snapshot, 'ao-mainnet-processes-total'),
+		legacynet_messages_rolling: getMetric(snapshot, 'ao-legacynet-messages-rolling'),
+		legacynet_messages_total: getMetric(snapshot, 'ao-legacynet-messages-total'),
+		legacynet_processes_rolling: getMetric(snapshot, 'ao-legacynet-processes-rolling'),
+		legacynet_processes_total: getMetric(snapshot, 'ao-legacynet-processes-total'),
+		arweave_txs_rolling: getMetric(snapshot, 'txs-rolling'),
+		arweave_txs_total: getMetric(snapshot, 'total-txs'),
+		arweave_data_uploaded_rolling: getMetric(snapshot, 'data-uploaded-rolling', 'bytes'),
+		arweave_weave_size_total: getMetric(snapshot, 'total-weave-size', 'bytes'),
+		arweave_tps: getMetric(snapshot, 'current-tps'),
+		arweave_proof_rate: getMetric(snapshot, 'proof-rate'),
+		arweave_storage_cost_per_gib: getMetric(snapshot, 'storage-cost-ar-per-gib'),
+	};
+}
+
 function buildMetricHistory(snapshot: NetworkMetricsSnapshot): MetricDataPoint[] {
-	const generatedAt = new Date(snapshot.generatedAt);
-	const mainnetMessages = getMetric(snapshot, 'ao-mainnet-messages-rolling');
-	const mainnetProcesses = getMetric(snapshot, 'ao-mainnet-processes-rolling');
-	const legacynetMessages = getMetric(snapshot, 'ao-legacynet-messages-rolling');
-	const legacynetProcesses = getMetric(snapshot, 'ao-legacynet-processes-rolling');
-	const arweaveTransactions = getMetric(snapshot, 'txs-rolling');
-	const dataUploaded = getMetric(snapshot, 'data-uploaded-rolling', 'bytes');
-	const currentTps = getMetric(snapshot, 'current-tps');
-	const proofRate = getMetric(snapshot, 'proof-rate');
-	const storageCost = getMetric(snapshot, 'storage-cost-ar-per-gib');
-
-	return MOCK_POINTS.map((point) => {
-		const day = new Date(generatedAt);
-		day.setUTCDate(day.getUTCDate() - point.daysAgo);
-
-		return {
-			day: day.toISOString(),
-			mainnet_messages_rolling: Math.round(mainnetMessages * point.activity),
-			mainnet_messages_total: getMetric(snapshot, 'ao-mainnet-messages-total'),
-			mainnet_processes_rolling: Math.round(mainnetProcesses * point.activity),
-			mainnet_processes_total: getMetric(snapshot, 'ao-mainnet-processes-total'),
-			legacynet_messages_rolling: Math.round(legacynetMessages * point.activity),
-			legacynet_messages_total: getMetric(snapshot, 'ao-legacynet-messages-total'),
-			legacynet_processes_rolling:
-				legacynetProcesses === 0 ? point.legacyProcesses : Math.max(0, Math.round(legacynetProcesses * point.activity)),
-			legacynet_processes_total: getMetric(snapshot, 'ao-legacynet-processes-total'),
-			arweave_txs_rolling: Math.round(arweaveTransactions * point.activity),
-			arweave_txs_total: getMetric(snapshot, 'total-txs'),
-			arweave_data_uploaded_rolling: Math.round(dataUploaded * point.storage),
-			arweave_weave_size_total: getMetric(snapshot, 'total-weave-size', 'bytes'),
-			arweave_tps: Number((currentTps * point.throughput).toFixed(4)),
-			arweave_proof_rate: Math.round(proofRate * point.proof),
-			arweave_storage_cost_per_gib: Number((storageCost * point.price).toFixed(12)),
-		};
-	});
+	const history = snapshot.history?.filter((point) => typeof point.day === 'string');
+	return history?.length ? history : [buildCurrentMetricPoint(snapshot)];
 }
 
 function formatBytes(value: string | number) {

@@ -24,6 +24,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 const crosshairPlugin = {
 	id: 'crosshairPlugin',
 	afterDatasetsDraw(chart: any, _args: any, pluginOptions: any) {
+		if (!pluginOptions) return;
+
 		const { ctx, scales } = chart;
 
 		if (pluginOptions.currentDate !== undefined && pluginOptions.currentDate >= 0) {
@@ -110,6 +112,7 @@ export default function MetricChart(props: {
 	const theme = useTheme();
 	const chartRef = React.useRef<any>(null);
 	const chartType = props.chartType ?? 'line';
+	const isBarChart = chartType !== 'line';
 
 	const [currentDate, setCurrentDate] = React.useState<string | null>(null);
 	const [currentValue, setCurrentValue] = React.useState<string | number | null>(null);
@@ -169,6 +172,8 @@ export default function MetricChart(props: {
 	}, [theme]);
 
 	const chartData = React.useMemo(() => {
+		const barColor = theme.colors.container.alt6.background;
+
 		return {
 			labels,
 			datasets: [
@@ -176,9 +181,10 @@ export default function MetricChart(props: {
 					label: props.chartLabel || (props.metric as string),
 					data: datasetData,
 					fill: true,
-					backgroundColor: createDottedPattern(),
-					borderColor: theme.colors.border.alt5,
-					borderWidth: 1.5,
+					backgroundColor: isBarChart ? barColor : createDottedPattern(),
+					borderColor: isBarChart ? barColor : theme.colors.border.alt5,
+					borderWidth: isBarChart ? 0 : 1.5,
+					hoverBackgroundColor: isBarChart ? barColor : undefined,
 					pointBackgroundColor: theme.colors.border.alt6,
 					pointBorderColor: theme.colors.border.alt5,
 					pointRadius: 0,
@@ -187,7 +193,7 @@ export default function MetricChart(props: {
 				},
 			],
 		};
-	}, [labels, datasetData, theme, props.metric, props.chartLabel, createDottedPattern]);
+	}, [labels, datasetData, theme, props.metric, props.chartLabel, isBarChart, createDottedPattern]);
 
 	const handleHover = React.useCallback(
 		(_event: any, activeElements: any[], chart: any) => {
@@ -218,31 +224,33 @@ export default function MetricChart(props: {
 		plugins: {
 			tooltip: { enabled: false },
 			legend: { display: false, labels: { usePointStyle: true } },
-			crosshairPlugin: {
-				verticalLine: {
-					lineWidth: 1.5,
-					borderColor: theme.colors.border.alt2,
-					borderDash: [0, 0],
-				},
-				horizontalLine: {
-					lineWidth: 1,
-					borderColor: theme.colors.border.alt4,
-					borderDash: [3, 2],
-				},
-				crosshairDot: {
-					radius: 5,
-					color: theme.colors.container.alt1.background,
-					borderColor: theme.colors.border.alt5,
-					borderWidth: 2,
-					borderDash: [0, 0],
-				},
-				currentDate: props.dataList.length - 1,
-				currentLine: {
-					lineWidth: 1.5,
-					borderColor: theme.colors.border.alt2,
-					borderDash: [3, 2],
-				},
-			},
+			crosshairPlugin: isBarChart
+				? false
+				: {
+						verticalLine: {
+							lineWidth: 1.5,
+							borderColor: theme.colors.border.alt2,
+							borderDash: [0, 0],
+						},
+						horizontalLine: {
+							lineWidth: 1,
+							borderColor: theme.colors.border.alt4,
+							borderDash: [3, 2],
+						},
+						crosshairDot: {
+							radius: 5,
+							color: theme.colors.container.alt1.background,
+							borderColor: theme.colors.border.alt5,
+							borderWidth: 2,
+							borderDash: [0, 0],
+						},
+						currentDate: props.dataList.length - 1,
+						currentLine: {
+							lineWidth: 1.5,
+							borderColor: theme.colors.border.alt2,
+							borderDash: [3, 2],
+						},
+				  },
 		},
 		interaction: {
 			mode: 'index' as const,
@@ -266,7 +274,7 @@ export default function MetricChart(props: {
 				border: { display: false },
 			},
 		},
-		onHover: handleHover,
+		onHover: isBarChart ? undefined : handleHover,
 	};
 
 	if (isLoading) {
@@ -300,7 +308,7 @@ export default function MetricChart(props: {
 				</S.HeaderSection>
 			</S.HeaderWrapper>
 			<S.BodyWrapper>
-				<S.ChartWrapper>
+				<S.ChartWrapper $showCrosshair={!isBarChart}>
 					{chartType === 'line' ? (
 						<Line ref={chartRef} data={chartData} options={options} />
 					) : (

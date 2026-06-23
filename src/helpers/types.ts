@@ -119,7 +119,7 @@ export type NetworkMetricValue = {
 	endBytes?: string;
 	lowerBound?: number | null;
 	reason?: string | null;
-	source: string;
+	source?: string;
 	startBytes?: string;
 	unit?: string;
 	value?: string | null;
@@ -133,6 +133,7 @@ export type NetworkMetricsSnapshot = {
 	gateway: string;
 	generatedAt: string;
 	height: number;
+	history?: MetricDataPoint[];
 	metrics: Record<string, NetworkMetricValue>;
 	schema: string;
 	window: {

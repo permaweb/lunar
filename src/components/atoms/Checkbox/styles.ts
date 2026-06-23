@@ -24,8 +24,7 @@ export const Input = styled.input`
 	padding: 0;
 	background: ${(props) =>
 		props.checked ? props.theme.colors.checkbox.active.background : props.theme.colors.checkbox.background};
-	border: 1px solid
-		${(props) => (props.checked ? props.theme.colors.checkbox.active.background : props.theme.colors.border.alt1)};
+	border: 1px solid ${(props) => (props.checked ? props.theme.colors.border.alt2 : props.theme.colors.border.alt1)};
 	border-radius: 1.5px;
 	height: 12.5px;
 	width: 12.5px;
