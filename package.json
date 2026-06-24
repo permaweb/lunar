@@ -14,7 +14,7 @@
 		"test:verbose": "npm test -- --verbose",
 		"test:coverage": "CI=true npm test -- --env=jsdom --coverage",
 		"build": "NODE_ENV=production vite build",
-		"deploy:main": "npm run build && permaweb-deploy deploy --arns-name lunar --ttl-seconds 60",
+		"deploy:main": "npm run build && permaweb-deploy deploy --use-names --name lunar",
 		"deploy:staging": "npm run build && permaweb-deploy deploy --arns-name lunar --ttl-seconds 60 --undername staging",
 		"prepare": "husky install"
 	},
@@ -53,7 +53,7 @@
 		"eslint-plugin-react-hooks": "^4.6.0",
 		"eslint-plugin-simple-import-sort": "^10.0.0",
 		"husky": "^8.0.0",
-		"permaweb-deploy": "3.4.2",
+		"@permaweb/deploy": "5.0.1",
 		"prettier": "^2.8.3",
 		"rollup-plugin-polyfill-node": "^0.13.0",
 		"vite": "^6.3.5",

@@ -4,7 +4,7 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageVariantEnum } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
-import { Metrics, MetricTotals } from './Metrics';
+import { Metrics } from './Metrics';
 import { NodeConnection } from './NodeConnection';
 import { Nodes } from './Nodes';
 import * as S from './styles';
@@ -30,9 +30,6 @@ export default function Landing() {
 					<S.MetricsSectionWrapper>
 						<Metrics section={'arweave-txs'} gridTemplate={1} />
 					</S.MetricsSectionWrapper>
-				</ViewWrapper>
-				<ViewWrapper>
-					<MetricTotals />
 				</ViewWrapper>
 				<ViewWrapper>
 					<S.MetricsSectionWrapper>
@@ -76,7 +73,7 @@ export default function Landing() {
 					</S.DividerWrapper>
 				</ViewWrapper>
 				<ViewWrapper>
-					<Metrics section={'legacynet'} gridTemplate={2} />
+					<Metrics section={'legacynet'} gridTemplate={1} />
 				</ViewWrapper>
 			</S.NetworkWrapper>
 			<S.MessagesWrapper>

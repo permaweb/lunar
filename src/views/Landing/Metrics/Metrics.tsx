@@ -9,6 +9,8 @@ import * as S from './styles';
 type MetricsSection = 'arweave-txs' | 'arweave' | 'legacynet' | 'mainnet';
 
 let metricsRequest: Promise<NetworkMetricsSnapshot> | null = null;
+let metricsSnapshot: NetworkMetricsSnapshot | null = null;
+let metricsError: string | null = null;
 
 const METRICS_SOURCES = [
 	{ label: 'AO process', url: getMetricsEndpoint() },
@@ -54,20 +56,42 @@ async function requestMetrics() {
 }
 
 function fetchMetrics() {
-	if (!metricsRequest) metricsRequest = requestMetrics();
+	if (!metricsRequest) {
+		metricsRequest = requestMetrics()
+			.then((snapshot) => {
+				metricsSnapshot = snapshot;
+				metricsError = null;
+				return snapshot;
+			})
+			.catch((error) => {
+				metricsRequest = null;
+				metricsError = error instanceof Error ? error.message : String(error);
+				throw error;
+			});
+	}
+
 	return metricsRequest;
 }
 
 function useMetrics() {
-	const [snapshot, setSnapshot] = React.useState<NetworkMetricsSnapshot | null>(null);
-	const [error, setError] = React.useState<string | null>(null);
+	const [snapshot, setSnapshot] = React.useState<NetworkMetricsSnapshot | null>(() => metricsSnapshot);
+	const [error, setError] = React.useState<string | null>(() => metricsError);
 
 	React.useEffect(() => {
 		let cancelled = false;
 
+		if (metricsSnapshot) {
+			setSnapshot(metricsSnapshot);
+			setError(null);
+			return;
+		}
+
 		fetchMetrics()
 			.then((data) => {
-				if (!cancelled) setSnapshot(data);
+				if (!cancelled) {
+					setError(null);
+					setSnapshot(data);
+				}
 			})
 			.catch((requestError) => {
 				if (!cancelled) setError(requestError instanceof Error ? requestError.message : String(requestError));
@@ -123,15 +147,17 @@ function formatBytes(value: string | number) {
 		unitIndex++;
 	}
 
-	return `${formatted >= 100 ? formatted.toFixed(0) : formatted.toFixed(2)} ${units[unitIndex]}`;
+	const maximumFractionDigits = unitIndex === 0 ? 0 : 3;
+	const formattedValue = formatted.toLocaleString(undefined, {
+		maximumFractionDigits,
+		minimumFractionDigits: 0,
+	});
+
+	return `${formattedValue} ${units[unitIndex]}`;
 }
 
 function formatDecimal(value: string | number) {
 	return Number(value).toLocaleString(undefined, { maximumFractionDigits: 4 });
-}
-
-function formatAr(value: string | number) {
-	return `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 6 })} AR`;
 }
 
 const CHARTS: Record<
@@ -143,6 +169,7 @@ const CHARTS: Record<
 		totalField: keyof MetricDataPoint;
 		totalLabel: string;
 		valueFormatter?: (value: string | number) => string;
+		valueScale?: 'fit' | 'zero';
 	}[]
 > = {
 	mainnet: [
@@ -169,13 +196,6 @@ const CHARTS: Record<
 			totalField: 'legacynet_messages_total',
 			totalLabel: 'Total Legacynet Messages',
 		},
-		{
-			chartLabel: 'Legacynet Processes / 720 Blocks',
-			chartType: 'line',
-			metric: 'legacynet_processes_rolling',
-			totalField: 'legacynet_processes_total',
-			totalLabel: 'Total Legacynet Processes',
-		},
 	],
 	['arweave-txs']: [
 		{
@@ -188,20 +208,21 @@ const CHARTS: Record<
 	],
 	arweave: [
 		{
+			chartLabel: 'Weave Size',
+			chartType: 'vertical-bar',
+			metric: 'arweave_weave_size_total',
+			totalField: 'arweave_weave_size_total',
+			totalLabel: 'Total Weave Size',
+			valueFormatter: formatBytes,
+			valueScale: 'fit',
+		},
+		{
 			chartLabel: 'Data Uploaded Rolling / 720 Blocks',
 			chartType: 'vertical-bar',
 			metric: 'arweave_data_uploaded_rolling',
 			totalField: 'arweave_data_uploaded_rolling',
 			totalLabel: 'Data Uploaded Rolling / 720 Blocks',
 			valueFormatter: formatBytes,
-		},
-		{
-			chartLabel: 'Storage Cost / GiB',
-			chartType: 'vertical-bar',
-			metric: 'arweave_storage_cost_per_gib',
-			totalField: 'arweave_storage_cost_per_gib',
-			totalLabel: 'Storage Cost / GiB',
-			valueFormatter: formatAr,
 		},
 		{
 			chartLabel: 'Current TPS',
@@ -257,6 +278,7 @@ export function MetricTotals() {
 
 export default function Metrics(props: { section: MetricsSection; gridTemplate: number }) {
 	const { error, snapshot } = useMetrics();
+	const history = React.useMemo(() => (snapshot ? buildMetricHistory(snapshot) : []), [snapshot]);
 
 	if (error) {
 		return <S.ErrorWrapper>{error}</S.ErrorWrapper>;
@@ -272,8 +294,6 @@ export default function Metrics(props: { section: MetricsSection; gridTemplate: 
 		);
 	}
 
-	const history = buildMetricHistory(snapshot);
-
 	return (
 		<S.Wrapper gridTemplate={props.gridTemplate}>
 			{CHARTS[props.section].map((chart, index) => (
@@ -286,6 +306,7 @@ export default function Metrics(props: { section: MetricsSection; gridTemplate: 
 					chartLabel={chart.chartLabel}
 					totalLabel={chart.totalLabel}
 					valueFormatter={chart.valueFormatter}
+					valueScale={chart.valueScale}
 					loadingDelay={1000 + index * 125}
 				/>
 			))}

@@ -99,7 +99,9 @@ const crosshairPlugin = {
 
 ChartJS.register(crosshairPlugin);
 
-export default function MetricChart(props: {
+const loadedChartKeys = new Set<string>();
+
+type MetricChartProps = {
 	chartType?: 'horizontal-bar' | 'line' | 'vertical-bar';
 	dataList: MetricDataPoint[];
 	metric: keyof MetricDataPoint;
@@ -108,22 +110,33 @@ export default function MetricChart(props: {
 	loadingDelay?: number;
 	totalLabel?: string;
 	valueFormatter?: (value: string | number) => string;
-}) {
+	valueScale?: 'fit' | 'zero';
+};
+
+function MetricChart(props: MetricChartProps) {
 	const theme = useTheme();
 	const chartRef = React.useRef<any>(null);
 	const chartType = props.chartType ?? 'line';
 	const isBarChart = chartType !== 'line';
+	const loadingKey = `${props.chartLabel}:${String(props.metric)}`;
 
 	const [currentDate, setCurrentDate] = React.useState<string | null>(null);
 	const [currentValue, setCurrentValue] = React.useState<string | number | null>(null);
-	const [isLoading, setIsLoading] = React.useState<boolean>(true);
+	const [isLoading, setIsLoading] = React.useState<boolean>(() => !loadedChartKeys.has(loadingKey));
 
 	React.useEffect(() => {
-		setIsLoading(true);
-		const timer = window.setTimeout(() => setIsLoading(false), props.loadingDelay ?? 1000);
+		if (loadedChartKeys.has(loadingKey)) {
+			setIsLoading(false);
+			return;
+		}
+
+		const timer = window.setTimeout(() => {
+			loadedChartKeys.add(loadingKey);
+			setIsLoading(false);
+		}, props.loadingDelay ?? 1000);
 
 		return () => window.clearTimeout(timer);
-	}, [props.dataList, props.loadingDelay]);
+	}, [loadingKey, props.loadingDelay]);
 
 	React.useEffect(() => {
 		if (props.dataList.length > 0) {
@@ -150,6 +163,27 @@ export default function MetricChart(props: {
 		return props.dataList.map((item) => item[props.metric]);
 	}, [props.dataList, props.metric]);
 
+	const fittedValueScale = React.useMemo(() => {
+		if (props.valueScale !== 'fit') return {};
+
+		const values = datasetData.map((value) => Number(value)).filter(Number.isFinite);
+		if (values.length < 2) return {};
+
+		const min = Math.min(...values);
+		const max = Math.max(...values);
+		const range = max - min;
+
+		if (range <= 0) return {};
+
+		const padding = range * 0.08;
+
+		return {
+			beginAtZero: false,
+			max: max + padding,
+			min: Math.max(0, min - padding),
+		};
+	}, [datasetData, props.valueScale]);
+
 	const createDottedPattern = React.useCallback(() => {
 		const canvas = document.createElement('canvas');
 		const ctx = canvas.getContext('2d');
@@ -173,6 +207,7 @@ export default function MetricChart(props: {
 
 	const chartData = React.useMemo(() => {
 		const barColor = theme.colors.container.alt6.background;
+		const barHoverColor = theme.colors.container.alt10.background;
 
 		return {
 			labels,
@@ -184,7 +219,8 @@ export default function MetricChart(props: {
 					backgroundColor: isBarChart ? barColor : createDottedPattern(),
 					borderColor: isBarChart ? barColor : theme.colors.border.alt5,
 					borderWidth: isBarChart ? 0 : 1.5,
-					hoverBackgroundColor: isBarChart ? barColor : undefined,
+					hoverBackgroundColor: isBarChart ? barHoverColor : undefined,
+					hoverBorderColor: isBarChart ? barHoverColor : undefined,
 					pointBackgroundColor: theme.colors.border.alt6,
 					pointBorderColor: theme.colors.border.alt5,
 					pointRadius: 0,
@@ -198,22 +234,27 @@ export default function MetricChart(props: {
 	const handleHover = React.useCallback(
 		(_event: any, activeElements: any[], chart: any) => {
 			if (activeElements && activeElements.length > 0) {
-				const activeElem = activeElements[0].element;
+				const activeElement = activeElements[0];
+				const activeElem = activeElement.element;
 				chart.$activeElement = activeElem;
 				const dataIndex =
-					chart.options.indexAxis === 'y'
+					typeof activeElement.index === 'number'
+						? activeElement.index
+						: chart.options.indexAxis === 'y'
 						? chart.scales.y.getValueForPixel(activeElem.y)
 						: chart.scales.x.getValueForPixel(activeElem.x);
 				if (dataIndex !== null) {
 					const element = props.dataList[dataIndex];
-					setCurrentDate(element.day);
-					setCurrentValue(element[props.metric]);
+					if (element) {
+						setCurrentDate(element.day);
+						setCurrentValue(element[props.metric]);
+					}
 				}
 			} else {
 				chart.$activeElement = null;
 			}
 		},
-		[currentValue]
+		[props.dataList, props.metric]
 	);
 
 	const options = {
@@ -264,6 +305,7 @@ export default function MetricChart(props: {
 				},
 				grid: { display: false, drawBorder: false, drawOnChartArea: false },
 				border: { display: false },
+				...(chartType === 'horizontal-bar' ? fittedValueScale : {}),
 			},
 			y: {
 				title: { display: false },
@@ -272,9 +314,10 @@ export default function MetricChart(props: {
 				},
 				grid: { display: false, drawBorder: false, drawOnChartArea: false },
 				border: { display: false },
+				...(chartType === 'horizontal-bar' ? {} : fittedValueScale),
 			},
 		},
-		onHover: isBarChart ? undefined : handleHover,
+		onHover: handleHover,
 	};
 
 	if (isLoading) {
@@ -308,7 +351,7 @@ export default function MetricChart(props: {
 				</S.HeaderSection>
 			</S.HeaderWrapper>
 			<S.BodyWrapper>
-				<S.ChartWrapper $showCrosshair={!isBarChart}>
+				<S.ChartWrapper $showCrosshair>
 					{chartType === 'line' ? (
 						<Line ref={chartRef} data={chartData} options={options} />
 					) : (
@@ -319,3 +362,5 @@ export default function MetricChart(props: {
 		</S.Wrapper>
 	);
 }
+
+export default React.memo(MetricChart);
