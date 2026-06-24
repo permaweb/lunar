@@ -2,6 +2,9 @@ import { checkValidAddress } from './utils';
 
 export const legacyCuEndpoint = 'https://cu.ao-testnet.xyz';
 export const arweaveEndpoint = 'https://arweave.net';
+export const metricsProcessEndpoint =
+	'https://push.forward.computer/n5IU7rZ2FF0Gl-6eCNP1ckCcZOCdWmnqyMES_WjlLlQ~process@1.0/compute/metrics?require-codec=application/json&accept-bundle=true';
+export const metricsS3Endpoint = 'https://metrics.s3.us-west-1.amazonaws.com/metrics.json';
 
 export function getARBalanceEndpoint(walletAddress: string) {
 	return `${arweaveEndpoint}/wallet/${walletAddress}/balance`;
@@ -9,6 +12,10 @@ export function getARBalanceEndpoint(walletAddress: string) {
 
 export function getTxEndpoint(txId: string) {
 	return `${arweaveEndpoint}/${txId}`;
+}
+
+export function getTxStatusEndpoint(txId: string) {
+	return `${arweaveEndpoint}/tx/${txId}/status`;
 }
 
 export function getRendererEndpoint(renderWith: string, tx: string) {
@@ -19,8 +26,12 @@ export function getRendererEndpoint(renderWith: string, tx: string) {
 	}
 }
 
-export function getMetricsEndpoint(days: number, network: 'mainnet' | 'legacynet') {
-	return `https://atlas-server.decent.land/${network === 'mainnet' ? 'mainnet/' : ''}explorer/days?limit=${days}`;
+export function getMetricsEndpoint() {
+	return metricsProcessEndpoint;
+}
+
+export function getMetricsFallbackEndpoint() {
+	return metricsS3Endpoint;
 }
 
 export function getRoutesEndpoint(routerUrl: string) {

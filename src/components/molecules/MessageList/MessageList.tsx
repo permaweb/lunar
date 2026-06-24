@@ -1,6 +1,7 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { useDispatch } from 'react-redux';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
@@ -11,19 +12,26 @@ import { Calendar } from 'components/atoms/Calendar';
 import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
-import { TxAddress } from 'components/atoms/TxAddress';
+import { TransferAmount } from 'components/atoms/TransferAmount';
+import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { PaginationControls } from 'components/molecules/PaginationControls';
 import {
 	ASSETS,
 	DEFAULT_ACTIONS,
+	DEFAULT_GATEWAYS,
 	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
+	FLAGS,
 	MINT_ACTIONS,
 	STORAGE,
 	TAGS,
+	URLS,
 } from 'helpers/config';
+import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
 import { MessageFilterType, MessageVariantEnum, ResultMessageType, TransactionType } from 'helpers/types';
 import {
@@ -33,6 +41,7 @@ import {
 	formatCount,
 	getRelativeDate,
 	getTagValue,
+	isNativeArTransfer,
 	lowercaseTagKeys,
 	removeCommitments,
 	resolveLibDeps,
@@ -46,6 +55,55 @@ import { store } from 'store';
 
 import * as S from './styles';
 
+const NON_MESSAGE_ACTION_FALLBACK_TAGS = [
+	'App-Name',
+	'Content-Type',
+	'Name',
+	'Title',
+	'Protocol-Name',
+	'Bundle-Format',
+	'Bundle-Version',
+];
+const GQL_PAGE_CHUNK_SIZE = 100;
+const DEFAULT_RESULTS_PER_PAGE = 50;
+const MESSAGE_QUERY_KEYS = {
+	direction: 'messageDirection',
+	action: 'messageAction',
+	variant: 'messageVariant',
+	recipient: 'messageRecipient',
+	from: 'messageFrom',
+	start: 'messageStart',
+	end: 'messageEnd',
+	limit: 'messageLimit',
+	after: 'messageAfter',
+	page: 'messagePage',
+};
+
+function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
+	return getTagValue(tags, name)?.toLowerCase() === value.toLowerCase();
+}
+
+function isAoMessageTransaction(tags: any[] | undefined) {
+	return tagValueEquals(tags, 'Data-Protocol', 'ao') && tagValueEquals(tags, TAGS.keys.type, 'Message');
+}
+
+function isMessageElement(tags: any[] | undefined, isAoResultMessage: boolean) {
+	return isAoResultMessage || tagValueEquals(tags, TAGS.keys.type, 'Message');
+}
+
+function getNonMessageActionFallback(tags: any[] | undefined) {
+	const normalizedTags = tags ?? [];
+
+	if (normalizedTags.length === 1) return normalizedTags[0]?.name ?? null;
+
+	for (const tagName of NON_MESSAGE_ACTION_FALLBACK_TAGS) {
+		const value = getTagValue(normalizedTags, tagName);
+		if (value) return value;
+	}
+
+	return null;
+}
+
 function Message(props: {
 	element: Types.GQLNodeResponseType;
 	type: TransactionType;
@@ -58,10 +116,11 @@ function Message(props: {
 	timestamp?: number;
 	showFilteredMessages?: boolean;
 	childList?: boolean;
+	nestingLevel?: number;
 	showResultMessageLabel?: boolean;
-	clickableResultMessageLabel?: boolean;
 }) {
 	const currentTheme: any = useTheme();
+	const navigate = useNavigate();
 
 	const permawebProvider = usePermawebProvider();
 
@@ -76,6 +135,12 @@ function Message(props: {
 	const [result, setResult] = React.useState<any>(null);
 	const [showViewResult, setShowViewResult] = React.useState<boolean>(false);
 	const [filterMessage, setFilterMessage] = React.useState<boolean>(false);
+
+	const hasAoMessageTags = isAoMessageTransaction(props.element.node?.tags);
+	const isAoResultMessage = Boolean(props.showResultMessageLabel && props.variant);
+	const isAoMessage = hasAoMessageTags || isAoResultMessage;
+	const shouldUseMessageActionFallback = !isMessageElement(props.element.node?.tags, isAoResultMessage);
+	const canFetchAoResult = isAoMessage && !!props.element.node.recipient;
 
 	React.useEffect(() => {
 		if (props.element && props.variant === MessageVariantEnum.Legacynet) {
@@ -93,7 +158,7 @@ function Message(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			if ((open || showViewResult) && !result && !filterMessage) {
+			if ((open || showViewResult) && !result && !filterMessage && canFetchAoResult) {
 				let processId: string = props.element.node.recipient;
 				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
 
@@ -140,7 +205,7 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [open, result, showViewResult, props.currentFilter, filterMessage]);
+	}, [open, result, showViewResult, props.currentFilter, filterMessage, canFetchAoResult]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -194,17 +259,14 @@ function Message(props: {
 		setShowViewResult((prev) => !prev);
 	}
 
-	function handleResultMessageOpen(e: any) {
-		e.preventDefault();
-		e.stopPropagation();
-
-		if (props.element.node.id && props.handleOpen) {
-			props.handleOpen(props.element.node.id);
-		}
-	}
-
 	function getActionLabel() {
-		return getTagValue(props.element.node.tags, 'Action') || language.none;
+		if (isNativeArTransfer(props.element.node)) return DEFAULT_ACTIONS.transfer.name;
+
+		const action = getTagValue(props.element.node.tags, 'Action');
+		if (action) return action;
+		if (shouldUseMessageActionFallback) return getNonMessageActionFallback(props.element.node.tags) ?? language.none;
+
+		return language.none;
 	}
 
 	function getFrom() {
@@ -214,15 +276,12 @@ function Message(props: {
 	}
 
 	function getTo() {
-		return (
-			<S.To>
-				{props.element.node.recipient ? (
-					<TxAddress address={props.element.node.recipient} tooltipPosition={'right'} />
-				) : (
-					<p>-</p>
-				)}
-			</S.To>
-		);
+		let recipient = props.element?.node?.recipient;
+
+		const sendToRecipient = getTagValue(props.element?.node?.tags, 'Recipient');
+		if (sendToRecipient) recipient = sendToRecipient;
+
+		return <S.To>{recipient ? <TxAddress address={recipient} tooltipPosition={'right'} /> : <p>No Recipient</p>}</S.To>;
 	}
 
 	function getActionBackground() {
@@ -265,14 +324,17 @@ function Message(props: {
 	}
 
 	function getAction(useMaxWidth: boolean) {
+		const actionLabel = getActionLabel();
+		const target = props.element.node.recipient ?? getTagValue(props.element.node.tags, 'Target');
+
 		return (
 			<S.ActionValue background={getActionBackground()} useMaxWidth={useMaxWidth}>
-				<div className={'action-indicator'}>
-					<p>{getActionLabel()}</p>
-					<S.ActionTooltip className={'info'}>
-						<span>{getActionLabel()}</span>
-					</S.ActionTooltip>
-				</div>
+				<div className={'action-indicator'} />
+				<p>{actionLabel}</p>
+				<TransferAmount tags={props.element.node.tags} target={target} quantity={props.element.node.quantity} />
+				<S.ActionTooltip className={'info'}>
+					<span>{actionLabel}</span>
+				</S.ActionTooltip>
 			</S.ActionValue>
 		);
 	}
@@ -315,6 +377,61 @@ function Message(props: {
 			</S.OverlayLine>
 		);
 	};
+
+	const OverlayTagValue = ({ value }: { value: any }) => {
+		const displayValue = value?.toString?.() ?? value;
+		const [copied, setCopied] = React.useState<boolean>(false);
+		const [tooltipVisible, setTooltipVisible] = React.useState<boolean>(false);
+		const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+		React.useEffect(() => {
+			return () => {
+				if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+			};
+		}, []);
+
+		async function handleCopy(e: React.MouseEvent) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!displayValue) return;
+
+			await navigator.clipboard.writeText(displayValue);
+			setCopied(true);
+			setTooltipVisible(true);
+
+			if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+			copyTimeoutRef.current = setTimeout(() => {
+				setCopied(false);
+				setTooltipVisible(false);
+			}, 2000);
+		}
+
+		function hideTooltip() {
+			setTooltipVisible(false);
+		}
+
+		function showTooltip() {
+			setTooltipVisible(true);
+		}
+
+		return (
+			<S.OverlayTagValue
+				type={'button'}
+				onBlur={hideTooltip}
+				onClick={handleCopy}
+				onFocus={showTooltip}
+				onMouseEnter={showTooltip}
+				onMouseLeave={hideTooltip}
+				$tooltipVisible={tooltipVisible}
+			>
+				<p>{displayValue}</p>
+				<S.OverlayTagValueTooltip>{copied ? `${language.copied}!` : displayValue}</S.OverlayTagValueTooltip>
+			</S.OverlayTagValue>
+		);
+	};
+
+	const renderOverlayTagValue = (value: any) => <OverlayTagValue value={value} />;
 
 	function getMessageOverlay() {
 		let open = false;
@@ -374,7 +491,7 @@ function Message(props: {
 									<p>{language.tags}</p>
 								</S.OverlayTagsHeader>
 								{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-									<OverlayLine key={index} label={tag.name} value={tag.value} />
+									<OverlayLine key={index} label={tag.name} value={tag.value} render={renderOverlayTagValue} />
 								))}
 							</S.OverlayTagsWrapper>
 						)}
@@ -390,11 +507,22 @@ function Message(props: {
 
 	function getID() {
 		if (props.showResultMessageLabel) {
+			if (props.element.node.id) {
+				return (
+					<S.ResultMessage>
+						<ExplorerLink
+							value={props.element.node.id}
+							type={'transaction'}
+							label={'Result Message'}
+							tooltipPosition={'right'}
+							handlePress={props.handleOpen ? () => props.handleOpen(props.element.node.id) : undefined}
+						/>
+					</S.ResultMessage>
+				);
+			}
+
 			return (
-				<S.ResultMessage
-					clickable={Boolean(props.element.node.id && props.clickableResultMessageLabel)}
-					onClick={props.element.node.id && props.clickableResultMessageLabel ? handleResultMessageOpen : undefined}
-				>
+				<S.ResultMessage>
 					<span>Result Message</span>
 				</S.ResultMessage>
 			);
@@ -415,11 +543,31 @@ function Message(props: {
 		);
 	}
 
+	function getTransactionTypeLabel() {
+		if (!isAoMessage) return language.transaction;
+
+		const variant = getTagValue(props.element.node.tags, TAGS.keys.variant) ?? props.variant;
+
+		return variant ? `${language.message} (${variant})` : language.message;
+	}
+
 	const hydrateNestedAoTransferNotices = shouldHydrateAoTransferNotices({
 		action: getTagValue(props.element.node.tags, 'Action'),
 		variant: props.variant,
 		recipient: props.element.node.recipient,
 	});
+	const rowClickable = Boolean(props.element.node.id);
+
+	function handleRowClick() {
+		if (!props.element.node.id) return;
+
+		if (canFetchAoResult) {
+			setOpen((prev) => !prev);
+			return;
+		}
+
+		navigate(`${URLS.explorer}${props.element.node.id}`);
+	}
 
 	return filterMessage ? (
 		<S.ElementWrapper
@@ -427,8 +575,10 @@ function Message(props: {
 			className={'message-list-element'}
 			onClick={() => {}}
 			disabled={true}
+			clickable={false}
 			open={false}
 			lastChild={props.lastChild}
+			$nestingLevel={(props.nestingLevel ?? 0) + 1}
 			style={{ pointerEvents: 'none' }}
 		>
 			<S.InfoWrapper>
@@ -440,18 +590,18 @@ function Message(props: {
 			<S.ElementWrapper
 				key={props.element.node.id}
 				className={'message-list-element'}
-				onClick={() => (!props.element.node.id ? {} : setOpen((prev) => !prev))}
+				onClick={rowClickable ? handleRowClick : undefined}
 				disabled={!props.element.node.id}
-				open={open}
+				clickable={rowClickable}
+				open={open && canFetchAoResult}
 				lastChild={props.lastChild}
 				childList={props.childList}
+				$nestingLevel={(props.nestingLevel ?? 0) + 1}
 			>
-				<S.ID>
-					{getID()}
-					<S.Variant className={'info'}>
-						<span>{getTagValue(props.element.node.tags, TAGS.keys.variant) ?? 'No Variant'}</span>
-					</S.Variant>
-				</S.ID>
+				<S.ID>{getID()}</S.ID>
+				<S.TypeValue>
+					<p>{getTransactionTypeLabel()}</p>
+				</S.TypeValue>
 				{getAction(true)}
 				{getFrom()}
 				{getTo()}
@@ -468,7 +618,7 @@ function Message(props: {
 						type={'alt3'}
 						label={language.output}
 						handlePress={(e) => handleShowViewResult(e)}
-						disabled={!props.element.node.id}
+						disabled={!props.element.node.id || !canFetchAoResult}
 					/>
 				</S.Output>
 				<S.Time>
@@ -478,11 +628,9 @@ function Message(props: {
 							: 'Processing'}
 					</p>
 				</S.Time>
-				<S.Results open={open}>
-					<ReactSVG src={ASSETS.arrow} />
-				</S.Results>
+				<S.Results open={open}>{canFetchAoResult ? <ReactSVG src={ASSETS.arrow} /> : <p>None</p>}</S.Results>
 			</S.ElementWrapper>
-			{open && (
+			{open && canFetchAoResult && (
 				<MessageList
 					txId={props.element.node.id}
 					variant={props.variant}
@@ -497,15 +645,124 @@ function Message(props: {
 					showFilteredMessages
 					hydrateAoTransferNotices={hydrateNestedAoTransferNotices}
 					showResultMessageLabel={true}
-					clickableResultMessageLabel={hydrateNestedAoTransferNotices}
 					handleMessageOpen={props.handleOpen ? (id: string) => props.handleOpen(id) : null}
 					childList
+					nestingLevel={(props.nestingLevel ?? 0) + 1}
 					isOverallLast={props.isOverallLast && props.lastChild}
 				/>
 			)}
 			{getMessageOverlay()}
 		</>
 	);
+}
+
+function normalizeVariantFilter(variant: any): MessageVariantEnum | null {
+	if ((Object.values(MessageVariantEnum) as string[]).includes(variant)) return variant as MessageVariantEnum;
+
+	return null;
+}
+
+function normalizePerPageFilter(perPage: any) {
+	const parsed = Number(perPage);
+
+	return Number.isInteger(parsed) && parsed > 0 ? parsed.toString() : DEFAULT_RESULTS_PER_PAGE.toString();
+}
+
+function parsePositiveInteger(value: string | number) {
+	const parsed = Number(value);
+
+	return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function normalizeDirectionFilter(value: string | null): MessageFilterType | null {
+	return value === 'incoming' || value === 'outgoing' ? value : null;
+}
+
+function parseDateFilter(value: string | null) {
+	if (!value) return null;
+
+	const [year, month, day] = value.split('-').map((part) => Number(part));
+	if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+
+	const date = new Date(year, month - 1, day);
+	if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+
+	return { year, month, day };
+}
+
+function formatDateFilter(date: { year: number; month: number; day: number } | null) {
+	if (!date) return null;
+
+	return [date.year, date.month.toString().padStart(2, '0'), date.day.toString().padStart(2, '0')].join('-');
+}
+
+function getMessageQueryState(searchParams: URLSearchParams) {
+	const direction = normalizeDirectionFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.direction));
+	const action = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.action);
+	const variant = normalizeVariantFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.variant));
+	const recipient = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.recipient) ?? '';
+	const fromAddress = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.from) ?? '';
+	const startDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.start));
+	const endDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.end));
+	const perPage = normalizePerPageFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.limit));
+	const page = parsePositiveInteger(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.page) ?? '');
+	const after = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.after);
+	const hasQuery = Object.values(MESSAGE_QUERY_KEYS).some((key) => searchParams.has(key));
+
+	return {
+		hasQuery: hasQuery,
+		filter: direction,
+		action: action,
+		variant: variant,
+		recipient: recipient,
+		fromAddress: fromAddress,
+		startDate: startDate,
+		endDate: endDate,
+		perPage: perPage,
+		page: page,
+		after: after,
+	};
+}
+
+function getHashRouteSearch() {
+	if (typeof window === 'undefined') return '';
+
+	const searchIndex = window.location.hash.indexOf('?');
+
+	return searchIndex >= 0 ? window.location.hash.slice(searchIndex) : '';
+}
+
+function getRouteSearch(locationSearch: string, searchParams: URLSearchParams) {
+	if (locationSearch) return locationSearch;
+
+	const searchParamString = searchParams.toString();
+	if (searchParamString) return `?${searchParamString}`;
+
+	return getHashRouteSearch();
+}
+
+function normalizePathname(pathname: string) {
+	return pathname.replace(/\/+$/, '') || '/';
+}
+
+function shouldSyncMessageQueryParams(args: {
+	pathname: string;
+	txId?: string;
+	type?: TransactionType;
+	childList?: boolean;
+	result?: any;
+}) {
+	if (args.childList || args.result) return false;
+
+	const pathname = normalizePathname(args.pathname);
+	if (!args.txId) return pathname === normalizePathname(URLS.base);
+
+	const explorerPath = normalizePathname(`${URLS.explorer}${args.txId}`);
+
+	if (args.type === 'process') return pathname === `${explorerPath}/messages`;
+	if (args.type === 'wallet') return pathname === explorerPath || pathname === `${explorerPath}/info`;
+
+	return false;
 }
 
 export default function MessageList(props: {
@@ -518,6 +775,7 @@ export default function MessageList(props: {
 	parentId?: string;
 	handleMessageOpen?: (id: string) => void;
 	childList?: boolean;
+	nestingLevel?: number;
 	isOverallLast?: boolean;
 	result?: any;
 	willHaveResult?: boolean;
@@ -527,8 +785,9 @@ export default function MessageList(props: {
 	showFilteredMessages?: boolean;
 	hydrateAoTransferNotices?: boolean;
 	showResultMessageLabel?: boolean;
-	clickableResultMessageLabel?: boolean;
 }) {
+	const location = useLocation();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const dispatch = useDispatch();
 
 	const permawebProvider = usePermawebProvider();
@@ -537,22 +796,46 @@ export default function MessageList(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef(null);
+	const syncQueryParams = shouldSyncMessageQueryParams({
+		pathname: location.pathname,
+		txId: props.txId,
+		type: props.type,
+		childList: props.childList,
+		result: props.result,
+	});
+	const routeSearch = React.useMemo(
+		() => getRouteSearch(location.search, searchParams),
+		[location.search, searchParams]
+	);
+	const routeSearchParams = React.useMemo(() => new URLSearchParams(routeSearch), [routeSearch]);
+	const queryFilterState = React.useMemo(
+		() => (syncQueryParams ? getMessageQueryState(routeSearchParams) : null),
+		[syncQueryParams, routeSearch]
+	);
+	const skipNextQueryWriteRef = React.useRef<boolean>(queryFilterState?.hasQuery ?? false);
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
+	const filterStorageKey = React.useMemo(() => {
+		if (props.childList || props.result) return null;
+
+		return STORAGE.messageFilter(props.txId || 'global');
+	}, [props.txId, props.childList, props.result]);
 
 	const loadedFilterState = React.useMemo(() => {
-		if (props.txId && !props.childList) {
+		if (filterStorageKey) {
 			try {
-				const saved = localStorage.getItem(STORAGE.messageFilter(props.txId));
+				const saved = localStorage.getItem(filterStorageKey);
 				if (saved) {
 					const parsed = JSON.parse(saved);
 					return {
 						filter: parsed.filter,
 						action: parsed.action || null,
+						variant: normalizeVariantFilter(parsed.variant),
 						recipient: parsed.recipient || '',
 						fromAddress: parsed.fromAddress || '',
 						startDate: parsed.startDate || null,
 						endDate: parsed.endDate || null,
+						perPage: normalizePerPageFilter(parsed.perPage),
 					};
 				}
 			} catch (e) {
@@ -560,12 +843,16 @@ export default function MessageList(props: {
 			}
 		}
 		return null;
-	}, [props.txId, props.childList]);
+	}, [filterStorageKey]);
+	const initialFilterState = queryFilterState?.hasQuery ? queryFilterState : loadedFilterState;
 
 	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(
-		props.currentFilter ?? loadedFilterState?.filter ?? 'outgoing'
+		props.currentFilter ?? initialFilterState?.filter ?? 'outgoing'
 	);
-	const [currentAction, setCurrentAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
+	const [currentAction, setCurrentAction] = React.useState<string | null>(initialFilterState?.action ?? null);
+	const [currentVariant, setCurrentVariant] = React.useState<MessageVariantEnum | null>(
+		initialFilterState?.variant ?? null
+	);
 	const [actionOptions, setActionOptions] = React.useState<string[]>(() => {
 		const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
 		try {
@@ -589,36 +876,138 @@ export default function MessageList(props: {
 	const [outgoingCount, setOutgoingCount] = React.useState<number | null>(null);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 
-	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
-	const [cursorHistory, setCursorHistory] = React.useState([]);
+	const [pageCursor, setPageCursor] = React.useState<string | null>(queryFilterState?.after ?? null);
+	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
-	const [pageNumber, setPageNumber] = React.useState(1);
-	const [perPage, setPerPage] = React.useState(50);
-	const [recipient, setRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
-	const [fromAddress, setFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
+	const [pageNumber, setPageNumber] = React.useState(queryFilterState?.page ?? 1);
+	const [pageInput, setPageInput] = React.useState<string>((queryFilterState?.page ?? 1).toString());
+	const [perPage, setPerPage] = React.useState<string>(
+		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+	);
+	const [perPageInput, setPerPageInput] = React.useState<string>(
+		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+	);
+	const [recipient, setRecipient] = React.useState<string>(initialFilterState?.recipient ?? '');
+	const [fromAddress, setFromAddress] = React.useState<string>(initialFilterState?.fromAddress ?? '');
 	const [fromAddressIsProcess, setFromAddressIsProcess] = React.useState<boolean>(false);
 
 	// Time range filter states
 	const [startDate, setStartDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.startDate ?? null
+		initialFilterState?.startDate ?? null
 	);
 	const [endDate, setEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.endDate ?? null
+		initialFilterState?.endDate ?? null
 	);
 	const [showStartCalendar, setShowStartCalendar] = React.useState<boolean>(false);
 	const [showEndCalendar, setShowEndCalendar] = React.useState<boolean>(false);
 
 	// Applied filter states (only updated when "Apply Filters" is clicked)
-	const [appliedAction, setAppliedAction] = React.useState<string | null>(loadedFilterState?.action ?? null);
-	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(loadedFilterState?.recipient ?? '');
-	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(loadedFilterState?.fromAddress ?? '');
+	const [appliedAction, setAppliedAction] = React.useState<string | null>(initialFilterState?.action ?? null);
+	const [appliedVariant, setAppliedVariant] = React.useState<MessageVariantEnum | null>(
+		initialFilterState?.variant ?? null
+	);
+	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(initialFilterState?.recipient ?? '');
+	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(initialFilterState?.fromAddress ?? '');
 	const [appliedFromAddressIsProcess, setAppliedFromAddressIsProcess] = React.useState<boolean>(false);
 	const [appliedStartDate, setAppliedStartDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.startDate ?? null
+		initialFilterState?.startDate ?? null
 	);
 	const [appliedEndDate, setAppliedEndDate] = React.useState<{ year: number; month: number; day: number } | null>(
-		loadedFilterState?.endDate ?? null
+		initialFilterState?.endDate ?? null
 	);
+
+	const parsedPerPage = React.useMemo(() => {
+		const parsed = Number(perPage);
+
+		return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+	}, [perPage]);
+	const parsedPerPageInput = React.useMemo(() => {
+		const parsed = Number(perPageInput);
+
+		return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+	}, [perPageInput]);
+	const invalidPerPage = parsedPerPageInput === null;
+	const showLargeFetchWarning = parsedPerPageInput !== null && parsedPerPageInput > GQL_PAGE_CHUNK_SIZE;
+	const usingCustomPerPage = parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE;
+	const hasAppliedFilters = Boolean(
+		appliedAction ||
+			appliedVariant ||
+			(appliedRecipient && checkValidAddress(appliedRecipient)) ||
+			(appliedFromAddress && checkValidAddress(appliedFromAddress)) ||
+			appliedStartDate ||
+			appliedEndDate ||
+			usingCustomPerPage
+	);
+
+	React.useEffect(() => {
+		setPageInput(pageNumber.toString());
+	}, [pageNumber]);
+
+	React.useEffect(() => {
+		if (!syncQueryParams || !queryFilterState?.hasQuery) return;
+
+		skipNextQueryWriteRef.current = true;
+
+		const nextFilter = props.currentFilter ?? queryFilterState.filter ?? 'outgoing';
+
+		setCurrentFilter(nextFilter);
+		setCurrentAction(queryFilterState.action);
+		setCurrentVariant(queryFilterState.variant);
+		setRecipient(queryFilterState.recipient);
+		setAppliedRecipient(queryFilterState.recipient);
+		setFromAddress(queryFilterState.fromAddress);
+		setAppliedFromAddress(queryFilterState.fromAddress);
+		setStartDate(queryFilterState.startDate);
+		setAppliedStartDate(queryFilterState.startDate);
+		setEndDate(queryFilterState.endDate);
+		setAppliedEndDate(queryFilterState.endDate);
+		setPerPage(queryFilterState.perPage);
+		setPerPageInput(queryFilterState.perPage);
+		setPageCursor(queryFilterState.after);
+		setPageNumber(queryFilterState.page ?? 1);
+	}, [props.currentFilter, queryFilterState, syncQueryParams]);
+
+	React.useEffect(() => {
+		if (!syncQueryParams) return;
+		if (skipNextQueryWriteRef.current) {
+			skipNextQueryWriteRef.current = false;
+			return;
+		}
+
+		const directionAffectsQuery = !!props.type && props.type !== 'message';
+		const recipientAffectsQuery = currentFilter !== 'incoming' || !props.txId;
+		const fromAffectsQuery = currentFilter === 'incoming' && !!props.txId;
+
+		updateSearchParams(routeSearchParams, setSearchParams, {
+			[MESSAGE_QUERY_KEYS.direction]: directionAffectsQuery ? currentFilter : null,
+			[MESSAGE_QUERY_KEYS.action]: appliedAction,
+			[MESSAGE_QUERY_KEYS.variant]: appliedVariant,
+			[MESSAGE_QUERY_KEYS.recipient]: recipientAffectsQuery ? appliedRecipient : null,
+			[MESSAGE_QUERY_KEYS.from]: fromAffectsQuery ? appliedFromAddress : null,
+			[MESSAGE_QUERY_KEYS.start]: formatDateFilter(appliedStartDate),
+			[MESSAGE_QUERY_KEYS.end]: formatDateFilter(appliedEndDate),
+			[MESSAGE_QUERY_KEYS.limit]:
+				parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE ? parsedPerPage : null,
+			[MESSAGE_QUERY_KEYS.after]: pageCursor,
+			[MESSAGE_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+		});
+	}, [
+		appliedAction,
+		appliedEndDate,
+		appliedFromAddress,
+		appliedRecipient,
+		appliedStartDate,
+		appliedVariant,
+		currentFilter,
+		pageCursor,
+		pageNumber,
+		parsedPerPage,
+		props.txId,
+		props.type,
+		routeSearchParams,
+		setSearchParams,
+		syncQueryParams,
+	]);
 
 	function dateToTimestamp(date: { year: number; month: number; day: number }): number {
 		return Math.floor(new Date(date.year, date.month - 1, date.day).getTime() / 1000);
@@ -627,6 +1016,38 @@ export default function MessageList(props: {
 	function formatDateLabel(date: { year: number; month: number; day: number } | null): string {
 		if (!date) return '';
 		return `${date.month}/${date.day}/${date.year}`;
+	}
+
+	function getVariantFilterLabel(variant: MessageVariantEnum | null) {
+		switch (variant) {
+			case MessageVariantEnum.Legacynet:
+				return `${language.aoLegacynet} (${MessageVariantEnum.Legacynet})`;
+			case MessageVariantEnum.Mainnet:
+				return `${language.aoMainnet} (${MessageVariantEnum.Mainnet})`;
+			default:
+				return language.all;
+		}
+	}
+
+	function buildQueryTags(tags: { name: string; values: string[] }[]) {
+		const nextTags = appliedVariant ? [...tags, { name: 'Variant', values: [appliedVariant] }] : [...tags];
+		const variantForQuery = appliedVariant ?? props.variant;
+
+		return variantForQuery === MessageVariantEnum.Mainnet ? lowercaseTagKeys(nextTags) : nextTags;
+	}
+
+	function getQueryTagsArg(tags: { name: string; values: string[] }[]) {
+		const queryTags = buildQueryTags(tags);
+
+		return queryTags.length > 0 ? { tags: queryTags } : {};
+	}
+
+	function withProcessMessageGateway<T extends Record<string, any>>(args: T): T & { gateway?: string } {
+		return props.type === 'process' ? { ...args, gateway: DEFAULT_GATEWAYS.legacy } : args;
+	}
+
+	function withProcessMessageTags(tags: { name: string; values: string[] }[]) {
+		return props.type === 'process' ? [...DEFAULT_MESSAGE_TAGS, ...tags] : tags;
 	}
 
 	async function timestampToBlockHeight(timestamp: number): Promise<number> {
@@ -676,17 +1097,19 @@ export default function MessageList(props: {
 	}
 
 	function saveFilterState() {
-		if (props.txId && !props.childList) {
+		if (filterStorageKey) {
 			try {
 				const filterState = {
 					filter: currentFilter,
 					action: currentAction,
+					variant: currentVariant,
 					recipient: recipient,
 					fromAddress: fromAddress,
 					startDate: startDate,
 					endDate: endDate,
+					perPage: parsedPerPage?.toString() ?? undefined,
 				};
-				localStorage.setItem(STORAGE.messageFilter(props.txId), JSON.stringify(filterState));
+				localStorage.setItem(filterStorageKey, JSON.stringify(filterState));
 			} catch (e) {
 				console.error('Failed to save message filter:', e);
 			}
@@ -697,24 +1120,163 @@ export default function MessageList(props: {
 		switch (props.type) {
 			case 'process':
 			case 'message':
-				let tags = [...outgoingTags];
+				let tags = withProcessMessageTags(outgoingTags);
 
 				tags.push({ name: 'From-Process', values: [props.txId] });
 
-				if (props.variant === MessageVariantEnum.Mainnet) {
-					tags = lowercaseTagKeys(tags);
-				}
-
 				return {
-					tags: [...tags],
+					...getQueryTagsArg(tags),
 					owners: [props.authority ?? ''],
 				};
 			case 'wallet':
 				return {
-					tags: [...outgoingTags],
+					...getQueryTagsArg(outgoingTags),
 					owners: [props.txId],
 				};
 		}
+	}
+
+	async function fetchGqlDataPage(queryArgs: any, amount: number) {
+		const { cursor: initialCursor, paginator: _paginator, ...baseArgs } = queryArgs;
+		const rows: any[] = [];
+		let cursor: string | null = initialCursor ?? null;
+		let nextCursorValue: string | null = null;
+		let count: number | null = null;
+
+		while (rows.length < amount) {
+			const response = await permawebProvider.libs.getGQLData(
+				withProcessMessageGateway({
+					...baseArgs,
+					paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
+					...(cursor ? { cursor } : {}),
+				})
+			);
+			const pageRows = response?.data ?? [];
+			const responseNextCursor = response?.nextCursor && response.nextCursor !== 'END' ? response.nextCursor : null;
+
+			if (count === null && response?.count !== undefined) count = response.count;
+
+			rows.push(...pageRows);
+			nextCursorValue = responseNextCursor;
+
+			if (pageRows.length <= 0 || !responseNextCursor) break;
+			cursor = responseNextCursor;
+		}
+
+		return {
+			count,
+			data: rows.slice(0, amount),
+			nextCursor: nextCursorValue,
+		};
+	}
+
+	async function getMessagePageQueryArgs(cursor: string | null) {
+		let tags = [];
+		if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+		const cursorArg = cursor ? { cursor: cursor } : {};
+
+		if (props.txId) {
+			if (props.childList || props.type === 'message') return null;
+
+			switch (currentFilter) {
+				case 'incoming': {
+					let incomingQueryArgs: any = {
+						...getQueryTagsArg(withProcessMessageTags(tags)),
+						recipients: [props.txId],
+						...cursorArg,
+						// sort: 'descending',
+					};
+
+					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
+						if (appliedFromAddressIsProcess) {
+							incomingQueryArgs = {
+								...incomingQueryArgs,
+								...getQueryTagsArg([
+									...withProcessMessageTags(tags),
+									{ name: 'From-Process', values: [appliedFromAddress] },
+								]),
+							};
+						} else {
+							incomingQueryArgs.owners = [appliedFromAddress];
+						}
+					}
+
+					if (appliedStartDate) {
+						incomingQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+					}
+					if (appliedEndDate) {
+						incomingQueryArgs.maxBlock = await timestampToBlockHeight(
+							dateToTimestamp({
+								...appliedEndDate,
+								day: appliedEndDate.day + 1,
+							})
+						);
+					}
+
+					return incomingQueryArgs;
+				}
+				case 'outgoing': {
+					let outgoingArgs: any = {
+						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+						...cursorArg,
+						// sort: 'descending',
+						...(await getOutgoingGQLArgs(tags)),
+					};
+
+					if (appliedStartDate) {
+						outgoingArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+					}
+					if (appliedEndDate) {
+						outgoingArgs.maxBlock = await timestampToBlockHeight(
+							dateToTimestamp({
+								...appliedEndDate,
+								day: appliedEndDate.day + 1,
+							})
+						);
+					}
+
+					return outgoingArgs;
+				}
+				default:
+					return null;
+			}
+		}
+
+		tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
+
+		let globalQueryArgs: any = {
+			...getQueryTagsArg(tags),
+			...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+			...cursorArg,
+		};
+
+		if (appliedStartDate) {
+			globalQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
+		}
+		if (appliedEndDate) {
+			globalQueryArgs.maxBlock = await timestampToBlockHeight(
+				dateToTimestamp({
+					...appliedEndDate,
+					day: appliedEndDate.day + 1,
+				})
+			);
+		}
+
+		return globalQueryArgs;
+	}
+
+	function handleExport() {
+		const csvRows = (currentData ?? []).map(mapTransactionForCsv);
+
+		if (csvRows.length <= 0) return;
+
+		const exportType = props.type === 'wallet' ? 'wallet-transactions' : props.txId ? 'messages' : 'recent-messages';
+		const source = props.txId ? `${props.type ?? 'source'}-${props.txId}` : 'global';
+
+		downloadCsv(
+			buildCsvFilename([exportType, source, `page-${pageNumber}`, parsedPerPage ? `limit-${parsedPerPage}` : null]),
+			csvRows
+		);
 	}
 
 	// Check if fromAddress is a process whenever it changes
@@ -732,8 +1294,8 @@ export default function MessageList(props: {
 	// Initialize appliedFromAddressIsProcess on mount if there's a loaded fromAddress
 	React.useEffect(() => {
 		(async function () {
-			if (loadedFilterState?.fromAddress && checkValidAddress(loadedFilterState.fromAddress)) {
-				const isProcess = await checkIsProcess(loadedFilterState.fromAddress);
+			if (initialFilterState?.fromAddress && checkValidAddress(initialFilterState.fromAddress)) {
+				const isProcess = await checkIsProcess(initialFilterState.fromAddress);
 				setAppliedFromAddressIsProcess(isProcess);
 				setFromAddressIsProcess(isProcess);
 			}
@@ -743,25 +1305,33 @@ export default function MessageList(props: {
 	// Save filter state whenever it changes
 	React.useEffect(() => {
 		saveFilterState();
-	}, [currentFilter, currentAction, recipient, fromAddress, startDate, endDate]);
+	}, [currentFilter, currentAction, currentVariant, recipient, fromAddress, startDate, endDate, perPage]);
 
 	React.useEffect(() => {
 		(async function () {
-			let tags = [];
-			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+			if (props.type === 'wallet') return;
+
+			const baseTags = [];
+			if (appliedAction) baseTags.push({ name: 'Action', values: [appliedAction] });
 
 			if (props.txId) {
 				try {
 					// Build incoming query args
 					let incomingQueryArgs: any = {
-						tags: tags,
+						...getQueryTagsArg(withProcessMessageTags(baseTags)),
 						recipients: [props.txId],
 					};
 
 					// Add fromAddress filter if applicable
 					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
 						if (appliedFromAddressIsProcess) {
-							incomingQueryArgs.tags = [...tags, { name: 'From-Process', values: [appliedFromAddress] }];
+							incomingQueryArgs = {
+								...incomingQueryArgs,
+								...getQueryTagsArg([
+									...withProcessMessageTags(baseTags),
+									{ name: 'From-Process', values: [appliedFromAddress] },
+								]),
+							};
 						} else {
 							incomingQueryArgs.owners = [appliedFromAddress];
 						}
@@ -782,7 +1352,7 @@ export default function MessageList(props: {
 
 					let outgoingQueryArgs: any = {
 						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
-						...(await getOutgoingGQLArgs(tags)),
+						...(await getOutgoingGQLArgs(baseTags)),
 					};
 
 					// Add time range filters for outgoing
@@ -799,8 +1369,8 @@ export default function MessageList(props: {
 					}
 
 					const [gqlResponseIncoming, gqlResponseOutgoing] = await Promise.all([
-						permawebProvider.libs.getGQLData(incomingQueryArgs),
-						permawebProvider.libs.getGQLData(outgoingQueryArgs),
+						permawebProvider.libs.getGQLData(withProcessMessageGateway(incomingQueryArgs)),
+						permawebProvider.libs.getGQLData(withProcessMessageGateway(outgoingQueryArgs)),
 					]);
 					setIncomingCount(gqlResponseIncoming.count);
 					setOutgoingCount(gqlResponseOutgoing.count);
@@ -809,7 +1379,7 @@ export default function MessageList(props: {
 				}
 			}
 		})();
-	}, [props.txId, props.variant, toggleFilterChange]);
+	}, [props.txId, props.type, props.variant, toggleFilterChange]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -817,6 +1387,13 @@ export default function MessageList(props: {
 			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
 
 			setLoadingMessages(true);
+			if (!parsedPerPage) {
+				setCurrentData([]);
+				setNextCursor(null);
+				setLoadingMessages(false);
+				return;
+			}
+
 			if (props.txId) {
 				try {
 					if (!props.childList && props.type !== 'message') {
@@ -824,17 +1401,22 @@ export default function MessageList(props: {
 						switch (currentFilter) {
 							case 'incoming':
 								let incomingQueryArgs: any = {
-									tags: tags,
+									...getQueryTagsArg(withProcessMessageTags(tags)),
 									recipients: [props.txId],
-									paginator: perPage,
 									...(pageCursor ? { cursor: pageCursor } : {}),
-									sort: 'descending',
+									// sort: 'descending',
 								};
 
 								// Add fromAddress filter if applicable
 								if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
 									if (appliedFromAddressIsProcess) {
-										incomingQueryArgs.tags = [...tags, { name: 'From-Process', values: [appliedFromAddress] }];
+										incomingQueryArgs = {
+											...incomingQueryArgs,
+											...getQueryTagsArg([
+												...withProcessMessageTags(tags),
+												{ name: 'From-Process', values: [appliedFromAddress] },
+											]),
+										};
 									} else {
 										incomingQueryArgs.owners = [appliedFromAddress];
 									}
@@ -853,16 +1435,15 @@ export default function MessageList(props: {
 									);
 								}
 
-								gqlResponse = await permawebProvider.libs.getGQLData(incomingQueryArgs);
+								gqlResponse = await fetchGqlDataPage(incomingQueryArgs, parsedPerPage);
 								break;
 							case 'outgoing':
 								let outgoingArgs: any = {
-									paginator: perPage,
 									...(appliedRecipient && checkValidAddress(appliedRecipient)
 										? { recipients: [appliedRecipient] }
 										: {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
-									sort: 'descending',
+									// sort: 'descending',
 									...(await getOutgoingGQLArgs(tags)),
 								};
 
@@ -879,14 +1460,21 @@ export default function MessageList(props: {
 									);
 								}
 
-								gqlResponse = await permawebProvider.libs.getGQLData(outgoingArgs);
+								gqlResponse = await fetchGqlDataPage(outgoingArgs, parsedPerPage);
 								break;
 							default:
 								break;
 						}
 
 						setCurrentData(gqlResponse.data);
-						setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
+						setNextCursor(gqlResponse.nextCursor);
+						if (props.type === 'wallet' && !pageCursor) {
+							if (currentFilter === 'incoming') {
+								setIncomingCount(gqlResponse.count);
+							} else {
+								setOutgoingCount(gqlResponse.count);
+							}
+						}
 					} else {
 						if (props.recipient) {
 							try {
@@ -964,8 +1552,7 @@ export default function MessageList(props: {
 				tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
 
 				let globalQueryArgs: any = {
-					tags: tags,
-					paginator: perPage,
+					...getQueryTagsArg(tags),
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
 				};
@@ -983,16 +1570,17 @@ export default function MessageList(props: {
 					);
 				}
 
-				const gqlResponse = await permawebProvider.libs.getGQLData(globalQueryArgs);
+				const gqlResponse = await fetchGqlDataPage(globalQueryArgs, parsedPerPage);
 
-				setTotalCount(gqlResponse.count);
+				if (!pageCursor) setTotalCount(gqlResponse.count);
 				setCurrentData(gqlResponse.data);
-				setNextCursor(gqlResponse.data.length >= perPage ? gqlResponse.nextCursor : null);
+				setNextCursor(gqlResponse.nextCursor);
 			}
 			setLoadingMessages(false);
 		})();
 	}, [
 		props.txId,
+		props.type,
 		props.variant,
 		props.recipient,
 		props.result,
@@ -1048,18 +1636,122 @@ export default function MessageList(props: {
 		handleClear();
 	}
 
+	function handlePerPageReset() {
+		setPerPage(DEFAULT_RESULTS_PER_PAGE.toString());
+		setPerPageInput(DEFAULT_RESULTS_PER_PAGE.toString());
+		setToggleFilterChange((prev) => !prev);
+		handleClear();
+	}
+
+	function getActiveTotalCount() {
+		if (props.result || props.childList) return null;
+		if (props.txId) return currentFilter === 'incoming' ? incomingCount : outgoingCount;
+
+		return totalCount;
+	}
+
+	function getTotalPages() {
+		const count = getActiveTotalCount();
+		if (count === null || !parsedPerPage) return null;
+
+		return Math.max(1, Math.ceil(count / parsedPerPage));
+	}
+
+	function canUsePaginationControls() {
+		return !props.result && (!props.txId || (!props.childList && props.type !== 'message'));
+	}
+
+	async function handlePageSubmit() {
+		const parsedPage = parsePositiveInteger(pageInput);
+		if (!parsedPage || !parsedPerPage || !canUsePaginationControls() || loadingMessages) {
+			setPageInput(pageNumber.toString());
+			return;
+		}
+
+		const totalPages = getTotalPages();
+		const targetPage = totalPages ? Math.min(parsedPage, totalPages) : parsedPage;
+		setPageInput(targetPage.toString());
+		if (targetPage === pageNumber) return;
+
+		if (targetPage === 1) {
+			handleClear();
+			scrollToTop();
+			return;
+		}
+
+		const knownCursorIndex = targetPage - 1;
+		if (knownCursorIndex < cursorHistory.length) {
+			setCursorHistory(cursorHistory.slice(0, knownCursorIndex));
+			setPageCursor(cursorHistory[knownCursorIndex]);
+			setPageNumber(targetPage);
+			scrollToTop();
+			return;
+		}
+
+		setLoadingMessages(true);
+		try {
+			let cursor: string | null = null;
+			const nextHistory: (string | null)[] = [];
+
+			for (let page = 1; page < targetPage; page++) {
+				nextHistory.push(cursor);
+				const queryArgs = await getMessagePageQueryArgs(cursor);
+				if (!queryArgs) {
+					setPageInput(pageNumber.toString());
+					return;
+				}
+
+				const response = await fetchGqlDataPage(queryArgs, parsedPerPage);
+				if (!response.nextCursor) {
+					setPageInput(pageNumber.toString());
+					return;
+				}
+
+				cursor = response.nextCursor;
+			}
+
+			setCursorHistory(nextHistory);
+			setPageCursor(cursor);
+			setPageNumber(targetPage);
+			scrollToTop();
+		} catch (e: any) {
+			console.error(e);
+			setPageInput(pageNumber.toString());
+		} finally {
+			setLoadingMessages(false);
+		}
+	}
+
+	function handlePerPageSubmit() {
+		if (!parsedPerPageInput) {
+			setPerPageInput(perPage);
+			return;
+		}
+
+		setPerPage(parsedPerPageInput.toString());
+		setPerPageInput(parsedPerPageInput.toString());
+		setToggleFilterChange((prev) => !prev);
+		handleClear();
+		scrollToTop();
+	}
+
 	function handleActionChange(action: string) {
 		setCurrentAction(currentAction === action ? null : action);
 	}
 
 	function handleFilterUpdate() {
+		if (!parsedPerPageInput) return;
+
 		// Update applied filter states
 		setAppliedAction(currentAction);
+		setAppliedVariant(currentVariant);
 		setAppliedRecipient(recipient);
 		setAppliedFromAddress(fromAddress);
 		setAppliedFromAddressIsProcess(fromAddressIsProcess);
 		setAppliedStartDate(startDate);
 		setAppliedEndDate(endDate);
+		setPerPage(parsedPerPageInput.toString());
+		setPerPageInput(parsedPerPageInput.toString());
 
 		setToggleFilterChange((prev) => !prev);
 		setShowFilters(false);
@@ -1102,9 +1794,13 @@ export default function MessageList(props: {
 	}
 
 	function getMessage() {
-		let message: string = language.associatedMessagesInfo;
-		if (loadingMessages || props.willHaveResult) message = `${language.associatedMessagesLoading}...`;
-		if (currentData?.length <= 0) message = language.associatedMessagesNotFound;
+		const isTransactionView = props.type === 'wallet';
+		let message: string = isTransactionView ? language.transactionsNotFound : language.associatedMessagesInfo;
+		if (loadingMessages || props.willHaveResult) {
+			message = `${isTransactionView ? language.transactionsLoading : language.associatedMessagesLoading}...`;
+		}
+		if (currentData?.length <= 0)
+			message = isTransactionView ? language.transactionsNotFound : language.associatedMessagesNotFound;
 		return (
 			<S.UpdateWrapper childList={props.childList}>
 				<p>{message}</p>
@@ -1113,18 +1809,25 @@ export default function MessageList(props: {
 	}
 
 	function getPages() {
-		const count = totalCount ? totalCount : currentFilter === 'incoming' ? incomingCount : outgoingCount;
-		const totalPages = count ? Math.ceil(count / perPage) : 1;
+		const totalPages = getTotalPages();
+		const activePerPage = parsedPerPage ?? 1;
+
 		return (
 			<>
-				<p>{`Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`}</p>
+				<p>
+					{totalPages
+						? `Page (${formatCount(pageNumber.toString())} of ${formatCount(totalPages.toString())})`
+						: `Page (${formatCount(pageNumber.toString())})`}
+				</p>
 				<S.Divider />
-				<p>{`${!showFilters ? perPage : '-'} per page`}</p>
+				<p>{language.perPage(!showFilters ? formatCount(activePerPage.toString()) : '-')}</p>
 			</>
 		);
 	}
 
 	function getPaginator(showPages: boolean) {
+		const paginationControlsDisabled = !canUsePaginationControls();
+
 		return (
 			<>
 				<Button
@@ -1133,20 +1836,55 @@ export default function MessageList(props: {
 					handlePress={handlePrevious}
 					disabled={cursorHistory.length === 0 || loadingMessages}
 				/>
-				{showPages && <S.DPageCounter>{getPages()}</S.DPageCounter>}
+				{showPages && FLAGS.CONTROL_PAGINATION && (
+					<S.DPageCounter>
+						<PaginationControls
+							pageInput={pageInput}
+							perPageInput={perPageInput}
+							totalPages={getTotalPages()}
+							disabled={loadingMessages}
+							pageDisabled={paginationControlsDisabled}
+							perPageDisabled={paginationControlsDisabled}
+							perPageSubmitDisabled={invalidPerPage}
+							onPageInputChange={setPageInput}
+							onPageSubmit={handlePageSubmit}
+							onPerPageInputChange={setPerPageInput}
+							onPerPageSubmit={handlePerPageSubmit}
+						/>
+					</S.DPageCounter>
+				)}
+				{showPages && !FLAGS.CONTROL_PAGINATION && <S.DPageCounter>{getPages()}</S.DPageCounter>}
 				<Button
 					type={'alt3'}
 					label={language.next}
 					handlePress={handleNext}
 					disabled={!nextCursor || loadingMessages}
 				/>
-				{showPages && <S.MPageCounter>{getPages()}</S.MPageCounter>}
+				{showPages && FLAGS.CONTROL_PAGINATION && (
+					<S.MPageCounter>
+						<PaginationControls
+							pageInput={pageInput}
+							perPageInput={perPageInput}
+							totalPages={getTotalPages()}
+							disabled={loadingMessages}
+							pageDisabled={paginationControlsDisabled}
+							perPageDisabled={paginationControlsDisabled}
+							perPageSubmitDisabled={invalidPerPage}
+							onPageInputChange={setPageInput}
+							onPageSubmit={handlePageSubmit}
+							onPerPageInputChange={setPerPageInput}
+							onPerPageSubmit={handlePerPageSubmit}
+						/>
+					</S.MPageCounter>
+				)}
+				{showPages && !FLAGS.CONTROL_PAGINATION && <S.MPageCounter>{getPages()}</S.MPageCounter>}
 			</>
 		);
 	}
 
-	const invalidPerPage = perPage <= 0 || perPage > 100;
 	const customActionSelected = currentAction && actionOptions.some((action) => action === currentAction);
+	const variantOptions = [null, MessageVariantEnum.Legacynet, MessageVariantEnum.Mainnet];
+	const canExport = !props.childList && !props.result && (props.type !== 'message' || !props.txId);
 
 	return (
 		<>
@@ -1154,7 +1892,7 @@ export default function MessageList(props: {
 				{!props.childList && (
 					<S.Header>
 						<S.HeaderMain>
-							<p>{props.header ?? language.messages}</p>
+							<p>{props.header ?? (props.type === 'wallet' ? language.transactions : language.messages)}</p>
 							{loadingMessages && (
 								<div className={'loader'}>
 									<Loader xSm relative />
@@ -1186,88 +1924,119 @@ export default function MessageList(props: {
 										<S.Divider />
 									</>
 								)}
-								{appliedAction && (
-									<Button
-										type={'alt3'}
-										label={`Action (${appliedAction})`}
-										handlePress={() => {
-											setCurrentAction(null);
-											setAppliedAction(null);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedRecipient && checkValidAddress(appliedRecipient) && (
-									<Button
-										type={'alt3'}
-										label={`To (${formatAddress(appliedRecipient, false)})`}
-										handlePress={() => {
-											setRecipient('');
-											setAppliedRecipient('');
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
-									<Button
-										type={'alt3'}
-										label={`From (${formatAddress(appliedFromAddress, false)})`}
-										handlePress={() => {
-											setFromAddress('');
-											setAppliedFromAddress('');
-											setAppliedFromAddressIsProcess(false);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedStartDate && (
-									<Button
-										type={'alt3'}
-										label={`Start (${
-											appliedStartDate
-												? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
-												: '-'
-										})`}
-										handlePress={() => {
-											setStartDate(null);
-											setAppliedStartDate(null);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
-								{appliedEndDate && (
-									<Button
-										type={'alt3'}
-										label={`End (${
-											appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
-										})`}
-										handlePress={() => {
-											setEndDate(null);
-											setAppliedEndDate(null);
-											setToggleFilterChange((prev) => !prev);
-											handleClear();
-										}}
-										active={true}
-										disabled={loadingMessages}
-										icon={ASSETS.close}
-									/>
-								)}
+								<S.AppliedActionsWrapper className={'scroll-wrapper-hidden'}>
+									{!hasAppliedFilters && (
+										<Button type={'alt2'} label={'No Filters Applied'} handlePress={() => {}} disabled={true} noFocus />
+									)}
+									{appliedAction && (
+										<Button
+											type={'alt3'}
+											label={`Action (${appliedAction})`}
+											handlePress={() => {
+												setCurrentAction(null);
+												setAppliedAction(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedVariant && (
+										<Button
+											type={'alt3'}
+											label={`${language.variant} (${appliedVariant})`}
+											handlePress={() => {
+												setCurrentVariant(null);
+												setAppliedVariant(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedRecipient && checkValidAddress(appliedRecipient) && (
+										<Button
+											type={'alt3'}
+											label={`To (${formatAddress(appliedRecipient, false)})`}
+											handlePress={() => {
+												setRecipient('');
+												setAppliedRecipient('');
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
+										<Button
+											type={'alt3'}
+											label={`From (${formatAddress(appliedFromAddress, false)})`}
+											handlePress={() => {
+												setFromAddress('');
+												setAppliedFromAddress('');
+												setAppliedFromAddressIsProcess(false);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedStartDate && (
+										<Button
+											type={'alt3'}
+											label={`Start (${
+												appliedStartDate
+													? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
+													: '-'
+											})`}
+											handlePress={() => {
+												setStartDate(null);
+												setAppliedStartDate(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{appliedEndDate && (
+										<Button
+											type={'alt3'}
+											label={`End (${
+												appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
+											})`}
+											handlePress={() => {
+												setEndDate(null);
+												setAppliedEndDate(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{usingCustomPerPage && (
+										<Button
+											type={'alt3'}
+											label={`${language.resultsPerPage} (${formatCount(parsedPerPage.toString())})`}
+											handlePress={handlePerPageReset}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+								</S.AppliedActionsWrapper>
+								<S.Divider />
 								<S.FilterWrapper>
 									<Button
 										type={'alt3'}
@@ -1279,6 +2048,16 @@ export default function MessageList(props: {
 										iconLeftAlign
 									/>
 								</S.FilterWrapper>
+								{canExport && (
+									<Button
+										type={'alt3'}
+										label={language.download}
+										handlePress={handleExport}
+										disabled={loadingMessages || !currentData?.length}
+										icon={ASSETS.save}
+										iconLeftAlign
+									/>
+								)}
 								<S.Divider />
 								{getPaginator(false)}
 							</S.HeaderActions>
@@ -1290,8 +2069,11 @@ export default function MessageList(props: {
 						{!props.childList && (
 							<S.HeaderWrapper className={'fade-in'}>
 								<S.ID>
-									<p>{props.result ? language.type : language.id}</p>
+									<p>{language.id}</p>
 								</S.ID>
+								<S.Type>
+									<p>{language.type}</p>
+								</S.Type>
 								<S.Action>
 									<p>{language.action}</p>
 								</S.Action>
@@ -1317,7 +2099,12 @@ export default function MessageList(props: {
 								</S.Results>
 							</S.HeaderWrapper>
 						)}
-						<S.BodyWrapper childList={props.childList} isOverallLast={props.isOverallLast} className={'fade-in'}>
+						<S.BodyWrapper
+							childList={props.childList}
+							isOverallLast={props.isOverallLast}
+							$nestingLevel={props.nestingLevel}
+							className={'fade-in'}
+						>
 							{currentData.map((element: any, index: number) => {
 								const isLastChild = index === currentData.length - 1;
 
@@ -1334,8 +2121,8 @@ export default function MessageList(props: {
 										isOverallLast={props.isOverallLast && isLastChild}
 										showFilteredMessages={props.showFilteredMessages}
 										childList={props.childList}
+										nestingLevel={props.nestingLevel}
 										showResultMessageLabel={props.showResultMessageLabel}
-										clickableResultMessageLabel={props.clickableResultMessageLabel}
 									/>
 								);
 							})}
@@ -1391,6 +2178,29 @@ export default function MessageList(props: {
 							/>
 						</S.FilterDropdownActionSelect>
 						<S.FilterDivider />
+						<S.FilterDropdownHeader>
+							<p>{language.filterByVariant}</p>
+						</S.FilterDropdownHeader>
+						<S.FilterDropdownActionSelect>
+							{variantOptions.map((variant) => {
+								const optionId = variant ?? 'all';
+
+								return (
+									<Button
+										key={optionId}
+										type={'primary'}
+										label={getVariantFilterLabel(variant)}
+										handlePress={() => setCurrentVariant(currentVariant === variant ? null : variant)}
+										disabled={loadingMessages}
+										active={currentVariant === variant}
+										icon={currentVariant === variant && variant ? ASSETS.close : null}
+										height={40}
+										fullWidth
+									/>
+								);
+							})}
+						</S.FilterDropdownActionSelect>
+						<S.FilterDivider />
 						{(currentFilter !== 'incoming' || !props.txId) && (
 							<FormField
 								label={language.recipient}
@@ -1428,14 +2238,14 @@ export default function MessageList(props: {
 										fullWidth
 									/>
 									{startDate && (
-										<S.ClearDateButton
-											onClick={() => {
+										<Button
+											type={'alt3'}
+											label={language.clear}
+											handlePress={() => {
 												setStartDate(null);
 												setShowStartCalendar(false);
 											}}
-										>
-											{language.clear}
-										</S.ClearDateButton>
+										/>
 									)}
 								</S.DateRangeHeader>
 								{showStartCalendar && (
@@ -1459,14 +2269,14 @@ export default function MessageList(props: {
 										fullWidth
 									/>
 									{endDate && (
-										<S.ClearDateButton
-											onClick={() => {
+										<Button
+											type={'alt3'}
+											label={language.clear}
+											handlePress={() => {
 												setEndDate(null);
 												setShowEndCalendar(false);
 											}}
-										>
-											{language.clear}
-										</S.ClearDateButton>
+										/>
 									)}
 								</S.DateRangeHeader>
 								{showEndCalendar && (
@@ -1485,11 +2295,16 @@ export default function MessageList(props: {
 						<FormField
 							type={'number'}
 							label={language.resultsPerPage}
-							value={perPage}
-							onChange={(e: any) => setPerPage(e.target.value)}
+							value={perPageInput}
+							onChange={(e: any) => setPerPageInput(e.target.value)}
 							disabled={loadingMessages}
-							invalid={{ status: invalidPerPage, message: invalidPerPage ? 'Value must be between 0 and 100' : null }}
+							invalid={{ status: invalidPerPage, message: invalidPerPage ? language.valueGreaterThan0 : null }}
 						/>
+						{showLargeFetchWarning && (
+							<S.FilterWarning>
+								<p>{language.largeResultSetWarning}</p>
+							</S.FilterWarning>
+						)}
 						<S.FilterApply>
 							<Button
 								type={'alt1'}

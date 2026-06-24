@@ -1,10 +1,14 @@
 import React, { lazy, Suspense } from 'react';
+import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
+import { ReactSVG } from 'react-svg';
 
 import { serviceWorkerManager } from 'helpers/serviceWorkerManager';
+import { pruneTransactionCache } from 'store/transactions/reducer';
 const views = (import.meta as any).glob('../views/**/index.tsx');
 
 const Landing = getLazyImport('Landing');
+const Blocks = getLazyImport('Blocks');
 const Explorer = getLazyImport('Explorer');
 const Console = getLazyImport('Console');
 const GraphQL = getLazyImport('GraphQL');
@@ -12,7 +16,8 @@ const Docs = getLazyImport('Docs');
 const NotFound = getLazyImport('NotFound');
 
 import { Loader } from 'components/atoms/Loader';
-import { DOM, LINKS, URLS } from 'helpers/config';
+import { ASSETS, DOM, LINKS, URLS } from 'helpers/config';
+import { stripUrlProtocol } from 'helpers/utils';
 import { Navigation } from 'navigation/Navigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
@@ -35,13 +40,23 @@ function getLazyImport(view: string) {
 const APP_VERSION = '0.0.2';
 
 export default function App() {
+	const dispatch = useDispatch();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const { settings, updateSettings } = useSettingsProvider();
+	const { settings, updateSettings, setShowNodeSettings } = useSettingsProvider();
 
 	const hasHiddenLoaderRef = React.useRef(false);
 	const hasInitializedServiceWorkerRef = React.useRef(false);
+
+	const activeNode = React.useMemo(
+		() => settings.nodes.find((node) => node.active) ?? settings.nodes[0],
+		[settings.nodes]
+	);
+
+	const [isNodeOnline, setIsNodeOnline] = React.useState<boolean>(false);
+	const [isNodeStatusLoading, setIsNodeStatusLoading] = React.useState<boolean>(true);
+	const [_isScrolledToPageBottom, setIsScrolledToPageBottom] = React.useState<boolean>(false);
 
 	React.useEffect(() => {
 		const storedVersion = localStorage.getItem('app-version');
@@ -51,6 +66,10 @@ export default function App() {
 			localStorage.setItem('app-version', APP_VERSION);
 		}
 	}, []);
+
+	React.useEffect(() => {
+		dispatch(pruneTransactionCache());
+	}, [dispatch]);
 
 	React.useEffect(() => {
 		if (!hasInitializedServiceWorkerRef.current) {
@@ -72,6 +91,96 @@ export default function App() {
 			}
 		}
 	}, [settings]);
+
+	React.useEffect(() => {
+		let frame: number | null = null;
+
+		function updateScrollState() {
+			frame = null;
+			const documentElement = document.documentElement;
+			const pageHeight = Math.max(documentElement.scrollHeight, document.body?.scrollHeight ?? 0);
+			const scrollPosition = window.scrollY + window.innerHeight;
+			const isPageScrollable = pageHeight - window.innerHeight > 2;
+
+			setIsScrolledToPageBottom(isPageScrollable && pageHeight - scrollPosition <= 2);
+		}
+
+		function scheduleUpdate() {
+			if (frame !== null) return;
+
+			frame = window.requestAnimationFrame(updateScrollState);
+		}
+
+		updateScrollState();
+
+		window.addEventListener('scroll', scheduleUpdate, { passive: true });
+		window.addEventListener('resize', scheduleUpdate);
+
+		const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleUpdate) : null;
+		if (observer) {
+			observer.observe(document.body);
+			observer.observe(document.documentElement);
+		}
+
+		return () => {
+			if (frame !== null) window.cancelAnimationFrame(frame);
+			if (observer) observer.disconnect();
+			window.removeEventListener('scroll', scheduleUpdate);
+			window.removeEventListener('resize', scheduleUpdate);
+		};
+	}, []);
+
+	React.useEffect(() => {
+		let cancelled = false;
+		const controller = new AbortController();
+		let timeout: number | undefined;
+
+		async function checkNodeStatus() {
+			if (!settings.showNodeStatus || !activeNode?.url) {
+				setIsNodeOnline(false);
+				setIsNodeStatusLoading(false);
+				return;
+			}
+
+			setIsNodeOnline(false);
+			setIsNodeStatusLoading(true);
+			timeout = window.setTimeout(() => controller.abort(), 10000);
+
+			try {
+				const nodeUrl = activeNode.url.replace(/\/$/, '');
+				const response = await fetch(`${nodeUrl}/~hyperbuddy@1.0/metrics`, { signal: controller.signal });
+
+				if (!cancelled) {
+					setIsNodeOnline(response.ok);
+				}
+			} catch (error) {
+				const isAbortError = error instanceof Error && error.name === 'AbortError';
+				if (!cancelled && !isAbortError) {
+					console.error('Failed to fetch node status:', error);
+				}
+				if (!cancelled) {
+					setIsNodeOnline(false);
+				}
+			} finally {
+				if (timeout) {
+					window.clearTimeout(timeout);
+				}
+				if (!cancelled) {
+					setIsNodeStatusLoading(false);
+				}
+			}
+		}
+
+		checkNodeStatus();
+
+		return () => {
+			cancelled = true;
+			controller.abort();
+			if (timeout) {
+				window.clearTimeout(timeout);
+			}
+		};
+	}, [activeNode?.url, settings.showNodeStatus]);
 
 	// @ts-ignore
 	if (process.env.NODE_ENV === 'development') {
@@ -107,16 +216,20 @@ export default function App() {
 					<S.ViewWrapper>
 						<S.Footer navigationOpen={settings.sidebarOpen}>
 							<p>
+								<S.FooterIcon className={'app-icon'}>
+									<ReactSVG src={ASSETS.logo} wrapper={'span'} />
+								</S.FooterIcon>
 								{language.app} {new Date().getFullYear()}
 							</p>
 							<p>
+								<a href={LINKS.arweave} target={'_blank'}>
+									Arweave
+								</a>
+								&nbsp; / &nbsp;
 								<a href={LINKS.ao} target={'_blank'}>
 									AO
 								</a>{' '}
-								Explorer built on{' '}
-								<a href={LINKS.arweave} target={'_blank'}>
-									Arweave
-								</a>{' '}
+								&nbsp; Explorer
 							</p>
 						</S.Footer>
 					</S.ViewWrapper>
@@ -136,6 +249,7 @@ export default function App() {
 				<S.App>
 					<Routes>
 						{getRoute(URLS.base, <Landing />)}
+						{getRoute(URLS.blocks, <Blocks />)}
 						{getRoute(URLS.explorer, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid`, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid/:active`, <Explorer />)}
@@ -147,6 +261,22 @@ export default function App() {
 						{getRoute(URLS.notFound, <NotFound />)}
 						{getRoute(`*`, <NotFound />)}
 					</Routes>
+					{settings.showNodeStatus && activeNode && (
+						<S.NodeStatusButton
+							type={'button'}
+							onClick={() => setShowNodeSettings(true)}
+							$isLifted={false}
+							aria-label={`${language.aoMainnet} ${language.node}: ${stripUrlProtocol(activeNode.url)}. ${
+								isNodeStatusLoading ? `${language.loading}...` : isNodeOnline ? language.online : language.offline
+							}`}
+							title={language.changeConnection}
+						>
+							<S.NodeStatusIndicator $isOnline={isNodeOnline} $isLoading={isNodeStatusLoading} />
+							<S.NodeStatusText>
+								<p>{stripUrlProtocol(activeNode.url)}</p>
+							</S.NodeStatusText>
+						</S.NodeStatusButton>
+					)}
 				</S.App>
 			</Suspense>
 		</>

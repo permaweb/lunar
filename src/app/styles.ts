@@ -1,7 +1,37 @@
-import styled, { createGlobalStyle } from 'styled-components';
+import styled, { createGlobalStyle, css, keyframes } from 'styled-components';
 
 import { open, transition1, transition2 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
+
+const nodeStatusBlink = keyframes`
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: scale(0.9);
+	}
+
+	50% {
+		opacity: 0.85;
+		transform: scale(1);
+	}
+`;
+
+const nodeStatusPulse = keyframes`
+	0% {
+		box-shadow: 0 0 0 0 currentColor;
+		transform: scale(0.96);
+	}
+
+	70% {
+		box-shadow: 0 0 0 7px transparent;
+		transform: scale(1);
+	}
+
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+		transform: scale(0.96);
+	}
+`;
 
 export const GlobalStyle = createGlobalStyle`
   html, body, div, span, applet, object, iframe,
@@ -202,7 +232,7 @@ export const GlobalStyle = createGlobalStyle`
 	}
 
   .info {
-    padding: 0 5px 0.5px 5px;
+    padding: 2px 5px;
     background: ${(props) => props.theme.colors.contrast.background};
     border: 1px solid ${(props) => props.theme.colors.contrast.background};
     border-radius: ${STYLING.dimensions.radius.alt2};
@@ -213,6 +243,7 @@ export const GlobalStyle = createGlobalStyle`
       font-family: ${(props) => props.theme.typography.family.primary} !important;
       font-size: ${(props) => props.theme.typography.size.xxxxSmall} !important;
       font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+			line-height: 1.1 !important;
 			text-transform: none !important;
       white-space: nowrap !important;
 	  }
@@ -315,6 +346,99 @@ export const App = styled.div`
 	flex-direction: column;
 `;
 
+export const NodeStatusButton = styled.button<{ $isLifted?: boolean }>`
+	position: fixed;
+	right: 20px;
+	bottom: ${(props) => (props.$isLifted ? '80px' : '20px')};
+	z-index: 10;
+	max-width: min(360px, calc(100vw - 40px));
+	display: flex;
+	align-items: center;
+	gap: 0;
+	padding: 11.5px 14.5px 12.5px 14.5px;
+	background: ${(props) => props.theme.colors.contrast.background};
+	border: 1px solid ${(props) => props.theme.colors.contrast.border};
+	border-radius: ${STYLING.dimensions.radius.primary};
+	box-shadow: 0 3.5px 7.5px 0 ${(props) => props.theme.colors.shadow.primary};
+	color: ${(props) => props.theme.colors.font.primary};
+	text-align: left;
+	transition: bottom 180ms ease, gap 180ms ease, background 100ms, border-color 100ms;
+
+	&:hover,
+	&:focus {
+		gap: 12.5px;
+		background: ${(props) => props.theme.colors.contrast.active.background};
+		border-color: ${(props) => props.theme.colors.contrast.active.border};
+		outline: none;
+
+		> div:last-child {
+			max-width: 270px;
+			opacity: 1;
+			visibility: visible;
+			transition-delay: 0s;
+		}
+	}
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		right: 12px;
+		bottom: ${(props) => (props.$isLifted ? '84px' : '12px')};
+		max-width: calc(100vw - 24px);
+	}
+`;
+
+export const NodeStatusIndicator = styled.div<{ $isOnline: boolean; $isLoading: boolean }>`
+	height: 10px;
+	width: 10px;
+	flex: none;
+	border-radius: 50%;
+	margin: 2.5px 0 0 0;
+	color: ${(props) =>
+		props.$isLoading
+			? props.theme.colors.font.alt1
+			: props.$isOnline
+			? props.theme.colors.indicator.active
+			: props.theme.colors.warning.primary};
+	background: currentColor;
+	opacity: ${(props) => (props.$isLoading ? 0.65 : 1)};
+	will-change: box-shadow, opacity, transform;
+	${(props) =>
+		props.$isLoading
+			? css`
+					animation: ${nodeStatusBlink} 1s ease-in-out infinite;
+			  `
+			: css`
+					animation: ${nodeStatusPulse} 1.8s ease-out infinite;
+			  `}
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+`;
+
+export const NodeStatusText = styled.div`
+	min-width: 0;
+	max-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	opacity: 0;
+	overflow: hidden;
+	visibility: hidden;
+	transition: max-width 180ms ease, opacity 120ms ease, visibility 0s linear 180ms;
+
+	p {
+		min-width: 0;
+		overflow: hidden;
+		color: ${(props) => props.theme.colors.contrast.color};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		line-height: 1.25;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+`;
+
 export const View = styled.main<{ navigationOpen: boolean }>`
 	min-height: calc(100vh - ${STYLING.dimensions.nav.height});
 	width: 100%;
@@ -365,9 +489,13 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 	gap: 15px;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0 0 20px 0;
+	margin: 20px 0 0 0;
+	padding: 30px 50px;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	p {
+		display: flex;
+		align-items: center;
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
@@ -375,6 +503,9 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 	}
 
 	a {
+		display: flex;
+		align-items: center;
+		gap: 3.5px;
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
@@ -389,5 +520,46 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		padding: 20px 0;
+	}
+`;
+
+export const FooterIcon = styled.span`
+	height: 16px;
+	width: 16px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 6px 0 0;
+
+	> span,
+	div {
+		height: 16px;
+		width: 16px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	svg {
+		height: 16px;
+		width: 16px;
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+	}
+
+	svg path {
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+	}
+
+	&.app-icon {
+		margin: 0 10.5px -2.5px 0;
+	}
+
+	&.ar-icon,
+	&.ar-icon div,
+	&.ar-icon svg {
+		height: 14px;
+		width: 14px;
 	}
 `;

@@ -5,11 +5,14 @@ import { ReactSVG } from 'react-svg';
 import { debounce } from 'lodash';
 import { useTheme } from 'styled-components';
 
+import { getBlock } from 'api/blocks';
+
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { ASSETS, STYLING, URLS } from 'helpers/config';
+import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
+import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
-import { checkValidAddress, formatAddress, getTagValue } from 'helpers/utils';
+import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -18,6 +21,20 @@ import { WalletConnect } from 'wallet/WalletConnect';
 import { CloseHandler } from 'wrappers/CloseHandler';
 
 import * as S from './styles';
+
+function checkValidBlockId(id: string | null): boolean {
+	if (!id) return false;
+	return /^[a-z0-9_-]{64}$/i.test(id);
+}
+
+function checkValidBlockHeight(id: string | null): boolean {
+	if (!id) return false;
+	return /^\d+$/.test(id);
+}
+
+function isValidSearchInput(value: string): boolean {
+	return checkValidAddress(value) || checkValidBlockHeight(value) || checkValidBlockId(value);
+}
 
 export default function Navigation(props: { open: boolean; toggle: () => void }) {
 	const dispatch = useDispatch();
@@ -36,6 +53,10 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
 	const [txResponse, setTxResponse] = React.useState<any | null>(null);
 	const [panelOpen, setPanelOpen] = React.useState<boolean>(false);
+	const [prices, setPrices] = React.useState<{ ao: number | null; ar: number | null }>({
+		ao: null,
+		ar: null,
+	});
 
 	React.useEffect(() => {
 		const header = document.getElementById('navigation-header');
@@ -66,6 +87,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				label: language.home,
 			},
 			{
+				path: URLS.blocks,
+				icon: ASSETS.block,
+				label: language.blocks,
+			},
+			{
 				path: URLS.explorer,
 				icon: ASSETS.explorer,
 				label: language.explorer,
@@ -86,7 +112,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				label: language.docs,
 			},
 		];
-	}, []);
+	}, [language]);
 
 	function handleWindowResize() {
 		if (checkWindowCutoff(parseInt(STYLING.cutoffs.desktop))) {
@@ -107,19 +133,66 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	}, [debouncedResize]);
 
 	React.useEffect(() => {
+		let cancelled = false;
+
+		async function fetchPrices() {
+			const [ao, ar] = await Promise.all([getAoPrice(), getArPrice()]);
+
+			if (!cancelled) {
+				setPrices({
+					ao: ao,
+					ar: ar,
+				});
+			}
+		}
+
+		fetchPrices();
+		const interval = window.setInterval(fetchPrices, 60 * 1000);
+
+		return () => {
+			cancelled = true;
+			window.clearInterval(interval);
+		};
+	}, []);
+
+	React.useEffect(() => {
 		(async function () {
-			if (inputTxId && checkValidAddress(inputTxId)) {
+			if (inputTxId && isValidSearchInput(inputTxId)) {
 				setTxOutputOpen(true);
 				setLoadingTx(true);
 				try {
-					const response = await searchTxById({
-						txId: inputTxId,
-						getGQLData: permawebProvider.libs.getGQLData,
-						store: store,
-						dispatch: dispatch,
-					});
+					// Handle block searches
+					if (checkValidBlockHeight(inputTxId) || checkValidBlockId(inputTxId)) {
+						const block = await getBlock(
+							checkValidBlockHeight(inputTxId) ? { height: Number(inputTxId) } : { id: inputTxId }
+						);
 
-					setTxResponse(response ?? { node: { id: inputTxId, tags: [] } });
+						if (block) {
+							// Create a response that matches the expected structure
+							setTxResponse({
+								node: {
+									id: inputTxId,
+									tags: [
+										{ name: 'Type', value: 'Block' },
+										{ name: 'Name', value: `${language.block || 'Block'} ${formatCount(block.height.toString())}` },
+									],
+								},
+							});
+						} else {
+							setTxResponse(null);
+						}
+					}
+					// Handle transaction/process/message searches
+					else {
+						const response = await searchTxById({
+							txId: inputTxId,
+							getGQLData: permawebProvider.libs.getGQLData,
+							store: store,
+							dispatch: dispatch,
+						});
+
+						setTxResponse(response ?? { node: { id: inputTxId, tags: [] } });
+					}
 				} catch (e: any) {
 					console.error(e);
 					setTxResponse(null);
@@ -130,7 +203,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				setTxOutputOpen(false);
 			}
 		})();
-	}, [inputTxId]);
+	}, [inputTxId, language.block, permawebProvider.libs?.getGQLData, dispatch]);
 
 	const searchOutput = React.useMemo(() => {
 		if (loadingTx) {
@@ -166,7 +239,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 			);
 		}
 
-		if (checkValidAddress(inputTxId)) {
+		if (isValidSearchInput(inputTxId)) {
 			return (
 				<S.SearchOutputPlaceholder>
 					<p>{language.txNotFound}</p>
@@ -175,7 +248,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		}
 
 		return null;
-	}, [loadingTx, txResponse]);
+	}, [loadingTx, txResponse, inputTxId, language.txNotFound]);
 
 	function getSearch() {
 		return (
@@ -187,15 +260,26 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
 						onFocus={() => setTxOutputOpen(true)}
 						placeholder={language.explorerSearchInput}
-						invalid={{ status: inputTxId ? !checkValidAddress(inputTxId) : false, message: null }}
+						invalid={{ status: inputTxId ? !isValidSearchInput(inputTxId) : false, message: null }}
 						disabled={loadingTx}
 						hideErrorMessage
 						sm
 					/>
 				</S.SearchInputWrapper>
-				{txOutputOpen && checkValidAddress(inputTxId) && <S.SearchOutputWrapper>{searchOutput}</S.SearchOutputWrapper>}
+				{txOutputOpen && isValidSearchInput(inputTxId) && <S.SearchOutputWrapper>{searchOutput}</S.SearchOutputWrapper>}
 			</S.SearchWrapper>
 		);
+	}
+
+	function formatUsdPrice(price: number | null) {
+		if (price === null) return '-';
+
+		return price.toLocaleString(undefined, {
+			style: 'currency',
+			currency: 'USD',
+			minimumFractionDigits: price >= 1 ? 2 : 4,
+			maximumFractionDigits: price >= 1 ? 2 : 6,
+		});
 	}
 
 	const isTabsView =
@@ -236,6 +320,18 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						</S.DNavWrapper>
 					</S.C1Wrapper>
 					<S.ActionsWrapper>
+						<S.PriceWrapper>
+							<S.PriceItem>
+								<ReactSVG className={'ar-icon'} src={ASSETS.arweave} />
+								<p>{formatUsdPrice(prices.ar)}</p>
+							</S.PriceItem>
+							<S.PriceItem>
+								<Link to={`${URLS.explorer}${PROCESSES.ao}`}>
+									<ReactSVG className={'ao-icon'} src={ASSETS.ao} />
+								</Link>
+								<p>{formatUsdPrice(prices.ao)}</p>
+							</S.PriceItem>
+						</S.PriceWrapper>
 						<S.DSearchWrapper>
 							<CloseHandler
 								callback={() => {

@@ -1,11 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
 import { Avatar } from 'components/atoms/Avatar';
 import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { Modal } from 'components/atoms/Modal';
-import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS } from 'helpers/config';
+import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint } from 'helpers/endpoints';
 import {
 	darkTheme,
@@ -174,6 +175,8 @@ const WalletBalanceSection = React.memo(
 );
 
 export default function WalletConnect(_props: { callback?: () => void }) {
+	const navigate = useNavigate();
+
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
@@ -331,31 +334,20 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 							</S.DHeaderWrapper>
 							<S.DBalanceWrapper>
 								<WalletBalanceSection
+									balanceSource={'arweave'}
+									tokenName={'AR'}
+									denomination={TOKEN_DENOMINATIONS.ar}
+									walletAddress={arProvider.walletAddress}
+									libs={permawebProvider.libs}
+									errorFetching={language.errorFetching}
+									loading={language.loading}
+									refresh={language.refresh}
+								/>
+								<WalletBalanceSection
 									balanceSource={'process'}
 									processId={PROCESSES.ao}
 									tokenName={'AO'}
 									denomination={TOKEN_DENOMINATIONS.ao}
-									walletAddress={arProvider.walletAddress}
-									libs={permawebProvider.libs}
-									errorFetching={language.errorFetching}
-									loading={language.loading}
-									refresh={language.refresh}
-								/>
-								<WalletBalanceSection
-									balanceSource={'process'}
-									processId={PROCESSES.pi}
-									tokenName={'PI'}
-									denomination={TOKEN_DENOMINATIONS.pi}
-									walletAddress={arProvider.walletAddress}
-									libs={permawebProvider.libs}
-									errorFetching={language.errorFetching}
-									loading={language.loading}
-									refresh={language.refresh}
-								/>
-								<WalletBalanceSection
-									balanceSource={'arweave'}
-									tokenName={'AR'}
-									denomination={TOKEN_DENOMINATIONS.ar}
 									walletAddress={arProvider.walletAddress}
 									libs={permawebProvider.libs}
 									errorFetching={language.errorFetching}
@@ -367,6 +359,15 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 								<li onClick={() => copyAddress(arProvider.walletAddress)}>
 									<ReactSVG src={ASSETS.copy} />
 									{copied ? `${language.copied}!` : language.walletAddress}
+								</li>
+								<li
+									onClick={() => {
+										navigate(`${URLS.explorer}${arProvider.walletAddress}`);
+										setShowWalletDropdown(false);
+									}}
+								>
+									<ReactSVG src={ASSETS.wallet} />
+									{language.openInExplorer}
 								</li>
 								<li onClick={() => permawebProvider.setShowProfileManager(true)}>
 									<ReactSVG src={ASSETS.write} />
@@ -398,7 +399,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 					header={language.chooseAppAppearance}
 					handleClose={() => setShowThemeSelector(false)}
 				>
-					<S.MWrapper className={'modal-wrapper'}>
+					<S.MWrapper>
 						{Object.entries(THEMES).map(([key, theme]) => (
 							<S.ThemeSection key={key}>
 								<S.ThemeSectionHeader>

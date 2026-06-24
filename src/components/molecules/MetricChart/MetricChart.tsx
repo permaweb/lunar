@@ -1,6 +1,7 @@
 import React from 'react';
-import { Line } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import {
+	BarElement,
 	CategoryScale,
 	Chart as ChartJS,
 	Filler,
@@ -18,20 +19,28 @@ import { formatCount, formatDate } from 'helpers/utils';
 
 import * as S from './styles';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 const crosshairPlugin = {
 	id: 'crosshairPlugin',
 	afterDatasetsDraw(chart: any, _args: any, pluginOptions: any) {
+		if (!pluginOptions) return;
+
 		const { ctx, scales } = chart;
 
 		if (pluginOptions.currentDate !== undefined && pluginOptions.currentDate >= 0) {
 			const currentDateIndex = pluginOptions.currentDate;
-			const xCoord = scales.x.getPixelForValue(currentDateIndex);
 			ctx.save();
 			ctx.beginPath();
-			ctx.moveTo(xCoord, scales.y.top);
-			ctx.lineTo(xCoord, scales.y.bottom);
+			if (chart.options.indexAxis === 'y') {
+				const yCoord = scales.y.getPixelForValue(currentDateIndex);
+				ctx.moveTo(scales.x.left, yCoord);
+				ctx.lineTo(scales.x.right, yCoord);
+			} else {
+				const xCoord = scales.x.getPixelForValue(currentDateIndex);
+				ctx.moveTo(xCoord, scales.y.top);
+				ctx.lineTo(xCoord, scales.y.bottom);
+			}
 			ctx.lineWidth = pluginOptions.currentLine?.lineWidth ?? 2;
 			ctx.strokeStyle = pluginOptions.currentLine?.borderColor || 'red';
 			if (pluginOptions.currentLine?.borderDash) {
@@ -90,17 +99,44 @@ const crosshairPlugin = {
 
 ChartJS.register(crosshairPlugin);
 
-export default function MetricChart(props: {
+const loadedChartKeys = new Set<string>();
+
+type MetricChartProps = {
+	chartType?: 'horizontal-bar' | 'line' | 'vertical-bar';
 	dataList: MetricDataPoint[];
 	metric: keyof MetricDataPoint;
 	totalField: keyof MetricDataPoint;
 	chartLabel: string;
-}) {
+	loadingDelay?: number;
+	totalLabel?: string;
+	valueFormatter?: (value: string | number) => string;
+	valueScale?: 'fit' | 'zero';
+};
+
+function MetricChart(props: MetricChartProps) {
 	const theme = useTheme();
 	const chartRef = React.useRef<any>(null);
+	const chartType = props.chartType ?? 'line';
+	const isBarChart = chartType !== 'line';
+	const loadingKey = `${props.chartLabel}:${String(props.metric)}`;
 
 	const [currentDate, setCurrentDate] = React.useState<string | null>(null);
 	const [currentValue, setCurrentValue] = React.useState<string | number | null>(null);
+	const [isLoading, setIsLoading] = React.useState<boolean>(() => !loadedChartKeys.has(loadingKey));
+
+	React.useEffect(() => {
+		if (loadedChartKeys.has(loadingKey)) {
+			setIsLoading(false);
+			return;
+		}
+
+		const timer = window.setTimeout(() => {
+			loadedChartKeys.add(loadingKey);
+			setIsLoading(false);
+		}, props.loadingDelay ?? 1000);
+
+		return () => window.clearTimeout(timer);
+	}, [loadingKey, props.loadingDelay]);
 
 	React.useEffect(() => {
 		if (props.dataList.length > 0) {
@@ -119,12 +155,34 @@ export default function MetricChart(props: {
 
 	const total = React.useMemo(() => {
 		const value = props.dataList?.[props.dataList.length - 1][props.totalField];
-		return value ? formatCount(value.toString()) : '-';
-	}, [props.dataList, props.totalField]);
+		if (value === undefined || value === null) return '-';
+		return props.valueFormatter ? props.valueFormatter(value) : formatCount(value.toString());
+	}, [props.dataList, props.totalField, props.valueFormatter]);
 
 	const datasetData = React.useMemo(() => {
 		return props.dataList.map((item) => item[props.metric]);
 	}, [props.dataList, props.metric]);
+
+	const fittedValueScale = React.useMemo(() => {
+		if (props.valueScale !== 'fit') return {};
+
+		const values = datasetData.map((value) => Number(value)).filter(Number.isFinite);
+		if (values.length < 2) return {};
+
+		const min = Math.min(...values);
+		const max = Math.max(...values);
+		const range = max - min;
+
+		if (range <= 0) return {};
+
+		const padding = range * 0.08;
+
+		return {
+			beginAtZero: false,
+			max: max + padding,
+			min: Math.max(0, min - padding),
+		};
+	}, [datasetData, props.valueScale]);
 
 	const createDottedPattern = React.useCallback(() => {
 		const canvas = document.createElement('canvas');
@@ -148,6 +206,9 @@ export default function MetricChart(props: {
 	}, [theme]);
 
 	const chartData = React.useMemo(() => {
+		const barColor = theme.colors.container.alt6.background;
+		const barHoverColor = theme.colors.container.alt10.background;
+
 		return {
 			labels,
 			datasets: [
@@ -155,68 +216,82 @@ export default function MetricChart(props: {
 					label: props.chartLabel || (props.metric as string),
 					data: datasetData,
 					fill: true,
-					backgroundColor: createDottedPattern(),
-					borderColor: theme.colors.border.alt5,
+					backgroundColor: isBarChart ? barColor : createDottedPattern(),
+					borderColor: isBarChart ? barColor : theme.colors.border.alt5,
+					borderWidth: isBarChart ? 0 : 1.5,
+					hoverBackgroundColor: isBarChart ? barHoverColor : undefined,
+					hoverBorderColor: isBarChart ? barHoverColor : undefined,
 					pointBackgroundColor: theme.colors.border.alt6,
 					pointBorderColor: theme.colors.border.alt5,
-					pointRadius: 1,
+					pointRadius: 0,
 					lineTension: 0.1,
+					maxBarThickness: 32,
 				},
 			],
 		};
-	}, [labels, datasetData, theme, props.metric, props.chartLabel, createDottedPattern]);
+	}, [labels, datasetData, theme, props.metric, props.chartLabel, isBarChart, createDottedPattern]);
 
 	const handleHover = React.useCallback(
 		(_event: any, activeElements: any[], chart: any) => {
 			if (activeElements && activeElements.length > 0) {
-				const activeElem = activeElements[0].element;
+				const activeElement = activeElements[0];
+				const activeElem = activeElement.element;
 				chart.$activeElement = activeElem;
-				const xIndex = chart.scales.x.getValueForPixel(activeElem.x);
-				const yIndex = chart.scales.y.getValueForPixel(activeElem.y);
-				if (xIndex !== null && yIndex !== null) {
-					const element = props.dataList[xIndex];
-					setCurrentDate(element.day);
-					setCurrentValue(element[props.metric]);
+				const dataIndex =
+					typeof activeElement.index === 'number'
+						? activeElement.index
+						: chart.options.indexAxis === 'y'
+						? chart.scales.y.getValueForPixel(activeElem.y)
+						: chart.scales.x.getValueForPixel(activeElem.x);
+				if (dataIndex !== null) {
+					const element = props.dataList[dataIndex];
+					if (element) {
+						setCurrentDate(element.day);
+						setCurrentValue(element[props.metric]);
+					}
 				}
 			} else {
 				chart.$activeElement = null;
 			}
 		},
-		[currentValue]
+		[props.dataList, props.metric]
 	);
 
 	const options = {
 		responsive: true,
 		maintainAspectRatio: false,
 		animation: false as any,
+		indexAxis: chartType === 'horizontal-bar' ? ('y' as const) : ('x' as const),
 		plugins: {
 			tooltip: { enabled: false },
 			legend: { display: false, labels: { usePointStyle: true } },
-			crosshairPlugin: {
-				verticalLine: {
-					lineWidth: 1.5,
-					borderColor: theme.colors.border.alt2,
-					borderDash: [0, 0],
-				},
-				horizontalLine: {
-					lineWidth: 1,
-					borderColor: theme.colors.border.alt4,
-					borderDash: [3, 2],
-				},
-				crosshairDot: {
-					radius: 5,
-					color: theme.colors.container.alt1.background,
-					borderColor: theme.colors.border.alt5,
-					borderWidth: 2,
-					borderDash: [0, 0],
-				},
-				currentDate: props.dataList.length - 1,
-				currentLine: {
-					lineWidth: 1.5,
-					borderColor: theme.colors.border.alt2,
-					borderDash: [3, 2],
-				},
-			},
+			crosshairPlugin: isBarChart
+				? false
+				: {
+						verticalLine: {
+							lineWidth: 1.5,
+							borderColor: theme.colors.border.alt2,
+							borderDash: [0, 0],
+						},
+						horizontalLine: {
+							lineWidth: 1,
+							borderColor: theme.colors.border.alt4,
+							borderDash: [3, 2],
+						},
+						crosshairDot: {
+							radius: 5,
+							color: theme.colors.container.alt1.background,
+							borderColor: theme.colors.border.alt5,
+							borderWidth: 2,
+							borderDash: [0, 0],
+						},
+						currentDate: props.dataList.length - 1,
+						currentLine: {
+							lineWidth: 1.5,
+							borderColor: theme.colors.border.alt2,
+							borderDash: [3, 2],
+						},
+				  },
 		},
 		interaction: {
 			mode: 'index' as const,
@@ -230,6 +305,7 @@ export default function MetricChart(props: {
 				},
 				grid: { display: false, drawBorder: false, drawOnChartArea: false },
 				border: { display: false },
+				...(chartType === 'horizontal-bar' ? fittedValueScale : {}),
 			},
 			y: {
 				title: { display: false },
@@ -238,17 +314,22 @@ export default function MetricChart(props: {
 				},
 				grid: { display: false, drawBorder: false, drawOnChartArea: false },
 				border: { display: false },
+				...(chartType === 'horizontal-bar' ? {} : fittedValueScale),
 			},
 		},
 		onHover: handleHover,
 	};
+
+	if (isLoading) {
+		return <S.Placeholder className={'border-wrapper-alt4'} />;
+	}
 
 	return (
 		<S.Wrapper className={'border-wrapper-alt4'}>
 			<S.HeaderWrapper>
 				<S.HeaderSection>
 					<S.HeaderLabel>
-						<span>{props.chartLabel}</span>
+						<span>{props.totalLabel ?? props.chartLabel}</span>
 					</S.HeaderLabel>
 					<S.HeaderValue>
 						<p>{total}</p>
@@ -259,15 +340,27 @@ export default function MetricChart(props: {
 						<span>{currentDate ? formatDate(currentDate, 'dateString') : '-'}</span>
 					</S.HeaderLabel>
 					<S.HeaderValue>
-						<p>{currentValue ? formatCount(currentValue.toString()) : '-'}</p>
+						<p>
+							{currentValue !== null
+								? props.valueFormatter
+									? props.valueFormatter(currentValue)
+									: formatCount(currentValue.toString())
+								: '-'}
+						</p>
 					</S.HeaderValue>
 				</S.HeaderSection>
 			</S.HeaderWrapper>
 			<S.BodyWrapper>
-				<S.ChartWrapper>
-					<Line ref={chartRef} data={chartData} options={options} />
+				<S.ChartWrapper $showCrosshair>
+					{chartType === 'line' ? (
+						<Line ref={chartRef} data={chartData} options={options} />
+					) : (
+						<Bar ref={chartRef} data={chartData} options={options} />
+					)}
 				</S.ChartWrapper>
 			</S.BodyWrapper>
 		</S.Wrapper>
 	);
 }
+
+export default React.memo(MetricChart);

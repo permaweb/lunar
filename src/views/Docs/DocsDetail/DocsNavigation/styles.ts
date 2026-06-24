@@ -112,6 +112,10 @@ export const NList = styled.ul`
 	}
 `;
 
+export const NSubList = styled.div`
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+`;
+
 export const NListItem = styled.li<{ disabled: boolean; active: boolean }>`
 	width: 100%;
 	pointer-events: ${(props) => (props.disabled ? 'none' : 'default')};
@@ -119,35 +123,19 @@ export const NListItem = styled.li<{ disabled: boolean; active: boolean }>`
 	display: flex;
 	align-items: center;
 	cursor: pointer;
-	font-size: ${(props) => props.theme.typography.size.xxxSmall};
-	color: ${(props) =>
-		props.active ? props.theme.colors.button.primary.active.color : props.theme.colors.button.primary.color};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	margin: 0 0 10px 0;
+	margin: 0 0 12px 0;
+	padding: 0 0 0 10px;
 	line-height: 1.75;
 	text-align: left;
-	border-radius: ${STYLING.dimensions.radius.alt2};
-	border: 1px solid
-		${(props) =>
-			props.active ? props.theme.colors.button.primary.active.border : props.theme.colors.button.primary.border};
-	background: ${(props) =>
-		props.active ? props.theme.colors.button.primary.active.background : props.theme.colors.container.alt2.background};
-	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
-	padding: 5px 10.5px 4.75px 10.5px;
+	border-left: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
 	transition: all 100ms;
 
 	&:hover {
-		color: ${(props) =>
-			props.active ? props.theme.colors.button.primary.active.color : props.theme.colors.button.primary.active.color};
-		background: ${(props) =>
-			props.active
-				? props.theme.colors.button.primary.active.background
-				: props.theme.colors.button.primary.active.background};
-		border: 1px solid
-			${(props) =>
-				props.active
-					? props.theme.colors.button.primary.active.border
-					: props.theme.colors.button.primary.active.border};
+		color: ${(props) => props.theme.colors.font.primary};
+		border-left: 2px solid ${(props) => props.theme.colors.border.alt5};
 	}
 `;
 
@@ -168,12 +156,7 @@ export const NSubHeader = styled(NTitle)`
 	p {
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
-		color: ${(props) => props.theme.colors.font.alt1} !important;
+		color: ${(props) => props.theme.colors.font.alt2} !important;
 		letter-spacing: 0.85px;
 	}
-`;
-
-export const NSubList = styled.div`
-	padding: 0 0 0 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 `;

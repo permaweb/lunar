@@ -7,6 +7,14 @@ export const docsOrder = [
 				name: 'Introduction',
 				path: 'introduction',
 			},
+			{
+				name: 'Arweave',
+				path: 'arweave',
+			},
+			{
+				name: 'AO',
+				path: 'ao',
+			},
 		],
 	},
 	{
@@ -31,6 +39,10 @@ export const docsOrder = [
 		name: 'Views',
 		path: 'views',
 		children: [
+			{
+				name: 'Blocks',
+				path: 'blocks',
+			},
 			{
 				name: 'Explorer',
 				path: 'explorer',

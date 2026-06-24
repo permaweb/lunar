@@ -1,6 +1,6 @@
 import { Types } from '@permaweb/libs';
 
-import { addTransaction, selectTransaction } from 'store/transactions/reducer';
+import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
 import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, FLAGS } from './config';
 import { getTxEndpoint } from './endpoints';
@@ -16,6 +16,7 @@ const DIRECT_LOOKUP_TAG_HEADERS = [
 	'authority',
 	'content-type',
 	'data-protocol',
+	'denomination',
 	'epoch',
 	'from-process',
 	'module',
@@ -28,6 +29,7 @@ const DIRECT_LOOKUP_TAG_HEADERS = [
 	'scheduler',
 	'sdk',
 	'timestamp',
+	'ticker',
 	'type',
 	'variant',
 	'zone',
@@ -247,7 +249,6 @@ async function buildDirectLookupResponse(
 
 	const headers = directLookup.headers;
 	const tags = getDirectLookupTags(headers);
-	if (tags.length <= 0 || !getTagValue(tags, 'Type')) return null;
 
 	const signatureInput = headers.get('signature-input');
 	const ownerAddress = await getOwnerAddressFromSignatureInput(signatureInput);
@@ -263,8 +264,8 @@ async function buildDirectLookupResponse(
 			recipient: recipient ?? undefined,
 			tags: tags,
 			data: {
-				size: getTagValue(tags, 'Data-Size') ?? headers.get('content-length') ?? '0',
-				type: getTagValue(tags, 'Content-Type'),
+				size: getTagValue(tags, 'Data-Size') ?? headers.get('content-length') ?? undefined,
+				type: getTagValue(tags, 'Content-Type') ?? headers.get('content-type') ?? undefined,
 			},
 			owner: {
 				address: ownerAddress,
@@ -355,6 +356,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 	if (FLAGS.USE_TX_CACHE && args.store) {
 		const cached = selectTransaction(args.store.getState(), args.txId);
 		if (cached && shouldUseCachedTransaction(cached)) {
+			if (args.dispatch) args.dispatch(touchTransaction(args.txId));
 			return cached;
 		}
 	}
@@ -385,16 +387,33 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 	}
 
 	try {
-		let response = await args.getGQLData({
-			id: [args.txId],
-		});
+		let response: any = null;
+		let lastError: any = null;
 
-		if (!response.data?.length || response.data?.length <= 0) {
-			response = await args.getGQLData({
+		for (const gqlArgs of [
+			{
+				id: [args.txId],
+			},
+			{
 				gateway: DEFAULT_GATEWAYS.fallback,
 				id: [args.txId],
-			});
+			},
+			{
+				gateway: DEFAULT_GATEWAYS.arweave,
+				id: [args.txId],
+			},
+		]) {
+			try {
+				response = await args.getGQLData(gqlArgs);
+				if (response.data?.length > 0) break;
+			} catch (e: any) {
+				lastError = e;
+				console.error(e);
+			}
 		}
+
+		if (!response && lastError) throw lastError;
+		if (!response) response = { data: [] };
 
 		response = await normalizeGqlResponse(response);
 
@@ -425,6 +444,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 					};
 
 					cacheTransaction(walletResponse as Types.GQLNodeResponseType, args, { skipBlockHeightCheck: true });
+					return walletResponse as Types.GQLNodeResponseType;
 				}
 			} catch (e: any) {
 				console.error(e);

@@ -1,90 +1,92 @@
 # Messages
 
-Messages are the fundamental execution records of AO and one of the primary entities you inspect in Lunar.
+Messages are signed inputs to AO processes. They connect AO execution to Arweave-compatible records through IDs, owners, targets, tags, data, and permanent indexing.
 
-If processes are the program logic, messages are the concrete inputs and outputs that show what actually happened.
+#### Message Anatomy
 
-#### Message Structure
+The fields most useful in Lunar are:
 
-AO messages include identity fields, routing fields, protocol tags, and payload data. In Lunar, the most relevant fields for day-to-day inspection are:
+- `Id`: the message or data item identifier
+- `Owner`: the signing identity when available
+- `From-Process`: the logical sending process for process-generated messages
+- `Target` or recipient: the process receiving the message
+- `Action`: the requested behavior
+- `Tags`: protocol and application parameters
+- `Data`: the message payload
+- `Variant`: the AO network format
+- Block, timestamp, slot, or scheduling metadata
 
-- `Id`: unique message/transaction identifier
-- `From`: logical sender identity
-- `Owner`: signing identity
-- `Target` (or recipient context): process receiving execution request
-- `Timestamp` and `Block-Height`: ordering and chronology
-- `Tags`: protocol and action-specific metadata
-- `Data` and output/result payloads
+Not every source exposes every field immediately. Newly submitted or pushed messages can be retrievable before all scheduling or block metadata has been indexed.
 
-#### Message Execution Flow
+#### Message Flow
 
-> "The `ao` computer takes messages and sends them to Processes in which those Processes can output messages that can be sent to other Processes. The result is a complex system built on simple modular logic containers." - [ao cookbook](https://cookbook_ao.arweave.net)
+A typical AO interaction is:
 
-Lunar makes message flow inspectable:
+1. A wallet or process creates a message for a target process.
+2. The scheduler orders the message for that process.
+3. The process evaluates matching handlers.
+4. The computation produces output, an error, state changes, or additional messages.
+5. Gateways and AO services make the record and result available for inspection.
 
-1. A message is submitted with an `Action` and optional parameters in tags/data.
-2. A target process executes matching logic.
-3. Output is produced (success, error, or empty response).
-4. Optional resulting messages are emitted and linked.
+Lunar combines the stored message metadata with the computation result where possible.
 
-#### Message Types and Relationships
+#### Senders, Owners, and Targets
 
-In practice, message analysis in Lunar usually uses three relationship views:
+These identities can differ:
 
-- Incoming messages to a process
-- Outgoing messages emitted by a process
-- Resulting messages created during a given execution
+- **Owner** is the cryptographic signer exposed by the record.
+- **From-Process** identifies a process that emitted a pushed message.
+- **Target** is the process expected to execute the message.
+- An application tag such as `Recipient` can name a business-level recipient, such as the recipient of a token transfer.
 
-This allows you to move from a single message to the surrounding interaction graph without leaving Lunar.
+When tracing behavior, distinguish the transport target from application-specific recipient tags.
 
-#### Actions and Tags
+#### Message Results
 
-`Action` generally communicates intended behavior, while additional tags define parameters.
+The result panel can include:
 
-Common patterns include:
+- Output data
+- Runtime errors
+- Process prompt or print output
+- Messages emitted during execution
+- Transfer notices such as `Debit-Notice`, `Credit-Notice`, or `Transfer-Error`
 
-- `Action: Info`
-- `Action: Balance`
-- `Action: Transfer` with tags such as `Recipient` and `Quantity`
+An empty output is not always a failure. Some handlers update state or emit messages without returning a data payload.
 
-Process implementations define what is accepted. In Lunar, Source plus historical Messages is usually the most reliable reference for confirming action names, required tags, and expected response shapes.
+#### Resulting Messages
 
-#### Inspecting Messages in Lunar
+Resulting messages are the next edges in the execution graph. They can represent:
 
-![](message.png)
+- Replies to the original sender
+- Calls to another process
+- Token debit and credit notices
+- Application-specific notifications
 
-For a specific message, Lunar exposes:
+Open a resulting message in Explorer to continue tracing its target, tags, result, and descendants.
 
-- Message identity and routing metadata
-- Input payload and full tag set
-- Output payload or error details
-- Resulting messages and linked follow-on calls
+#### AO and Arweave Context
 
-For process-level analysis, message list filters (action, sender, recipient, date range, pagination) are useful for isolating a specific execution path in high-volume streams.
+An AO message can be an individually indexed data item inside an Arweave bundle. Its 43-character ID identifies the message itself, while `Bundled-In` can point to the outer transaction that anchored a group of records.
 
-#### Output and Failure Interpretation
+The underlying Arweave context explains ownership, tags, content size, bundle membership, and block inclusion. The AO context explains execution, results, and process-to-process relationships.
 
-Message output in Lunar commonly falls into three broad states:
+#### Token Transfer Messages
 
-- Success output (returned values or structured payload)
-- Error output (validation/handler/runtime failure)
-- Empty output (no explicit return payload)
+AO token processes commonly accept:
 
-Resulting messages are often needed to interpret side effects, especially for action types that trigger secondary notices or process-to-process calls.
+```text
+Action: Transfer
+Recipient: <address>
+Quantity: <integer in the token's base unit>
+```
 
-#### Ethereum-Signed Messages
+Lunar detects transfer messages and can display the token process, sender, recipient, quantity, status, and resulting notices.
 
-AO cookbook notes:
+This is not a native AR transfer. Native AR value is carried by an Arweave transaction's quantity field rather than an AO `Transfer` action.
 
-> "If the Message ANS-104 DataItem was signed using Ethereum keys, then the value in the `Owner` and `From` fields will be the EIP-55 Ethereum address of the signer."
+#### Related Reading
 
-In Lunar, this affects how sender and owner identities should be interpreted when correlating behavior across address formats.
-
-#### Related AO Reading
-
-For deeper protocol-level details:
-
-- Messages: [https://cookbook_ao.arweave.net/concepts/messages.html](https://cookbook_ao.arweave.net/concepts/messages.html)
-- How it Works: [https://cookbook_ao.arweave.net/concepts/how-it-works.html](https://cookbook_ao.arweave.net/concepts/how-it-works.html)
-- Processes: [https://cookbook_ao.arweave.net/concepts/processes.html](https://cookbook_ao.arweave.net/concepts/processes.html)
-- Concepts index: [https://cookbook_ao.arweave.net/concepts/index.html](https://cookbook_ao.arweave.net/concepts/index.html)
+- [AO overview](/docs/overview/ao)
+- [Arweave overview](/docs/overview/arweave)
+- [Processes](/docs/concepts/processes)
+- [AO message documentation](https://cookbook_ao.arweave.net/concepts/messages.html)

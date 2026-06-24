@@ -1,0 +1,132 @@
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ReactSVG } from 'react-svg';
+
+import { ASSETS, URLS } from 'helpers/config';
+import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { useLanguageProvider } from 'providers/LanguageProvider';
+import { store } from 'store';
+import { selectTransaction } from 'store/transactions/reducer';
+
+import * as S from './styles';
+import { ExplorerLinkProps } from './types';
+
+export default function ExplorerLink(props: ExplorerLinkProps) {
+	const navigate = useNavigate();
+	const location = useLocation();
+
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+
+	const [copied, setCopied] = React.useState<boolean>(false);
+	const [isModifierKeyPressed, setIsModifierKeyPressed] = React.useState<boolean>(false);
+
+	const value = props.value !== null && props.value !== undefined ? props.value.toString() : '';
+
+	// Check if the current value is already in the URL (already on this explorer tab)
+	const isCurrentTab = location.pathname.includes(`${URLS.explorer}${value}`);
+
+	const copyValue = React.useCallback(
+		async (e: any) => {
+			if (value.length > 0) {
+				e.stopPropagation();
+				await navigator.clipboard.writeText(value);
+				setCopied(true);
+				setTimeout(() => setCopied(false), 2000);
+			}
+		},
+		[value]
+	);
+
+	React.useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			setIsModifierKeyPressed(e.metaKey || e.ctrlKey);
+		};
+
+		const handleKeyUp = (e: KeyboardEvent) => {
+			setIsModifierKeyPressed(e.metaKey || e.ctrlKey);
+		};
+
+		const resetModifierState = () => {
+			setIsModifierKeyPressed(false);
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.hidden) resetModifierState();
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('keyup', handleKeyUp);
+		window.addEventListener('blur', resetModifierState);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('keyup', handleKeyUp);
+			window.removeEventListener('blur', resetModifierState);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	}, []);
+
+	const handleMouseModifierState = React.useCallback((e: React.MouseEvent) => {
+		setIsModifierKeyPressed(e.metaKey || e.ctrlKey);
+	}, []);
+
+	const handleClick = React.useCallback(
+		(e: any) => {
+			e.stopPropagation();
+			if (value && !copied) {
+				// If already on current tab, only allow copy
+				if (isCurrentTab) {
+					copyValue(e);
+				} else if (e.metaKey || e.ctrlKey) {
+					copyValue(e);
+				} else {
+					if (props.handlePress) props.handlePress();
+					navigate(`${URLS.explorer}${value}`);
+				}
+			}
+		},
+		[value, copied, copyValue, navigate, props.handlePress, isCurrentTab]
+	);
+
+	function getLabel() {
+		if (props.label !== undefined) return props.label;
+
+		if (props.type === 'block') {
+			return formatCount(value);
+		}
+
+		const cached = selectTransaction(store.getState(), value);
+		if (cached) {
+			return getTagValue(cached.node?.tags, 'Name') ?? formatAddress(value, props.wrap);
+		}
+
+		if (checkValidAddress(value)) return formatAddress(value, props.wrap);
+
+		return value;
+	}
+
+	if (!value) return <p>-</p>;
+
+	return (
+		<S.Wrapper
+			disabled={copied}
+			onClick={handleClick}
+			onMouseEnter={handleMouseModifierState}
+			onMouseMove={handleMouseModifierState}
+		>
+			<p>{copied ? `${language.copied}!` : getLabel()}</p>
+			{props.showIcon !== false && (
+				<S.IconWrapper>
+					{!copied && (
+						<S.Tooltip className={'info'} position={props.tooltipPosition ?? 'top-right'}>
+							<span>{isCurrentTab ? language.copy : isModifierKeyPressed ? language.copy : language.inspect}</span>
+						</S.Tooltip>
+					)}
+					<ReactSVG src={isCurrentTab ? ASSETS.copy : props.viewIcon ?? ASSETS.newTab} onClick={handleClick} />
+				</S.IconWrapper>
+			)}
+		</S.Wrapper>
+	);
+}

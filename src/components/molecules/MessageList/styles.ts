@@ -2,6 +2,29 @@ import styled, { css } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
+const NESTED_BORDER_OPACITY_STEP = 0.25;
+const MIN_NESTED_BORDER_OPACITY = 0.25;
+
+function getNestedBorderColor(color: string, nestingLevel: number = 1) {
+	const opacity = Math.max(MIN_NESTED_BORDER_OPACITY, 1 - Math.max(nestingLevel - 1, 0) * NESTED_BORDER_OPACITY_STEP);
+	const normalizedColor = color.replace('#', '');
+	const hexColor =
+		normalizedColor.length === 3
+			? normalizedColor
+					.split('')
+					.map((character) => `${character}${character}`)
+					.join('')
+			: normalizedColor;
+
+	if (!/^[0-9a-f]{6}$/i.test(hexColor)) return color;
+
+	const red = parseInt(hexColor.slice(0, 2), 16);
+	const green = parseInt(hexColor.slice(2, 4), 16);
+	const blue = parseInt(hexColor.slice(4, 6), 16);
+
+	return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+}
+
 export const Container = styled.div`
 	scroll-margin-top: 80px;
 `;
@@ -54,6 +77,15 @@ export const FilterWrapper = styled.div`
 	position: relative;
 	display: flex;
 	align-items: center;
+	justify-content: flex-end;
+	gap: 12.5px;
+`;
+
+export const AppliedActionsWrapper = styled.div`
+	max-width: 65%;
+	position: relative;
+	display: flex;
+	align-items: center;
 	gap: 12.5px;
 `;
 
@@ -61,13 +93,13 @@ export const FilterDropdown = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 12.5px;
-	padding: 0 20px;
+	padding: 0 20px 20px 20px;
 `;
 
 export const FilterDropdownHeader = styled.div`
 	p {
 		color: ${(props) => props.theme.colors.font.alt1};
-		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
+		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		text-transform: uppercase;
@@ -96,6 +128,18 @@ export const FilterApply = styled.div`
 	margin: 15px 0 0 0;
 `;
 
+export const FilterWarning = styled.div`
+	margin: -2.5px 0 0 0;
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.warning.caution};
+		line-height: 1.45;
+	}
+`;
+
 export const DateRangeWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -114,10 +158,6 @@ export const DateRangeHeader = styled.div`
 	flex-direction: column;
 	gap: 15px;
 	width: 100%;
-
-	button {
-		border-radius: ${STYLING.dimensions.radius.alt2} !important;
-	}
 `;
 
 export const DateLabel = styled.div`
@@ -127,9 +167,9 @@ export const DateLabel = styled.div`
 `;
 
 export const ClearDateButton = styled.button`
-	background: ${(props) => props.theme.colors.button.alt1.background};
-	color: ${(props) => props.theme.colors.button.alt1.color};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	background: ${(props) => props.theme.colors.button.primary.background};
+	color: ${(props) => props.theme.colors.button.primary.color};
+	border: 1px solid ${(props) => props.theme.colors.button.primary.border};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	padding: 5px 10px;
 	font-family: ${(props) => props.theme.typography.family.primary};
@@ -182,7 +222,7 @@ export const HeaderWrapper = styled.div`
 
 	> {
 		&:last-child,
-		&:nth-child(3) {
+		&:nth-child(4) {
 			display: flex;
 			justify-content: flex-end;
 			text-align: right;
@@ -193,6 +233,7 @@ export const HeaderWrapper = styled.div`
 export const BodyWrapper = styled.div<{
 	childList?: boolean;
 	isOverallLast?: boolean;
+	$nestingLevel?: number;
 }>`
 	width: 100%;
 
@@ -200,15 +241,22 @@ export const BodyWrapper = styled.div<{
 		border-bottom: 1px solid
 			${(props) =>
 				props.childList && !props.isOverallLast
-					? props.theme.colors.border.alt4
+					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
 					: props.theme.colors.border.primary} !important;
 	}
 
 	.message-list-element {
+		border-top: 0.5px solid transparent;
 		border-left: 1px solid
-			${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
+			${(props) =>
+				props.childList
+					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
+					: props.theme.colors.border.primary};
 		border-right: 1px solid
-			${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
+			${(props) =>
+				props.childList
+					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
+					: props.theme.colors.border.primary};
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
@@ -217,6 +265,8 @@ export const ElementWrapper = styled.div<{
 	disabled: boolean;
 	lastChild?: boolean;
 	childList?: boolean;
+	clickable?: boolean;
+	$nestingLevel?: number;
 }>`
 	height: 40px;
 	min-width: 100%;
@@ -228,8 +278,7 @@ export const ElementWrapper = styled.div<{
 	gap: 15px;
 	padding: 0 15px;
 
-	cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
-	pointer-events: ${(props) => (props.disabled ? 'none' : 'all')};
+	cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
 	background: ${(props) => props.theme.colors.container.primary.background};
 
 	p {
@@ -242,16 +291,21 @@ export const ElementWrapper = styled.div<{
 		text-overflow: ellipsis;
 	}
 
-	${(props) =>
-		!props.disabled &&
-		css`
-			transition: all 75ms;
+	transition: all 75ms;
 
+	&:hover {
+		background: ${(props) => props.theme.colors.container.primary.active};
+	}
+
+	${(props) =>
+		props.clickable &&
+		css`
 			&:hover {
 				background: ${props.theme.colors.container.primary.active};
-				border-left: 1px solid ${props.theme.colors.border.alt4} !important;
-				border-right: 1px solid ${props.theme.colors.border.alt4} !important;
-				border-bottom: 1px solid ${props.theme.colors.border.alt4} !important;
+				border-top: 0.5px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-bottom: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 			}
 
 			&:hover::after {
@@ -263,7 +317,7 @@ export const ElementWrapper = styled.div<{
 				left: -1px;
 				right: 0;
 				bottom: 0;
-				border-top: 1px solid ${props.theme.colors.border.alt4};
+				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
 				transition: all 100ms;
 			}
 		`}
@@ -271,11 +325,11 @@ export const ElementWrapper = styled.div<{
 	${(props) =>
 		props.open &&
 		css`
-			border-left: 1px solid ${props.theme.colors.border.alt4} !important;
-			border-right: 1px solid ${props.theme.colors.border.alt4} !important;
-			border-bottom: 1px solid ${props.theme.colors.border.alt4} !important;
+			border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+			border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+			border-bottom: 1px solid ${props.theme.colors.border.primary} !important;
 
-			background: ${props.theme.colors.container.primary.active};
+			background: ${props.theme.colors.container.alt1.background};
 
 			&::after {
 				content: '';
@@ -286,7 +340,7 @@ export const ElementWrapper = styled.div<{
 				left: -1px;
 				right: 0;
 				bottom: 0;
-				border-top: 1px solid ${props.theme.colors.border.alt4};
+				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
 				transition: all 100ms;
 			}
 		`}
@@ -297,8 +351,8 @@ export const ElementItem = styled.div`
 `;
 
 export const ID = styled(ElementItem)`
-	min-width: 250px;
-	width: 250px;
+	min-width: 155px;
+	width: 155px;
 	display: flex;
 	align-items: center;
 	gap: 5px;
@@ -309,12 +363,12 @@ export const TxAddress = styled.div`
 	width: 165px;
 `;
 
-export const ResultMessage = styled.div<{ clickable?: boolean }>`
+export const ResultMessage = styled.div`
 	min-width: 165px;
 	width: 165px;
 
-	span {
-		color: ${(props) => (props.clickable ? props.theme.colors.link.color : props.theme.colors.font.alt1)} !important;
+	> span {
+		color: ${(props) => props.theme.colors.font.alt1} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -323,36 +377,34 @@ export const ResultMessage = styled.div<{ clickable?: boolean }>`
 		display: block;
 		width: fit-content;
 	}
-
-	&:hover {
-		cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
-
-		span {
-			color: ${(props) => (props.clickable ? props.theme.colors.link.active : props.theme.colors.font.alt1)};
-			text-decoration: ${(props) => (props.clickable ? 'underline' : 'none')};
-			text-decoration-thickness: ${(props) => (props.clickable ? '1.25px' : '0')};
-		}
-	}
 `;
 
-export const Variant = styled.div`
-	min-width: 52.5px;
+export const Type = styled(ElementItem)`
+	min-width: 155px;
+	width: 155px;
+`;
+
+export const TypeValue = styled(Type)`
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	background: ${(props) => props.theme.colors.container.primary.active};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-radius: ${STYLING.dimensions.radius.alt3} !important;
+	justify-content: flex-start;
 
-	span {
+	p {
+		max-width: 100%;
 		color: ${(props) => props.theme.colors.font.primary} !important;
-		text-transform: uppercase;
+		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-family: ${(props) => props.theme.typography.family.primary} !important;
+		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		text-align: left;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 `;
 
 export const Action = styled(ElementItem)`
-	min-width: 215px;
-	width: 215px;
+	min-width: 195px;
+	width: 195px;
 `;
 
 export const ActionTooltip = styled.div`
@@ -370,19 +422,22 @@ export const ActionTooltip = styled.div`
 `;
 
 export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: boolean }>`
-	min-width: 215px;
-	width: 215px;
 	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 7.5px;
 
 	.action-indicator {
+		min-height: 8px;
+		min-width: 8px;
+		height: 8px;
+		width: 8px;
+		border-radius: 50%;
 		position: relative;
-		width: ${(props) => (props.useMaxWidth ? '215px' : 'fit-content')};
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 2.15px 7.5px;
 		background: ${(props) => (props.background ? props.background : props.theme.colors.container.alt8.background)};
-		border-radius: ${STYLING.dimensions.radius.alt2};
 
 		&:hover {
 			${ActionTooltip} {
@@ -392,9 +447,11 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 	}
 
 	p {
+		min-width: 0;
+		flex: 0 1 auto;
 		max-width: 100%;
-		color: ${(props) => props.theme.colors.font.light1} !important;
-		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
+		color: ${(props) => props.theme.colors.font.primary} !important;
+		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		text-align: center;
 		white-space: nowrap;
@@ -535,6 +592,73 @@ export const OverlayLine = styled.div`
 	}
 `;
 
+export const OverlayTagValue = styled.button<{ $tooltipVisible?: boolean }>`
+	position: relative;
+	max-width: 65%;
+	display: flex;
+	justify-content: flex-end;
+	padding: 0;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+
+	p {
+		max-width: 100%;
+		text-align: right;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	> div {
+		opacity: ${(props) => (props.$tooltipVisible ? 1 : 0)};
+		visibility: ${(props) => (props.$tooltipVisible ? 'visible' : 'hidden')};
+		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : 'translateY(-3px)')};
+		transition-delay: ${(props) => (props.$tooltipVisible ? '0s' : '0s, 0s, 140ms')};
+	}
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		max-width: 100%;
+		justify-content: flex-start;
+
+		p {
+			text-align: left;
+		}
+	}
+`;
+
+export const OverlayTagValueTooltip = styled.div`
+	position: absolute;
+	z-index: 5;
+	top: calc(100% + 3.5px);
+	right: 0;
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-3px);
+	width: max-content;
+	max-width: min(720px, calc(100vw - 40px));
+	padding: 2.5px 5px;
+	background: ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	color: ${(props) => props.theme.colors.font.light1};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	line-height: 1.2;
+	text-align: left;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	pointer-events: none;
+	transition: opacity 140ms ease, transform 140ms ease, visibility 0s linear 140ms;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		right: auto;
+		left: 0;
+	}
+`;
+
 export const OverlayInfo = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -630,6 +754,7 @@ export const MPageCounter = styled(PageCounter)`
 
 export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 	padding: ${(props) => (props.childList ? '15px' : '0 15px 15px 15px')};
+	border-top: 0.15px solid ${(props) => (props.childList ? props.theme.colors.border.alt4 : 'transparent')};
 	border-left: 1px solid
 		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
 	border-right: 1px solid
@@ -645,6 +770,7 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
 		text-transform: uppercase;
+		line-height: 1;
 	}
 `;
 

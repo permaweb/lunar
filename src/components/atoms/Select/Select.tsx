@@ -40,11 +40,26 @@ export default function Select(props: IProps) {
 									active={option.id === props.activeOption.id}
 									onClick={(e) => {
 										e.stopPropagation();
-										props.setActiveOption(option);
+										if (option.id !== props.activeOption.id) {
+											props.setActiveOption(option);
+										}
 										setActive(false);
 									}}
 								>
-									{option.label}
+									<S.OptionLabel>{option.label}</S.OptionLabel>
+									{props.handleRemoveOption && (props.isOptionRemovable ? props.isOptionRemovable(option) : true) && (
+										<S.RemoveOption
+											type={'button'}
+											aria-label={props.removeOptionLabel ?? 'Remove'}
+											onClick={(e) => {
+												e.preventDefault();
+												e.stopPropagation();
+												props.handleRemoveOption(option);
+											}}
+										>
+											<ReactSVG src={ASSETS.close} />
+										</S.RemoveOption>
+									)}
 								</S.Option>
 							);
 						})}

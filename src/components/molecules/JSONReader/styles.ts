@@ -123,6 +123,45 @@ export const JSONString = styled.span`
 	color: ${(props) => props.theme.colors.editor.primary};
 `;
 
+export const LuaBlock = styled.div`
+	display: block;
+	max-width: min(980px, 100%);
+	margin: 5px 0 7.5px 0;
+`;
+
+export const LuaPre = styled.pre`
+	margin: 0 0 0 25px;
+	color: ${(props) => props.theme.colors.editor.primary};
+	font-family: ${(props) => props.theme.typography.family.alt2};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	line-height: 1.55;
+	white-space: pre;
+`;
+
+export const LuaToken = styled.span<{ $tokenType: string }>`
+	color: ${(props) => {
+		switch (props.$tokenType) {
+			case 'comment':
+				return props.theme.colors.font.alt1;
+			case 'string':
+				return props.theme.colors.editor.alt8;
+			case 'function':
+			case 'number':
+			case 'literal':
+				return props.theme.colors.editor.alt4;
+			case 'keyword':
+				return props.theme.colors.editor.alt5;
+			case 'key':
+				return props.theme.colors.editor.alt10;
+			case 'punctuation':
+				return props.theme.colors.font.alt1;
+			default:
+				return props.theme.colors.editor.primary;
+		}
+	}};
+`;
+
 export const JSONStringIDFlex = styled.span`
 	display: inline-flex;
 	align-items: center;

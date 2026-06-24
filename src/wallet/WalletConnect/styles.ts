@@ -60,7 +60,7 @@ export const FlexAction = styled.div`
 
 export const Dropdown = styled.div`
 	max-height: 65vh;
-	width: 300px;
+	width: 290px;
 	max-width: 75vw;
 	padding: 11.5px 10px;
 	position: absolute;
@@ -135,7 +135,7 @@ export const BalanceWrapper = styled.div<{ isNumber: boolean }>`
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) =>
-			props.isNumber ? props.theme.typography.weight.xBold : props.theme.typography.weight.bold};
+			props.isNumber ? props.theme.typography.weight.bold : props.theme.typography.weight.bold};
 		color: ${(props) => (props.isNumber ? props.theme.colors.font.primary : props.theme.colors.font.primary)};
 		text-align: left;
 		text-transform: none;
@@ -222,11 +222,11 @@ export const DBodyWrapper = styled.ul`
 		padding: 0 7.5px;
 
 		svg {
-			height: 16.5px;
-			width: 16.5px;
+			height: 14px;
+			width: 14px;
 			margin: 5.5px 9.5px 0 0;
-			color: ${(props) => props.theme.colors.font.alt1};
-			fill: ${(props) => props.theme.colors.font.alt1};
+			color: ${(props) => props.theme.colors.font.alt2};
+			fill: ${(props) => props.theme.colors.font.alt2};
 		}
 
 		&:hover {
@@ -257,6 +257,7 @@ export const MWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
+	padding: 0 20px 20px 20px !important;
 `;
 
 export const SyncToggle = styled.button<{ active: boolean }>`
@@ -308,16 +309,16 @@ export const ThemeSectionHeader = styled.div`
 	display: flex;
 	margin: 0 0 10px 0;
 	svg {
-		height: 16.5px;
-		width: 16.5px;
-		margin: 3.5px 9.5px 0 0;
+		height: 13.5px;
+		width: 13.5px;
+		margin: 0 9.5px 1.5px 0;
 		color: ${(props) => props.theme.colors.font.alt1};
 		fill: ${(props) => props.theme.colors.font.alt1};
 	}
 
 	p {
 		color: ${(props) => props.theme.colors.font.alt1};
-		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
+		font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.medium} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		text-transform: uppercase;

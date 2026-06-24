@@ -262,9 +262,13 @@ export default function ProcessRead(props: {
 					</S.LoadingWrapper>
 				)}
 			</S.SectionWrapper>
-			{!props.hideOutput && currentOutput && (
+			{!props.hideOutput && !isFetching && (
 				<S.OutputWrapper>
-					<JSONReader data={currentOutput} header={language.info} maxHeight={600} />
+					<JSONReader
+						data={currentOutput ?? { Result: 'No Info Handler Found' }}
+						header={language.info}
+						maxHeight={600}
+					/>
 				</S.OutputWrapper>
 			)}
 		</S.Wrapper>

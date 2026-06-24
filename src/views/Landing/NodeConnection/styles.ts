@@ -44,7 +44,7 @@ export const MetricsSection = styled.div`
 	.metric-value {
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-size: ${(props) => props.theme.typography.size.lg};
-		font-weight: ${(props) => props.theme.typography.weight.xBold};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
 		margin: 7.5px 0 0 0;
 	}

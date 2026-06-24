@@ -3,9 +3,10 @@ import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
 import { Button } from 'components/atoms/Button';
+import { Checkbox } from 'components/atoms/Checkbox';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
-import { ASSETS, DEFAULT_AO_NODE, STYLING } from 'helpers/config';
+import { ASSETS, DEFAULT_AO_NODE, DEFAULT_LEGACY_CU_URL, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
 import {
 	darkTheme,
@@ -34,6 +35,17 @@ type ThemeType =
 	| 'dark-alt-2'
 	| 'dark-alt-3';
 
+const THEMES_BY_ID: Record<ThemeType, ReturnType<typeof theme>> = {
+	'light-primary': theme(lightTheme, 'light-primary'),
+	'light-alt-1': theme(lightThemeAlt1, 'light-alt-1'),
+	'light-alt-2': theme(lightThemeAlt2, 'light-alt-2'),
+	'light-alt-3': theme(lightThemeAlt3, 'light-alt-3'),
+	'dark-primary': theme(darkTheme, 'dark-primary'),
+	'dark-alt-1': theme(darkThemeAlt1, 'dark-alt-1'),
+	'dark-alt-2': theme(darkThemeAlt2, 'dark-alt-2'),
+	'dark-alt-3': theme(darkThemeAlt3, 'dark-alt-3'),
+};
+
 export interface NodeConfig {
 	url: string;
 	authority: string;
@@ -51,6 +63,8 @@ interface Settings {
 	showCategoryAction: boolean;
 	showTopicAction: boolean;
 	showLinkAction: boolean;
+	showNodeStatus: boolean;
+	legacyComputeNode: string;
 	nodes: NodeConfig[];
 }
 
@@ -79,8 +93,16 @@ const defaultSettings: Settings = {
 	showCategoryAction: false,
 	showTopicAction: false,
 	showLinkAction: false,
+	showNodeStatus: true,
+	legacyComputeNode: DEFAULT_LEGACY_CU_URL,
 	nodes: [{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true }],
 };
+
+function getStoredSettings(settings: Settings) {
+	const { isDesktop: _isDesktop, windowSize: _windowSize, ...storedSettings } = settings;
+
+	return storedSettings;
+}
 
 const SettingsContext = React.createContext<SettingsContextState>({
 	settings: defaultSettings,
@@ -115,6 +137,8 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				showCategoryAction: parsedSettings.showCategoryAction ?? false,
 				showTopicAction: parsedSettings.showTopicAction ?? false,
 				showLinkAction: parsedSettings.showLinkAction ?? false,
+				showNodeStatus: parsedSettings.showNodeStatus ?? true,
+				legacyComputeNode: parsedSettings.legacyComputeNode ?? DEFAULT_LEGACY_CU_URL,
 				syncWithSystem: parsedSettings.syncWithSystem ?? true,
 				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
 				preferredDarkTheme: parsedSettings.preferredDarkTheme ?? 'dark-primary',
@@ -142,6 +166,16 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	const [addingNodeUrl, setAddingNodeUrl] = React.useState<string | null>(null);
 	const pendingNodeUrlsRef = React.useRef<Set<string>>(new Set());
 
+	React.useEffect(() => {
+		const persistTimeout = window.setTimeout(() => {
+			localStorage.setItem('settings', JSON.stringify(getStoredSettings(settings)));
+		}, 0);
+
+		return () => {
+			window.clearTimeout(persistTimeout);
+		};
+	}, [settings]);
+
 	const handleWindowResize = React.useCallback(() => {
 		const newIsDesktop = checkWindowCutoff(parseInt(STYLING.cutoffs.desktop));
 		const newWindowSize = { width: window.innerWidth, height: window.innerHeight };
@@ -152,7 +186,6 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				windowSize: newWindowSize,
 				sidebarOpen: newIsDesktop ? prevSettings.sidebarOpen : false,
 			};
-			localStorage.setItem('settings', JSON.stringify(newSettings));
 			return newSettings;
 		});
 	}, []);
@@ -182,7 +215,6 @@ export function SettingsProvider(props: SettingsProviderProps) {
 			const newTheme = e.matches ? settings.preferredDarkTheme : settings.preferredLightTheme;
 			setSettings((prevSettings) => {
 				const newSettings = { ...prevSettings, theme: newTheme };
-				localStorage.setItem('settings', JSON.stringify(newSettings));
 				return newSettings;
 			});
 		};
@@ -191,7 +223,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		return () => mediaQuery.removeEventListener('change', handleChange);
 	}, [settings.syncWithSystem, settings.preferredLightTheme, settings.preferredDarkTheme]);
 
-	const updateSettings = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+	const updateSettings = React.useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
 		setSettings((prevSettings) => {
 			let newSettings = { ...prevSettings, [key]: value };
 
@@ -233,68 +265,69 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				newSettings.theme = isDark ? prevSettings.preferredDarkTheme : prevSettings.preferredLightTheme;
 			}
 
-			localStorage.setItem('settings', JSON.stringify(newSettings));
 			return newSettings;
 		});
-	};
+	}, []);
 
-	const addNode = async (node: Omit<NodeConfig, 'active' | 'authority'>) => {
-		const url = node.url.trim();
-		let loadingNotificationId: string | null = null;
+	const addNode = React.useCallback(
+		async (node: Omit<NodeConfig, 'active' | 'authority'>) => {
+			const url = node.url.trim();
+			let loadingNotificationId: string | null = null;
 
-		try {
-			if (!url || pendingNodeUrlsRef.current.has(url)) return;
+			try {
+				if (!url || pendingNodeUrlsRef.current.has(url)) return;
 
-			// Check if node already exists
-			if (settings.nodes.some((n) => n.url === url)) {
-				addNotification(`Node ${url} already exists`, 'warning');
-				return;
-			}
-
-			pendingNodeUrlsRef.current.add(url);
-			setAddingNodeUrl(url);
-			loadingNotificationId = addNotification(`Loading...`, 'info', { persistent: true });
-
-			const authorityResponse = await fetch(`${url}/~meta@1.0/info/address`);
-			const authority = await authorityResponse.text();
-
-			const newNode = {
-				url,
-				authority: authority,
-				active: true,
-			};
-
-			setSettings((prevSettings) => {
-				if (prevSettings.nodes.some((n) => n.url === url)) {
-					return prevSettings;
+				// Check if node already exists
+				if (settings.nodes.some((n) => n.url === url)) {
+					addNotification(`Node ${url} already exists`, 'warning');
+					return;
 				}
 
-				const newSettings = {
-					...prevSettings,
-					nodes: [...prevSettings.nodes.map((n) => ({ ...n, active: false })), { ...newNode }],
+				pendingNodeUrlsRef.current.add(url);
+				setAddingNodeUrl(url);
+				loadingNotificationId = addNotification(`Loading...`, 'info', { persistent: true });
+
+				const authorityResponse = await fetch(`${url}/~meta@1.0/info/address`);
+				const authority = await authorityResponse.text();
+
+				const newNode = {
+					url,
+					authority: authority,
+					active: true,
 				};
-				localStorage.setItem('settings', JSON.stringify(newSettings));
-				return newSettings;
-			});
 
-			if (loadingNotificationId) removeNotification(loadingNotificationId);
-			addNotification(`Connected to ${url}`, 'success');
+				setSettings((prevSettings) => {
+					if (prevSettings.nodes.some((n) => n.url === url)) {
+						return prevSettings;
+					}
 
-			setNewNodeUrl('');
-		} catch (e: any) {
-			console.error(e);
+					const newSettings = {
+						...prevSettings,
+						nodes: [...prevSettings.nodes.map((n) => ({ ...n, active: false })), { ...newNode }],
+					};
+					return newSettings;
+				});
 
-			if (loadingNotificationId) removeNotification(loadingNotificationId);
-			addNotification(e.message ?? `Error connecting to ${url}`, 'warning');
-		} finally {
-			if (url) {
-				pendingNodeUrlsRef.current.delete(url);
-				setAddingNodeUrl((currentUrl) => (currentUrl === url ? null : currentUrl));
+				if (loadingNotificationId) removeNotification(loadingNotificationId);
+				addNotification(`Connected to ${url}`, 'success');
+
+				setNewNodeUrl('');
+			} catch (e: any) {
+				console.error(e);
+
+				if (loadingNotificationId) removeNotification(loadingNotificationId);
+				addNotification(e.message ?? `Error connecting to ${url}`, 'warning');
+			} finally {
+				if (url) {
+					pendingNodeUrlsRef.current.delete(url);
+					setAddingNodeUrl((currentUrl) => (currentUrl === url ? null : currentUrl));
+				}
 			}
-		}
-	};
+		},
+		[addNotification, removeNotification, settings.nodes]
+	);
 
-	const removeNode = (url: string) => {
+	const removeNode = React.useCallback((url: string) => {
 		setSettings((prevSettings) => {
 			const filteredNodes = prevSettings.nodes.filter((node) => node.url !== url);
 			// Ensure at least one node remains
@@ -311,50 +344,45 @@ export function SettingsProvider(props: SettingsProviderProps) {
 				...prevSettings,
 				nodes: newNodes,
 			};
-			localStorage.setItem('settings', JSON.stringify(newSettings));
 			return newSettings;
 		});
-	};
+	}, []);
 
-	const setActiveNode = (url: string) => {
-		setSettings((prevSettings) => {
-			const newSettings = {
-				...prevSettings,
-				nodes: prevSettings.nodes.map((node) => ({ ...node, active: node.url === url })),
-			};
-			localStorage.setItem('settings', JSON.stringify(newSettings));
-			return newSettings;
-		});
+	const setActiveNode = React.useCallback(
+		(url: string) => {
+			setSettings((prevSettings) => {
+				const newSettings = {
+					...prevSettings,
+					nodes: prevSettings.nodes.map((node) => ({ ...node, active: node.url === url })),
+				};
+				return newSettings;
+			});
 
-		// Close the panel
-		setShowNodeSettings(false);
+			// Close the panel
+			setShowNodeSettings(false);
 
-		// Show notification
-		addNotification(`Switched to ${url}`, 'success');
-	};
+			// Show notification
+			addNotification(`Switched to ${url}`, 'success');
+		},
+		[addNotification]
+	);
 
-	function getTheme() {
-		switch (settings.theme) {
-			case 'light-primary':
-				return theme(lightTheme);
-			case 'light-alt-3':
-				return theme(lightThemeAlt3);
-			case 'light-alt-1':
-				return theme(lightThemeAlt1);
-			case 'light-alt-2':
-				return theme(lightThemeAlt2);
-			case 'dark-primary':
-				return theme(darkTheme);
-			case 'dark-alt-1':
-				return theme(darkThemeAlt1);
-			case 'dark-alt-2':
-				return theme(darkThemeAlt2);
-			case 'dark-alt-3':
-				return theme(darkThemeAlt3);
-			default:
-				return theme(lightTheme);
-		}
-	}
+	const selectedTheme = React.useMemo(() => {
+		return THEMES_BY_ID[settings.theme] ?? THEMES_BY_ID['light-primary'];
+	}, [settings.theme]);
+
+	const settingsContextValue = React.useMemo(
+		() => ({
+			settings,
+			updateSettings,
+			addNode,
+			removeNode,
+			setActiveNode,
+			showNodeSettings,
+			setShowNodeSettings,
+		}),
+		[settings, updateSettings, addNode, removeNode, setActiveNode, showNodeSettings]
+	);
 
 	function handleAddNode() {
 		const url = newNodeUrl.trim();
@@ -372,11 +400,17 @@ export function SettingsProvider(props: SettingsProviderProps) {
 		setActiveNode(url);
 	}
 
+	function handleToggleNodeStatus() {
+		updateSettings('showNodeStatus', !settings.showNodeStatus);
+	}
+
+	function handleLegacyComputeNodeChange(e: React.ChangeEvent<HTMLInputElement>) {
+		updateSettings('legacyComputeNode', e.target.value);
+	}
+
 	return (
-		<SettingsContext.Provider
-			value={{ settings, updateSettings, addNode, removeNode, setActiveNode, showNodeSettings, setShowNodeSettings }}
-		>
-			<ThemeProvider theme={getTheme()}>
+		<SettingsContext.Provider value={settingsContextValue}>
+			<ThemeProvider theme={selectedTheme}>
 				{props.children}
 				{showNodeSettings && (
 					<Modal
@@ -440,6 +474,24 @@ export function SettingsProvider(props: SettingsProviderProps) {
 										fullWidth
 									/>
 								</S.NodeAddSection>
+								<FormField
+									label={'Legacy Compute Node'}
+									placeholder={DEFAULT_LEGACY_CU_URL}
+									value={settings.legacyComputeNode}
+									onChange={handleLegacyComputeNodeChange}
+									invalid={{
+										status: settings.legacyComputeNode ? !validateUrl(settings.legacyComputeNode) : false,
+										message: null,
+									}}
+									disabled={false}
+								/>
+								<S.NodeDisplayOption>
+									<Checkbox checked={settings.showNodeStatus} handleSelect={handleToggleNodeStatus} disabled={false} />
+									<S.NodeDisplayOptionText>
+										<span>{language.en.showFixedNodeStatus}</span>
+										<p>{language.en.showFixedNodeStatusDescription}</p>
+									</S.NodeDisplayOptionText>
+								</S.NodeDisplayOption>
 							</S.NodeSection>
 						</S.MWrapper>
 					</Modal>

@@ -8,7 +8,7 @@ export const Header = styled.header<{ navigationOpen: boolean }>`
 	width: 100%;
 	position: sticky;
 	top: 0;
-	z-index: 4;
+	z-index: 5;
 	background: ${(props) => props.theme.colors.view.background};
 	border-top: 0.5px solid transparent;
 	border-bottom: 1px solid transparent;
@@ -170,7 +170,6 @@ export const SearchInputWrapper = styled.div`
 	input {
 		background: transparent;
 		padding: 10px 10px 10px 43.5px !important;
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	}
 
 	svg {
@@ -280,17 +279,20 @@ export const C1Wrapper = styled.div`
 `;
 
 export const LogoWrapper = styled.div`
-	height: 30px;
-	width: 30px;
+	height: 25px;
+	width: 25px;
 	svg {
-		height: 30px;
-		width: 30px;
+		height: 25px;
+		width: 25px;
 		padding: 2.5px 0 0 0;
-		color: ${(props) => props.theme.colors.icon.alt2.fill};
-		fill: ${(props) => props.theme.colors.icon.alt2.fill};
+		color: ${(props) => props.theme.colors.font.primary};
+		fill: ${(props) => props.theme.colors.font.primary};
+		opacity: 0.8;
+
 		&:hover {
-			color: ${(props) => props.theme.colors.icon.alt2.active};
-			fill: ${(props) => props.theme.colors.icon.alt2.active};
+			color: ${(props) => props.theme.colors.font.alt1};
+			fill: ${(props) => props.theme.colors.font.alt1};
+			opacity: 0.8;
 		}
 	}
 `;
@@ -331,17 +333,17 @@ export const DNavLink = styled.div<{ active: boolean }>`
 	a {
 		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		text-transform: uppercase;
-		letter-spacing: 0.35px;
+		letter-spacing: 0;
 
-		padding: 0 0 2.5px 0;
-		border-bottom: 2.5px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
+		padding: 0 0 3px 0;
+		border-bottom: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
 
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};
-			border-bottom: 2.5px solid ${(props) => props.theme.colors.border.alt5};
+			border-bottom: 2px solid ${(props) => props.theme.colors.border.alt5};
 		}
 	}
 `;
@@ -351,6 +353,62 @@ export const ActionsWrapper = styled.div`
 	align-items: center;
 	gap: 15px;
 	position: relative;
+`;
+
+export const PriceWrapper = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 25px;
+	margin: 0 15px 0 0;
+
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		display: none;
+	}
+`;
+
+export const PriceItem = styled.div`
+	height: 36.5px;
+	display: flex;
+	align-items: center;
+	gap: 8.5px;
+
+	div {
+		height: 18px;
+		width: 18px;
+	}
+
+	.ar-icon {
+		height: 14px;
+		width: 14px;
+	}
+
+	svg {
+		height: 18px;
+		width: 18px;
+		margin: 0 0 3px 0;
+
+		path {
+			color: ${(props) => props.theme.colors.font.primary};
+			fill: ${(props) => props.theme.colors.font.primary};
+		}
+	}
+
+	.ar-icon svg {
+		height: 14px;
+		width: 14px;
+	}
+
+	.ao-icon svg {
+		margin: 0 0 -1px 0;
+	}
+
+	p {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.alt1};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.font.primary};
+		white-space: nowrap;
+	}
 `;
 
 export const DSearchWrapper = styled.div`

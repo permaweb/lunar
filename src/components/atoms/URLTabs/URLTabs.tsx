@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { ASSETS } from 'helpers/config';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -8,6 +8,14 @@ import { Button } from '../Button';
 
 import * as S from './styles';
 import { ICProps, ITProps, IUProps } from './types';
+
+function normalizePath(path?: string) {
+	return (path ?? '').split('?')[0].replace(/\/+$/, '');
+}
+
+function resolveTabUrl(tab: { url: any }, id: string) {
+	return typeof tab.url === 'function' ? tab.url(id) : tab.url;
+}
 
 function Tab(props: ITProps) {
 	function handlePress(e: any) {
@@ -31,14 +39,16 @@ function Tab(props: ITProps) {
 }
 
 function TabContent(props: ICProps) {
-	const { id, active } = useParams() as { id: string; active: string };
+	const params = useParams() as { id?: string; txid?: string };
+	const id = params.id ?? params.txid ?? '';
+	const activeUrl = normalizePath(props.activeUrl);
 
 	// Render all tabs and control visibility with CSS to preserve state
 	return (
 		<S.View>
 			{props.tabs.map((tab, _index) => {
-				const url = typeof tab.url === 'function' ? tab.url(id) : tab.url;
-				const isActive = url.includes(active);
+				const url = resolveTabUrl(tab, id);
+				const isActive = normalizePath(url) === activeUrl;
 				const TabView = tab.view;
 
 				return (
@@ -53,25 +63,16 @@ function TabContent(props: ICProps) {
 
 export default function URLTabs(props: IUProps) {
 	const navigate = useNavigate();
-	const { id, active } = useParams() as { id: string; active: string };
-	const location = useLocation();
+	const params = useParams() as { id?: string; txid?: string };
+	const id = params.id ?? params.txid ?? '';
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
 	const [urlCopied, setUrlCopied] = React.useState<boolean>(false);
 
-	React.useEffect(() => {
-		// Only navigate if this URLTabs' parent is explicitly active AND we have tabs to show
-		// Also check that the current URL matches this component's activeUrl (same transaction ID)
-		const urlMatchesThisComponent = props.activeUrl && location.pathname.includes(props.activeUrl.split('/')[2]);
-		if (!active && props.isParentActive === true && props.tabs && props.tabs.length > 0 && urlMatchesThisComponent) {
-			navigate(props.activeUrl);
-		}
-	}, [active, props.isParentActive, props.activeUrl, location.pathname, props.tabs]);
-
 	const handleRedirect = (url: string) => {
-		if (active !== url) {
+		if (normalizePath(props.activeUrl) !== normalizePath(url)) {
 			navigate(url);
 		}
 	};
@@ -88,7 +89,7 @@ export default function URLTabs(props: IUProps) {
 				<S.TabsHeader useFixed={props.useFixed ? props.useFixed : false} className={'scroll-wrapper'}>
 					<S.Tabs>
 						{props.tabs.map((elem, index) => {
-							const url = typeof elem.url === 'function' ? elem.url(id) : elem.url;
+							const url = resolveTabUrl(elem, id);
 							return (
 								<Tab
 									key={index}
@@ -96,7 +97,7 @@ export default function URLTabs(props: IUProps) {
 									label={elem.label}
 									icon={elem.icon}
 									disabled={elem.disabled}
-									active={url.includes(active)}
+									active={normalizePath(url) === normalizePath(props.activeUrl)}
 									handlePress={() => handleRedirect(url)}
 								/>
 							);
@@ -120,7 +121,7 @@ export default function URLTabs(props: IUProps) {
 				</S.TabsHeader>
 			)}
 			<S.Content>
-				<TabContent tabs={props.tabs} />
+				<TabContent tabs={props.tabs} activeUrl={props.activeUrl} />
 			</S.Content>
 		</S.Wrapper>
 	);

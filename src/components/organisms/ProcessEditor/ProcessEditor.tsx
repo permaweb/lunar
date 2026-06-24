@@ -15,6 +15,7 @@ export default function ProcessEditor(props: {
 	processId: string;
 	variant: MessageVariantEnum;
 	type: 'read' | 'write';
+	isFullscreen?: boolean;
 }) {
 	const permawebProvider = usePermawebProvider();
 	const arProvider = useArweaveProvider();
@@ -86,7 +87,7 @@ export default function ProcessEditor(props: {
 	}
 
 	return (
-		<S.Wrapper ref={editorRef}>
+		<S.Wrapper ref={editorRef} $isFullscreen={props.isFullscreen}>
 			<S.EditorWrapper>
 				<JSONWriter
 					initialData={{

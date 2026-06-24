@@ -11,10 +11,12 @@ export const DEFAULT_AO_NODE = {
 export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
 export const DEFAULT_LEGACY_SCHEDULER_URL = 'https://su-router.ao-testnet.xyz';
 export const DEFAULT_LEGACY_AUTHORITY = 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY';
+export const DEFAULT_LEGACY_CU_URL = 'https://cu.ao-testnet.xyz';
 
 export const DEFAULT_GATEWAYS = {
-	legacy: 'https://ao-search-gateway.goldsky.com',
+	legacy: 'ao-search-gateway.goldsky.com',
 	fallback: 'https://cache.forward.computer/~query@1.0/graphql',
+	arweave: 'https://arweave.net/graphql',
 };
 
 export const PROCESSES = {
@@ -43,6 +45,8 @@ export const ASSETS = {
 	arrows: getAssetEndpoint('arrows.svg'),
 	article: getAssetEndpoint('article.svg'),
 	arweave: getAssetEndpoint('arweave.svg'),
+	block: getAssetEndpoint('block.svg'),
+	bundle: getAssetEndpoint('bundle.svg'),
 	checkmark: getAssetEndpoint('checkmark.svg'),
 	close: getAssetEndpoint('close.svg'),
 	code: getAssetEndpoint('code.svg'),
@@ -86,6 +90,7 @@ export const ASSETS = {
 	navigation: getAssetEndpoint('navigation.svg'),
 	newTab: getAssetEndpoint('newTab.svg'),
 	paragraph: getAssetEndpoint('paragraph.svg'),
+	pending: getAssetEndpoint('pending.svg'),
 	pi: getAssetEndpoint('pi.svg'),
 	plus: getAssetEndpoint('plus.svg'),
 	plusMinus: getAssetEndpoint('plusMinus.svg'),
@@ -161,6 +166,8 @@ export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...D
 
 export const FLAGS = {
 	CLIENT_SIDE_PAGINATION: false,
+	CONTROL_PAGINATION: false,
+	USE_GATEWAY_BUNDLE_REQUEST: false,
 	USE_TX_CACHE: true,
 };
 
@@ -174,6 +181,7 @@ export const STORAGE = {
 	walletType: `wallet-type`,
 	profile: (id: string) => `profile-${id}`,
 	customActions: 'explorer-custom-actions',
+	blockFilters: 'block-filters',
 	messageFilter: (id: string) => `message-filter-${id}`,
 };
 
@@ -213,11 +221,13 @@ function createURLs() {
 
 	const docs = `${base}docs/`;
 	const explorer = `${base}explorer/`;
+	const blocks = `${base}blocks/`;
 	const aos = `${base}aos/`;
 	const graphql = `${base}graphql/`;
 
 	return {
 		base: base,
+		blocks: blocks,
 		explorer: explorer,
 		explorerInfo: (id: string) => `${explorer}${id}/info`,
 		explorerMessages: (id: string) => `${explorer}${id}/messages`,

@@ -65,7 +65,7 @@ export const Tooltip = styled.div<{ position: string }>`
 	span {
 		max-width: 100% !important;
 		display: block !important;
-		line-height: 1.65 !important;
+		line-height: 1.1 !important;
 		overflow: visible !important;
 	}
 `;

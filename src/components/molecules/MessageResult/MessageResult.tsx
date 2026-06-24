@@ -195,7 +195,7 @@ export default function MessageResult(props: {
 				<S.Editor>
 					<Editor
 						initialData={language.noDataToDisplay}
-						header={null}
+						header={'Data'}
 						language={'lua'}
 						readOnly
 						loading={false}
@@ -213,7 +213,7 @@ export default function MessageResult(props: {
 			<S.Editor>
 				<Editor
 					initialData={data}
-					header={null}
+					header={'Data'}
 					language={'lua'}
 					readOnly
 					loading={false}

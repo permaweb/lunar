@@ -21,15 +21,32 @@ export default function Landing() {
 						header={language.network}
 						actions={[
 							<S.Subheader>
-								<span>{language.aoMainnet}</span>
+								<span>{language.arweave}</span>
 							</S.Subheader>,
 						]}
 					/>
 				</S.HeaderWrapper>
 				<ViewWrapper>
+					<S.MetricsSectionWrapper>
+						<Metrics section={'arweave-txs'} gridTemplate={1} />
+					</S.MetricsSectionWrapper>
+				</ViewWrapper>
+				<ViewWrapper>
+					<S.MetricsSectionWrapper>
+						<Metrics section={'arweave'} gridTemplate={2} />
+					</S.MetricsSectionWrapper>
+				</ViewWrapper>
+				<ViewWrapper>
+					<S.DividerWrapper>
+						<div className={'landing-divider'} />
+						<span>{language.aoMainnet}</span>
+						<div className={'landing-divider'} />
+					</S.DividerWrapper>
+				</ViewWrapper>
+				<ViewWrapper>
 					<S.BodyFlexWrapper>
 						<S.BodyFlexMetrics>
-							<Metrics network={'mainnet'} gridTemplate={1} />
+							<Metrics section={'mainnet'} gridTemplate={1} />
 						</S.BodyFlexMetrics>
 						<S.BodyFlexConnection>
 							<NodeConnection />
@@ -56,7 +73,7 @@ export default function Landing() {
 					</S.DividerWrapper>
 				</ViewWrapper>
 				<ViewWrapper>
-					<Metrics network={'legacynet'} gridTemplate={2} />
+					<Metrics section={'legacynet'} gridTemplate={1} />
 				</ViewWrapper>
 			</S.NetworkWrapper>
 			<S.MessagesWrapper>

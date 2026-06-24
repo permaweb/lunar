@@ -8,7 +8,14 @@ import {
 	DEFAULT_SCHEDULER_URL,
 	PROCESSES,
 } from './config';
-import { DefaultGQLResponseType, GQLNodeResponseType, MessageVariantEnum, ResultMessageType, TagType } from './types';
+import {
+	DefaultGQLResponseType,
+	GQLNodeResponseType,
+	MessageVariantEnum,
+	ResultMessageType,
+	TagType,
+	TransactionType,
+} from './types';
 
 export function checkValidAddress(address: string | null) {
 	if (!address) return false;
@@ -18,8 +25,14 @@ export function checkValidAddress(address: string | null) {
 export function formatAddress(address: string | null, wrap: boolean) {
 	if (!address) return '';
 	if (!checkValidAddress(address)) return address;
-	const formattedAddress = address.substring(0, 5) + '...' + address.substring(36, address.length);
+	const formattedAddress = address.substring(0, 5) + '...' + address.substring(38, address.length);
 	return wrap ? `(${formattedAddress})` : formattedAddress;
+}
+
+export function formatBlockId(id: string | null, wrap: boolean) {
+	if (!id) return '';
+	const formattedId = id.substring(0, 6) + '...' + id.substring(58, id.length);
+	return wrap ? `(${formattedId})` : formattedId;
 }
 
 export function getTagValue(list: { [key: string]: any }[], name: string): string {
@@ -45,6 +58,48 @@ export function getTagValue(list: { [key: string]: any }[], name: string): strin
 	}
 
 	return null;
+}
+
+export function getTransactionTypeFromTags(tags: TagType[] | undefined): TransactionType {
+	const type = getTagValue(tags, 'Type')?.toLowerCase();
+
+	switch (type) {
+		case 'process':
+		case 'message':
+		case 'wallet':
+		case 'block':
+		case 'bundle':
+			return type;
+		default:
+			return 'transaction';
+	}
+}
+
+export function hasPositiveAmount(value: string | number | null | undefined) {
+	if (value === null || value === undefined) return false;
+
+	const normalized = value.toString().trim();
+	if (!normalized) return false;
+
+	if (/^\d+$/.test(normalized)) {
+		return BigInt(normalized) > BigInt(0);
+	}
+
+	const parsed = Number(normalized);
+
+	return Number.isFinite(parsed) && parsed > 0;
+}
+
+export function isNativeArTransfer(transaction: {
+	recipient?: string | null;
+	quantity?: {
+		winston?: string | number | null;
+		ar?: string | number | null;
+	} | null;
+}) {
+	if (!transaction?.recipient) return false;
+
+	return hasPositiveAmount(transaction.quantity?.winston) || hasPositiveAmount(transaction.quantity?.ar);
 }
 
 export function formatCount(count: string): string {

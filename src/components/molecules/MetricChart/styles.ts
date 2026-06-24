@@ -6,6 +6,30 @@ export const Wrapper = styled.div`
 	width: 100%;
 `;
 
+export const Placeholder = styled.div`
+	height: 313.5px;
+	width: 100%;
+	box-shadow: none !important;
+	border-radius: ${STYLING.dimensions.radius.alt1};
+	background: linear-gradient(
+		90deg,
+		${(props) => props.theme.colors.container.primary.background} 0%,
+		${(props) => props.theme.colors.container.alt2.background} 50%,
+		${(props) => props.theme.colors.container.primary.background} 100%
+	);
+	background-size: 200% 100%;
+	animation: metric-chart-shimmer 1s ease-in-out infinite alternate;
+
+	@keyframes metric-chart-shimmer {
+		from {
+			background-position: 0% 0;
+		}
+		to {
+			background-position: 100% 0;
+		}
+	}
+`;
+
 export const HeaderWrapper = styled.div`
 	width: 100%;
 	padding: 15px 20px 0 20px;
@@ -63,7 +87,7 @@ export const HeaderValue = styled.div`
 	p {
 		font-size: clamp(18px, 1.5vw, 22px);
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.xBold};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
 	}
 `;
@@ -72,11 +96,11 @@ export const BodyWrapper = styled.div`
 	width: 100%;
 `;
 
-export const ChartWrapper = styled.div`
+export const ChartWrapper = styled.div<{ $showCrosshair?: boolean }>`
 	height: 240.5px;
 	width: 100%;
 	position: relative;
-	cursor: crosshair;
+	cursor: ${(props) => (props.$showCrosshair ? 'crosshair' : 'default')};
 	overflow: hidden;
 	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};

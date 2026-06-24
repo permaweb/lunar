@@ -6,7 +6,7 @@ import PermawebLibs, { Types } from '@permaweb/libs';
 
 import { Modal } from 'components/atoms/Modal';
 import { ProfileManager } from 'components/organisms/ProfileManager';
-import { DEFAULT_AO_NODE, DEFAULT_GATEWAYS, STORAGE } from 'helpers/config';
+import { DEFAULT_AO_NODE, DEFAULT_GATEWAYS, DEFAULT_LEGACY_CU_URL, STORAGE } from 'helpers/config';
 
 import { useArweaveProvider } from './ArweaveProvider';
 import { useLanguageProvider } from './LanguageProvider';
@@ -61,7 +61,8 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 			let signer = null;
 			if (arProvider.wallet) signer = createSigner(arProvider.wallet);
 
-			const aoLegacy = connect({ MODE: 'legacy' });
+			const legacyComputeNode = settingsProvider.settings.legacyComputeNode?.trim() || DEFAULT_LEGACY_CU_URL;
+			const aoLegacy = connect({ MODE: 'legacy', CU_URL: legacyComputeNode });
 
 			const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
 			const nodeUrl = activeNode?.url || DEFAULT_AO_NODE.url;
@@ -76,7 +77,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 				arweave: Arweave.init({}),
 				signer: signer,
 				node: { url: nodeUrl, authority: nodeAuthority, scheduler: DEFAULT_AO_NODE.scheduler },
-				gateway: DEFAULT_GATEWAYS.legacy,
+				gateway: DEFAULT_GATEWAYS.arweave,
 			};
 
 			const dependenciesLegacy = { ao: aoLegacy, ...dependenciesShared };
@@ -93,7 +94,7 @@ export function PermawebProvider(props: { children: React.ReactNode }) {
 		} catch (error) {
 			console.error('Error in PermawebProvider initialization:', error);
 		}
-	}, [arProvider.wallet, settingsProvider.settings.nodes]);
+	}, [arProvider.wallet, settingsProvider.settings.nodes, settingsProvider.settings.legacyComputeNode]);
 
 	React.useEffect(() => {
 		(async function () {
