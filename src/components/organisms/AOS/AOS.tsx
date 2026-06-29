@@ -239,6 +239,7 @@ function AOS(props: {
 							const responseData = await searchTxById({
 								txId: inputProcessId,
 								getGQLData: permawebProvider.libs.getGQLData,
+								readProcess: permawebProvider.libs.readProcess,
 								store: store,
 								dispatch: dispatch,
 							});

@@ -154,6 +154,7 @@ export enum MessageVariantEnum {
 export interface SearchTxArgs {
 	txId: string;
 	getGQLData: (args: any) => Promise<any>;
+	readProcess?: (args: any) => Promise<any>;
 	store?: any;
 	dispatch?: any;
 }

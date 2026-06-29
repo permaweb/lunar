@@ -94,6 +94,7 @@ export default function Search(props: SearchProps) {
 						const response = await searchTxById({
 							txId: inputValue,
 							getGQLData: permawebProvider.libs.getGQLData,
+							readProcess: permawebProvider.libs.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});

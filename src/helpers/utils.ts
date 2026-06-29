@@ -972,3 +972,23 @@ export function formatUnits(value: string | bigint, decimals: number, precision 
 
 	return `${sign}${formatIntegerWithCommas(whole)}.${fractionStr}`;
 }
+
+export function getTranslucentColor(color: string, alpha = 0.25) {
+	if (!color) return color;
+
+	const hex = color.replace('#', '').trim();
+
+	if (/^[0-9a-fA-F]{3}$/.test(hex)) {
+		const [r, g, b] = hex.split('').map((value) => parseInt(`${value}${value}`, 16));
+		return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+	}
+
+	if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+		const r = parseInt(hex.slice(0, 2), 16);
+		const g = parseInt(hex.slice(2, 4), 16);
+		const b = parseInt(hex.slice(4, 6), 16);
+		return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+	}
+
+	return color;
+}

@@ -187,6 +187,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						const response = await searchTxById({
 							txId: inputTxId,
 							getGQLData: permawebProvider.libs.getGQLData,
+							readProcess: permawebProvider.libs.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});
