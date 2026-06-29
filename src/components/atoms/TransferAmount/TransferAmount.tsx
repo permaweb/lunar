@@ -247,6 +247,7 @@ export default function TransferAmount(props: {
 		const response = await searchTxById({
 			txId: target,
 			getGQLData: permawebProvider.libs.getGQLData,
+			readProcess: permawebProvider.libs.readProcess,
 			store: shouldBypassCache ? undefined : store,
 			dispatch: shouldBypassCache ? undefined : dispatch,
 		});

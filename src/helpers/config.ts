@@ -22,6 +22,7 @@ export const DEFAULT_GATEWAYS = {
 export const PROCESSES = {
 	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
 	pi: '4hXj_E-5fAKmo4E8KjgQvuDJKAFk9P2grhycVmISDLs',
+	metrics: 'TI6hUC78gMkPdosyJ9D0KuVQv1UgOcWTRdzgoh0W54w',
 };
 
 export const TOKEN_DENOMINATIONS = {

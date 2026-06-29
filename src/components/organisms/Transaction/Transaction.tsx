@@ -508,6 +508,7 @@ function Transaction(props: {
 						bundleLookup = await searchTxById({
 							txId: inputTxId,
 							getGQLData: permawebProvider.libs.getGQLData,
+							readProcess: permawebProvider.libs.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});
@@ -526,6 +527,7 @@ function Transaction(props: {
 				const response = await searchTxById({
 					txId: inputTxId,
 					getGQLData: permawebProvider.libs.getGQLData,
+					readProcess: permawebProvider.libs.readProcess,
 					store: store,
 					dispatch: dispatch,
 				});
@@ -1137,6 +1139,7 @@ function Transaction(props: {
 						const response = await searchTxById({
 							txId: target,
 							getGQLData: permawebProvider.libs.getGQLData,
+							readProcess: permawebProvider.libs.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});

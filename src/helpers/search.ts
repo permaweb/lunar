@@ -2,10 +2,10 @@ import { Types } from '@permaweb/libs';
 
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
-import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, FLAGS } from './config';
-import { getTxEndpoint } from './endpoints';
+import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, FLAGS, PROCESSES } from './config';
+import { getARBalanceEndpoint, getTxEndpoint } from './endpoints';
 import { MessageVariantEnum, SearchTxArgs, TagType } from './types';
-import { getTagValue, normalizeGqlResponse, normalizeTagKeys } from './utils';
+import { getTagValue, isNumeric, normalizeGqlResponse, normalizeTagKeys } from './utils';
 
 const MAX_DEPTH = 10;
 const DIRECT_LOOKUP_TAG_HEADERS = [
@@ -320,6 +320,7 @@ async function resolveResponseData(
 			{
 				txId: fromProcess,
 				getGQLData: args.getGQLData,
+				readProcess: args.readProcess,
 				store: args.store,
 				dispatch: args.dispatch,
 			},
@@ -350,6 +351,55 @@ async function resolveResponseData(
 		console.error(e);
 		return responseData;
 	}
+}
+
+async function addressHasTransactions(args: SearchTxArgs) {
+	try {
+		const activityResponse = await args.getGQLData({ owners: [args.txId] });
+		return (activityResponse?.data?.length ?? 0) > 0;
+	} catch (e: any) {
+		console.error(e);
+		return false;
+	}
+}
+
+async function addressHasArBalance(address: string) {
+	try {
+		const response = await fetch(getARBalanceEndpoint(address));
+		if (!response.ok) return false;
+
+		const balance = await response.text();
+		return isNumeric(balance) && Number(balance) > 0;
+	} catch (e: any) {
+		console.error(e);
+		return false;
+	}
+}
+
+async function addressHasAoBalance(args: SearchTxArgs) {
+	if (!args.readProcess) return false;
+
+	try {
+		const balance = await args.readProcess({
+			processId: PROCESSES.ao,
+			action: 'Balance',
+			tags: [{ name: 'Recipient', value: args.txId }],
+		});
+
+		return isNumeric(balance) && Number(balance) > 0;
+	} catch (e: any) {
+		console.error(e);
+		return false;
+	}
+}
+
+/* An address is a wallet if it has transaction activity or any AR / AO balance */
+async function isWalletAddress(args: SearchTxArgs) {
+	if (await addressHasTransactions(args)) return true;
+	if (await addressHasArBalance(args.txId)) return true;
+	if (await addressHasAoBalance(args)) return true;
+
+	return false;
 }
 
 export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<Types.GQLNodeResponseType> {
@@ -420,34 +470,26 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 		const responseData = response?.data?.[0];
 
 		if (!responseData) {
-			/* Check if this is a wallet based on activity */
-			try {
-				const activityResponse = await args.getGQLData({
-					owners: [args.txId],
-				});
-
-				if (activityResponse?.data?.length > 0) {
-					const walletResponse = {
-						cursor: null,
-						node: {
-							id: args.txId,
-							tags: [{ name: 'Type', value: 'Wallet' }],
-							data: null,
-							owner: {
-								address: null,
-							},
-							block: {
-								height: null,
-								timestamp: null,
-							},
+			/* Check if this is a wallet based on activity or AR / AO balance */
+			if (await isWalletAddress(args)) {
+				const walletResponse = {
+					cursor: null,
+					node: {
+						id: args.txId,
+						tags: [{ name: 'Type', value: 'Wallet' }],
+						data: null,
+						owner: {
+							address: null,
 						},
-					};
+						block: {
+							height: null,
+							timestamp: null,
+						},
+					},
+				};
 
-					cacheTransaction(walletResponse as Types.GQLNodeResponseType, args, { skipBlockHeightCheck: true });
-					return walletResponse as Types.GQLNodeResponseType;
-				}
-			} catch (e: any) {
-				console.error(e);
+				cacheTransaction(walletResponse as Types.GQLNodeResponseType, args, { skipBlockHeightCheck: true });
+				return walletResponse as Types.GQLNodeResponseType;
 			}
 
 			return null;

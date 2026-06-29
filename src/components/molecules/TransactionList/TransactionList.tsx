@@ -170,6 +170,7 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 		const response = await searchTxById({
 			txId: props.edge.node.id,
 			getGQLData: permawebProvider.libs.getGQLData,
+			readProcess: permawebProvider.libs.readProcess,
 			store: store,
 			dispatch: dispatch,
 		});
@@ -390,6 +391,7 @@ export default function TransactionList(props: {
 			const response = await searchTxById({
 				txId: transaction.id,
 				getGQLData: permawebProvider.libs.getGQLData,
+				readProcess: permawebProvider.libs.readProcess,
 				store: store,
 				dispatch: dispatch,
 			});

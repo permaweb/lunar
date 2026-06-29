@@ -1,9 +1,9 @@
+import { PROCESSES } from './config';
 import { checkValidAddress } from './utils';
 
 export const legacyCuEndpoint = 'https://cu.ao-testnet.xyz';
 export const arweaveEndpoint = 'https://arweave.net';
-export const metricsProcessEndpoint =
-	'https://push.forward.computer/n5IU7rZ2FF0Gl-6eCNP1ckCcZOCdWmnqyMES_WjlLlQ~process@1.0/compute/metrics?require-codec=application/json&accept-bundle=true';
+export const metricsProcessEndpoint = `https://push.forward.computer/${PROCESSES.metrics}~process@1.0/compute/metrics?require-codec=application/json&accept-bundle=true`;
 export const metricsS3Endpoint = 'https://metrics.s3.us-west-1.amazonaws.com/metrics.json';
 
 export function getARBalanceEndpoint(walletAddress: string) {

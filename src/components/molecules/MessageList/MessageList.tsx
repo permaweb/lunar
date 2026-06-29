@@ -1082,6 +1082,7 @@ export default function MessageList(props: {
 			const response = await searchTxById({
 				txId: address,
 				getGQLData: permawebProvider.libs.getGQLData,
+				readProcess: permawebProvider.libs.readProcess,
 				store: store,
 				dispatch: dispatch,
 			});
