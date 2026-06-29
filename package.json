@@ -14,8 +14,7 @@
 		"test:verbose": "npm test -- --verbose",
 		"test:coverage": "CI=true npm test -- --env=jsdom --coverage",
 		"build": "NODE_ENV=production vite build",
-		"deploy:main": "npm run build && permaweb-deploy deploy --use-names --name lunar",
-		"deploy:staging": "npm run build && permaweb-deploy deploy --arns-name lunar --ttl-seconds 60 --undername staging",
+		"deploy:main": "npm run build && permaweb-deploy deploy --use-names --name lunar --uploader https://turbo.ardrive.io",
 		"prepare": "husky install"
 	},
 	"dependencies": {
