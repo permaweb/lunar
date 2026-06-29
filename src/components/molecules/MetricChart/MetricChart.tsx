@@ -490,6 +490,7 @@ function MetricChart(props: MetricChartProps) {
 					pointRadius: 0,
 					cubicInterpolationMode: 'default',
 					maxBarThickness: 32,
+					tension: 0.2,
 				},
 			],
 		};
