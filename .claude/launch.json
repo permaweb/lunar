@@ -1,0 +1,11 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "lunar-dev",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["run", "start:development"],
+			"port": 3000
+		}
+	]
+}

@@ -21,6 +21,7 @@
 		"@hello-pangea/dnd": "^17.0.0",
 		"@monaco-editor/react": "^4.7.0",
 		"@permaweb/aoconnect": "0.0.97",
+		"@permaweb/hyperbalance": "^0.2.3",
 		"@permaweb/libs": "0.0.94",
 		"arweave": "^1.15.5",
 		"chartjs-chart-geo": "^4.3.6",

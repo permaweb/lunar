@@ -9,6 +9,7 @@ export const DEFAULT_AO_NODE = {
 };
 
 export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
+export const DEFAULT_STATE_NODE_URL = 'https://state.forward.computer';
 export const DEFAULT_LEGACY_SCHEDULER_URL = 'https://su-router.ao-testnet.xyz';
 export const DEFAULT_LEGACY_AUTHORITY = 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY';
 export const DEFAULT_LEGACY_CU_URL = 'https://cu.ao-testnet.xyz';
@@ -65,6 +66,7 @@ export const ASSETS = {
 	explorer: getAssetEndpoint('explorer.svg'),
 	facebook: getAssetEndpoint('facebook.svg'),
 	filter: getAssetEndpoint('filter.svg'),
+	folder: getAssetEndpoint('folder.svg'),
 	fullscreen: getAssetEndpoint('fullscreen.svg'),
 	go: getAssetEndpoint('go.svg'),
 	header1: getAssetEndpoint('header1.svg'),
@@ -184,6 +186,8 @@ export const STORAGE = {
 	customActions: 'explorer-custom-actions',
 	blockFilters: 'block-filters',
 	messageFilter: (id: string) => `message-filter-${id}`,
+	uploadActivity: (address: string) => `upload-activity-${address}`,
+	uploadBucket: (url: string, address: string) => `upload-bucket-${url}-${address}`,
 };
 
 export const STYLING = {
@@ -225,6 +229,7 @@ function createURLs() {
 	const blocks = `${base}blocks/`;
 	const aos = `${base}aos/`;
 	const graphql = `${base}graphql/`;
+	const upload = `${base}upload/`;
 
 	return {
 		base: base,
@@ -239,6 +244,7 @@ function createURLs() {
 		explorerAOS: (id: string) => `${explorer}${id}/aos`,
 		aos: aos,
 		graphql: graphql,
+		upload: upload,
 		docs: docs,
 		docsIntro: `${docs}overview/introduction`,
 		notFound: `${base}404`,

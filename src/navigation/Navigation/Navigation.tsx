@@ -107,6 +107,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				label: language.graphql,
 			},
 			{
+				path: URLS.upload,
+				icon: ASSETS.upload,
+				label: language.upload,
+			},
+			{
 				path: URLS.docs,
 				icon: ASSETS.docs,
 				label: language.docs,
