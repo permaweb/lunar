@@ -13,6 +13,18 @@ export const DEFAULT_LEGACY_SCHEDULER_URL = 'https://su-router.ao-testnet.xyz';
 export const DEFAULT_LEGACY_AUTHORITY = 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY';
 export const DEFAULT_LEGACY_CU_URL = 'https://cu.ao-testnet.xyz';
 
+/**
+ * Legacy authorities trusted by the message spam filter, each valid for an
+ * inclusive range of block heights. `minHeight: null` means trusted from
+ * genesis; `maxHeight: null` means trusted onwards with no upper bound.
+ * A message whose sender/height falls outside every range is marked as spam.
+ */
+export const LEGACY_AUTHORITIES: { address: string; minHeight: number | null; maxHeight: number | null }[] = [
+	{ address: DEFAULT_LEGACY_AUTHORITY, minHeight: null, maxHeight: 1952819 },
+	{ address: 'CCcVUmUBl6scmH2a8thOqXjW9kmPVtf6bEDeP4Edw9c', minHeight: 1952820, maxHeight: 1953007 },
+	{ address: '6qOD-VYFZBKwYtrOm1Keh2ETif7SDUPAPx-UEu4qlR4', minHeight: 1953008, maxHeight: null },
+];
+
 export const DEFAULT_GATEWAYS = {
 	legacy: 'ao-search-gateway.goldsky.com',
 	fallback: 'https://cache.forward.computer/~query@1.0/graphql',

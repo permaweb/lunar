@@ -21,7 +21,6 @@ import {
 	ASSETS,
 	DEFAULT_ACTIONS,
 	DEFAULT_GATEWAYS,
-	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_MESSAGE_TAGS,
 	FLAGS,
 	MINT_ACTIONS,
@@ -42,6 +41,7 @@ import {
 	getRelativeDate,
 	getTagValue,
 	isNativeArTransfer,
+	isTrustedLegacyAuthority,
 	lowercaseTagKeys,
 	removeCommitments,
 	resolveLibDeps,
@@ -149,7 +149,7 @@ function Message(props: {
 			if (
 				!props.showFilteredMessages &&
 				fromProcess &&
-				props.element.node?.owner?.address !== DEFAULT_LEGACY_AUTHORITY
+				!isTrustedLegacyAuthority(props.element.node?.owner?.address, props.element.node?.block?.height)
 			) {
 				setFilterMessage(true);
 			}
