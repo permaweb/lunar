@@ -6,6 +6,7 @@ import {
 	DEFAULT_LEGACY_AUTHORITY,
 	DEFAULT_LEGACY_SCHEDULER_URL,
 	DEFAULT_SCHEDULER_URL,
+	LEGACY_AUTHORITIES,
 	PROCESSES,
 } from './config';
 import {
@@ -383,6 +384,27 @@ function getStrictNoticeAuthority(authority: string | undefined, variant: Messag
 		default:
 			return DEFAULT_LEGACY_AUTHORITY;
 	}
+}
+
+/**
+ * Whether a legacy message is from a trusted authority at its block height.
+ * Each authority in `LEGACY_AUTHORITIES` is trusted only within its inclusive
+ * height range. Pending messages (no height yet) are trusted only for the
+ * current authority, i.e. the one with no upper bound (`maxHeight: null`).
+ */
+export function isTrustedLegacyAuthority(
+	address: string | null | undefined,
+	height: number | null | undefined
+): boolean {
+	if (!address) return false;
+
+	return LEGACY_AUTHORITIES.some((authority) => {
+		if (authority.address !== address) return false;
+		if (height === null || height === undefined) return authority.maxHeight === null;
+		if (authority.minHeight !== null && height < authority.minHeight) return false;
+		if (authority.maxHeight !== null && height > authority.maxHeight) return false;
+		return true;
+	});
 }
 
 export function shouldHydrateAoTransferNotices(args: {
