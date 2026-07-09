@@ -9,32 +9,6 @@ import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse,
 
 const MAX_DEPTH = 10;
 const MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE = 1000;
-const DIRECT_LOOKUP_TAG_HEADERS = [
-	'action',
-	'anchor',
-	'app-name',
-	'app-version',
-	'authority',
-	'content-type',
-	'data-protocol',
-	'denomination',
-	'epoch',
-	'from-process',
-	'module',
-	'name',
-	'nonce',
-	'pushed-for',
-	'quantity',
-	'recipient',
-	'reference',
-	'scheduler',
-	'sdk',
-	'timestamp',
-	'ticker',
-	'type',
-	'variant',
-	'zone',
-];
 
 function base64UrlToBytes(value: string) {
 	const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
@@ -120,8 +94,32 @@ function parseOriginalTags(signatureInput: string | null) {
 		.filter(Boolean) as TagType[];
 }
 
-function getFallbackDirectLookupTags(headers: Headers) {
-	return DIRECT_LOOKUP_TAG_HEADERS.reduce((tags: TagType[], headerName) => {
+function getSignatureInputHeaderNames(signatureInput: string | null) {
+	if (!signatureInput) return [];
+
+	const headerNames = new Set<string>();
+	const componentListRegex = /\(([^)]*)\)/g;
+	let listMatch = componentListRegex.exec(signatureInput);
+
+	while (listMatch) {
+		const componentRegex = /"([^"]+)"/g;
+		let componentMatch = componentRegex.exec(listMatch[1]);
+
+		while (componentMatch) {
+			const headerName = componentMatch[1].toLowerCase();
+			if (!headerName.startsWith('@')) headerNames.add(headerName);
+
+			componentMatch = componentRegex.exec(listMatch[1]);
+		}
+
+		listMatch = componentListRegex.exec(signatureInput);
+	}
+
+	return Array.from(headerNames);
+}
+
+function getDirectLookupHeaderTags(headers: Headers, signatureInput: string | null) {
+	return getSignatureInputHeaderNames(signatureInput).reduce((tags: TagType[], headerName) => {
 		const value = headers.get(headerName);
 
 		if (value) {
@@ -135,11 +133,29 @@ function getFallbackDirectLookupTags(headers: Headers) {
 	}, []);
 }
 
+function mergeDirectLookupTags(originalTags: TagType[], headerTags: TagType[]) {
+	const seenNames = new Set(originalTags.map((tag) => tag.name.toLowerCase()));
+
+	return headerTags.reduce(
+		(tags, tag) => {
+			const name = tag.name.toLowerCase();
+			if (!seenNames.has(name)) {
+				seenNames.add(name);
+				tags.push(tag);
+			}
+
+			return tags;
+		},
+		[...originalTags]
+	);
+}
+
 function getDirectLookupTags(headers: Headers) {
 	const signatureInput = headers.get('signature-input');
-	const tags = parseOriginalTags(signatureInput);
+	const originalTags = parseOriginalTags(signatureInput);
+	const headerTags = getDirectLookupHeaderTags(headers, signatureInput);
 
-	return normalizeTagKeys(tags.length > 0 ? tags : getFallbackDirectLookupTags(headers));
+	return normalizeTagKeys(mergeDirectLookupTags(originalTags, headerTags));
 }
 
 async function getOwnerAddressFromSignatureInput(signatureInput: string | null) {
@@ -204,6 +220,30 @@ function isMainnetMessage(response: Types.GQLNodeResponseType) {
 	return getTagValue(tags, 'Variant') === MessageVariantEnum.Mainnet && getTagValue(tags, 'Type') === 'Message';
 }
 
+function hasForwardedLegacyOriginTags(response: Types.GQLNodeResponseType) {
+	const tags = response?.node?.tags;
+
+	return Boolean(
+		getTagValue(tags, 'From-Authority') ||
+			getTagValue(tags, 'From-Base') ||
+			getTagValue(tags, 'From-Scheduler') ||
+			getTagValue(tags, 'From-Uncommitted')
+	);
+}
+
+function shouldHydrateMainnetMessageSchedule(response: Types.GQLNodeResponseType) {
+	return isMainnetMessage(response) && !hasForwardedLegacyOriginTags(response);
+}
+
+function needsForwardedMainnetCacheRefresh(response: Types.GQLNodeResponseType) {
+	return (
+		isMainnetMessage(response) &&
+		!!getTagValue(response?.node?.tags, 'From-Process') &&
+		response?.node?.slot != null &&
+		!hasForwardedLegacyOriginTags(response)
+	);
+}
+
 function isWalletResponse(response: Types.GQLNodeResponseType) {
 	return getTagValue(response?.node?.tags, 'Type') === 'Wallet';
 }
@@ -217,6 +257,7 @@ function needsPushedMessageSchedule(response: Types.GQLNodeResponseType) {
 function shouldUseCachedTransaction(response: Types.GQLNodeResponseType) {
 	if (isWalletResponse(response)) return true;
 	if (!hasBlockMetadata(response)) return false;
+	if (needsForwardedMainnetCacheRefresh(response)) return false;
 
 	return !needsPushedMessageSchedule(response);
 }
@@ -361,7 +402,7 @@ async function findMainnetScheduleEdge(response: Types.GQLNodeResponseType) {
 }
 
 async function hydrateMainnetMessageSchedule(response: Types.GQLNodeResponseType) {
-	if (hasScheduleMetadata(response) || !isMainnetMessage(response)) {
+	if (hasScheduleMetadata(response) || !shouldHydrateMainnetMessageSchedule(response)) {
 		return response;
 	}
 
