@@ -1116,6 +1116,8 @@ function Transaction(props: {
 			? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse?.node?.owner?.address
 			: undefined;
 		const target = txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target');
+		const scheduledBlockHeight = txResponse?.node?.block?.height;
+		const scheduledSlot = txResponse?.node?.slot;
 
 		const isTransfer = getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer';
 
@@ -1357,18 +1359,18 @@ function Transaction(props: {
 						</S.MessageInfoLine>
 						<S.MessageInfoLine>
 							<span>{`${language.blockHeight}: `}</span>
-							{txResponse?.node?.block?.height ? (
+							{scheduledBlockHeight !== null && scheduledBlockHeight !== undefined ? (
 								<S.Height>
-									<ExplorerLink value={txResponse.node.block.height} type={'block'} />
+									<ExplorerLink value={scheduledBlockHeight} type={'block'} />
 								</S.Height>
 							) : (
 								<p>None</p>
 							)}
 						</S.MessageInfoLine>
-						{txResponse?.node?.slot ? (
+						{scheduledSlot !== null && scheduledSlot !== undefined ? (
 							<S.MessageInfoLine>
 								<span>{`${language.slot}: `}</span>
-								<p>{formatCount(txResponse?.node?.slot.toString())}</p>
+								<p>{formatCount(scheduledSlot.toString())}</p>
 							</S.MessageInfoLine>
 						) : (
 							<S.MessageInfoLine>

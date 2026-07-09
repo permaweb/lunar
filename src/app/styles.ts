@@ -406,8 +406,12 @@ export const NodeStatusIndicator = styled.div<{ $isOnline: boolean; $isLoading: 
 			? css`
 					animation: ${nodeStatusBlink} 1s ease-in-out infinite;
 			  `
-			: css`
+			: props.$isOnline
+			? css`
 					animation: ${nodeStatusPulse} 1.8s ease-out infinite;
+			  `
+			: css`
+					animation: none;
 			  `}
 
 	@media (prefers-reduced-motion: reduce) {

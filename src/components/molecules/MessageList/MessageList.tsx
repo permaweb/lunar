@@ -21,7 +21,9 @@ import {
 	ASSETS,
 	DEFAULT_ACTIONS,
 	DEFAULT_GATEWAYS,
+	DEFAULT_LEGACY_SCHEDULER_URL,
 	DEFAULT_MESSAGE_TAGS,
+	DEFAULT_SCHEDULER_URL,
 	FLAGS,
 	MINT_ACTIONS,
 	STORAGE,
@@ -43,6 +45,7 @@ import {
 	isNativeArTransfer,
 	isTrustedLegacyAuthority,
 	lowercaseTagKeys,
+	normalizeTagKeys,
 	removeCommitments,
 	resolveLibDeps,
 	resolveMessageId,
@@ -65,7 +68,9 @@ const NON_MESSAGE_ACTION_FALLBACK_TAGS = [
 	'Bundle-Version',
 ];
 const GQL_PAGE_CHUNK_SIZE = 100;
-const DEFAULT_RESULTS_PER_PAGE = 50;
+const DEFAULT_RESULTS_PER_PAGE = 25;
+const SCHEDULER_PAGE_SIZE_LIMIT = 1000;
+const SCHEDULER_PAGE_CURSOR_PREFIX = 'scheduler-page:';
 const MESSAGE_QUERY_KEYS = {
 	direction: 'messageDirection',
 	action: 'messageAction',
@@ -102,6 +107,239 @@ function getNonMessageActionFallback(tags: any[] | undefined) {
 	}
 
 	return null;
+}
+
+function getDefaultMessageFilter(args: {
+	type?: TransactionType;
+	txId?: string;
+	childList?: boolean;
+	result?: any;
+}): MessageFilterType {
+	return args.type === 'process' && !!args.txId && !args.childList && !args.result ? 'incoming' : 'outgoing';
+}
+
+function readSchedulerField(source: any, ...keys: string[]) {
+	if (!source) return null;
+
+	for (const key of keys) {
+		const value = source[key];
+		if (value !== undefined && value !== null && value !== '') return value;
+	}
+
+	return null;
+}
+
+function getSchedulerTags(source: any): { name: string; value: string }[] {
+	const tags = readSchedulerField(source, 'tags', 'Tags');
+
+	return Array.isArray(tags)
+		? tags
+				.filter((tag) => tag?.name && tag?.value !== undefined && tag?.value !== null)
+				.map((tag) => ({ name: tag.name, value: tag.value.toString() }))
+		: [];
+}
+
+function getSchedulerTagNumber(tags: { name: string; value: string }[], name: string) {
+	const value = getTagValue(tags, name);
+
+	return getSchedulerNumberValue(value);
+}
+
+function getSchedulerNumberValue(value: any) {
+	if (value === undefined || value === null || value === '') return null;
+
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeSchedulerTimestamp(value: number | null) {
+	if (value === null) return null;
+
+	return value > 10000000000 ? value / 1000 : value;
+}
+
+function withSchedulerMessageTag(tags: { name: string; value: string }[], name: string, value: string) {
+	return getTagValue(tags, name) ? tags : [...tags, { name, value }];
+}
+
+function getSchedulerMessageTags(tags: { name: string; value: string }[], variant: MessageVariantEnum) {
+	let nextTags = [...tags];
+
+	nextTags = withSchedulerMessageTag(nextTags, 'Data-Protocol', 'ao');
+	nextTags = withSchedulerMessageTag(nextTags, TAGS.keys.type, 'Message');
+	nextTags = withSchedulerMessageTag(nextTags, TAGS.keys.variant, variant);
+
+	return normalizeTagKeys(nextTags);
+}
+
+function getSchedulerTotalCount(latestSlot: number, variant: MessageVariantEnum) {
+	if (latestSlot < 0) return 0;
+
+	return variant === MessageVariantEnum.Mainnet ? latestSlot + 1 : latestSlot;
+}
+
+function getSchedulerPageRange(args: {
+	latestSlot: number;
+	pageNumber: number;
+	perPage: number;
+	variant: MessageVariantEnum;
+}) {
+	const pageNumber = Math.max(1, args.pageNumber);
+	const to = args.latestSlot - (pageNumber - 1) * args.perPage;
+
+	if (args.variant === MessageVariantEnum.Mainnet) {
+		if (to < 0) return null;
+
+		return {
+			from: Math.max(0, to - args.perPage + 1),
+			to,
+		};
+	}
+
+	if (to <= 0) return null;
+
+	return {
+		from: Math.max(0, to - args.perPage),
+		to,
+	};
+}
+
+function mapSchedulerMessageEdge(args: {
+	edge: any;
+	processId: string;
+	variant: MessageVariantEnum;
+}): Types.GQLNodeResponseType | null {
+	const rawNode = args.edge?.node ?? args.edge ?? {};
+	const message = readSchedulerField(rawNode, 'message', 'Message');
+	const assignment = readSchedulerField(rawNode, 'assignment', 'Assignment');
+	const messageTags = getSchedulerMessageTags(getSchedulerTags(message), args.variant);
+	const assignmentTags = getSchedulerTags(assignment);
+	const id = readSchedulerField(message, 'id', 'Id');
+
+	if (!id) return null;
+
+	const slot =
+		getSchedulerNumberValue(readSchedulerField(args.edge, 'cursor')) ??
+		getSchedulerTagNumber(assignmentTags, args.variant === MessageVariantEnum.Mainnet ? 'Slot' : 'Nonce') ??
+		getSchedulerTagNumber(assignmentTags, 'Nonce');
+	const timestamp = normalizeSchedulerTimestamp(
+		getSchedulerTagNumber(assignmentTags, 'Timestamp') ?? getSchedulerTagNumber(assignmentTags, 'Block-Timestamp')
+	);
+	const height = getSchedulerTagNumber(assignmentTags, 'Block-Height');
+	const ownerAddress =
+		readSchedulerField(readSchedulerField(message, 'owner'), 'address') ??
+		readSchedulerField(message, 'Owner', 'From') ??
+		'';
+	const recipient = readSchedulerField(message, 'target', 'Target') ?? args.processId;
+	const data = readSchedulerField(message, 'data', 'Data') ?? '';
+	const contentType = getTagValue(messageTags, 'Content-Type') ?? '';
+
+	return {
+		cursor: slot !== null && slot !== undefined ? slot.toString() : null,
+		node: {
+			id,
+			recipient,
+			tags: messageTags,
+			data: {
+				size: data ? data.length.toString() : '0',
+				type: contentType,
+			},
+			owner: {
+				address: ownerAddress,
+			},
+			block: {
+				height: height ?? 0,
+				timestamp: timestamp ?? 0,
+			},
+			slot: slot !== null && slot !== undefined ? Number(slot) : undefined,
+		},
+	};
+}
+
+async function assertSchedulerResponse(response: Response, context: string) {
+	if (response.ok) return;
+
+	let body = '';
+	try {
+		body = await response.text();
+	} catch {}
+
+	throw new Error(
+		`${context} failed with ${response.status}${response.statusText ? ` ${response.statusText}` : ''}${
+			body ? `: ${body.slice(0, 200)}` : ''
+		}`
+	);
+}
+
+async function getSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) {
+	if (variant === MessageVariantEnum.Mainnet) {
+		const response = await fetch(`${DEFAULT_SCHEDULER_URL}/${processId}~process@1.0/slot/current`);
+		await assertSchedulerResponse(response, 'Scheduler latest slot request');
+		const value = Number((await response.text()).trim());
+
+		return Number.isFinite(value) ? value : -1;
+	}
+
+	const response = await fetch(`${DEFAULT_LEGACY_SCHEDULER_URL}/${processId}/latest`);
+	await assertSchedulerResponse(response, 'Scheduler latest assignment request');
+	const parsed = await response.json();
+	const assignment =
+		readSchedulerField(parsed, 'assignment', 'Assignment') ?? readSchedulerField(parsed?.node, 'assignment');
+	const nonce = getSchedulerTagNumber(getSchedulerTags(assignment), 'Nonce');
+
+	return nonce ?? -1;
+}
+
+async function fetchSchedulerProcessMessagePage(args: {
+	processId: string;
+	variant: MessageVariantEnum;
+	pageNumber: number;
+	perPage: number;
+}) {
+	const latestSlot = await getSchedulerLatestSlot(args.processId, args.variant);
+	const count = getSchedulerTotalCount(latestSlot, args.variant);
+	const range = getSchedulerPageRange({
+		latestSlot,
+		pageNumber: args.pageNumber,
+		perPage: args.perPage,
+		variant: args.variant,
+	});
+
+	if (!range) {
+		return {
+			count,
+			data: [],
+			nextCursor: null,
+		};
+	}
+
+	const url =
+		args.variant === MessageVariantEnum.Mainnet
+			? `${DEFAULT_SCHEDULER_URL}/~scheduler@1.0/schedule?target=${args.processId}&accept=application/aos-2&from=${range.from}&to=${range.to}`
+			: `${DEFAULT_LEGACY_SCHEDULER_URL}/${args.processId}?process-id=${args.processId}&from-nonce=${range.from}&to-nonce=${range.to}&limit=${args.perPage}`;
+	const response = await fetch(url);
+	await assertSchedulerResponse(response, 'Scheduler message page request');
+	const parsed = await response.json();
+	if (parsed?.error && !Array.isArray(parsed?.edges)) {
+		throw new Error(`Scheduler message page request failed: ${parsed.error}`);
+	}
+	const data = ((parsed?.edges ?? []) as any[])
+		.map((edge) =>
+			mapSchedulerMessageEdge({
+				edge,
+				processId: args.processId,
+				variant: args.variant,
+			})
+		)
+		.filter(Boolean)
+		.sort((a, b) => (b.node.slot ?? 0) - (a.node.slot ?? 0));
+	const hasNextPage = args.pageNumber * args.perPage < count;
+
+	return {
+		count,
+		data,
+		nextCursor: hasNextPage ? `${SCHEDULER_PAGE_CURSOR_PREFIX}${args.pageNumber + 1}` : null,
+	};
 }
 
 function Message(props: {
@@ -845,9 +1083,19 @@ export default function MessageList(props: {
 		return null;
 	}, [filterStorageKey]);
 	const initialFilterState = queryFilterState?.hasQuery ? queryFilterState : loadedFilterState;
+	const defaultFilter = React.useMemo(
+		() =>
+			getDefaultMessageFilter({
+				type: props.type,
+				txId: props.txId,
+				childList: props.childList,
+				result: props.result,
+			}),
+		[props.type, props.txId, props.childList, props.result]
+	);
 
 	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(
-		props.currentFilter ?? initialFilterState?.filter ?? 'outgoing'
+		props.currentFilter ?? initialFilterState?.filter ?? defaultFilter
 	);
 	const [currentAction, setCurrentAction] = React.useState<string | null>(initialFilterState?.action ?? null);
 	const [currentVariant, setCurrentVariant] = React.useState<MessageVariantEnum | null>(
@@ -871,6 +1119,7 @@ export default function MessageList(props: {
 
 	const [currentData, setCurrentData] = React.useState<any[] | null>(null);
 	const [loadingMessages, setLoadingMessages] = React.useState<boolean>(false);
+	const [schedulerFallbackActive, setSchedulerFallbackActive] = React.useState<boolean>(false);
 
 	const [incomingCount, setIncomingCount] = React.useState<number | null>(null);
 	const [outgoingCount, setOutgoingCount] = React.useState<number | null>(null);
@@ -926,33 +1175,105 @@ export default function MessageList(props: {
 
 		return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 	}, [perPageInput]);
-	const invalidPerPage = parsedPerPageInput === null;
-	const showLargeFetchWarning = parsedPerPageInput !== null && parsedPerPageInput > GQL_PAGE_CHUNK_SIZE;
 	const usingCustomPerPage = parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE;
-	const hasAppliedFilters = Boolean(
+	const hasAppliedMessageFilters = Boolean(
 		appliedAction ||
 			appliedVariant ||
 			(appliedRecipient && checkValidAddress(appliedRecipient)) ||
 			(appliedFromAddress && checkValidAddress(appliedFromAddress)) ||
 			appliedStartDate ||
-			appliedEndDate ||
-			usingCustomPerPage
+			appliedEndDate
 	);
+	const hasAppliedFilters = Boolean(hasAppliedMessageFilters || usingCustomPerPage);
+	const isProcessRoot = Boolean(props.type === 'process' && props.txId && !props.childList && !props.result);
+	const isProcessIncomingRoot = Boolean(isProcessRoot && currentFilter === 'incoming');
+	const schedulerCandidateForCurrentFilters = Boolean(isProcessIncomingRoot && !hasAppliedMessageFilters);
+	const schedulerPageSizeValidationCandidate = Boolean(isProcessRoot && !hasAppliedMessageFilters);
+	const hasSchedulerVariant =
+		props.variant === MessageVariantEnum.Legacynet || props.variant === MessageVariantEnum.Mainnet;
+	const useSchedulerForProcessMessages = Boolean(
+		schedulerCandidateForCurrentFilters && hasSchedulerVariant && !schedulerFallbackActive
+	);
+	const hasDraftMessageFilters = Boolean(
+		currentAction ||
+			currentVariant ||
+			(recipient && checkValidAddress(recipient)) ||
+			(fromAddress && checkValidAddress(fromAddress)) ||
+			startDate ||
+			endDate
+	);
+	const schedulerCandidateAfterFilterUpdate = Boolean(
+		props.type === 'process' &&
+			props.txId &&
+			!props.childList &&
+			!props.result &&
+			currentFilter === 'incoming' &&
+			!hasDraftMessageFilters
+	);
+	const validateSchedulerPageSize = showFilters
+		? schedulerCandidateAfterFilterUpdate
+		: schedulerPageSizeValidationCandidate;
+	const schedulerPageSizeTooLarge = Boolean(
+		validateSchedulerPageSize && parsedPerPageInput !== null && parsedPerPageInput > SCHEDULER_PAGE_SIZE_LIMIT
+	);
+	const invalidPerPage = parsedPerPageInput === null || schedulerPageSizeTooLarge;
+	const showLargeFetchWarning =
+		!validateSchedulerPageSize && parsedPerPageInput !== null && parsedPerPageInput > GQL_PAGE_CHUNK_SIZE;
+	const perPageValidationMessage = schedulerPageSizeTooLarge
+		? language.schedulerPageSizeLimit(formatCount(SCHEDULER_PAGE_SIZE_LIMIT.toString()))
+		: invalidPerPage
+		? language.valueGreaterThan0
+		: null;
+
+	React.useEffect(() => {
+		setSchedulerFallbackActive(false);
+	}, [props.txId, props.variant, currentFilter, hasAppliedMessageFilters]);
 
 	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
 	}, [pageNumber]);
 
 	React.useEffect(() => {
+		if (schedulerPageSizeValidationCandidate && parsedPerPage !== null && parsedPerPage > SCHEDULER_PAGE_SIZE_LIMIT) {
+			const cappedLimit = SCHEDULER_PAGE_SIZE_LIMIT.toString();
+
+			setPerPage(cappedLimit);
+			setPerPageInput(cappedLimit);
+			handleClear();
+		}
+	}, [schedulerPageSizeValidationCandidate, parsedPerPage]);
+
+	React.useEffect(() => {
 		if (!syncQueryParams || !queryFilterState?.hasQuery) return;
 
 		skipNextQueryWriteRef.current = true;
 
-		const nextFilter = props.currentFilter ?? queryFilterState.filter ?? 'outgoing';
+		const nextFilter = props.currentFilter ?? queryFilterState.filter ?? defaultFilter;
+		const queryHasMessageFilters = Boolean(
+			queryFilterState.action ||
+				queryFilterState.variant ||
+				(queryFilterState.recipient && checkValidAddress(queryFilterState.recipient)) ||
+				(queryFilterState.fromAddress && checkValidAddress(queryFilterState.fromAddress)) ||
+				queryFilterState.startDate ||
+				queryFilterState.endDate
+		);
+		const queryPerPage = parsePositiveInteger(queryFilterState.perPage);
+		const shouldCapQueryPerPage = Boolean(
+			props.type === 'process' &&
+				props.txId &&
+				!props.childList &&
+				!props.result &&
+				!queryHasMessageFilters &&
+				queryPerPage &&
+				queryPerPage > SCHEDULER_PAGE_SIZE_LIMIT
+		);
+		const nextPerPage = shouldCapQueryPerPage ? SCHEDULER_PAGE_SIZE_LIMIT.toString() : queryFilterState.perPage;
 
 		setCurrentFilter(nextFilter);
 		setCurrentAction(queryFilterState.action);
+		setAppliedAction(queryFilterState.action);
 		setCurrentVariant(queryFilterState.variant);
+		setAppliedVariant(queryFilterState.variant);
 		setRecipient(queryFilterState.recipient);
 		setAppliedRecipient(queryFilterState.recipient);
 		setFromAddress(queryFilterState.fromAddress);
@@ -961,11 +1282,20 @@ export default function MessageList(props: {
 		setAppliedStartDate(queryFilterState.startDate);
 		setEndDate(queryFilterState.endDate);
 		setAppliedEndDate(queryFilterState.endDate);
-		setPerPage(queryFilterState.perPage);
-		setPerPageInput(queryFilterState.perPage);
+		setPerPage(nextPerPage);
+		setPerPageInput(nextPerPage);
 		setPageCursor(queryFilterState.after);
 		setPageNumber(queryFilterState.page ?? 1);
-	}, [props.currentFilter, queryFilterState, syncQueryParams]);
+	}, [
+		props.currentFilter,
+		props.type,
+		props.txId,
+		props.childList,
+		props.result,
+		queryFilterState,
+		syncQueryParams,
+		defaultFilter,
+	]);
 
 	React.useEffect(() => {
 		if (!syncQueryParams) return;
@@ -1311,6 +1641,10 @@ export default function MessageList(props: {
 	React.useEffect(() => {
 		(async function () {
 			if (props.type === 'wallet') return;
+			if (schedulerCandidateForCurrentFilters && !schedulerFallbackActive) {
+				setOutgoingCount(null);
+				return;
+			}
 
 			const baseTags = [];
 			if (appliedAction) baseTags.push({ name: 'Action', values: [appliedAction] });
@@ -1380,7 +1714,21 @@ export default function MessageList(props: {
 				}
 			}
 		})();
-	}, [props.txId, props.type, props.variant, toggleFilterChange]);
+	}, [
+		appliedAction,
+		appliedEndDate,
+		appliedFromAddress,
+		appliedFromAddressIsProcess,
+		appliedRecipient,
+		appliedStartDate,
+		appliedVariant,
+		props.txId,
+		props.type,
+		props.variant,
+		schedulerCandidateForCurrentFilters,
+		schedulerFallbackActive,
+		toggleFilterChange,
+	]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -1393,6 +1741,38 @@ export default function MessageList(props: {
 				setNextCursor(null);
 				setLoadingMessages(false);
 				return;
+			}
+
+			if (schedulerCandidateForCurrentFilters && !hasSchedulerVariant) {
+				setCurrentData([]);
+				setNextCursor(null);
+				setLoadingMessages(false);
+				return;
+			}
+
+			if (useSchedulerForProcessMessages) {
+				try {
+					const schedulerPerPage = Math.min(parsedPerPage, SCHEDULER_PAGE_SIZE_LIMIT);
+					const schedulerResponse = await fetchSchedulerProcessMessagePage({
+						processId: props.txId,
+						variant: props.variant,
+						pageNumber,
+						perPage: schedulerPerPage,
+					});
+
+					setCurrentData(schedulerResponse.data);
+					setIncomingCount(schedulerResponse.count);
+					setNextCursor(schedulerResponse.nextCursor);
+					setLoadingMessages(false);
+					return;
+				} catch (e: any) {
+					console.warn('Scheduler request failed, falling back to GQL', e);
+					setSchedulerFallbackActive(true);
+					if (pageNumber > 1 && !pageCursor) {
+						setPageNumber(1);
+						setPageInput('1');
+					}
+				}
 			}
 
 			if (props.txId) {
@@ -1586,10 +1966,22 @@ export default function MessageList(props: {
 		props.recipient,
 		props.result,
 		props.willHaveResult,
+		appliedAction,
+		appliedEndDate,
+		appliedFromAddress,
+		appliedFromAddressIsProcess,
+		appliedRecipient,
+		appliedStartDate,
+		appliedVariant,
 		currentFilter,
+		parsedPerPage,
 		toggleFilterChange,
 		pageCursor,
+		pageNumber,
 		permawebProvider.libs,
+		schedulerCandidateForCurrentFilters,
+		hasSchedulerVariant,
+		useSchedulerForProcessMessages,
 	]);
 
 	const scrollToTop = () => {
@@ -1601,6 +1993,16 @@ export default function MessageList(props: {
 	};
 
 	function handleNext() {
+		if (useSchedulerForProcessMessages) {
+			if (nextCursor) {
+				setPageNumber((prevPage) => prevPage + 1);
+				setPageCursor(null);
+				setCursorHistory([]);
+				scrollToTop();
+			}
+			return;
+		}
+
 		if (nextCursor) {
 			setCursorHistory((prevHistory) => [...prevHistory, pageCursor]);
 			setPageCursor(nextCursor);
@@ -1610,6 +2012,16 @@ export default function MessageList(props: {
 	}
 
 	function handlePrevious() {
+		if (useSchedulerForProcessMessages) {
+			if (pageNumber > 1) {
+				setPageNumber((prevPage) => Math.max(prevPage - 1, 1));
+				setPageCursor(null);
+				setCursorHistory([]);
+				scrollToTop();
+			}
+			return;
+		}
+
 		if (cursorHistory.length > 0) {
 			const newHistory = [...cursorHistory];
 			const previousCursor = newHistory.pop();
@@ -1674,6 +2086,14 @@ export default function MessageList(props: {
 		setPageInput(targetPage.toString());
 		if (targetPage === pageNumber) return;
 
+		if (useSchedulerForProcessMessages) {
+			setCursorHistory([]);
+			setPageCursor(null);
+			setPageNumber(targetPage);
+			scrollToTop();
+			return;
+		}
+
 		if (targetPage === 1) {
 			handleClear();
 			scrollToTop();
@@ -1724,7 +2144,7 @@ export default function MessageList(props: {
 	}
 
 	function handlePerPageSubmit() {
-		if (!parsedPerPageInput) {
+		if (!parsedPerPageInput || invalidPerPage) {
 			setPerPageInput(perPage);
 			return;
 		}
@@ -1741,7 +2161,7 @@ export default function MessageList(props: {
 	}
 
 	function handleFilterUpdate() {
-		if (!parsedPerPageInput) return;
+		if (!parsedPerPageInput || invalidPerPage) return;
 
 		// Update applied filter states
 		setAppliedAction(currentAction);
@@ -1828,6 +2248,7 @@ export default function MessageList(props: {
 
 	function getPaginator(showPages: boolean) {
 		const paginationControlsDisabled = !canUsePaginationControls();
+		const previousDisabled = useSchedulerForProcessMessages ? pageNumber <= 1 : cursorHistory.length === 0;
 
 		return (
 			<>
@@ -1835,7 +2256,7 @@ export default function MessageList(props: {
 					type={'alt3'}
 					label={language.previous}
 					handlePress={handlePrevious}
-					disabled={cursorHistory.length === 0 || loadingMessages}
+					disabled={previousDisabled || loadingMessages}
 				/>
 				{showPages && FLAGS.CONTROL_PAGINATION && (
 					<S.DPageCounter>
@@ -2299,7 +2720,7 @@ export default function MessageList(props: {
 							value={perPageInput}
 							onChange={(e: any) => setPerPageInput(e.target.value)}
 							disabled={loadingMessages}
-							invalid={{ status: invalidPerPage, message: invalidPerPage ? language.valueGreaterThan0 : null }}
+							invalid={{ status: invalidPerPage, message: perPageValidationMessage }}
 						/>
 						{showLargeFetchWarning && (
 							<S.FilterWarning>

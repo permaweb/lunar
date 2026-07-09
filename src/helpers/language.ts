@@ -260,6 +260,7 @@ export const language = {
 		save: `Save`,
 		savedGateways: `Saved Gateways`,
 		scheduler: `Scheduler`,
+		schedulerPageSizeLimit: (count: number | string) => `Scheduler mode supports up to ${count} results per page`,
 		search: `Search`,
 		searchProcessId: `Search for Process ID`,
 		searching: `Searching`,
