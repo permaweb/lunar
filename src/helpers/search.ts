@@ -2,12 +2,13 @@ import { Types } from '@permaweb/libs';
 
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
-import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, FLAGS, PROCESSES } from './config';
+import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS, PROCESSES } from './config';
 import { getARBalanceEndpoint, getTxEndpoint } from './endpoints';
 import { MessageVariantEnum, SearchTxArgs, TagType } from './types';
-import { getTagValue, isNumeric, normalizeGqlResponse, normalizeTagKeys } from './utils';
+import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse, normalizeTagKeys } from './utils';
 
 const MAX_DEPTH = 10;
+const MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE = 1000;
 const DIRECT_LOOKUP_TAG_HEADERS = [
 	'action',
 	'anchor',
@@ -170,6 +171,19 @@ function getNumberTag(tags: TagType[] | undefined, name: string) {
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
+function getNumberValue(value: any) {
+	if (value === undefined || value === null || value === '') return null;
+
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeSchedulerTimestamp(value: number | null) {
+	if (value === null) return null;
+
+	return value > 10000000000 ? value / 1000 : value;
+}
+
 function hasBlockMetadata(response: Types.GQLNodeResponseType) {
 	return response?.node?.block?.height != null || response?.node?.block?.timestamp != null;
 }
@@ -182,6 +196,12 @@ function isLegacyMessage(response: Types.GQLNodeResponseType) {
 	const tags = response?.node?.tags;
 
 	return getTagValue(tags, 'Variant') === MessageVariantEnum.Legacynet && getTagValue(tags, 'Type') === 'Message';
+}
+
+function isMainnetMessage(response: Types.GQLNodeResponseType) {
+	const tags = response?.node?.tags;
+
+	return getTagValue(tags, 'Variant') === MessageVariantEnum.Mainnet && getTagValue(tags, 'Type') === 'Message';
 }
 
 function isWalletResponse(response: Types.GQLNodeResponseType) {
@@ -231,6 +251,144 @@ async function hydrateLegacyMessageSchedule(response: Types.GQLNodeResponseType)
 					...response.node.block,
 					...(height !== null ? { height } : {}),
 					...(timestamp !== null ? { timestamp: timestamp / 1000 } : {}),
+				},
+				...(slot !== null ? { slot } : {}),
+			},
+		};
+	} catch (e: any) {
+		console.error(e);
+		return response;
+	}
+}
+
+function getMainnetScheduleEdgeMessageId(edge: any) {
+	return edge?.node?.message?.Id ?? edge?.node?.message?.id;
+}
+
+function getMainnetScheduleEdgeTags(edge: any, field: 'message' | 'assignment') {
+	const tags = edge?.node?.[field]?.Tags ?? edge?.node?.[field]?.tags;
+
+	return Array.isArray(tags) ? tags : [];
+}
+
+function getMainnetScheduleEdgeTimestamp(edge: any) {
+	const messageTags = getMainnetScheduleEdgeTags(edge, 'message');
+	const assignmentTags = getMainnetScheduleEdgeTags(edge, 'assignment');
+
+	return (
+		getNumberTag(messageTags, 'message-timestamp') ??
+		getNumberTag(assignmentTags, 'Timestamp') ??
+		getNumberTag(assignmentTags, 'Block-Timestamp')
+	);
+}
+
+async function fetchMainnetScheduleRange(target: string, from: number, to: number) {
+	const rangeFrom = Math.max(0, Math.min(from, to));
+	const rangeTo = Math.max(rangeFrom, Math.min(to, rangeFrom + MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE - 1));
+	const response = await fetch(
+		`${DEFAULT_SCHEDULER_URL}/~scheduler@1.0/schedule?target=${target}&accept=application/aos-2&from=${rangeFrom}&to=${rangeTo}`
+	);
+
+	if (!response.ok) throw new Error(`Mainnet schedule request failed with ${response.status}`);
+
+	const parsed = await response.json();
+
+	return Array.isArray(parsed?.edges) ? parsed.edges : [];
+}
+
+async function getMainnetLatestSlot(target: string) {
+	const response = await fetch(`${DEFAULT_SCHEDULER_URL}/${target}~process@1.0/slot/current`);
+	if (!response.ok) throw new Error(`Mainnet latest slot request failed with ${response.status}`);
+
+	const latestSlot = Number((await response.text()).trim());
+
+	return Number.isFinite(latestSlot) ? latestSlot : null;
+}
+
+async function findMainnetScheduleEdge(response: Types.GQLNodeResponseType) {
+	const messageId = response?.node?.id;
+	const tags = response?.node?.tags;
+	const target = response?.node?.recipient ?? getTagValue(tags, 'Target');
+
+	if (!messageId || !target) return null;
+
+	const latestSlot = await getMainnetLatestSlot(target);
+	if (latestSlot === null || latestSlot < 0) return null;
+
+	const checkedRanges = new Set<string>();
+	const searchRange = async (from: number, to: number) => {
+		const rangeFrom = Math.max(0, Math.min(from, to));
+		const rangeTo = Math.max(rangeFrom, Math.min(to, rangeFrom + MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE - 1));
+		const key = `${rangeFrom}:${rangeTo}`;
+		if (checkedRanges.has(key)) return null;
+		checkedRanges.add(key);
+
+		const edges = await fetchMainnetScheduleRange(target, rangeFrom, rangeTo);
+
+		return edges.find((edge: any) => getMainnetScheduleEdgeMessageId(edge) === messageId) ?? null;
+	};
+
+	const latestFrom = Math.max(0, latestSlot - MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE + 1);
+	const latestMatch = await searchRange(latestFrom, latestSlot);
+	if (latestMatch) return latestMatch;
+
+	const targetTimestamp = getNumberTag(tags, 'message-timestamp') ?? getNumberTag(tags, 'Timestamp');
+	if (targetTimestamp === null) return null;
+
+	let low = 0;
+	let high = latestSlot;
+	let candidateSlot = latestSlot;
+
+	while (low <= high) {
+		const mid = Math.floor((low + high) / 2);
+		const edges = await fetchMainnetScheduleRange(target, mid, mid);
+		const edgeTimestamp = getMainnetScheduleEdgeTimestamp(edges[0]);
+
+		if (edgeTimestamp === null) break;
+
+		if (edgeTimestamp < targetTimestamp) {
+			low = mid + 1;
+		} else {
+			candidateSlot = mid;
+			high = mid - 1;
+		}
+	}
+
+	const centeredFrom = Math.max(0, Math.min(candidateSlot - 500, latestSlot - MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE + 1));
+	const centeredTo = Math.min(latestSlot, centeredFrom + MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE - 1);
+
+	return await searchRange(centeredFrom, centeredTo);
+}
+
+async function hydrateMainnetMessageSchedule(response: Types.GQLNodeResponseType) {
+	if (hasScheduleMetadata(response) || !isMainnetMessage(response)) {
+		return response;
+	}
+
+	try {
+		const scheduleEdge = await findMainnetScheduleEdge(response);
+		if (!scheduleEdge) return response;
+
+		const assignmentTags = getMainnetScheduleEdgeTags(scheduleEdge, 'assignment');
+		if (!assignmentTags.length) return response;
+
+		const height = getNumberTag(assignmentTags, 'Block-Height');
+		const blockTimestamp = getNumberTag(assignmentTags, 'Block-Timestamp');
+		const timestamp = getNumberTag(assignmentTags, 'Timestamp');
+		const slot = getNumberTag(assignmentTags, 'Slot') ?? getNumberValue(scheduleEdge.cursor);
+		const scheduledHeight = height !== null && height > 0 ? height : null;
+		const normalizedTimestamp = normalizeSchedulerTimestamp(
+			blockTimestamp !== null && blockTimestamp > 0 ? blockTimestamp : timestamp
+		);
+
+		return {
+			...response,
+			node: {
+				...response.node,
+				block: {
+					...response.node.block,
+					...(scheduledHeight !== null ? { height: scheduledHeight } : {}),
+					...(normalizedTimestamp !== null ? { timestamp: normalizedTimestamp } : {}),
 				},
 				...(slot !== null ? { slot } : {}),
 			},
@@ -299,6 +457,13 @@ async function resolveResponseData(
 	args: SearchTxArgs,
 	depth: number
 ): Promise<Types.GQLNodeResponseType> {
+	responseData = await hydrateMainnetMessageSchedule(responseData);
+
+	if (isMainnetMessage(responseData)) {
+		cacheTransaction(responseData, args);
+		return responseData;
+	}
+
 	/* Filter pushed messages by checking the authority */
 	const fromProcess = getTagValue(responseData.node?.tags, 'From-Process');
 	const messageOwner = responseData.node?.owner?.address;
@@ -330,7 +495,7 @@ async function resolveResponseData(
 		const fromProcessVariant = getTagValue(fromProcessResponse?.node?.tags, 'Variant');
 
 		if (fromProcessVariant === MessageVariantEnum.Mainnet) {
-			const mainnetResponseData = await hydrateLegacyMessageSchedule(responseData);
+			const mainnetResponseData = await hydrateMainnetMessageSchedule(responseData);
 
 			cacheTransaction(mainnetResponseData, args);
 			return mainnetResponseData;
@@ -338,8 +503,15 @@ async function resolveResponseData(
 
 		const fromProcessAuthority = getTagValue(fromProcessResponse?.node?.tags, 'Authority');
 
-		// Reject if authority doesn't match owner
-		if (fromProcessAuthority && fromProcessAuthority !== messageOwner) {
+		// Reject if the pushing authority doesn't match the process's declared Authority.
+		// Authorities rotate over time, so a process's Authority tag can lag behind the
+		// authority that actually pushed the message — allow it through when the owner is
+		// a known trusted legacy authority for the message's block height.
+		if (
+			fromProcessAuthority &&
+			fromProcessAuthority !== messageOwner &&
+			!isTrustedLegacyAuthority(messageOwner, responseData.node?.block?.height)
+		) {
 			return null;
 		}
 

@@ -389,8 +389,9 @@ function getStrictNoticeAuthority(authority: string | undefined, variant: Messag
 /**
  * Whether a legacy message is from a trusted authority at its block height.
  * Each authority in `LEGACY_AUTHORITIES` is trusted only within its inclusive
- * height range. Pending messages (no height yet) are trusted only for the
- * current authority, i.e. the one with no upper bound (`maxHeight: null`).
+ * height range. Messages with no height yet (pending, or not-yet-indexed by the
+ * gateway) are trusted for any known authority — we don't hide them as spam just
+ * because the block height is missing.
  */
 export function isTrustedLegacyAuthority(
 	address: string | null | undefined,
@@ -400,7 +401,7 @@ export function isTrustedLegacyAuthority(
 
 	return LEGACY_AUTHORITIES.some((authority) => {
 		if (authority.address !== address) return false;
-		if (height === null || height === undefined) return authority.maxHeight === null;
+		if (height === null || height === undefined) return true;
 		if (authority.minHeight !== null && height < authority.minHeight) return false;
 		if (authority.maxHeight !== null && height > authority.maxHeight) return false;
 		return true;
