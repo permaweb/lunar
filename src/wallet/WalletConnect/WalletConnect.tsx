@@ -6,6 +6,7 @@ import { Avatar } from 'components/atoms/Avatar';
 import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { Modal } from 'components/atoms/Modal';
+import { readAoBalance } from 'helpers/ao';
 import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint } from 'helpers/endpoints';
 import {
@@ -74,11 +75,14 @@ const WalletBalanceSection = React.memo(
 						setWalletBalance('Error');
 						return;
 					}
-					response = await libs.readProcess({
-						processId: processId,
-						action: 'Balance',
-						tags: [{ name: 'Recipient', value: walletAddress }],
-					});
+					response =
+						processId === PROCESSES.ao
+							? await readAoBalance(walletAddress)
+							: await libs.readProcess({
+									processId: processId,
+									action: 'Balance',
+									tags: [{ name: 'Recipient', value: walletAddress }],
+							  });
 				}
 
 				if (!isNumeric(response)) {

@@ -23,6 +23,10 @@ export default function ProcessRead(props: {
 }) {
 	const permawebProvider = usePermawebProvider();
 	const settingsProvider = useSettingsProvider();
+	const legacyComputeNode = React.useMemo(
+		() => settingsProvider.settings.legacyComputeNode?.trim() || legacyCuEndpoint,
+		[settingsProvider.settings.legacyComputeNode]
+	);
 
 	const languageProvider = useLanguageProvider();
 	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
@@ -48,7 +52,7 @@ export default function ProcessRead(props: {
 			switch (props.variant) {
 				case MessageVariantEnum.Legacynet:
 					try {
-						const response = await fetch(getLegacyResultsEndpoint(props.processId), {
+						const response = await fetch(getLegacyResultsEndpoint(props.processId, legacyComputeNode), {
 							method: 'GET',
 						});
 
@@ -56,7 +60,7 @@ export default function ProcessRead(props: {
 						setCuLocation(cu.host);
 					} catch (e: any) {
 						console.error(e);
-						setCuLocation(legacyCuEndpoint);
+						setCuLocation(legacyComputeNode);
 					}
 					break;
 				case MessageVariantEnum.Mainnet:
@@ -65,7 +69,7 @@ export default function ProcessRead(props: {
 					break;
 			}
 		})();
-	}, [props.processId, props.variant, settingsProvider.settings.nodes]);
+	}, [props.processId, props.variant, settingsProvider.settings.nodes, legacyComputeNode]);
 
 	const safelyParseNestedJSON = (input) => {
 		if (typeof input === 'string') {
@@ -102,7 +106,7 @@ export default function ProcessRead(props: {
 				let node;
 				switch (props.variant) {
 					case MessageVariantEnum.Legacynet:
-						node = cuLocation;
+						node = cuLocation ?? legacyComputeNode;
 						response = await permawebProvider.libs.readProcess({
 							processId: props.processId,
 							action: 'Info',

@@ -6,6 +6,10 @@ export const arweaveEndpoint = 'https://arweave.net';
 export const metricsProcessEndpoint = `https://push.forward.computer/${PROCESSES.metrics}~process@1.0/compute/metrics?require-codec=application/json&accept-bundle=true`;
 export const metricsS3Endpoint = 'https://metrics.s3.us-west-1.amazonaws.com/metrics.json';
 
+function trimTrailingSlash(url: string) {
+	return url.replace(/\/+$/, '');
+}
+
 export function getARBalanceEndpoint(walletAddress: string) {
 	return `${arweaveEndpoint}/wallet/${walletAddress}/balance`;
 }
@@ -38,6 +42,6 @@ export function getRoutesEndpoint(routerUrl: string) {
 	return `https://${routerUrl}/~router@1.0/routes/?require-codec=application/json&accept-bundle=true`;
 }
 
-export function getLegacyResultsEndpoint(processId: string) {
-	return `${legacyCuEndpoint}/results/${processId}`;
+export function getLegacyResultsEndpoint(processId: string, cuEndpoint: string = legacyCuEndpoint) {
+	return `${trimTrailingSlash(cuEndpoint)}/results/${processId}`;
 }
