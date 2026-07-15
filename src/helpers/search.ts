@@ -2,6 +2,7 @@ import { Types } from '@permaweb/libs';
 
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
+import { readAoBalance } from './ao';
 import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS, PROCESSES } from './config';
 import { getARBalanceEndpoint, getTxEndpoint } from './endpoints';
 import { MessageVariantEnum, SearchTxArgs, TagType } from './types';
@@ -590,14 +591,8 @@ async function addressHasArBalance(address: string) {
 }
 
 async function addressHasAoBalance(args: SearchTxArgs) {
-	if (!args.readProcess) return false;
-
 	try {
-		const balance = await args.readProcess({
-			processId: PROCESSES.ao,
-			action: 'Balance',
-			tags: [{ name: 'Recipient', value: args.txId }],
-		});
+		const balance = await readAoBalance(args.txId);
 
 		return isNumeric(balance) && Number(balance) > 0;
 	} catch (e: any) {

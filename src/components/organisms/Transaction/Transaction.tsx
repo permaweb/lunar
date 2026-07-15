@@ -30,6 +30,7 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
+import { readAoBalance } from 'helpers/ao';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
@@ -670,11 +671,14 @@ function Transaction(props: {
 							setWalletBalance(useNaOnError ? 'N/A' : 'Error');
 							return;
 						}
-						response = await permawebProvider.libs.readProcess({
-							processId: processId,
-							action: 'Balance',
-							tags: [{ name: 'Recipient', value: walletId }],
-						});
+						response =
+							processId === PROCESSES.ao
+								? await readAoBalance(walletId)
+								: await permawebProvider.libs.readProcess({
+										processId: processId,
+										action: 'Balance',
+										tags: [{ name: 'Recipient', value: walletId }],
+								  });
 					}
 
 					if (!isNumeric(response)) {
