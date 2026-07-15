@@ -408,6 +408,19 @@ export function isTrustedLegacyAuthority(
 	});
 }
 
+export function isLegacyMessageSpam(args: {
+	variant: string | null | undefined;
+	tags: TagType[] | undefined;
+	ownerAddress: string | null | undefined;
+	blockHeight: number | null | undefined;
+}) {
+	return Boolean(
+		args.variant === MessageVariantEnum.Legacynet &&
+			getTagValue(args.tags, 'From-Process') &&
+			!isTrustedLegacyAuthority(args.ownerAddress, args.blockHeight)
+	);
+}
+
 export function shouldHydrateAoTransferNotices(args: {
 	action: string | null | undefined;
 	variant: MessageVariantEnum | undefined;

@@ -6,6 +6,7 @@ export interface IProps {
 	value: number | string;
 	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 	onFocus?: () => void;
+	onBlur?: () => void;
 	invalid: ValidationType;
 	disabled: boolean;
 	label?: string;

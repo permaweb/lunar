@@ -267,6 +267,7 @@ export const ElementWrapper = styled.div<{
 	childList?: boolean;
 	clickable?: boolean;
 	$nestingLevel?: number;
+	$spam?: boolean;
 }>`
 	height: 40px;
 	min-width: 100%;
@@ -279,7 +280,8 @@ export const ElementWrapper = styled.div<{
 	padding: 0 15px;
 
 	cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
-	background: ${(props) => props.theme.colors.container.primary.background};
+	background: ${(props) =>
+		props.$spam ? props.theme.colors.container.alt1.background : props.theme.colors.container.primary.background};
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -294,14 +296,17 @@ export const ElementWrapper = styled.div<{
 	transition: all 75ms;
 
 	&:hover {
-		background: ${(props) => props.theme.colors.container.primary.active};
+		background: ${(props) =>
+			props.$spam ? props.theme.colors.container.alt1.background : props.theme.colors.container.primary.active};
 	}
 
 	${(props) =>
 		props.clickable &&
 		css`
 			&:hover {
-				background: ${props.theme.colors.container.primary.active};
+				background: ${props.$spam
+					? props.theme.colors.container.alt1.background
+					: props.theme.colors.container.primary.active};
 				border-top: 0.5px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 				border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 				border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
@@ -771,23 +776,5 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		color: ${(props) => props.theme.colors.font.primary};
 		text-transform: uppercase;
 		line-height: 1;
-	}
-`;
-
-export const InfoWrapper = styled.div`
-	height: 100%;
-	width: 100%;
-	display: flex;
-	align-items: center;
-	position: absolute;
-	left: 0;
-	padding: 0 15px;
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	p {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.alt1};
-		text-transform: uppercase;
 	}
 `;

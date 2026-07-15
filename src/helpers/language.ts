@@ -173,7 +173,7 @@ export const language = {
 		message: `Message`,
 		messageFilters: `Message Filters`,
 		messageInfo: `Message Info`,
-		messageMarkedAsSpam: `Message marked as spam`,
+		markedAsSpam: `Marked as Spam`,
 		messages: `Messages`,
 		midnight: `Midnight`,
 		minHeight: `Min Height`,

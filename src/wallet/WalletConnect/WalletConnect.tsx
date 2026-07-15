@@ -6,7 +6,7 @@ import { Avatar } from 'components/atoms/Avatar';
 import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { Modal } from 'components/atoms/Modal';
-import { readAoBalance } from 'helpers/ao';
+import { readAoBalance } from 'helpers/balances';
 import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint } from 'helpers/endpoints';
 import {
@@ -35,7 +35,6 @@ const WalletBalanceSection = React.memo(
 		tokenName,
 		denomination,
 		walletAddress,
-		libs,
 		errorFetching,
 		loading,
 		refresh,
@@ -45,7 +44,6 @@ const WalletBalanceSection = React.memo(
 		tokenName: string;
 		denomination: number;
 		walletAddress: string | null;
-		libs: any;
 		errorFetching: string;
 		loading: string;
 		refresh: string;
@@ -75,14 +73,7 @@ const WalletBalanceSection = React.memo(
 						setWalletBalance('Error');
 						return;
 					}
-					response =
-						processId === PROCESSES.ao
-							? await readAoBalance(walletAddress)
-							: await libs.readProcess({
-									processId: processId,
-									action: 'Balance',
-									tags: [{ name: 'Recipient', value: walletAddress }],
-							  });
+					response = await readAoBalance(walletAddress);
 				}
 
 				if (!isNumeric(response)) {
@@ -98,7 +89,7 @@ const WalletBalanceSection = React.memo(
 			} finally {
 				setLoadingBalance(false);
 			}
-		}, [balanceSource, processId, denomination, walletAddress, libs, errorFetching]);
+		}, [balanceSource, processId, denomination, walletAddress, errorFetching]);
 
 		React.useEffect(() => {
 			if (!hasFetchedRef.current && walletAddress && checkValidAddress(walletAddress)) {
@@ -172,8 +163,7 @@ const WalletBalanceSection = React.memo(
 			prevProps.processId === nextProps.processId &&
 			prevProps.tokenName === nextProps.tokenName &&
 			prevProps.denomination === nextProps.denomination &&
-			prevProps.walletAddress === nextProps.walletAddress &&
-			prevProps.libs === nextProps.libs
+			prevProps.walletAddress === nextProps.walletAddress
 		);
 	}
 );
@@ -342,7 +332,6 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									tokenName={'AR'}
 									denomination={TOKEN_DENOMINATIONS.ar}
 									walletAddress={arProvider.walletAddress}
-									libs={permawebProvider.libs}
 									errorFetching={language.errorFetching}
 									loading={language.loading}
 									refresh={language.refresh}
@@ -353,7 +342,6 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									tokenName={'AO'}
 									denomination={TOKEN_DENOMINATIONS.ao}
 									walletAddress={arProvider.walletAddress}
-									libs={permawebProvider.libs}
 									errorFetching={language.errorFetching}
 									loading={language.loading}
 									refresh={language.refresh}

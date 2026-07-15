@@ -138,11 +138,23 @@ export const MessageInfoHeader = styled.div`
 	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
 	padding: 12.5px 15px;
+
 	p {
+		display: flex;
+		align-items: center;
+		gap: 7.5px;
+
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
+
+		span {
+			font-size: ${(props) => props.theme.typography.size.xxSmall};
+			font-family: ${(props) => props.theme.typography.family.primary};
+			font-weight: ${(props) => props.theme.typography.weight.bold};
+			color: ${(props) => props.theme.colors.font.alt1};
+		}
 	}
 
 	> div {

@@ -30,7 +30,7 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
-import { readAoBalance } from 'helpers/ao';
+import { readAoBalance } from 'helpers/balances';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
@@ -47,6 +47,7 @@ import {
 	getRelativeDate,
 	getTagValue,
 	getTransactionTypeFromTags,
+	isLegacyMessageSpam,
 	isNumeric,
 	removeCommitments,
 	resolveLibDeps,
@@ -671,14 +672,7 @@ function Transaction(props: {
 							setWalletBalance(useNaOnError ? 'N/A' : 'Error');
 							return;
 						}
-						response =
-							processId === PROCESSES.ao
-								? await readAoBalance(walletId)
-								: await permawebProvider.libs.readProcess({
-										processId: processId,
-										action: 'Balance',
-										tags: [{ name: 'Recipient', value: walletId }],
-								  });
+						response = await readAoBalance(walletId);
 					}
 
 					if (!isNumeric(response)) {
@@ -1122,6 +1116,12 @@ function Transaction(props: {
 		const target = txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target');
 		const scheduledBlockHeight = txResponse?.node?.block?.height;
 		const scheduledSlot = txResponse?.node?.slot;
+		const isSpamMessage = isLegacyMessageSpam({
+			variant: getTagValue(txResponse?.node?.tags, TAGS.keys.variant),
+			tags: txResponse?.node?.tags,
+			ownerAddress: txResponse?.node?.owner?.address,
+			blockHeight: scheduledBlockHeight,
+		});
 
 		const isTransfer = getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer';
 
@@ -1334,7 +1334,10 @@ function Transaction(props: {
 				)}
 				<S.MessageInfo className={'border-wrapper-primary'}>
 					<S.MessageInfoHeader>
-						<p>{language.messageInfo}</p>
+						<p>
+							{language.messageInfo}
+							{isSpamMessage && <span> ({language.markedAsSpam})</span>}
+						</p>
 						<S.MessageInfoID>
 							<span>{`${language.id}: `}</span>
 							<TxAddress address={txResponse?.node?.id} />
