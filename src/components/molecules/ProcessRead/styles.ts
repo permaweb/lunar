@@ -124,7 +124,7 @@ export const UpdateWrapper = styled.div`
 export const Error = styled(Line)`
 	p,
 	span {
-		color: ${(props) => props.theme.colors.warning.primary};
+		color: ${(props) => props.theme.colors.font.alt1};
 	}
 `;
 

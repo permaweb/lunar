@@ -56,6 +56,7 @@ export default function FormField(props: IProps) {
 					onWheel={(e: any) => e.target.blur()}
 					onChange={props.onChange}
 					onFocus={() => (props.onFocus ? props.onFocus() : {})}
+					onBlur={props.onBlur}
 					disabled={props.disabled}
 					invalid={props.invalid.status}
 					placeholder={props.placeholder ? props.placeholder : ''}

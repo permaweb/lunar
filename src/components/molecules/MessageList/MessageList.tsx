@@ -42,8 +42,8 @@ import {
 	formatCount,
 	getRelativeDate,
 	getTagValue,
+	isLegacyMessageSpam,
 	isNativeArTransfer,
-	isTrustedLegacyAuthority,
 	lowercaseTagKeys,
 	normalizeTagKeys,
 	removeCommitments,
@@ -71,6 +71,7 @@ const GQL_PAGE_CHUNK_SIZE = 100;
 const DEFAULT_RESULTS_PER_PAGE = 25;
 const SCHEDULER_PAGE_SIZE_LIMIT = 1000;
 const SCHEDULER_PAGE_CURSOR_PREFIX = 'scheduler-page:';
+const schedulerLatestSlotRequests = new Map<string, Promise<number>>();
 const MESSAGE_QUERY_KEYS = {
 	direction: 'messageDirection',
 	action: 'messageAction',
@@ -271,7 +272,7 @@ async function assertSchedulerResponse(response: Response, context: string) {
 	);
 }
 
-async function getSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) {
+async function fetchSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) {
 	if (variant === MessageVariantEnum.Mainnet) {
 		const response = await fetch(`${DEFAULT_SCHEDULER_URL}/${processId}~process@1.0/slot/current`);
 		await assertSchedulerResponse(response, 'Scheduler latest slot request');
@@ -288,6 +289,24 @@ async function getSchedulerLatestSlot(processId: string, variant: MessageVariant
 	const nonce = getSchedulerTagNumber(getSchedulerTags(assignment), 'Nonce');
 
 	return nonce ?? -1;
+}
+
+function getSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) {
+	const requestKey = `${variant}:${processId}`;
+	const existingRequest = schedulerLatestSlotRequests.get(requestKey);
+	if (existingRequest) return existingRequest;
+
+	const request = fetchSchedulerLatestSlot(processId, variant);
+	schedulerLatestSlotRequests.set(requestKey, request);
+
+	const clearRequest = () => {
+		if (schedulerLatestSlotRequests.get(requestKey) === request) {
+			schedulerLatestSlotRequests.delete(requestKey);
+		}
+	};
+	request.then(clearRequest, clearRequest);
+
+	return request;
 }
 
 async function fetchSchedulerProcessMessagePage(args: {
@@ -372,31 +391,25 @@ function Message(props: {
 
 	const [result, setResult] = React.useState<any>(null);
 	const [showViewResult, setShowViewResult] = React.useState<boolean>(false);
-	const [filterMessage, setFilterMessage] = React.useState<boolean>(false);
 
 	const hasAoMessageTags = isAoMessageTransaction(props.element.node?.tags);
 	const isAoResultMessage = Boolean(props.showResultMessageLabel && props.variant);
 	const isAoMessage = hasAoMessageTags || isAoResultMessage;
 	const shouldUseMessageActionFallback = !isMessageElement(props.element.node?.tags, isAoResultMessage);
 	const canFetchAoResult = isAoMessage && !!props.element.node.recipient;
-
-	React.useEffect(() => {
-		if (props.element && props.variant === MessageVariantEnum.Legacynet) {
-			const fromProcess = getTagValue(props.element.node?.tags, 'From-Process');
-
-			if (
-				!props.showFilteredMessages &&
-				fromProcess &&
-				!isTrustedLegacyAuthority(props.element.node?.owner?.address, props.element.node?.block?.height)
-			) {
-				setFilterMessage(true);
-			}
-		}
-	}, [props.element]);
+	const isSpamMessage = Boolean(
+		!props.showFilteredMessages &&
+			isLegacyMessageSpam({
+				variant: props.variant,
+				tags: props.element.node?.tags,
+				ownerAddress: props.element.node?.owner?.address,
+				blockHeight: props.element.node?.block?.height,
+			})
+	);
 
 	React.useEffect(() => {
 		(async function () {
-			if ((open || showViewResult) && !result && !filterMessage && canFetchAoResult) {
+			if ((open || showViewResult) && !result && canFetchAoResult) {
 				let processId: string = props.element.node.recipient;
 				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
 
@@ -443,11 +456,11 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [open, result, showViewResult, props.currentFilter, filterMessage, canFetchAoResult]);
+	}, [open, result, showViewResult, props.currentFilter, canFetchAoResult]);
 
 	React.useEffect(() => {
 		(async function () {
-			if (!data && showViewData && !filterMessage) {
+			if (!data && showViewData) {
 				try {
 					const messageFetch = await fetch(getTxEndpoint(props.element.node.id));
 					const rawMessage = await messageFetch.text();
@@ -479,7 +492,7 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [data, showViewData, filterMessage]);
+	}, [data, showViewData]);
 
 	const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
 	const filteredTags =
@@ -782,6 +795,7 @@ function Message(props: {
 	}
 
 	function getTransactionTypeLabel() {
+		if (isSpamMessage) return language.markedAsSpam;
 		if (!isAoMessage) return language.transaction;
 
 		const variant = getTagValue(props.element.node.tags, TAGS.keys.variant) ?? props.variant;
@@ -807,23 +821,7 @@ function Message(props: {
 		navigate(`${URLS.explorer}${props.element.node.id}`);
 	}
 
-	return filterMessage ? (
-		<S.ElementWrapper
-			key={props.element.node.id}
-			className={'message-list-element'}
-			onClick={() => {}}
-			disabled={true}
-			clickable={false}
-			open={false}
-			lastChild={props.lastChild}
-			$nestingLevel={(props.nestingLevel ?? 0) + 1}
-			style={{ pointerEvents: 'none' }}
-		>
-			<S.InfoWrapper>
-				<p>Message marked as spam</p>
-			</S.InfoWrapper>
-		</S.ElementWrapper>
-	) : (
+	return (
 		<>
 			<S.ElementWrapper
 				key={props.element.node.id}
@@ -835,6 +833,7 @@ function Message(props: {
 				lastChild={props.lastChild}
 				childList={props.childList}
 				$nestingLevel={(props.nestingLevel ?? 0) + 1}
+				$spam={isSpamMessage}
 			>
 				<S.ID>{getID()}</S.ID>
 				<S.TypeValue>
@@ -1191,6 +1190,7 @@ export default function MessageList(props: {
 	const schedulerPageSizeValidationCandidate = Boolean(isProcessRoot && !hasAppliedMessageFilters);
 	const hasSchedulerVariant =
 		props.variant === MessageVariantEnum.Legacynet || props.variant === MessageVariantEnum.Mainnet;
+	const useSchedulerForIncomingCount = Boolean(isProcessRoot && !hasAppliedMessageFilters && hasSchedulerVariant);
 	const useSchedulerForProcessMessages = Boolean(
 		schedulerCandidateForCurrentFilters && hasSchedulerVariant && !schedulerFallbackActive
 	);
@@ -1639,12 +1639,10 @@ export default function MessageList(props: {
 	}, [currentFilter, currentAction, currentVariant, recipient, fromAddress, startDate, endDate, perPage]);
 
 	React.useEffect(() => {
+		let cancelled = false;
+
 		(async function () {
 			if (props.type === 'wallet') return;
-			if (schedulerCandidateForCurrentFilters && !schedulerFallbackActive) {
-				setOutgoingCount(null);
-				return;
-			}
 
 			const baseTags = [];
 			if (appliedAction) baseTags.push({ name: 'Action', values: [appliedAction] });
@@ -1703,17 +1701,32 @@ export default function MessageList(props: {
 						);
 					}
 
-					const [gqlResponseIncoming, gqlResponseOutgoing] = await Promise.all([
-						permawebProvider.libs.getGQLData(withProcessMessageGateway(incomingQueryArgs)),
+					const [nextIncomingCount, gqlResponseOutgoing] = await Promise.all([
+						useSchedulerForIncomingCount
+							? getSchedulerLatestSlot(props.txId, props.variant)
+									.then((latestSlot) => getSchedulerTotalCount(latestSlot, props.variant))
+									.catch((e) => {
+										console.warn('Scheduler count request failed', e);
+										return null;
+									})
+							: permawebProvider.libs
+									.getGQLData(withProcessMessageGateway(incomingQueryArgs))
+									.then((response) => response.count),
 						permawebProvider.libs.getGQLData(withProcessMessageGateway(outgoingQueryArgs)),
 					]);
-					setIncomingCount(gqlResponseIncoming.count);
+					if (cancelled) return;
+
+					if (nextIncomingCount !== null) setIncomingCount(nextIncomingCount);
 					setOutgoingCount(gqlResponseOutgoing.count);
 				} catch (e: any) {
 					console.error(e);
 				}
 			}
 		})();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [
 		appliedAction,
 		appliedEndDate,
@@ -1725,9 +1738,8 @@ export default function MessageList(props: {
 		props.txId,
 		props.type,
 		props.variant,
-		schedulerCandidateForCurrentFilters,
-		schedulerFallbackActive,
 		toggleFilterChange,
+		useSchedulerForIncomingCount,
 	]);
 
 	React.useEffect(() => {

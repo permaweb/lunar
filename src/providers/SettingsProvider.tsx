@@ -163,6 +163,7 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings());
 	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
 	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
+	const [legacyComputeNodeInput, setLegacyComputeNodeInput] = React.useState<string>(settings.legacyComputeNode);
 	const [addingNodeUrl, setAddingNodeUrl] = React.useState<string | null>(null);
 	const pendingNodeUrlsRef = React.useRef<Set<string>>(new Set());
 
@@ -405,7 +406,16 @@ export function SettingsProvider(props: SettingsProviderProps) {
 	}
 
 	function handleLegacyComputeNodeChange(e: React.ChangeEvent<HTMLInputElement>) {
-		updateSettings('legacyComputeNode', e.target.value);
+		setLegacyComputeNodeInput(e.target.value);
+	}
+
+	function handleLegacyComputeNodeBlur() {
+		if (
+			legacyComputeNodeInput !== settings.legacyComputeNode &&
+			(!legacyComputeNodeInput || validateUrl(legacyComputeNodeInput))
+		) {
+			updateSettings('legacyComputeNode', legacyComputeNodeInput);
+		}
 	}
 
 	return (
@@ -477,10 +487,11 @@ export function SettingsProvider(props: SettingsProviderProps) {
 								<FormField
 									label={'Legacy Compute Node'}
 									placeholder={DEFAULT_LEGACY_CU_URL}
-									value={settings.legacyComputeNode}
+									value={legacyComputeNodeInput}
 									onChange={handleLegacyComputeNodeChange}
+									onBlur={handleLegacyComputeNodeBlur}
 									invalid={{
-										status: settings.legacyComputeNode ? !validateUrl(settings.legacyComputeNode) : false,
+										status: legacyComputeNodeInput ? !validateUrl(legacyComputeNodeInput) : false,
 										message: null,
 									}}
 									disabled={false}
