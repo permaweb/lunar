@@ -3,7 +3,7 @@ import { Types } from '@permaweb/libs';
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
 import { readAoBalance } from './balances';
-import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS, PROCESSES } from './config';
+import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint, getTxEndpoint } from './endpoints';
 import { MessageVariantEnum, SearchTxArgs, TagType } from './types';
 import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse, normalizeTagKeys } from './utils';

@@ -1,6 +1,7 @@
 import { ViewWrapper } from 'app/styles';
 import { ViewHeader } from 'components/atoms/ViewHeader';
 import { MessageList } from 'components/molecules/MessageList';
+import { FLAGS } from 'helpers/config';
 import { MessageVariantEnum } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -53,18 +54,22 @@ export default function Landing() {
 						</S.BodyFlexConnection>
 					</S.BodyFlexWrapper>
 				</ViewWrapper>
-				<ViewWrapper>
-					<S.DividerWrapper>
-						<div className={'landing-divider'} />
-						<span>{language.availableNodes}</span>
-						<div className={'landing-divider'} />
-					</S.DividerWrapper>
-				</ViewWrapper>
-				<ViewWrapper>
-					<S.NodesWrapper>
-						<Nodes />
-					</S.NodesWrapper>
-				</ViewWrapper>
+				{FLAGS.SHOW_AVAILABLE_NODES && (
+					<>
+						<ViewWrapper>
+							<S.DividerWrapper>
+								<div className={'landing-divider'} />
+								<span>{language.availableNodes}</span>
+								<div className={'landing-divider'} />
+							</S.DividerWrapper>
+						</ViewWrapper>
+						<ViewWrapper>
+							<S.NodesWrapper>
+								<Nodes />
+							</S.NodesWrapper>
+						</ViewWrapper>
+					</>
+				)}
 				<ViewWrapper>
 					<S.DividerWrapper>
 						<div className={'landing-divider'} />

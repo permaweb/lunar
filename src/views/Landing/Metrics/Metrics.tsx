@@ -10,7 +10,16 @@ type MetricsSection = 'arweave-txs' | 'arweave' | 'legacynet' | 'mainnet';
 
 let metricsRequest: Promise<NetworkMetricsSnapshot> | null = null;
 let metricsSnapshot: NetworkMetricsSnapshot | null = null;
+let metricsCachedAt: number | null = null;
 let metricsError: string | null = null;
+
+type MetricsCache = {
+	cachedAt: number;
+	snapshot: NetworkMetricsSnapshot;
+};
+
+const METRICS_CACHE_KEY = 'lunar-network-metrics';
+const METRICS_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 const METRICS_SOURCES = [
 	{ label: 'AO process', url: getMetricsEndpoint() },
@@ -29,6 +38,71 @@ function normalizeMetricsSnapshot(payload: any, sourceLabel: string): NetworkMet
 		generatedAt,
 		history: Array.isArray(payload.history) ? payload.history : [],
 	} as NetworkMetricsSnapshot;
+}
+
+function getMetricsStorage(): Storage | null {
+	try {
+		return typeof window !== 'undefined' ? window.localStorage : null;
+	} catch {
+		return null;
+	}
+}
+
+function clearStoredMetrics() {
+	try {
+		getMetricsStorage()?.removeItem(METRICS_CACHE_KEY);
+	} catch {
+		// Ignore storage errors; metrics can still be fetched normally.
+	}
+}
+
+function readMetricsCache(): NetworkMetricsSnapshot | null {
+	const now = Date.now();
+
+	if (metricsSnapshot && metricsCachedAt !== null && now - metricsCachedAt < METRICS_CACHE_TTL) {
+		return metricsSnapshot;
+	}
+
+	metricsSnapshot = null;
+	metricsCachedAt = null;
+
+	let storedCache: string | null | undefined;
+	try {
+		storedCache = getMetricsStorage()?.getItem(METRICS_CACHE_KEY);
+	} catch {
+		return null;
+	}
+
+	if (!storedCache) return null;
+
+	try {
+		const parsedCache = JSON.parse(storedCache) as MetricsCache;
+		const cachedAt = Number(parsedCache?.cachedAt);
+
+		if (!Number.isFinite(cachedAt) || now - cachedAt >= METRICS_CACHE_TTL) {
+			clearStoredMetrics();
+			return null;
+		}
+
+		metricsSnapshot = normalizeMetricsSnapshot(parsedCache.snapshot, 'Cached metrics');
+		metricsCachedAt = cachedAt;
+		return metricsSnapshot;
+	} catch {
+		clearStoredMetrics();
+		return null;
+	}
+}
+
+function writeMetricsCache(snapshot: NetworkMetricsSnapshot) {
+	const cache: MetricsCache = { cachedAt: Date.now(), snapshot };
+	metricsSnapshot = snapshot;
+	metricsCachedAt = cache.cachedAt;
+
+	try {
+		getMetricsStorage()?.setItem(METRICS_CACHE_KEY, JSON.stringify(cache));
+	} catch {
+		// The in-memory cache still prevents duplicate requests during this page session.
+	}
 }
 
 async function fetchMetricsFromSource(source: (typeof METRICS_SOURCES)[number]) {
@@ -56,10 +130,14 @@ async function requestMetrics() {
 }
 
 function fetchMetrics() {
+	const cachedSnapshot = readMetricsCache();
+	if (cachedSnapshot) return Promise.resolve(cachedSnapshot);
+
 	if (!metricsRequest) {
 		metricsRequest = requestMetrics()
 			.then((snapshot) => {
-				metricsSnapshot = snapshot;
+				writeMetricsCache(snapshot);
+				metricsRequest = null;
 				metricsError = null;
 				return snapshot;
 			})
@@ -74,14 +152,15 @@ function fetchMetrics() {
 }
 
 function useMetrics() {
-	const [snapshot, setSnapshot] = React.useState<NetworkMetricsSnapshot | null>(() => metricsSnapshot);
+	const [snapshot, setSnapshot] = React.useState<NetworkMetricsSnapshot | null>(() => readMetricsCache());
 	const [error, setError] = React.useState<string | null>(() => metricsError);
 
 	React.useEffect(() => {
 		let cancelled = false;
 
-		if (metricsSnapshot) {
-			setSnapshot(metricsSnapshot);
+		const cachedSnapshot = readMetricsCache();
+		if (cachedSnapshot) {
+			setSnapshot(cachedSnapshot);
 			setError(null);
 			return;
 		}
@@ -296,7 +375,7 @@ export default function Metrics(props: { section: MetricsSection; gridTemplate: 
 
 	return (
 		<S.Wrapper gridTemplate={props.gridTemplate}>
-			{CHARTS[props.section].map((chart, index) => (
+			{CHARTS[props.section].map((chart) => (
 				<MetricChart
 					key={chart.chartLabel}
 					chartType={chart.chartType}
@@ -307,7 +386,7 @@ export default function Metrics(props: { section: MetricsSection; gridTemplate: 
 					totalLabel={chart.totalLabel}
 					valueFormatter={chart.valueFormatter}
 					valueScale={chart.valueScale}
-					loadingDelay={1000 + index * 125}
+					loadingDelay={0}
 				/>
 			))}
 		</S.Wrapper>

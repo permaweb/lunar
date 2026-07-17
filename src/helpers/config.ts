@@ -3,7 +3,7 @@ function getAssetEndpoint(filename: string) {
 }
 
 export const DEFAULT_AO_NODE = {
-	url: 'https://push.forward.computer',
+	url: 'https://app-1.forward.computer',
 	authority: 'YUsEnCSlxvOMxRd1qG6rkaPwMgi3xOorfDfYJoMDndA',
 	scheduler: 'n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo',
 };
@@ -34,7 +34,7 @@ export const DEFAULT_GATEWAYS = {
 export const PROCESSES = {
 	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
 	pi: '4hXj_E-5fAKmo4E8KjgQvuDJKAFk9P2grhycVmISDLs',
-	metrics: 'TI6hUC78gMkPdosyJ9D0KuVQv1UgOcWTRdzgoh0W54w',
+	metrics: 's2ZVlUpKhpuYrE8TkRmj9wtFCJr2QToQCw2Z0PsMZ6s',
 };
 
 export const TOKEN_DENOMINATIONS = {
@@ -182,6 +182,7 @@ export const FLAGS = {
 	CONTROL_PAGINATION: false,
 	USE_GATEWAY_BUNDLE_REQUEST: false,
 	USE_TX_CACHE: true,
+	SHOW_AVAILABLE_NODES: false,
 };
 
 export const DOM = {
