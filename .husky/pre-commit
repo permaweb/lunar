@@ -5,10 +5,10 @@
 ext='\.(js|jsx|ts|tsx|css|json|md)$'
 
 # Get all staged files, filter by ext, skip deletions
-staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E "$ext")
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E "$ext" || true)
 
 if [ -n "$staged" ]; then
-  echo "✨ Formatting staged files..."
+  echo "Formatting staged files..."
   echo "$staged"
 
   # Run prettier on them
@@ -16,4 +16,6 @@ if [ -n "$staged" ]; then
 
   # Re-add any formatting changes:
   echo "$staged" | xargs git add
+else
+  echo "No files to format"
 fi
