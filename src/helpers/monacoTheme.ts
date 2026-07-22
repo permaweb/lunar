@@ -120,7 +120,11 @@ export function defineMonacoTheme(monaco: any, theme: DefaultTheme) {
 		'editorSuggestWidget.border': editorBorder,
 		'editorSuggestWidget.highlightForeground': theme.colors.editor.alt1,
 		'editorSuggestWidget.focusHighlightForeground': theme.colors.editor.alt1,
-		'editorSuggestWidget.selectedBackground': editorActiveBackground,
+		'editorSuggestWidget.selectedBackground': hexWithAlpha(
+			theme.colors.container.alt2.background,
+			0.5,
+			editorBackground
+		),
 		'editorSuggestWidget.selectedForeground': editorForeground,
 		'input.background': editorBackground,
 		'input.foreground': editorForeground,

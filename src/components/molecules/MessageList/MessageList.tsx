@@ -26,6 +26,7 @@ import {
 	DEFAULT_SCHEDULER_URL,
 	FLAGS,
 	MINT_ACTIONS,
+	PROCESSES,
 	STORAGE,
 	TAGS,
 	URLS,
@@ -72,7 +73,12 @@ const DEFAULT_RESULTS_PER_PAGE = 25;
 const SCHEDULER_PAGE_SIZE_LIMIT = 1000;
 const SCHEDULER_PAGE_CURSOR_PREFIX = 'scheduler-page:';
 const schedulerLatestSlotRequests = new Map<string, Promise<number>>();
+type WalletTransactionTypeFilter = 'all' | 'ao' | 'transaction';
+type WalletTransferFilter = 'all' | 'ar' | 'ao-token' | 'ao-network';
+
 const MESSAGE_QUERY_KEYS = {
+	type: 'messageType',
+	transfer: 'messageTransfer',
 	direction: 'messageDirection',
 	action: 'messageAction',
 	variant: 'messageVariant',
@@ -91,6 +97,28 @@ function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
 
 function isAoMessageTransaction(tags: any[] | undefined) {
 	return tagValueEquals(tags, 'Data-Protocol', 'ao') && tagValueEquals(tags, TAGS.keys.type, 'Message');
+}
+
+function isAoActionTransfer(transaction: any) {
+	return (
+		isAoMessageTransaction(transaction?.tags) &&
+		tagValueEquals(transaction?.tags, 'Action', DEFAULT_ACTIONS.transfer.name)
+	);
+}
+
+function isAoTokenTransfer(transaction: any) {
+	if (!isAoActionTransfer(transaction)) return false;
+
+	const tags = transaction?.tags ?? [];
+	const processReferences = [
+		transaction?.recipient,
+		getTagValue(tags, 'Target'),
+		getTagValue(tags, 'From-Process'),
+		getTagValue(tags, 'Token-Process'),
+		getTagValue(tags, 'Token'),
+	];
+
+	return processReferences.includes(PROCESSES.ao);
 }
 
 function isMessageElement(tags: any[] | undefined, isAoResultMessage: boolean) {
@@ -536,6 +564,8 @@ function Message(props: {
 	}
 
 	function getActionBackground() {
+		if (isNativeArTransfer(props.element.node)) return currentTheme.colors.actions.arTransfer;
+
 		const action = getActionLabel();
 
 		if (action.toLowerCase().includes('error')) {
@@ -899,6 +929,18 @@ function normalizeVariantFilter(variant: any): MessageVariantEnum | null {
 	return null;
 }
 
+function normalizeWalletTransactionTypeFilter(value: any): WalletTransactionTypeFilter {
+	if (value === 'ao' || value === 'transaction') return value;
+
+	return 'all';
+}
+
+function normalizeWalletTransferFilter(value: any): WalletTransferFilter {
+	if (value === 'ar' || value === 'ao-token' || value === 'ao-network') return value;
+
+	return 'all';
+}
+
 function normalizePerPageFilter(perPage: any) {
 	const parsed = Number(perPage);
 
@@ -934,6 +976,8 @@ function formatDateFilter(date: { year: number; month: number; day: number } | n
 }
 
 function getMessageQueryState(searchParams: URLSearchParams) {
+	const typeFilter = normalizeWalletTransactionTypeFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.type));
+	const transferFilter = normalizeWalletTransferFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.transfer));
 	const direction = normalizeDirectionFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.direction));
 	const action = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.action);
 	const variant = normalizeVariantFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.variant));
@@ -948,6 +992,8 @@ function getMessageQueryState(searchParams: URLSearchParams) {
 
 	return {
 		hasQuery: hasQuery,
+		typeFilter: typeFilter,
+		transferFilter: transferFilter,
 		filter: direction,
 		action: action,
 		variant: variant,
@@ -1065,6 +1111,8 @@ export default function MessageList(props: {
 				if (saved) {
 					const parsed = JSON.parse(saved);
 					return {
+						typeFilter: normalizeWalletTransactionTypeFilter(parsed.typeFilter),
+						transferFilter: normalizeWalletTransferFilter(parsed.transferFilter),
 						filter: parsed.filter,
 						action: parsed.action || null,
 						variant: normalizeVariantFilter(parsed.variant),
@@ -1092,14 +1140,33 @@ export default function MessageList(props: {
 			}),
 		[props.type, props.txId, props.childList, props.result]
 	);
+	const initialTypeFilter =
+		props.type === 'wallet'
+			? normalizeWalletTransactionTypeFilter(initialFilterState?.typeFilter)
+			: ('all' as WalletTransactionTypeFilter);
+	const requestedInitialTransferFilter =
+		props.type === 'wallet'
+			? normalizeWalletTransferFilter(initialFilterState?.transferFilter)
+			: ('all' as WalletTransferFilter);
+	const initialTransferFilter =
+		(initialTypeFilter === 'transaction' && requestedInitialTransferFilter.startsWith('ao-')) ||
+		(initialTypeFilter === 'ao' && requestedInitialTransferFilter === 'ar')
+			? 'all'
+			: requestedInitialTransferFilter;
+	const initialAction =
+		initialTypeFilter === 'transaction' || initialTransferFilter !== 'all' ? null : initialFilterState?.action ?? null;
+	const initialVariant =
+		initialTypeFilter === 'transaction' || initialTransferFilter === 'ar' ? null : initialFilterState?.variant ?? null;
 
 	const [currentFilter, setCurrentFilter] = React.useState<MessageFilterType>(
 		props.currentFilter ?? initialFilterState?.filter ?? defaultFilter
 	);
-	const [currentAction, setCurrentAction] = React.useState<string | null>(initialFilterState?.action ?? null);
-	const [currentVariant, setCurrentVariant] = React.useState<MessageVariantEnum | null>(
-		initialFilterState?.variant ?? null
+	const [currentTypeFilter, setCurrentTypeFilter] = React.useState<WalletTransactionTypeFilter>(initialTypeFilter);
+	const [currentTransferFilter, setCurrentTransferFilter] = React.useState<WalletTransferFilter>(
+		initialTransferFilter as WalletTransferFilter
 	);
+	const [currentAction, setCurrentAction] = React.useState<string | null>(initialAction);
+	const [currentVariant, setCurrentVariant] = React.useState<MessageVariantEnum | null>(initialVariant);
 	const [actionOptions, setActionOptions] = React.useState<string[]>(() => {
 		const defaultActions = Object.keys(DEFAULT_ACTIONS).map((action) => DEFAULT_ACTIONS[action].name);
 		try {
@@ -1150,10 +1217,12 @@ export default function MessageList(props: {
 	const [showEndCalendar, setShowEndCalendar] = React.useState<boolean>(false);
 
 	// Applied filter states (only updated when "Apply Filters" is clicked)
-	const [appliedAction, setAppliedAction] = React.useState<string | null>(initialFilterState?.action ?? null);
-	const [appliedVariant, setAppliedVariant] = React.useState<MessageVariantEnum | null>(
-		initialFilterState?.variant ?? null
+	const [appliedTypeFilter, setAppliedTypeFilter] = React.useState<WalletTransactionTypeFilter>(initialTypeFilter);
+	const [appliedTransferFilter, setAppliedTransferFilter] = React.useState<WalletTransferFilter>(
+		initialTransferFilter as WalletTransferFilter
 	);
+	const [appliedAction, setAppliedAction] = React.useState<string | null>(initialAction);
+	const [appliedVariant, setAppliedVariant] = React.useState<MessageVariantEnum | null>(initialVariant);
 	const [appliedRecipient, setAppliedRecipient] = React.useState<string>(initialFilterState?.recipient ?? '');
 	const [appliedFromAddress, setAppliedFromAddress] = React.useState<string>(initialFilterState?.fromAddress ?? '');
 	const [appliedFromAddressIsProcess, setAppliedFromAddressIsProcess] = React.useState<boolean>(false);
@@ -1176,7 +1245,9 @@ export default function MessageList(props: {
 	}, [perPageInput]);
 	const usingCustomPerPage = parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE;
 	const hasAppliedMessageFilters = Boolean(
-		appliedAction ||
+		appliedTypeFilter !== 'all' ||
+			appliedTransferFilter !== 'all' ||
+			appliedAction ||
 			appliedVariant ||
 			(appliedRecipient && checkValidAddress(appliedRecipient)) ||
 			(appliedFromAddress && checkValidAddress(appliedFromAddress)) ||
@@ -1195,7 +1266,9 @@ export default function MessageList(props: {
 		schedulerCandidateForCurrentFilters && hasSchedulerVariant && !schedulerFallbackActive
 	);
 	const hasDraftMessageFilters = Boolean(
-		currentAction ||
+		currentTypeFilter !== 'all' ||
+			currentTransferFilter !== 'all' ||
+			currentAction ||
 			currentVariant ||
 			(recipient && checkValidAddress(recipient)) ||
 			(fromAddress && checkValidAddress(fromAddress)) ||
@@ -1217,6 +1290,11 @@ export default function MessageList(props: {
 		validateSchedulerPageSize && parsedPerPageInput !== null && parsedPerPageInput > SCHEDULER_PAGE_SIZE_LIMIT
 	);
 	const invalidPerPage = parsedPerPageInput === null || schedulerPageSizeTooLarge;
+	const transactionTypeSelected = props.type === 'wallet' && currentTypeFilter === 'transaction';
+	const arTransferSelected = props.type === 'wallet' && currentTransferFilter === 'ar';
+	const transferFilterSelected = props.type === 'wallet' && currentTransferFilter !== 'all';
+	const actionFiltersDisabled = transactionTypeSelected || transferFilterSelected;
+	const variantFiltersDisabled = transactionTypeSelected || arTransferSelected;
 	const showLargeFetchWarning =
 		!validateSchedulerPageSize && parsedPerPageInput !== null && parsedPerPageInput > GQL_PAGE_CHUNK_SIZE;
 	const perPageValidationMessage = schedulerPageSizeTooLarge
@@ -1249,9 +1327,24 @@ export default function MessageList(props: {
 		skipNextQueryWriteRef.current = true;
 
 		const nextFilter = props.currentFilter ?? queryFilterState.filter ?? defaultFilter;
+		const nextTypeFilter =
+			props.type === 'wallet' ? normalizeWalletTransactionTypeFilter(queryFilterState.typeFilter) : 'all';
+		const requestedNextTransferFilter =
+			props.type === 'wallet' ? normalizeWalletTransferFilter(queryFilterState.transferFilter) : 'all';
+		const nextTransferFilter =
+			(nextTypeFilter === 'transaction' && requestedNextTransferFilter.startsWith('ao-')) ||
+			(nextTypeFilter === 'ao' && requestedNextTransferFilter === 'ar')
+				? 'all'
+				: requestedNextTransferFilter;
+		const nextAction =
+			nextTypeFilter === 'transaction' || nextTransferFilter !== 'all' ? null : queryFilterState.action;
+		const nextVariant =
+			nextTypeFilter === 'transaction' || nextTransferFilter === 'ar' ? null : queryFilterState.variant;
 		const queryHasMessageFilters = Boolean(
-			queryFilterState.action ||
-				queryFilterState.variant ||
+			nextTypeFilter !== 'all' ||
+				nextTransferFilter !== 'all' ||
+				nextAction ||
+				nextVariant ||
 				(queryFilterState.recipient && checkValidAddress(queryFilterState.recipient)) ||
 				(queryFilterState.fromAddress && checkValidAddress(queryFilterState.fromAddress)) ||
 				queryFilterState.startDate ||
@@ -1270,10 +1363,14 @@ export default function MessageList(props: {
 		const nextPerPage = shouldCapQueryPerPage ? SCHEDULER_PAGE_SIZE_LIMIT.toString() : queryFilterState.perPage;
 
 		setCurrentFilter(nextFilter);
-		setCurrentAction(queryFilterState.action);
-		setAppliedAction(queryFilterState.action);
-		setCurrentVariant(queryFilterState.variant);
-		setAppliedVariant(queryFilterState.variant);
+		setCurrentTypeFilter(nextTypeFilter);
+		setAppliedTypeFilter(nextTypeFilter);
+		setCurrentTransferFilter(nextTransferFilter);
+		setAppliedTransferFilter(nextTransferFilter);
+		setCurrentAction(nextAction);
+		setAppliedAction(nextAction);
+		setCurrentVariant(nextVariant);
+		setAppliedVariant(nextVariant);
 		setRecipient(queryFilterState.recipient);
 		setAppliedRecipient(queryFilterState.recipient);
 		setFromAddress(queryFilterState.fromAddress);
@@ -1309,6 +1406,9 @@ export default function MessageList(props: {
 		const fromAffectsQuery = currentFilter === 'incoming' && !!props.txId;
 
 		updateSearchParams(routeSearchParams, setSearchParams, {
+			[MESSAGE_QUERY_KEYS.type]: props.type === 'wallet' && appliedTypeFilter !== 'all' ? appliedTypeFilter : null,
+			[MESSAGE_QUERY_KEYS.transfer]:
+				props.type === 'wallet' && appliedTransferFilter !== 'all' ? appliedTransferFilter : null,
 			[MESSAGE_QUERY_KEYS.direction]: directionAffectsQuery ? currentFilter : null,
 			[MESSAGE_QUERY_KEYS.action]: appliedAction,
 			[MESSAGE_QUERY_KEYS.variant]: appliedVariant,
@@ -1322,6 +1422,8 @@ export default function MessageList(props: {
 			[MESSAGE_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
 		});
 	}, [
+		appliedTypeFilter,
+		appliedTransferFilter,
 		appliedAction,
 		appliedEndDate,
 		appliedFromAddress,
@@ -1359,6 +1461,30 @@ export default function MessageList(props: {
 		}
 	}
 
+	function getWalletTypeFilterLabel(typeFilter: WalletTransactionTypeFilter) {
+		switch (typeFilter) {
+			case 'ao':
+				return 'AO';
+			case 'transaction':
+				return language.transactions;
+			default:
+				return language.all;
+		}
+	}
+
+	function getWalletTransferFilterLabel(transferFilter: WalletTransferFilter) {
+		switch (transferFilter) {
+			case 'ar':
+				return 'AR Token';
+			case 'ao-token':
+				return 'AO Token';
+			case 'ao-network':
+				return 'AO Network';
+			default:
+				return language.all;
+		}
+	}
+
 	function buildQueryTags(tags: { name: string; values: string[] }[]) {
 		const nextTags = appliedVariant ? [...tags, { name: 'Variant', values: [appliedVariant] }] : [...tags];
 		const variantForQuery = appliedVariant ?? props.variant;
@@ -1376,8 +1502,36 @@ export default function MessageList(props: {
 		return props.type === 'process' ? { ...args, gateway: DEFAULT_GATEWAYS.legacy } : args;
 	}
 
-	function withProcessMessageTags(tags: { name: string; values: string[] }[]) {
-		return props.type === 'process' ? [...DEFAULT_MESSAGE_TAGS, ...tags] : tags;
+	function withRequiredMessageTags(tags: { name: string; values: string[] }[]) {
+		const aoTransferFilter = appliedTransferFilter === 'ao-token' || appliedTransferFilter === 'ao-network';
+
+		if (props.type === 'process' || (props.type === 'wallet' && (appliedTypeFilter === 'ao' || aoTransferFilter))) {
+			return [...DEFAULT_MESSAGE_TAGS, ...tags];
+		}
+
+		return tags;
+	}
+
+	function getAppliedActionTags() {
+		const action =
+			appliedTransferFilter === 'ao-token' || appliedTransferFilter === 'ao-network'
+				? DEFAULT_ACTIONS.transfer.name
+				: appliedAction;
+
+		return action ? [{ name: 'Action', values: [action] }] : [];
+	}
+
+	function matchesAppliedTransferFilter(transaction: any) {
+		switch (appliedTransferFilter) {
+			case 'ar':
+				return isNativeArTransfer(transaction);
+			case 'ao-token':
+				return isAoTokenTransfer(transaction);
+			case 'ao-network':
+				return isAoActionTransfer(transaction);
+			default:
+				return true;
+		}
 	}
 
 	async function timestampToBlockHeight(timestamp: number): Promise<number> {
@@ -1431,6 +1585,8 @@ export default function MessageList(props: {
 		if (filterStorageKey) {
 			try {
 				const filterState = {
+					typeFilter: currentTypeFilter,
+					transferFilter: currentTransferFilter,
 					filter: currentFilter,
 					action: currentAction,
 					variant: currentVariant,
@@ -1451,7 +1607,7 @@ export default function MessageList(props: {
 		switch (props.type) {
 			case 'process':
 			case 'message':
-				let tags = withProcessMessageTags(outgoingTags);
+				let tags = withRequiredMessageTags(outgoingTags);
 
 				tags.push({ name: 'From-Process', values: [props.txId] });
 
@@ -1461,7 +1617,7 @@ export default function MessageList(props: {
 				};
 			case 'wallet':
 				return {
-					...getQueryTagsArg(outgoingTags),
+					...getQueryTagsArg(withRequiredMessageTags(outgoingTags)),
 					owners: [props.txId],
 				};
 		}
@@ -1469,6 +1625,9 @@ export default function MessageList(props: {
 
 	async function fetchGqlDataPage(queryArgs: any, amount: number) {
 		const { cursor: initialCursor, paginator: _paginator, ...baseArgs } = queryArgs;
+		const excludeAoMessages = props.type === 'wallet' && appliedTypeFilter === 'transaction';
+		const filterTransfers = props.type === 'wallet' && appliedTransferFilter !== 'all';
+		const filtersRowsClientSide = excludeAoMessages || filterTransfers;
 		const rows: any[] = [];
 		let cursor: string | null = initialCursor ?? null;
 		let nextCursorValue: string | null = null;
@@ -1483,11 +1642,16 @@ export default function MessageList(props: {
 				})
 			);
 			const pageRows = response?.data ?? [];
+			const matchingRows = pageRows.filter((row: any) => {
+				if (excludeAoMessages && isAoMessageTransaction(row?.node?.tags)) return false;
+
+				return !filterTransfers || matchesAppliedTransferFilter(row?.node);
+			});
 			const responseNextCursor = response?.nextCursor && response.nextCursor !== 'END' ? response.nextCursor : null;
 
-			if (count === null && response?.count !== undefined) count = response.count;
+			if (!filtersRowsClientSide && count === null && response?.count !== undefined) count = response.count;
 
-			rows.push(...pageRows);
+			rows.push(...matchingRows);
 			nextCursorValue = responseNextCursor;
 
 			if (pageRows.length <= 0 || !responseNextCursor) break;
@@ -1502,8 +1666,7 @@ export default function MessageList(props: {
 	}
 
 	async function getMessagePageQueryArgs(cursor: string | null) {
-		let tags = [];
-		if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+		let tags = getAppliedActionTags();
 		const cursorArg = cursor ? { cursor: cursor } : {};
 
 		if (props.txId) {
@@ -1512,7 +1675,7 @@ export default function MessageList(props: {
 			switch (currentFilter) {
 				case 'incoming': {
 					let incomingQueryArgs: any = {
-						...getQueryTagsArg(withProcessMessageTags(tags)),
+						...getQueryTagsArg(withRequiredMessageTags(tags)),
 						recipients: [props.txId],
 						...cursorArg,
 						// sort: 'descending',
@@ -1523,7 +1686,7 @@ export default function MessageList(props: {
 							incomingQueryArgs = {
 								...incomingQueryArgs,
 								...getQueryTagsArg([
-									...withProcessMessageTags(tags),
+									...withRequiredMessageTags(tags),
 									{ name: 'From-Process', values: [appliedFromAddress] },
 								]),
 							};
@@ -1636,7 +1799,18 @@ export default function MessageList(props: {
 	// Save filter state whenever it changes
 	React.useEffect(() => {
 		saveFilterState();
-	}, [currentFilter, currentAction, currentVariant, recipient, fromAddress, startDate, endDate, perPage]);
+	}, [
+		currentTypeFilter,
+		currentTransferFilter,
+		currentFilter,
+		currentAction,
+		currentVariant,
+		recipient,
+		fromAddress,
+		startDate,
+		endDate,
+		perPage,
+	]);
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -1644,14 +1818,13 @@ export default function MessageList(props: {
 		(async function () {
 			if (props.type === 'wallet') return;
 
-			const baseTags = [];
-			if (appliedAction) baseTags.push({ name: 'Action', values: [appliedAction] });
+			const baseTags = getAppliedActionTags();
 
 			if (props.txId) {
 				try {
 					// Build incoming query args
 					let incomingQueryArgs: any = {
-						...getQueryTagsArg(withProcessMessageTags(baseTags)),
+						...getQueryTagsArg(withRequiredMessageTags(baseTags)),
 						recipients: [props.txId],
 					};
 
@@ -1661,7 +1834,7 @@ export default function MessageList(props: {
 							incomingQueryArgs = {
 								...incomingQueryArgs,
 								...getQueryTagsArg([
-									...withProcessMessageTags(baseTags),
+									...withRequiredMessageTags(baseTags),
 									{ name: 'From-Process', values: [appliedFromAddress] },
 								]),
 							};
@@ -1728,6 +1901,8 @@ export default function MessageList(props: {
 			cancelled = true;
 		};
 	}, [
+		appliedTypeFilter,
+		appliedTransferFilter,
 		appliedAction,
 		appliedEndDate,
 		appliedFromAddress,
@@ -1744,8 +1919,7 @@ export default function MessageList(props: {
 
 	React.useEffect(() => {
 		(async function () {
-			let tags = [];
-			if (appliedAction) tags.push({ name: 'Action', values: [appliedAction] });
+			let tags = getAppliedActionTags();
 
 			setLoadingMessages(true);
 			if (!parsedPerPage) {
@@ -1794,7 +1968,7 @@ export default function MessageList(props: {
 						switch (currentFilter) {
 							case 'incoming':
 								let incomingQueryArgs: any = {
-									...getQueryTagsArg(withProcessMessageTags(tags)),
+									...getQueryTagsArg(withRequiredMessageTags(tags)),
 									recipients: [props.txId],
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									// sort: 'descending',
@@ -1806,7 +1980,7 @@ export default function MessageList(props: {
 										incomingQueryArgs = {
 											...incomingQueryArgs,
 											...getQueryTagsArg([
-												...withProcessMessageTags(tags),
+												...withRequiredMessageTags(tags),
 												{ name: 'From-Process', values: [appliedFromAddress] },
 											]),
 										};
@@ -1978,6 +2152,8 @@ export default function MessageList(props: {
 		props.recipient,
 		props.result,
 		props.willHaveResult,
+		appliedTypeFilter,
+		appliedTransferFilter,
 		appliedAction,
 		appliedEndDate,
 		appliedFromAddress,
@@ -2172,12 +2348,38 @@ export default function MessageList(props: {
 		setCurrentAction(currentAction === action ? null : action);
 	}
 
+	function handleTypeFilterChange(typeFilter: WalletTransactionTypeFilter) {
+		setCurrentTypeFilter(typeFilter);
+
+		if (typeFilter === 'transaction') {
+			setCurrentAction(null);
+			setCurrentVariant(null);
+			setCustomAction('');
+			if (currentTransferFilter.startsWith('ao-')) setCurrentTransferFilter('all');
+		} else if (typeFilter === 'ao' && currentTransferFilter === 'ar') {
+			setCurrentTransferFilter('all');
+		}
+	}
+
+	function handleTransferFilterChange(transferFilter: WalletTransferFilter) {
+		setCurrentTransferFilter(transferFilter);
+
+		if (transferFilter !== 'all') {
+			setCurrentAction(null);
+			setCustomAction('');
+		}
+
+		if (transferFilter === 'ar') setCurrentVariant(null);
+	}
+
 	function handleFilterUpdate() {
 		if (!parsedPerPageInput || invalidPerPage) return;
 
 		// Update applied filter states
-		setAppliedAction(currentAction);
-		setAppliedVariant(currentVariant);
+		setAppliedTypeFilter(currentTypeFilter);
+		setAppliedTransferFilter(currentTransferFilter);
+		setAppliedAction(actionFiltersDisabled ? null : currentAction);
+		setAppliedVariant(variantFiltersDisabled ? null : currentVariant);
 		setAppliedRecipient(recipient);
 		setAppliedFromAddress(fromAddress);
 		setAppliedFromAddressIsProcess(fromAddressIsProcess);
@@ -2187,6 +2389,10 @@ export default function MessageList(props: {
 		setPerPageInput(parsedPerPageInput.toString());
 
 		setToggleFilterChange((prev) => !prev);
+		if (props.type === 'wallet') {
+			setIncomingCount(null);
+			setOutgoingCount(null);
+		}
 		setShowFilters(false);
 		handleClear();
 	}
@@ -2361,6 +2567,40 @@ export default function MessageList(props: {
 								<S.AppliedActionsWrapper className={'scroll-wrapper-hidden'}>
 									{!hasAppliedFilters && (
 										<Button type={'alt2'} label={'No Filters Applied'} handlePress={() => {}} disabled={true} noFocus />
+									)}
+									{props.type === 'wallet' && appliedTypeFilter !== 'all' && (
+										<Button
+											type={'alt3'}
+											label={`${language.type} (${getWalletTypeFilterLabel(appliedTypeFilter)})`}
+											handlePress={() => {
+												setCurrentTypeFilter('all');
+												setAppliedTypeFilter('all');
+												setIncomingCount(null);
+												setOutgoingCount(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
+									)}
+									{props.type === 'wallet' && appliedTransferFilter !== 'all' && (
+										<Button
+											type={'alt3'}
+											label={`${language.transfer} (${getWalletTransferFilterLabel(appliedTransferFilter)})`}
+											handlePress={() => {
+												setCurrentTransferFilter('all');
+												setAppliedTransferFilter('all');
+												setIncomingCount(null);
+												setOutgoingCount(null);
+												setToggleFilterChange((prev) => !prev);
+												handleClear();
+											}}
+											active={true}
+											disabled={loadingMessages}
+											icon={ASSETS.close}
+										/>
 									)}
 									{appliedAction && (
 										<Button
@@ -2568,8 +2808,64 @@ export default function MessageList(props: {
 				{!props.childList && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
 			</S.Container>
 			{!props.childList && showFilters && (
-				<Modal type="panel" width={515} header={language.messageFilters} handleClose={() => setShowFilters(false)}>
+				<Modal
+					type="panel"
+					width={515}
+					header={props.type === 'wallet' ? language.transactionFilters : language.messageFilters}
+					handleClose={() => setShowFilters(false)}
+				>
 					<S.FilterDropdown>
+						{props.type === 'wallet' && (
+							<>
+								<S.FilterDropdownHeader>
+									<p>{language.filterByType}</p>
+								</S.FilterDropdownHeader>
+								<S.FilterDropdownActionSelect>
+									{(['all', 'ao', 'transaction'] as WalletTransactionTypeFilter[]).map((typeFilter) => (
+										<Button
+											key={typeFilter}
+											type={'primary'}
+											label={getWalletTypeFilterLabel(typeFilter)}
+											handlePress={() => handleTypeFilterChange(typeFilter)}
+											disabled={loadingMessages}
+											active={currentTypeFilter === typeFilter}
+											height={40}
+											fullWidth
+										/>
+									))}
+								</S.FilterDropdownActionSelect>
+								<S.FilterDivider />
+								<S.FilterDropdownHeader>
+									<p>{language.filterByTransfers}</p>
+								</S.FilterDropdownHeader>
+								<S.FilterDropdownActionSelect>
+									{(['all', 'ar', 'ao-token', 'ao-network'] as WalletTransferFilter[]).map((transferFilter) => {
+										const incompatibleWithType =
+											(currentTypeFilter === 'transaction' && transferFilter.startsWith('ao-')) ||
+											(currentTypeFilter === 'ao' && transferFilter === 'ar');
+
+										return (
+											<Button
+												key={transferFilter}
+												type={'primary'}
+												label={getWalletTransferFilterLabel(transferFilter)}
+												handlePress={() => handleTransferFilterChange(transferFilter)}
+												disabled={loadingMessages || incompatibleWithType}
+												active={currentTransferFilter === transferFilter}
+												height={40}
+												fullWidth
+											/>
+										);
+									})}
+								</S.FilterDropdownActionSelect>
+								{arTransferSelected && (
+									<S.FilterWarning>
+										<p>{language.arTransferLoadWarning}</p>
+									</S.FilterWarning>
+								)}
+								<S.FilterDivider />
+							</>
+						)}
 						<S.FilterDropdownHeader>
 							<p>{language.filterByAction}</p>
 						</S.FilterDropdownHeader>
@@ -2581,7 +2877,7 @@ export default function MessageList(props: {
 										type={'primary'}
 										label={action}
 										handlePress={() => handleActionChange(action)}
-										disabled={loadingMessages}
+										disabled={loadingMessages || actionFiltersDisabled}
 										active={currentAction === action}
 										icon={currentAction === action ? ASSETS.close : null}
 										height={40}
@@ -2593,7 +2889,7 @@ export default function MessageList(props: {
 								label={language.customAction}
 								value={customAction}
 								onChange={(e: any) => setCustomAction(e.target.value)}
-								disabled={loadingMessages}
+								disabled={loadingMessages || actionFiltersDisabled}
 								invalid={{ status: actionOptions.some((action) => action === customAction), message: null }}
 								hideErrorMessage
 							/>
@@ -2602,7 +2898,9 @@ export default function MessageList(props: {
 								label={customActionSelected ? language.remove : language.submit}
 								handlePress={() => (customActionSelected ? handleActionRemove() : handleActionAdd())}
 								disabled={
-									customActionSelected
+									actionFiltersDisabled
+										? true
+										: customActionSelected
 										? false
 										: !customAction || actionOptions.some((action) => action === customAction) || loadingMessages
 								}
@@ -2625,7 +2923,7 @@ export default function MessageList(props: {
 										type={'primary'}
 										label={getVariantFilterLabel(variant)}
 										handlePress={() => setCurrentVariant(currentVariant === variant ? null : variant)}
-										disabled={loadingMessages}
+										disabled={loadingMessages || variantFiltersDisabled}
 										active={currentVariant === variant}
 										icon={currentVariant === variant && variant ? ASSETS.close : null}
 										height={40}
