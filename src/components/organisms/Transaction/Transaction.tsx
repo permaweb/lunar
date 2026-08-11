@@ -1595,6 +1595,7 @@ function Transaction(props: {
 		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
 		const [data, setData] = React.useState<any>(null);
 		const [loading, setLoading] = React.useState<boolean>(false);
+		const [htmlPreviewReady, setHtmlPreviewReady] = React.useState<boolean>(false);
 
 		const contentType =
 			(txResponse?.node?.tags ? getTagValue(txResponse.node.tags, 'Content-Type') : null) ??
@@ -1645,6 +1646,7 @@ function Transaction(props: {
 			(async function () {
 				if (checkValidAddress(inputTxId)) {
 					setLoading(true);
+					setHtmlPreviewReady(false);
 					try {
 						const messageFetch = await fetch(getTxEndpoint(inputTxId));
 						const rawMessage = await messageFetch.text();
@@ -1748,13 +1750,30 @@ function Transaction(props: {
 
 			if (isHTML && typeof data === 'string') {
 				return (
-					<HTMLViewer
-						src={getTxEndpoint(inputTxId)}
-						header={props.dataHeader ?? language.data}
-						fixedHeight={props.fixedHeight ?? 600}
-						className={'border-wrapper-primary'}
-						title={language.transactionData}
-					/>
+					<S.HTMLDataPreviewContainer>
+						<S.HTMLPreviewProbe $visible={htmlPreviewReady} aria-hidden={!htmlPreviewReady}>
+							<HTMLViewer
+								html={data}
+								baseUrl={getTxEndpoint(inputTxId)}
+								header={props.dataHeader ?? language.data}
+								fixedHeight={props.fixedHeight ?? 600}
+								className={'border-wrapper-primary'}
+								title={language.transactionData}
+								onPreviewReady={() => setHtmlPreviewReady(true)}
+								onPreviewError={() => setHtmlPreviewReady(false)}
+							/>
+						</S.HTMLPreviewProbe>
+						{!htmlPreviewReady && (
+							<Editor
+								initialData={data}
+								header={props.dataHeader ?? language.data}
+								language={'html'}
+								readOnly
+								loading={false}
+								fixedHeight={props.fixedHeight ?? 600}
+							/>
+						)}
+					</S.HTMLDataPreviewContainer>
 				);
 			}
 
