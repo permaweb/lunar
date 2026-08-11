@@ -4,7 +4,7 @@ const common = {
 	positive1: '#42A392',
 	caution1: '#D2934E',
 	negative1: '#B95B80',
-	negative2: '#B7577D',
+	negative2: '#B13D6C',
 	dark1: '#151515',
 	dark2: '#333333',
 	light1: '#FFFFFF',

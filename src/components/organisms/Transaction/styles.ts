@@ -596,6 +596,25 @@ export const DataSection = styled(Section)`
 	padding: 0;
 `;
 
+export const HTMLDataPreviewContainer = styled.div`
+	position: relative;
+	width: 100%;
+`;
+
+export const HTMLPreviewProbe = styled.div<{ $visible: boolean }>`
+	width: 100%;
+
+	${(props) =>
+		!props.$visible &&
+		`
+			position: absolute;
+			inset: 0;
+			opacity: 0;
+			visibility: hidden;
+			pointer-events: none;
+		`}
+`;
+
 export const UnsupportedContent = styled.div`
 	display: flex;
 	flex-direction: column;
