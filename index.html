@@ -4,7 +4,7 @@
 		<meta charset="utf-8" />
 		<script>
 			(function () {
-				const path = window.location.pathname || '/';
+				const path = `/${(window.location.pathname || '/').replace(/^\/+/, '')}`;
 				const basePath =
 					path === '/'
 						? '/'
