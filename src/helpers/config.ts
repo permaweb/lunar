@@ -103,6 +103,7 @@ export const ASSETS = {
 	navigation: getAssetEndpoint('navigation.svg'),
 	newTab: getAssetEndpoint('newTab.svg'),
 	paragraph: getAssetEndpoint('paragraph.svg'),
+	permawebOs: getAssetEndpoint('permawebos.svg'),
 	pending: getAssetEndpoint('pending.svg'),
 	pi: getAssetEndpoint('pi.svg'),
 	plus: getAssetEndpoint('plus.svg'),
