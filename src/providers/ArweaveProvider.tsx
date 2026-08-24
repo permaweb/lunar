@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { connectBrowserWallet, restoreBrowserWallet } from 'api/wallet';
+
 import { Modal } from 'components/atoms/Modal';
 import { ASSETS, LINKS, STORAGE } from 'helpers/config';
 import { getARBalanceEndpoint } from 'helpers/endpoints';
@@ -10,7 +12,10 @@ import * as S from './styles';
 
 const WALLET_PERMISSIONS = ['ACCESS_ADDRESS', 'ACCESS_PUBLIC_KEY', 'SIGN_TRANSACTION', 'DISPATCH', 'SIGNATURE'];
 
-const AR_WALLETS = [{ type: WalletEnum.wander, label: 'Wander', logo: ASSETS.wander }];
+const AR_WALLETS = [
+	{ type: WalletEnum.permawebOs, label: 'PermawebOS', logo: ASSETS.permawebOs },
+	{ type: WalletEnum.wander, label: 'Wander', logo: ASSETS.wander },
+];
 
 interface ArweaveContextState {
 	wallets: { type: WalletEnum; logo: string }[];
@@ -86,10 +91,12 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 		handleWallet();
 
 		window.addEventListener('arweaveWalletLoaded', handleWallet);
+		window.addEventListener('permawebConnectLoaded', handleWallet);
 		window.addEventListener('walletSwitch', handleWallet);
 
 		return () => {
 			window.removeEventListener('arweaveWalletLoaded', handleWallet);
+			window.removeEventListener('permawebConnectLoaded', handleWallet);
 			window.removeEventListener('walletSwitch', handleWallet);
 		};
 	}, []);
@@ -107,24 +114,33 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 	}, [walletAddress]);
 
 	async function handleWallet() {
-		if (localStorage.getItem(STORAGE.walletType)) {
+		const storedWalletType = localStorage.getItem(STORAGE.walletType) as WalletEnum | null;
+		if (storedWalletType) {
 			try {
-				await handleConnect(localStorage.getItem(STORAGE.walletType) as any);
+				const connection = await restoreBrowserWallet(window, storedWalletType, WALLET_PERMISSIONS);
+				if (!connection) return;
+				window.arweaveWallet = connection.wallet as any;
+				setWalletAddress(connection.address);
+				setWallet(connection.wallet);
+				setWalletType(storedWalletType);
 			} catch (e: any) {
 				console.error(e);
 			}
 		}
 	}
 
-	async function handleConnect(walletType: WalletEnum.wander) {
+	async function handleConnect(walletType: WalletEnum) {
 		let walletObj: any = null;
 		switch (walletType) {
+			case WalletEnum.permawebOs:
+				await handleBrowserWallet(WalletEnum.permawebOs);
+				break;
 			case WalletEnum.wander:
-				handleArConnect();
+				await handleBrowserWallet(WalletEnum.wander);
 				break;
 			default:
-				if (window.arweaveWallet || walletType === WalletEnum.wander) {
-					handleArConnect();
+				if (window.arweaveWallet) {
+					await handleBrowserWallet(WalletEnum.wander);
 					break;
 				}
 		}
@@ -132,26 +148,24 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 		return walletObj;
 	}
 
-	async function handleArConnect() {
-		if (!walletAddress) {
-			if (window.arweaveWallet) {
-				try {
-					await window.arweaveWallet.connect(WALLET_PERMISSIONS as any);
-					setWalletAddress(await window.arweaveWallet.getActiveAddress());
-					setWallet(window.arweaveWallet);
-					setWalletType(WalletEnum.wander);
-					setWalletModalVisible(false);
-					localStorage.setItem(STORAGE.walletType, WalletEnum.wander);
-				} catch (e: any) {
-					console.error(e);
-				}
-			}
+	async function handleBrowserWallet(walletType: WalletEnum) {
+		if (walletAddress) return;
+		try {
+			const connection = await connectBrowserWallet(window, walletType, WALLET_PERMISSIONS);
+			window.arweaveWallet = connection.wallet as any;
+			setWalletAddress(connection.address);
+			setWallet(connection.wallet);
+			setWalletType(walletType);
+			setWalletModalVisible(false);
+			localStorage.setItem(STORAGE.walletType, walletType);
+		} catch (e: any) {
+			console.error(e);
 		}
 	}
 
 	async function handleDisconnect() {
 		if (localStorage.getItem(STORAGE.walletType)) localStorage.removeItem(STORAGE.walletType);
-		await window.arweaveWallet?.disconnect();
+		await wallet?.disconnect?.();
 		setWallet(null);
 		setWalletAddress(null);
 	}
