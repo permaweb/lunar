@@ -248,6 +248,25 @@ export const DBodyWrapper = styled.ul`
 	}
 `;
 
+export const DropdownButtonItem = styled.li`
+	padding: 0 !important;
+	cursor: default !important;
+
+	button {
+		justify-content: flex-start;
+		padding: 0 7.5px;
+		border: 1px solid transparent;
+		border-radius: ${STYLING.dimensions.radius.alt2};
+		background: transparent;
+
+		&:hover,
+		&:focus {
+			border-color: transparent;
+			background: ${(props) => props.theme.colors.container.primary.active};
+		}
+	}
+`;
+
 export const DFooterWrapper = styled(DBodyWrapper)`
 	border-bottom: none;
 	padding: 10px 0 0 0;

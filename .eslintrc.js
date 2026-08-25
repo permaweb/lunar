@@ -23,6 +23,7 @@ module.exports = {
 								'^(@|assets)(/.*|$)',
 								'^(@|clients)(/.*|$)',
 								'^(@|components)(/.*|$)',
+								'^(@|features)(/.*|$)',
 								'^(@|filters)(/.*|$)',
 								'^(@|global)(/.*|$)',
 								'^(@|helpers)(/.*|$)',

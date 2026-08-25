@@ -10,9 +10,9 @@
 		"start:development": "NODE_ENV=development vite",
 		"start:staging": "NODE_ENV=development vite",
 		"format": "eslint --fix . && npx prettier --write .",
-		"test": "npm test",
-		"test:verbose": "npm test -- --verbose",
-		"test:coverage": "CI=true npm test -- --env=jsdom --coverage",
+		"test": "vitest run",
+		"test:verbose": "vitest run --reporter=verbose",
+		"test:coverage": "vitest run --coverage",
 		"build": "NODE_ENV=production vite build",
 		"deploy:main": "npm run build && permaweb-deploy deploy --use-names --name lunar --uploader https://turbo.ardrive.io",
 		"prepare": "husky install"
@@ -22,6 +22,7 @@
 		"@monaco-editor/react": "^4.7.0",
 		"@permaweb/aoconnect": "0.0.97",
 		"@permaweb/libs": "0.0.94",
+		"@permawebos/web-wallet": "file:../PermawebOS-Browser/packages/web-wallet",
 		"arweave": "^1.15.5",
 		"chartjs-chart-geo": "^4.3.6",
 		"i18n-iso-countries": "^7.14.0",
@@ -58,10 +59,13 @@
 		"eslint-plugin-react-hooks": "^4.6.0",
 		"eslint-plugin-simple-import-sort": "^10.0.0",
 		"husky": "^8.0.0",
+		"jsdom": "^26.1.0",
 		"prettier": "^2.8.3",
 		"rollup-plugin-polyfill-node": "^0.13.0",
+		"typescript": "^5.8.3",
 		"vite": "^6.3.5",
 		"vite-plugin-node-polyfills": "^0.23.0",
-		"vite-plugin-singlefile": "^2.2.0"
+		"vite-plugin-singlefile": "^2.2.0",
+		"vitest": "^3.2.4"
 	}
 }

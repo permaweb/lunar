@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
@@ -16,6 +16,7 @@ const Docs = getLazyImport('Docs');
 const NotFound = getLazyImport('NotFound');
 
 import { Loader } from 'components/atoms/Loader';
+import { EmbeddedWallet } from 'features/embeddedWallet';
 import { ASSETS, DOM, LINKS, URLS } from 'helpers/config';
 import { stripUrlProtocol } from 'helpers/utils';
 import { Navigation } from 'navigation/Navigation';
@@ -31,7 +32,7 @@ function getLazyImport(view: string) {
 		throw new Error(`View not found: ${view}`);
 	}
 
-	return lazy(async () => {
+	return React.lazy(async () => {
 		const module = await loader();
 		return { default: module.default };
 	});
@@ -245,7 +246,8 @@ export default function App() {
 			<div id={DOM.loader} />
 			<div id={DOM.notification} />
 			<div id={DOM.overlay} />
-			<Suspense fallback={<Loader />}>
+			<EmbeddedWallet />
+			<React.Suspense fallback={<Loader />}>
 				<S.App>
 					<Routes>
 						{getRoute(URLS.base, <Landing />)}
@@ -278,7 +280,7 @@ export default function App() {
 						</S.NodeStatusButton>
 					)}
 				</S.App>
-			</Suspense>
+			</React.Suspense>
 		</>
 	);
 }
