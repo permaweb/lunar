@@ -230,6 +230,11 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 		setShowWalletDropdown(false);
 	}
 
+	function handleOpenWallet() {
+		arProvider.handleOpenWallet();
+		setShowWalletDropdown(false);
+	}
+
 	const THEMES = {
 		light: {
 			label: language.lightThemes,
@@ -348,6 +353,20 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 								/>
 							</S.DBalanceWrapper>
 							<S.DBodyWrapper>
+								{arProvider.isEmbeddedWallet && (
+									<S.DropdownButtonItem>
+										<Button
+											type={'primary'}
+											fullWidth
+											height={40}
+											label={language.openWallet}
+											icon={ASSETS.wallet}
+											iconLeftAlign
+											iconSize={14}
+											handlePress={handleOpenWallet}
+										/>
+									</S.DropdownButtonItem>
+								)}
 								<li onClick={() => copyAddress(arProvider.walletAddress)}>
 									<ReactSVG src={ASSETS.copy} />
 									{copied ? `${language.copied}!` : language.walletAddress}

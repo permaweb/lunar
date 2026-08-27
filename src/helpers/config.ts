@@ -2,6 +2,8 @@ function getAssetEndpoint(filename: string) {
 	return `assets/${filename}`;
 }
 
+export const PERMAWEBOS_WALLET_URL = import.meta.env.VITE_PERMAWEBOS_WALLET_URL || 'http://localhost:5173/';
+
 export const DEFAULT_AO_NODE = {
 	url: 'https://app-1.forward.computer',
 	authority: 'YUsEnCSlxvOMxRd1qG6rkaPwMgi3xOorfDfYJoMDndA',
@@ -213,6 +215,21 @@ export const STYLING = {
 		button: {
 			height: '33.5px',
 			width: 'fit-content',
+		},
+		embeddedWallet: {
+			border: '1px',
+			errorPadding: '20px',
+			headerGap: '20px',
+			headerInnerGap: '3px',
+			headerMinHeight: '68px',
+			headerPadding: '12px 20px',
+			hiddenOffset: '-2px',
+			hiddenSize: '1px',
+			mobileHeaderGap: '6px',
+			panelMaxHeight: '900px',
+			panelMaxWidth: '960px',
+			viewportPadding: '20px',
+			viewportPaddingTotal: '40px',
 		},
 		form: {
 			small: '37.5px',

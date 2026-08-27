@@ -1,7 +1,15 @@
 import React from 'react';
 
-import { connectBrowserWallet, restoreBrowserWallet } from 'api/wallet';
+import {
+	type BrowserWallet,
+	connectBrowserWallet,
+	isArweaveAddress,
+	isEmbeddedBrowserWallet,
+	openEmbeddedWebWallet,
+	restoreBrowserWallet,
+} from 'api/wallet';
 
+import { Button } from 'components/atoms/Button';
 import { Modal } from 'components/atoms/Modal';
 import { ASSETS, LINKS, STORAGE } from 'helpers/config';
 import { getARBalanceEndpoint } from 'helpers/endpoints';
@@ -22,21 +30,25 @@ interface ArweaveContextState {
 	wallet: any;
 	walletAddress: string | null;
 	walletType: WalletEnum | null;
+	isEmbeddedWallet: boolean;
 	arBalance: number | null;
-	handleConnect: any;
+	handleConnect: (walletType: WalletEnum) => Promise<void>;
 	handleDisconnect: () => void;
+	handleOpenWallet: () => void;
 	walletModalVisible: boolean;
 	setWalletModalVisible: (open: boolean) => void;
 }
 
-const DEFAULT_CONTEXT = {
+const DEFAULT_CONTEXT: ArweaveContextState = {
 	wallets: [],
 	wallet: null,
 	walletAddress: null,
 	walletType: null,
+	isEmbeddedWallet: false,
 	arBalance: null,
-	handleConnect() {},
+	async handleConnect() {},
 	handleDisconnect() {},
+	handleOpenWallet() {},
 	walletModalVisible: false,
 	setWalletModalVisible(_open: boolean) {},
 };
@@ -47,25 +59,28 @@ export function useArweaveProvider(): ArweaveContextState {
 	return React.useContext(ARContext);
 }
 
-function WalletList(props: { handleConnect: any }) {
+function WalletList(props: { onConnect: (walletType: WalletEnum) => Promise<void> }) {
 	return (
 		<S.WalletListContainer>
-			{AR_WALLETS.map((wallet: any, index: number) => (
-				<S.WalletListItem
-					key={index}
-					onClick={() => props.handleConnect(wallet.type)}
-					className={'border-wrapper-primary'}
-				>
-					<S.WalletLogo>
-						<img src={wallet.logo} alt={''} />
-					</S.WalletLogo>
-					<span>{wallet.label}</span>
+			{AR_WALLETS.map((wallet) => (
+				<S.WalletListItem key={wallet.type}>
+					<Button
+						type={'primary'}
+						fullWidth
+						height={100}
+						label={
+							<S.WalletChoice>
+								<span>{wallet.label}</span>
+							</S.WalletChoice>
+						}
+						handlePress={() => void props.onConnect(wallet.type)}
+					/>
 				</S.WalletListItem>
 			))}
 			<S.WalletLink>
 				<span>
 					Don't have an Arweave Wallet? You can create one{' '}
-					<a href={LINKS.wander} target={'_blank'}>
+					<a href={LINKS.wander} target={'_blank'} rel="noopener noreferrer">
 						here.
 					</a>
 				</span>
@@ -86,6 +101,7 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 	const [walletAddress, setWalletAddress] = React.useState<string | null>(null);
 
 	const [arBalance, setArBalance] = React.useState<number | null>(null);
+	const isEmbeddedWallet = isEmbeddedBrowserWallet(wallet as BrowserWallet | null);
 
 	React.useEffect(() => {
 		handleWallet();
@@ -100,6 +116,31 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 			window.removeEventListener('walletSwitch', handleWallet);
 		};
 	}, []);
+
+	React.useEffect(() => {
+		const activeWallet = wallet as BrowserWallet | null;
+		if (!activeWallet?.events) return;
+		const readsProviderAddressEvents = isEmbeddedBrowserWallet(activeWallet);
+
+		function handleActiveAddress(address: unknown) {
+			if (isArweaveAddress(address)) setWalletAddress(address);
+		}
+
+		function handleWalletDisconnect() {
+			setWallet(null);
+			setWalletAddress(null);
+			setWalletType(null);
+		}
+
+		// Injected wallets also publish address changes through the global walletSwitch event.
+		// Only the embedded provider needs its internal active-address subscription here.
+		if (readsProviderAddressEvents) activeWallet.events.on('activeAddress', handleActiveAddress);
+		activeWallet.events.on('disconnect', handleWalletDisconnect);
+		return () => {
+			if (readsProviderAddressEvents) activeWallet.events?.off('activeAddress', handleActiveAddress);
+			activeWallet.events?.off('disconnect', handleWalletDisconnect);
+		};
+	}, [wallet]);
 
 	React.useEffect(() => {
 		(async function () {
@@ -119,7 +160,7 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 			try {
 				const connection = await restoreBrowserWallet(window, storedWalletType, WALLET_PERMISSIONS);
 				if (!connection) return;
-				window.arweaveWallet = connection.wallet as any;
+				window.arweaveWallet = connection.wallet as Window['arweaveWallet'];
 				setWalletAddress(connection.address);
 				setWallet(connection.wallet);
 				setWalletType(storedWalletType);
@@ -129,8 +170,7 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 		}
 	}
 
-	async function handleConnect(walletType: WalletEnum) {
-		let walletObj: any = null;
+	async function handleConnect(walletType: WalletEnum): Promise<void> {
 		switch (walletType) {
 			case WalletEnum.permawebOs:
 				await handleBrowserWallet(WalletEnum.permawebOs);
@@ -144,15 +184,13 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 					break;
 				}
 		}
-		setWalletModalVisible(false);
-		return walletObj;
 	}
 
 	async function handleBrowserWallet(walletType: WalletEnum) {
 		if (walletAddress) return;
 		try {
 			const connection = await connectBrowserWallet(window, walletType, WALLET_PERMISSIONS);
-			window.arweaveWallet = connection.wallet as any;
+			window.arweaveWallet = connection.wallet as Window['arweaveWallet'];
 			setWalletAddress(connection.address);
 			setWallet(connection.wallet);
 			setWalletType(walletType);
@@ -168,6 +206,11 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 		await wallet?.disconnect?.();
 		setWallet(null);
 		setWalletAddress(null);
+		setWalletType(null);
+	}
+
+	function handleOpenWallet() {
+		if (isEmbeddedWallet) openEmbeddedWebWallet();
 	}
 
 	async function getARBalance(walletAddress: string) {
@@ -180,7 +223,7 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 		<>
 			{walletModalVisible && (
 				<Modal header={language.connectWallet} handleClose={() => setWalletModalVisible(false)}>
-					<WalletList handleConnect={handleConnect} />
+					<WalletList onConnect={handleConnect} />
 				</Modal>
 			)}
 			<ARContext.Provider
@@ -188,9 +231,11 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 					wallet,
 					walletAddress,
 					walletType,
+					isEmbeddedWallet,
 					arBalance,
 					handleConnect,
 					handleDisconnect,
+					handleOpenWallet,
 					wallets,
 					walletModalVisible,
 					setWalletModalVisible,

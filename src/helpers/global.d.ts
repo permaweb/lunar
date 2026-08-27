@@ -1,7 +1,16 @@
+import type { BrowserWallet } from 'api/wallet';
+
 declare global {
 	interface Window {
-		arweaveWallet: any; // Replace 'any' with the appropriate type for 'arweaveWallet'
-		permawebConnect?: any;
+		permawebConnect?: BrowserWallet;
+	}
+
+	interface ImportMetaEnv {
+		readonly VITE_PERMAWEBOS_WALLET_URL?: string;
+	}
+
+	interface ImportMeta {
+		readonly env: ImportMetaEnv;
 	}
 }
 
