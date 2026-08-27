@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWebWalletPresentation, WebWalletWindow } from '@permawebos/web-wallet/react';
+import { useWebWalletPresentation, WebWalletWindow } from '@permaweb/web-wallet/react';
 
 import { hasInjectedPermawebWallet, resolveWebWalletConnectionUrl, webWalletClientProvider } from 'api/wallet';
 

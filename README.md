@@ -27,7 +27,7 @@ This will launch the app locally at http://localhost:3000. Port configurations c
 
 Lunar uses an installed PermawebOS extension when `window.permawebConnect` is available. Otherwise it keeps the hosted PermawebOS wallet attached in a sandboxed iframe. The frame stays hidden for read-only wallet operations and opens as a full-screen dialog when the wallet needs the user to connect, sign, encrypt, or decrypt.
 
-The default wallet URL is `https://permawebos.arweave.net/`. A deployment can use a different dedicated HTTPS origin at build time:
+The default wallet URL is `http://localhost:5173/`. A deployment can use a different dedicated HTTPS origin at build time:
 
 ```sh
 VITE_PERMAWEBOS_WALLET_URL=https://wallet.example.com/ npm run build

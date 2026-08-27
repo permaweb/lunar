@@ -5,10 +5,11 @@ import {
 	isWebWalletResponseMessage,
 	WALLET_API_METHODS,
 	WEB_WALLET_PROTOCOL_VERSION,
-} from '@permawebos/web-wallet';
-import { describe, expect, it, vi } from 'vitest';
+} from '@permaweb/web-wallet';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+	connectBrowserWallet,
 	createWebWalletClientProvider,
 	hasInjectedPermawebWallet,
 	isEmbeddedBrowserWallet,
@@ -26,6 +27,11 @@ function injectedWallet(): BrowserWallet {
 	};
 }
 
+afterEach(() => {
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+});
+
 describe('web wallet fallback', () => {
 	it('prefers the injected PermawebOS provider and otherwise returns the iframe provider', () => {
 		const injected = injectedWallet();
@@ -34,6 +40,69 @@ describe('web wallet fallback', () => {
 		expect(resolveBrowserWallet({}, 'permaweb-os')).toBe(webWalletClientProvider);
 		expect(isEmbeddedBrowserWallet(injected)).toBe(false);
 		expect(isEmbeddedBrowserWallet(webWalletClientProvider)).toBe(true);
+	});
+
+	it('supplies Lunar application info when connecting PermawebOS', async () => {
+		const injected = {
+			...injectedWallet(),
+			getPermissions: vi.fn().mockResolvedValue([]),
+		};
+
+		await connectBrowserWallet({ permawebConnect: injected }, 'permaweb-os', ['ACCESS_ADDRESS']);
+
+		expect(injected.connect).toHaveBeenCalledWith(['ACCESS_ADDRESS'], { name: 'Lunar' });
+	});
+
+	it('fails quickly when an already-approved PermawebOS provider stops responding', async () => {
+		vi.useFakeTimers();
+		const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const injected = {
+			...injectedWallet(),
+			getPermissions: vi.fn().mockResolvedValue(['ACCESS_ADDRESS']),
+			connect: vi.fn(() => new Promise<void>(() => undefined)),
+		};
+		const connection = connectBrowserWallet({ permawebConnect: injected }, 'permaweb-os', ['ACCESS_ADDRESS']);
+		const rejection = expect(connection).rejects.toThrow('already-approved connection');
+
+		await vi.advanceTimersByTimeAsync(10_000);
+		await rejection;
+		expect(warning).toHaveBeenCalledWith('[wallet-connection]', {
+			wallet: 'PermawebOS',
+			phase: 'connect',
+			durationMs: 10_000,
+			outcome: 'timed-out',
+		});
+	});
+
+	it('keeps the longer deadline when PermawebOS still needs user approval', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		let approve!: () => void;
+		const injected = {
+			...injectedWallet(),
+			getPermissions: vi.fn().mockResolvedValue([]),
+			connect: vi.fn(
+				() =>
+					new Promise<void>((resolve) => {
+						approve = resolve;
+					})
+			),
+		};
+		const connection = connectBrowserWallet({ permawebConnect: injected }, 'permaweb-os', ['ACCESS_ADDRESS']);
+		let settled = false;
+		void connection.then(
+			() => {
+				settled = true;
+			},
+			() => {
+				settled = true;
+			}
+		);
+
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(settled).toBe(false);
+		approve();
+		await expect(connection).resolves.toMatchObject({ address: 'A'.repeat(43) });
 	});
 
 	it('opens the iframe wallet explicitly through the client adapter', () => {
@@ -84,7 +153,7 @@ describe('web wallet fallback', () => {
 		await expect(provider.connect(['ACCESS_ADDRESS'])).rejects.toMatchObject({
 			code: 'frame-unavailable',
 		});
-		expect(presentations).toEqual(['request', 'hidden']);
+		expect(presentations).toEqual(['approval', 'hidden']);
 	});
 
 	it('handshakes with the exact frame and origin before forwarding wallet requests', async () => {

@@ -120,6 +120,7 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 	React.useEffect(() => {
 		const activeWallet = wallet as BrowserWallet | null;
 		if (!activeWallet?.events) return;
+		const readsProviderAddressEvents = isEmbeddedBrowserWallet(activeWallet);
 
 		function handleActiveAddress(address: unknown) {
 			if (isArweaveAddress(address)) setWalletAddress(address);
@@ -131,10 +132,12 @@ export function ArweaveProvider(props: { children: React.ReactNode }) {
 			setWalletType(null);
 		}
 
-		activeWallet.events.on('activeAddress', handleActiveAddress);
+		// Injected wallets also publish address changes through the global walletSwitch event.
+		// Only the embedded provider needs its internal active-address subscription here.
+		if (readsProviderAddressEvents) activeWallet.events.on('activeAddress', handleActiveAddress);
 		activeWallet.events.on('disconnect', handleWalletDisconnect);
 		return () => {
-			activeWallet.events?.off('activeAddress', handleActiveAddress);
+			if (readsProviderAddressEvents) activeWallet.events?.off('activeAddress', handleActiveAddress);
 			activeWallet.events?.off('disconnect', handleWalletDisconnect);
 		};
 	}, [wallet]);

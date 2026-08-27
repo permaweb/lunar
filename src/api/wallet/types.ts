@@ -1,6 +1,6 @@
-import type { WalletAppInfo, WalletEventHandler, WalletEventName, WalletGatewayConfig } from '@permawebos/web-wallet';
+import type { WalletAppInfo, WalletEventHandler, WalletEventName, WalletGatewayConfig } from '@permaweb/web-wallet';
 
-export type { WalletAppInfo, WalletGatewayConfig } from '@permawebos/web-wallet';
+export type { WalletAppInfo, WalletGatewayConfig } from '@permaweb/web-wallet';
 
 export type BrowserWalletId = 'permaweb-os' | 'wander';
 

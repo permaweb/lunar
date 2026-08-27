@@ -9,7 +9,9 @@ const mocks = vi.hoisted(() => ({
 	attachFrame: vi.fn(),
 	detachFrame: vi.fn(),
 	hasExtension: false,
-	presentationListeners: new Set<(state: { status: 'hidden' | 'open' | 'request'; method?: string }) => void>(),
+	presentationListeners: new Set<
+		(state: { status: 'hidden' | 'open' | 'request' | 'approval'; method?: string }) => void
+	>(),
 }));
 
 vi.mock('api/wallet', () => ({
@@ -25,6 +27,10 @@ vi.mock('api/wallet', () => ({
 		subscribeToPresentation: vi.fn((listener) => {
 			mocks.presentationListeners.add(listener);
 			return () => mocks.presentationListeners.delete(listener);
+		}),
+		subscribeToTheme: vi.fn((listener) => {
+			listener(null);
+			return () => undefined;
 		}),
 	},
 }));
@@ -60,7 +66,7 @@ afterEach(() => {
 	vi.clearAllMocks();
 });
 
-function emitPresentation(state: { status: 'hidden' | 'open' | 'request'; method?: string }) {
+function emitPresentation(state: { status: 'hidden' | 'open' | 'request' | 'approval'; method?: string }) {
 	for (const listener of [...mocks.presentationListeners]) listener(state);
 }
 
