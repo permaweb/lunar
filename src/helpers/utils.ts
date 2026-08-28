@@ -807,7 +807,6 @@ export async function normalizeGqlResponse(response: DefaultGQLResponseType) {
 						node: {
 							...edge.node,
 							recipient: recipient,
-							tags: normalizeTagKeys(edge.node.tags),
 							block: { ...schedule.block },
 							slot: schedule.slot,
 						},

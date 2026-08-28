@@ -6,7 +6,7 @@ import { readAoBalance } from './balances';
 import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint, getTxEndpoint } from './endpoints';
 import { MessageVariantEnum, SearchTxArgs, TagType } from './types';
-import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse, normalizeTagKeys } from './utils';
+import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse } from './utils';
 
 const MAX_DEPTH = 10;
 const MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE = 1000;
@@ -70,13 +70,6 @@ function getPublicKeyFromSignatureInput(signatureInput: string | null) {
 	return null;
 }
 
-function headerNameToTagName(headerName: string) {
-	return headerName
-		.split('-')
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-		.join('-');
-}
-
 function parseOriginalTags(signatureInput: string | null) {
 	const originalTags = getSignatureInputParam(signatureInput, 'original-tags');
 	if (!originalTags) return [];
@@ -107,7 +100,7 @@ function getSignatureInputHeaderNames(signatureInput: string | null) {
 		let componentMatch = componentRegex.exec(listMatch[1]);
 
 		while (componentMatch) {
-			const headerName = componentMatch[1].toLowerCase();
+			const headerName = componentMatch[1];
 			if (!headerName.startsWith('@')) headerNames.add(headerName);
 
 			componentMatch = componentRegex.exec(listMatch[1]);
@@ -125,7 +118,7 @@ function getDirectLookupHeaderTags(headers: Headers, signatureInput: string | nu
 
 		if (value) {
 			tags.push({
-				name: headerNameToTagName(headerName),
+				name: headerName,
 				value,
 			});
 		}
@@ -156,7 +149,7 @@ function getDirectLookupTags(headers: Headers) {
 	const originalTags = parseOriginalTags(signatureInput);
 	const headerTags = getDirectLookupHeaderTags(headers, signatureInput);
 
-	return normalizeTagKeys(mergeDirectLookupTags(originalTags, headerTags));
+	return mergeDirectLookupTags(originalTags, headerTags);
 }
 
 async function getOwnerAddressFromSignatureInput(signatureInput: string | null) {
