@@ -414,6 +414,17 @@ export const TransferInfoBody = styled.div`
 			padding: 0 0 15px 0;
 		}
 	}
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		gap: 0;
+
+		> * {
+			&:not(:last-child) {
+				border-bottom: none;
+				padding: 0;
+			}
+		}
+	}
 `;
 
 export const TransferInfoID = styled(MessageInfoID)``;
@@ -435,6 +446,36 @@ export const TransferInfoLine = styled(MessageInfoLine)`
 	> *:last-child {
 		justify-content: flex-end;
 	}
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		width: 100%;
+		max-height: none;
+		align-items: stretch;
+		gap: 0;
+
+		> * {
+			width: 100%;
+			min-height: 47.5px;
+			flex: none;
+			justify-content: center;
+			border-right: none;
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+			padding: 15px 0;
+		}
+
+		> *:not(:last-child) {
+			border-right: none;
+			padding: 15px 0;
+		}
+
+		> *:last-child {
+			justify-content: center;
+		}
+
+		&:last-child > *:last-child {
+			border-bottom: none;
+		}
+	}
 `;
 
 export const TransferInfoLineElement = styled.div`
@@ -442,6 +483,11 @@ export const TransferInfoLineElement = styled.div`
 	flex: 1;
 	align-items: center;
 	gap: 7.5px;
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		flex-direction: column;
+		align-items: flex-start;
+	}
 `;
 
 export const TransferInfoAmount = styled.div<{ isNumber: boolean }>`
@@ -516,6 +562,15 @@ export const TransferInfoStatus = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
+	}
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		flex-wrap: wrap;
+		justify-content: flex-start;
+
+		span {
+			flex-basis: 100%;
+		}
 	}
 `;
 

@@ -9,6 +9,7 @@ import { getBlock } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
+import { Modal } from 'components/atoms/Modal';
 import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
 import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
@@ -117,8 +118,13 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	function handleWindowResize() {
 		if (checkWindowCutoff(parseInt(STYLING.cutoffs.desktop))) {
 			setDesktop(true);
+			setSearchOpen(false);
 		} else {
 			setDesktop(false);
+		}
+
+		if (checkWindowCutoff(parseInt(STYLING.cutoffs.tablet))) {
+			setPanelOpen(false);
 		}
 	}
 
@@ -251,7 +257,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		return null;
 	}, [loadingTx, txResponse, inputTxId, language.txNotFound]);
 
-	function getSearch() {
+	function getSearch(autoFocus: boolean = false) {
 		return (
 			<S.SearchWrapper>
 				<S.SearchInputWrapper>
@@ -263,6 +269,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						placeholder={language.explorerSearchInput}
 						invalid={{ status: inputTxId ? !isValidSearchInput(inputTxId) : false, message: null }}
 						disabled={loadingTx}
+						autoFocus={autoFocus}
 						hideErrorMessage
 						sm
 					/>
@@ -338,40 +345,37 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								callback={() => {
 									setTxOutputOpen(false);
 								}}
-								active={txOutputOpen}
-								disabled={!txOutputOpen}
+								active={_desktop && txOutputOpen}
+								disabled={!_desktop || !txOutputOpen}
 							>
 								{getSearch()}
 							</CloseHandler>
 						</S.DSearchWrapper>
 						<S.MSearchWrapper>
-							<CloseHandler active={searchOpen} disabled={!searchOpen} callback={() => setSearchOpen(false)}>
-								<Button
-									type={'alt1'}
-									icon={ASSETS.search}
-									handlePress={() => setSearchOpen((prev) => !prev)}
-									height={36.5}
-									width={36.5}
-									noMinWidth
-									iconSize={15.5}
-									stopPropagation
-									preventDefault
-								/>
-								{searchOpen && (
-									<S.MSearchContainer className={'border-wrapper-alt1'}>
-										<S.MSearchHeader>
-											<p>{language.search}</p>
-										</S.MSearchHeader>
-										{getSearch()}
-									</S.MSearchContainer>
-								)}
-							</CloseHandler>
+							<Button
+								type={'alt1'}
+								icon={ASSETS.search}
+								handlePress={() => {
+									setPanelOpen(false);
+									setSearchOpen(true);
+								}}
+								height={36.5}
+								width={36.5}
+								noMinWidth
+								iconSize={15.5}
+								tooltip={language.search}
+								stopPropagation
+								preventDefault
+							/>
 						</S.MSearchWrapper>
 						<S.MMenuWrapper>
 							<Button
 								type={'alt1'}
 								icon={ASSETS.menu}
-								handlePress={() => setPanelOpen(true)}
+								handlePress={() => {
+									setSearchOpen(false);
+									setPanelOpen(true);
+								}}
 								height={36.5}
 								width={36.5}
 								noMinWidth
@@ -384,44 +388,23 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 					</S.ActionsWrapper>
 				</S.Content>
 			</S.Header>
+			{searchOpen && (
+				<Modal type={'panel'} width={500} header={language.search} handleClose={() => setSearchOpen(false)}>
+					<S.MSearchPanelContent>{getSearch(true)}</S.MSearchPanelContent>
+				</Modal>
+			)}
 			{panelOpen && (
-				<div className={'overlay'}>
-					<S.PWrapper className={'border-wrapper-primary'}>
-						<CloseHandler active={panelOpen} disabled={!panelOpen} callback={() => setPanelOpen(false)}>
-							<S.PMenu>
-								<S.PHeader>
-									<h4>{language.goTo}</h4>
-									<Button
-										type={'primary'}
-										icon={ASSETS.close}
-										handlePress={() => setPanelOpen(false)}
-										height={35}
-										width={35}
-										noMinWidth
-										iconSize={20}
-										tooltip={language.close}
-										stopPropagation
-										preventDefault
-									/>
-								</S.PHeader>
-								<S.MNavWrapper>
-									{paths.map((element: { path: string; label: string; target?: '_blank' }, index: number) => {
-										return (
-											<Link
-												key={index}
-												to={element.path}
-												target={element.target || ''}
-												onClick={() => setPanelOpen(false)}
-											>
-												{element.label}
-											</Link>
-										);
-									})}
-								</S.MNavWrapper>
-							</S.PMenu>
-						</CloseHandler>
-					</S.PWrapper>
-				</div>
+				<Modal type={'panel'} width={400} header={language.goTo} handleClose={() => setPanelOpen(false)}>
+					<S.MNavWrapper>
+						{paths.map((element: { path: string; label: string; target?: '_blank' }, index: number) => {
+							return (
+								<Link key={index} to={element.path} target={element.target || ''} onClick={() => setPanelOpen(false)}>
+									{element.label}
+								</Link>
+							);
+						})}
+					</S.MNavWrapper>
+				</Modal>
 			)}
 		</>
 	);

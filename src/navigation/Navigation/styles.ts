@@ -1,6 +1,5 @@
 import styled from 'styled-components';
 
-import { open, openRight, transition2 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
 export const Header = styled.header<{ navigationOpen: boolean }>`
@@ -34,126 +33,8 @@ export const Content = styled.div`
 	align-items: center;
 	justify-content: space-between;
 
-	@media (max-width: ${STYLING.cutoffs.initial}) {
-		padding: 0 15px;
-	}
-`;
-
-export const PanelOverlay = styled.div<{ open: boolean }>`
-	height: 100vh;
-	width: 100%;
-	position: fixed;
-	z-index: 3;
-	top: 0;
-	left: 0;
-	background: ${(props) => props.theme.colors.overlay.primary};
-	animation: ${open} ${transition2};
-	display: none;
-
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		display: ${(props) => (props.open ? 'block' : 'none')};
-	}
-`;
-
-export const Panel = styled.nav<{ open: boolean }>`
-	height: 100vh;
-	width: ${STYLING.dimensions.nav.width};
-	position: fixed;
-	top: 0;
-	left: 0;
-	z-index: 5;
-	transform: translateX(${(props) => (props.open ? '0' : '-100%')});
-	transition: transform ${transition2};
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-`;
-
-export const PanelHeader = styled.div`
-	height: ${STYLING.dimensions.nav.height};
-	width: 100%;
-	display: flex;
-	align-items: center;
-	padding: 0 15px;
-`;
-
-export const ToggleWrapper = styled.div`
-	height: ${STYLING.dimensions.nav.height};
-	display: flex;
-	align-items: center;
-	gap: 7.5px;
-`;
-
-export const PanelContent = styled.div<{ open: boolean }>`
-	height: calc(100vh - (${STYLING.dimensions.nav.height} + 70px));
-	padding: 0 15px 15px 15px;
-
-	a {
-		height: 40.5px;
-		display: flex;
-		align-items: center;
-		cursor: pointer;
-		color: ${(props) => props.theme.colors.font.primary};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		border: 1px solid transparent;
-		border-radius: ${STYLING.dimensions.radius.primary};
-		transition: all 100ms;
-		padding: 0 10px;
-		svg {
-			height: 17.5px;
-			width: 17.5px;
-			margin: 6.5px 12.5px 0 0;
-			color: ${(props) => props.theme.colors.font.primary};
-			fill: ${(props) => props.theme.colors.font.primary};
-		}
-		&:hover {
-			color: ${(props) => props.theme.colors.font.primary};
-			background: ${(props) => props.theme.colors.container.alt2.background};
-
-			svg {
-				color: ${(props) => props.theme.colors.font.primary};
-				fill: ${(props) => props.theme.colors.font.primary};
-			}
-		}
-	}
-`;
-
-export const PanelFooter = styled.div<{ open: boolean }>`
-	height: 70px;
-	width: 100%;
-	padding: 15px;
-
-	a {
-		height: 40.5px;
-		display: flex;
-		align-items: center;
-		cursor: pointer;
-		color: ${(props) => props.theme.colors.font.primary};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
-		border-radius: ${STYLING.dimensions.radius.primary};
-		transition: all 100ms;
-		padding: 0 10px;
-		svg {
-			height: 17.5px;
-			width: 17.5px;
-			margin: 6.5px 12.5px 0 0;
-			color: ${(props) => props.theme.colors.font.primary};
-			fill: ${(props) => props.theme.colors.font.primary};
-		}
-		&:hover {
-			color: ${(props) => props.theme.colors.font.primary};
-			background: ${(props) => props.theme.colors.container.alt2.background};
-			border: 1px solid ${(props) => props.theme.colors.border.alt2};
-
-			svg {
-				color: ${(props) => props.theme.colors.font.primary};
-				fill: ${(props) => props.theme.colors.font.primary};
-			}
-		}
+		padding: 0 15px;
 	}
 `;
 
@@ -197,7 +78,7 @@ export const SearchOutputWrapper = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 	}
 
-	@media (max-width: ${STYLING.cutoffs.initial}) {
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		position: relative;
 		top: auto;
 		margin: 15px 0 0 0;
@@ -361,7 +242,7 @@ export const PriceWrapper = styled.div`
 	gap: 25px;
 	margin: 0 15px 0 0;
 
-	@media (max-width: ${STYLING.cutoffs.initial}) {
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		display: none;
 	}
 `;
@@ -412,7 +293,7 @@ export const PriceItem = styled.div`
 `;
 
 export const DSearchWrapper = styled.div`
-	@media (max-width: ${STYLING.cutoffs.initial}) {
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		display: none;
 	}
 `;
@@ -424,7 +305,7 @@ export const MSearchWrapper = styled.div`
 		padding: 3.5px 0 0 0 !important;
 	}
 
-	@media (max-width: ${STYLING.cutoffs.initial}) {
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		display: block;
 	}
 `;
@@ -441,26 +322,6 @@ export const MMenuWrapper = styled.div`
 	}
 `;
 
-export const MSearchContainer = styled.div`
-	max-width: calc(100vw - 50px);
-	position: absolute;
-	top: 45px;
-	right: 0;
-	padding: 15px 15px 15px 15px;
-	border-radius: ${STYLING.dimensions.radius.alt2} !important;
-`;
-
-export const MSearchHeader = styled.div`
-	margin: 0 0 10px 0;
-	p {
-		color: ${(props) => props.theme.colors.font.alt1};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${(props) => props.theme.typography.size.small};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		text-transform: uppercase;
-	}
-`;
-
 export const MWrapper = styled.div`
 	display: none;
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
@@ -468,34 +329,8 @@ export const MWrapper = styled.div`
 	}
 `;
 
-export const PWrapper = styled.div`
-	height: calc(100dvh - 15px);
-	width: 400px;
-	max-width: 85vw;
-	position: fixed;
-	top: 10px;
-	right: 10px;
-	transition: width 50ms ease-out;
-	animation: ${openRight} 200ms;
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-radius: ${STYLING.dimensions.radius.alt1};
-`;
-
-export const PMenu = styled.div``;
-
-export const PHeader = styled.div`
-	width: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 10px 15px;
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-	svg {
-		fill: ${(props) => props.theme.colors.icon.primary.fill};
-	}
-	h4 {
-		font-size: ${(props) => props.theme.typography.size.lg};
-	}
+export const MSearchPanelContent = styled.div`
+	padding: 15px;
 `;
 
 export const MNavWrapper = styled.div`
@@ -506,14 +341,18 @@ export const MNavWrapper = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		padding: 15px;
+		padding: 15px 20px;
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};
 			background: ${(props) => props.theme.colors.container.primary.active};
 		}
 	}
 	> * {
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	}
+
+	> *:last-child {
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 	}
 `;
 

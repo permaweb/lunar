@@ -72,6 +72,7 @@ const GQL_PAGE_CHUNK_SIZE = 100;
 const DEFAULT_RESULTS_PER_PAGE = 25;
 const SCHEDULER_PAGE_SIZE_LIMIT = 1000;
 const SCHEDULER_PAGE_CURSOR_PREFIX = 'scheduler-page:';
+const MESSAGE_TABLE_NAME_MAX_LENGTH = 15;
 const schedulerLatestSlotRequests = new Map<string, Promise<number>>();
 type WalletTransactionTypeFilter = 'all' | 'ao' | 'transaction';
 type WalletTransferFilter = 'all' | 'ar' | 'ao-token' | 'ao-network';
@@ -551,7 +552,15 @@ function Message(props: {
 	function getFrom() {
 		const from = getTagValue(props.element.node.tags, 'From-Process') ?? props.element.node.owner.address;
 
-		return <S.From>{from ? <TxAddress address={from} tooltipPosition={'right'} /> : <p>-</p>}</S.From>;
+		return (
+			<S.From>
+				{from ? (
+					<TxAddress address={from} nameMaxLength={MESSAGE_TABLE_NAME_MAX_LENGTH} tooltipPosition={'right'} />
+				) : (
+					<p>-</p>
+				)}
+			</S.From>
+		);
 	}
 
 	function getTo() {
@@ -560,7 +569,15 @@ function Message(props: {
 		const sendToRecipient = getTagValue(props.element?.node?.tags, 'Recipient');
 		if (sendToRecipient) recipient = sendToRecipient;
 
-		return <S.To>{recipient ? <TxAddress address={recipient} tooltipPosition={'right'} /> : <p>No Recipient</p>}</S.To>;
+		return (
+			<S.To>
+				{recipient ? (
+					<TxAddress address={recipient} nameMaxLength={MESSAGE_TABLE_NAME_MAX_LENGTH} tooltipPosition={'right'} />
+				) : (
+					<p>No Recipient</p>
+				)}
+			</S.To>
+		);
 	}
 
 	function getActionBackground() {

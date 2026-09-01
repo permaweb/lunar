@@ -22,6 +22,13 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 	const [isModifierKeyPressed, setIsModifierKeyPressed] = React.useState<boolean>(false);
 
 	const value = props.value !== null && props.value !== undefined ? props.value.toString() : '';
+	const cached =
+		props.label === undefined && props.type !== 'block' ? selectTransaction(store.getState(), value) : null;
+	const cachedName = cached ? getTagValue(cached.node?.tags, 'Name') : null;
+	const truncatedName =
+		cachedName && props.nameMaxLength && cachedName.length > props.nameMaxLength
+			? `${cachedName.slice(0, Math.max(0, props.nameMaxLength - 3))}...`
+			: cachedName;
 
 	// Check if the current value is already in the URL (already on this explorer tab)
 	const isCurrentTab = location.pathname.includes(`${URLS.explorer}${value}`);
@@ -97,10 +104,7 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 			return formatCount(value);
 		}
 
-		const cached = selectTransaction(store.getState(), value);
-		if (cached) {
-			return getTagValue(cached.node?.tags, 'Name') ?? formatAddress(value, props.wrap);
-		}
+		if (truncatedName) return truncatedName;
 
 		if (checkValidAddress(value)) return formatAddress(value, props.wrap);
 
@@ -116,7 +120,9 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 			onMouseEnter={handleMouseModifierState}
 			onMouseMove={handleMouseModifierState}
 		>
-			<p>{copied ? `${language.copied}!` : getLabel()}</p>
+			<p title={!copied && truncatedName !== cachedName ? cachedName : undefined}>
+				{copied ? `${language.copied}!` : getLabel()}
+			</p>
 			{props.showIcon !== false && (
 				<S.IconWrapper>
 					{!copied && (
