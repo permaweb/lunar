@@ -6,6 +6,7 @@ export default function TxAddress(props: IProps) {
 		<ExplorerLink
 			value={props.address}
 			type={'address'}
+			nameMaxLength={props.nameMaxLength}
 			wrap={props.wrap}
 			viewIcon={props.viewIcon}
 			tooltipPosition={props.tooltipPosition}

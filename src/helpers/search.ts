@@ -481,7 +481,12 @@ function cacheTransaction(
 	opts?: { skipBlockHeightCheck: boolean }
 ) {
 	if (FLAGS.USE_TX_CACHE && args.store && args.dispatch) {
-		if (opts?.skipBlockHeightCheck || hasBlockMetadata(response)) {
+		const hasDisplayName = Boolean(getTagValue(response?.node?.tags, 'Name'));
+
+		// Direct lookups can return signed transaction metadata without settlement headers.
+		// Keep named responses for address labels; shouldUseCachedTransaction still prevents
+		// incomplete entries from being reused as a complete transaction response.
+		if (opts?.skipBlockHeightCheck || hasBlockMetadata(response) || hasDisplayName) {
 			args.dispatch(addTransaction(args.txId, response));
 		}
 	}
