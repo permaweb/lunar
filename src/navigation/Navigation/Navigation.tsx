@@ -13,14 +13,12 @@ import { Modal } from 'components/atoms/Modal';
 import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
 import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
 import { WalletConnect } from 'wallet/WalletConnect';
-import { CloseHandler } from 'wrappers/CloseHandler';
 
 import * as S from './styles';
 
@@ -47,8 +45,6 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const [_desktop, setDesktop] = React.useState(checkWindowCutoff(parseInt(STYLING.cutoffs.desktop)));
-
 	const [searchOpen, setSearchOpen] = React.useState<boolean>(false);
 	const [inputTxId, setInputTxId] = React.useState<string>('');
 	const [txOutputOpen, setTxOutputOpen] = React.useState<boolean>(false);
@@ -66,9 +62,9 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 
 		const handleScroll = () => {
 			if (window.scrollY > 0) {
-				header.style.borderBottom = `${CSS_DIMENSIONS.px1} solid ${theme.colors.border.primary}`;
+				header.style.borderBottom = `1px solid ${theme.colors.border.primary}`;
 			} else {
-				header.style.borderBottom = `${CSS_DIMENSIONS.px1} solid transparent`;
+				header.style.borderBottom = `1px solid transparent`;
 			}
 		};
 
@@ -87,6 +83,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				path: URLS.base,
 				icon: ASSETS.app,
 				label: language.home,
+			},
+			{
+				path: URLS.transactions,
+				icon: ASSETS.transaction,
+				label: language.transactions,
 			},
 			{
 				path: URLS.blocks,
@@ -117,13 +118,6 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	}, [language]);
 
 	function handleWindowResize() {
-		if (checkWindowCutoff(parseInt(STYLING.cutoffs.desktop))) {
-			setDesktop(true);
-			setSearchOpen(false);
-		} else {
-			setDesktop(false);
-		}
-
 		if (checkWindowCutoff(parseInt(STYLING.cutoffs.tablet))) {
 			setPanelOpen(false);
 		}
@@ -341,18 +335,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								<p>{formatUsdPrice(prices.ao)}</p>
 							</S.PriceItem>
 						</S.PriceWrapper>
-						<S.DSearchWrapper>
-							<CloseHandler
-								callback={() => {
-									setTxOutputOpen(false);
-								}}
-								active={_desktop && txOutputOpen}
-								disabled={!_desktop || !txOutputOpen}
-							>
-								{getSearch()}
-							</CloseHandler>
-						</S.DSearchWrapper>
-						<S.MSearchWrapper>
+						<S.SearchActionWrapper>
 							<Button
 								type={'alt1'}
 								icon={ASSETS.search}
@@ -368,7 +351,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								stopPropagation
 								preventDefault
 							/>
-						</S.MSearchWrapper>
+						</S.SearchActionWrapper>
 						<S.MMenuWrapper>
 							<Button
 								type={'alt1'}

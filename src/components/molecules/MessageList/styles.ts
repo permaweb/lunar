@@ -2,7 +2,7 @@ import styled, { css } from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
-import { colorWithOpacity, CSS_DIMENSIONS } from 'helpers/themes';
+import { colorWithOpacity } from 'helpers/themes';
 
 const NESTED_BORDER_OPACITY_STEP = 0.25;
 const MIN_NESTED_BORDER_OPACITY = 0.25;
@@ -28,19 +28,19 @@ function getNestedBorderColor(color: string, nestingLevel: number = 1) {
 }
 
 export const Container = styled.div`
-	scroll-margin-top: ${CSS_DIMENSIONS.px80};
+	scroll-margin-top: 80px;
 `;
 
 export const Header = styled.div`
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 	margin: 0;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px40};
-	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	gap: 40px;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
 	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
 `;
@@ -48,7 +48,7 @@ export const Header = styled.div`
 export const HeaderMain = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
@@ -58,7 +58,7 @@ export const HeaderMain = styled.div`
 	}
 
 	.update-wrapper {
-		padding: ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px25};
+		padding: 2.5px 25px;
 	}
 
 	.loader {
@@ -72,7 +72,7 @@ export const HeaderMain = styled.div`
 export const HeaderActions = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px12_5};
+	gap: 12.5px;
 `;
 
 export const FilterWrapper = styled.div`
@@ -80,7 +80,7 @@ export const FilterWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
-	gap: ${CSS_DIMENSIONS.px12_5};
+	gap: 12.5px;
 `;
 
 export const AppliedActionsWrapper = styled.div`
@@ -88,14 +88,14 @@ export const AppliedActionsWrapper = styled.div`
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px12_5};
+	gap: 12.5px;
 `;
 
 export const FilterDropdown = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px12_5};
-	padding: 0 ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20};
+	gap: 12.5px;
+	padding: 0 20px 20px 20px;
 `;
 
 export const FilterDropdownHeader = styled.div`
@@ -109,17 +109,17 @@ export const FilterDropdownHeader = styled.div`
 `;
 
 export const FilterDivider = styled.div`
-	height: ${CSS_DIMENSIONS.px1};
+	height: 1px;
 	width: 100%;
-	margin: ${CSS_DIMENSIONS.px15} 0 ${CSS_DIMENSIONS.px10} 0;
-	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	margin: 15px 0 10px 0;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const FilterDropdownActionSelect = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.alt2} !important;
@@ -127,11 +127,11 @@ export const FilterDropdownActionSelect = styled.div`
 `;
 
 export const FilterApply = styled.div`
-	margin: ${CSS_DIMENSIONS.px15} 0 0 0;
+	margin: 15px 0 0 0;
 `;
 
 export const FilterWarning = styled.div`
-	margin: -${CSS_DIMENSIONS.px2_5} 0 0 0;
+	margin: -2.5px 0 0 0;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};
@@ -145,20 +145,20 @@ export const FilterWarning = styled.div`
 export const DateRangeWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 `;
 
 export const DateRangeSection = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 `;
 
 export const DateRangeHeader = styled.div`
 	display: flex;
 	align-items: flex-end;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	width: 100%;
 `;
 
@@ -171,9 +171,9 @@ export const DateLabel = styled.div`
 export const ClearDateButton = styled(PrimitiveButton)`
 	background: ${(props) => props.theme.colors.button.primary.background};
 	color: ${(props) => props.theme.colors.button.primary.color};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.button.primary.border};
+	border: 1px solid ${(props) => props.theme.colors.button.primary.border};
 	border-radius: ${STYLING.dimensions.radius.alt2};
-	padding: ${CSS_DIMENSIONS.px5} ${CSS_DIMENSIONS.px10};
+	padding: 5px 10px;
 	font-family: ${(props) => props.theme.typography.family.primary};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -186,9 +186,9 @@ export const ClearDateButton = styled(PrimitiveButton)`
 `;
 
 export const Divider = styled.div`
-	height: ${CSS_DIMENSIONS.px20};
-	width: ${CSS_DIMENSIONS.px1};
-	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	height: 20px;
+	width: 1px;
+	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		display: none;
@@ -203,15 +203,15 @@ export const Wrapper = styled.div<{ childList?: boolean }>`
 `;
 
 export const HeaderWrapper = styled.div`
-	height: ${CSS_DIMENSIONS.px40};
+	height: 40px;
 	min-width: 100%;
 	width: fit-content;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: 0 ${CSS_DIMENSIONS.px15};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	gap: 15px;
+	padding: 0 15px;
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	background: ${(props) => props.theme.colors.container.alt1.background};
 
 	div,
@@ -240,7 +240,7 @@ export const BodyWrapper = styled.div<{
 	width: 100%;
 
 	> *:last-child {
-		border-bottom: ${CSS_DIMENSIONS.px1} solid
+		border-bottom: 1px solid
 			${(props) =>
 				props.childList && !props.isOverallLast
 					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
@@ -248,18 +248,18 @@ export const BodyWrapper = styled.div<{
 	}
 
 	.message-list-element {
-		border-top: ${CSS_DIMENSIONS.px0_5} solid transparent;
-		border-left: ${CSS_DIMENSIONS.px1} solid
+		border-top: 0.5px solid transparent;
+		border-left: 1px solid
 			${(props) =>
 				props.childList
 					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
 					: props.theme.colors.border.primary};
-		border-right: ${CSS_DIMENSIONS.px1} solid
+		border-right: 1px solid
 			${(props) =>
 				props.childList
 					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
 					: props.theme.colors.border.primary};
-		border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
 export const ElementWrapper = styled.div<{
@@ -271,15 +271,15 @@ export const ElementWrapper = styled.div<{
 	$nestingLevel?: number;
 	$spam?: boolean;
 }>`
-	height: ${CSS_DIMENSIONS.px40};
+	height: 40px;
 	min-width: 100%;
 	width: fit-content;
 	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: 0 ${CSS_DIMENSIONS.px15};
+	gap: 15px;
+	padding: 0 15px;
 
 	cursor: ${(props) => (props.clickable ? 'pointer' : 'default')};
 	background: ${(props) =>
@@ -309,27 +309,22 @@ export const ElementWrapper = styled.div<{
 				background: ${props.$spam
 					? props.theme.colors.container.alt1.background
 					: props.theme.colors.container.primary.active};
-				border-top: ${CSS_DIMENSIONS.px0_5} solid
-					${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-				border-left: ${CSS_DIMENSIONS.px1} solid
-					${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-				border-right: ${CSS_DIMENSIONS.px1} solid
-					${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-				border-bottom: ${CSS_DIMENSIONS.px1} solid
-					${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-top: 0.5px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+				border-bottom: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 			}
 
 			&:hover::after {
 				content: '';
 				position: absolute;
-				height: ${CSS_DIMENSIONS.px1};
-				width: calc(100% + ${CSS_DIMENSIONS.px2});
-				top: -${CSS_DIMENSIONS.px1};
-				left: -${CSS_DIMENSIONS.px1};
+				height: 1px;
+				width: calc(100% + 2px);
+				top: -1px;
+				left: -1px;
 				right: 0;
 				bottom: 0;
-				border-top: ${CSS_DIMENSIONS.px1} solid
-					${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
+				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
 				transition: all 100ms;
 			}
 		`}
@@ -337,25 +332,22 @@ export const ElementWrapper = styled.div<{
 	${(props) =>
 		props.open &&
 		css`
-			border-left: ${CSS_DIMENSIONS.px1} solid
-				${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-			border-right: ${CSS_DIMENSIONS.px1} solid
-				${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-			border-bottom: ${CSS_DIMENSIONS.px1} solid ${props.theme.colors.border.primary} !important;
+			border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+			border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+			border-bottom: 1px solid ${props.theme.colors.border.primary} !important;
 
 			background: ${props.theme.colors.container.alt1.background};
 
 			&::after {
 				content: '';
 				position: absolute;
-				height: ${CSS_DIMENSIONS.px1};
-				width: calc(100% + ${CSS_DIMENSIONS.px2});
-				top: -${CSS_DIMENSIONS.px1};
-				left: -${CSS_DIMENSIONS.px1};
+				height: 1px;
+				width: calc(100% + 2px);
+				top: -1px;
+				left: -1px;
 				right: 0;
 				bottom: 0;
-				border-top: ${CSS_DIMENSIONS.px1} solid
-					${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
+				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
 				transition: all 100ms;
 			}
 		`}
@@ -366,21 +358,21 @@ export const ElementItem = styled.div`
 `;
 
 export const ID = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px155};
-	width: ${CSS_DIMENSIONS.px155};
+	min-width: 155px;
+	width: 155px;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px5};
+	gap: 5px;
 `;
 
 export const TxAddress = styled.div`
-	min-width: ${CSS_DIMENSIONS.px165};
-	width: ${CSS_DIMENSIONS.px165};
+	min-width: 165px;
+	width: 165px;
 `;
 
 export const ResultMessage = styled.div`
-	min-width: ${CSS_DIMENSIONS.px165};
-	width: ${CSS_DIMENSIONS.px165};
+	min-width: 165px;
+	width: 165px;
 
 	> span {
 		color: ${(props) => props.theme.colors.font.alt1} !important;
@@ -395,8 +387,8 @@ export const ResultMessage = styled.div`
 `;
 
 export const Type = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px155};
-	width: ${CSS_DIMENSIONS.px155};
+	min-width: 155px;
+	width: 155px;
 `;
 
 export const TypeValue = styled(Type)`
@@ -418,15 +410,15 @@ export const TypeValue = styled(Type)`
 `;
 
 export const Action = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px195};
-	width: ${CSS_DIMENSIONS.px195};
+	min-width: 195px;
+	width: 195px;
 `;
 
 export const ActionTooltip = styled.div`
 	position: absolute;
 	z-index: 2;
-	top: ${CSS_DIMENSIONS.px2_5};
-	left: calc(100% + ${CSS_DIMENSIONS.px10});
+	top: 2.5px;
+	left: calc(100% + 10px);
 	display: none;
 	white-space: nowrap;
 
@@ -440,13 +432,13 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 
 	.action-indicator {
-		min-height: ${CSS_DIMENSIONS.px8};
-		min-width: ${CSS_DIMENSIONS.px8};
-		height: ${CSS_DIMENSIONS.px8};
-		width: ${CSS_DIMENSIONS.px8};
+		min-height: 8px;
+		min-width: 8px;
+		height: 8px;
+		width: 8px;
 		border-radius: 50%;
 		position: relative;
 		display: flex;
@@ -477,8 +469,8 @@ export const ActionValue = styled(Action)<{ background?: string; useMaxWidth: bo
 `;
 
 export const To = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px150};
-	width: ${CSS_DIMENSIONS.px150};
+	min-width: 150px;
+	width: 150px;
 	justify-content: flex-end;
 	p {
 		text-align: right;
@@ -486,8 +478,8 @@ export const To = styled(ElementItem)`
 `;
 
 export const From = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px150};
-	width: ${CSS_DIMENSIONS.px150};
+	min-width: 150px;
+	width: 150px;
 	justify-content: flex-end;
 	p {
 		text-align: right;
@@ -495,36 +487,36 @@ export const From = styled(ElementItem)`
 `;
 
 export const Input = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px75};
-	width: ${CSS_DIMENSIONS.px75};
+	min-width: 75px;
+	width: 75px;
 	justify-content: center;
 	p {
 		text-align: right;
 	}
 
 	button {
-		padding: ${CSS_DIMENSIONS.px4_5} ${CSS_DIMENSIONS.px12_5} !important
+		padding: 4.5px 12.5px !important
 ;
 	}
 `;
 
 export const Output = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px75};
-	width: ${CSS_DIMENSIONS.px75};
+	min-width: 75px;
+	width: 75px;
 	justify-content: center;
 	p {
 		text-align: right;
 	}
 
 	button {
-		padding: ${CSS_DIMENSIONS.px4_5} ${CSS_DIMENSIONS.px12_5} !important
+		padding: 4.5px 12.5px !important
 ;
 	}
 `;
 
 export const Time = styled(ElementItem)`
-	min-width: ${CSS_DIMENSIONS.px115};
-	width: ${CSS_DIMENSIONS.px115};
+	min-width: 115px;
+	width: 115px;
 	justify-content: flex-end;
 	p {
 		text-align: right;
@@ -532,13 +524,13 @@ export const Time = styled(ElementItem)`
 `;
 
 export const Results = styled(ElementItem)<{ open?: boolean }>`
-	min-width: ${CSS_DIMENSIONS.px65};
-	width: ${CSS_DIMENSIONS.px65};
+	min-width: 65px;
+	width: 65px;
 	justify-content: flex-end;
 	svg {
-		height: ${CSS_DIMENSIONS.px15};
-		width: ${CSS_DIMENSIONS.px15};
-		margin: 0 0 -${CSS_DIMENSIONS.px2_5} 0;
+		height: 15px;
+		width: 15px;
+		margin: 0 0 -2.5px 0;
 		transform: rotate(${(props) => (props.open ? '180deg' : '0deg')});
 		transition: transform 0.15s ease-in-out;
 	}
@@ -547,21 +539,21 @@ export const Results = styled(ElementItem)<{ open?: boolean }>`
 export const OverlayWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: 0 ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20};
+	gap: 15px;
+	padding: 0 20px 20px 20px;
 `;
 
 export const OverlayTagsWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px7_5};
-	margin: ${CSS_DIMENSIONS.px2_5} 0 0 0;
+	gap: 7.5px;
+	margin: 2.5px 0 0 0;
 `;
 
 export const OverlayTagsHeader = styled.div`
-	margin: 0 0 ${CSS_DIMENSIONS.px1_5} 0;
-	padding: 0 0 ${CSS_DIMENSIONS.px10_5} 0;
-	border-bottom: ${CSS_DIMENSIONS.px1} dotted ${(props) => props.theme.colors.border.primary};
+	margin: 0 0 1.5px 0;
+	padding: 0 0 10.5px 0;
+	border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
 	p {
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -599,7 +591,7 @@ export const OverlayLine = styled.div`
 		flex-direction: column;
 		align-items: flex-start;
 		justify-content: flex-start;
-		gap: ${CSS_DIMENSIONS.px5};
+		gap: 5px;
 
 		p {
 			text-align: left;
@@ -628,7 +620,7 @@ export const OverlayTagValue = styled(PrimitiveButton)<{ $tooltipVisible?: boole
 	> div {
 		opacity: ${(props) => (props.$tooltipVisible ? 1 : 0)};
 		visibility: ${(props) => (props.$tooltipVisible ? 'visible' : 'hidden')};
-		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : `translateY(-${CSS_DIMENSIONS.px3})`)};
+		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : `translateY(-3px)`)};
 		transition-delay: ${(props) => (props.$tooltipVisible ? '0s' : '0s, 0s, 140ms')};
 	}
 
@@ -645,19 +637,18 @@ export const OverlayTagValue = styled(PrimitiveButton)<{ $tooltipVisible?: boole
 export const OverlayTagValueTooltip = styled.div`
 	position: absolute;
 	z-index: 5;
-	top: calc(100% + ${CSS_DIMENSIONS.px3_5});
+	top: calc(100% + 3.5px);
 	right: 0;
 	opacity: 0;
 	visibility: hidden;
-	transform: translateY(-${CSS_DIMENSIONS.px3});
+	transform: translateY(-3px);
 	width: max-content;
-	max-width: min(${CSS_DIMENSIONS.px720}, calc(100vw - ${CSS_DIMENSIONS.px40}));
-	padding: ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px5};
+	max-width: min(720px, calc(100vw - 40px));
+	padding: 2.5px 5px;
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
-	box-shadow: ${(props) => props.theme.colors.shadow.primary} ${CSS_DIMENSIONS.px0} ${CSS_DIMENSIONS.px1}
-		${CSS_DIMENSIONS.px2} ${CSS_DIMENSIONS.px0_5};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	color: ${(props) => props.theme.colors.font.light1};
 	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	font-family: ${(props) => props.theme.typography.family.primary};
@@ -678,18 +669,18 @@ export const OverlayTagValueTooltip = styled.div`
 export const OverlayInfo = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 `;
 
 export const OverlayInfoLine = styled.div`
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 `;
 
 export const OverlayInfoLineValue = styled.div`
 	p {
 		display: flex;
-		margin: ${CSS_DIMENSIONS.px2_5} 0 0 0;
+		margin: 2.5px 0 0 0;
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -712,12 +703,12 @@ export const OverlayActions = styled.div`
 	width: fit-content;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px15};
-	margin: ${CSS_DIMENSIONS.px5} 0 0 auto;
+	gap: 15px;
+	margin: 5px 0 0 auto;
 `;
 
 export const Editor = styled.div`
-	height: ${CSS_DIMENSIONS.px600};
+	height: 600px;
 	width: 100%;
 `;
 
@@ -727,12 +718,12 @@ export const FooterWrapper = styled.div`
 	align-items: center;
 	flex-wrap: wrap;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
+	padding: 15px;
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary} !important;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};
 `;
@@ -740,7 +731,7 @@ export const FooterWrapper = styled.div`
 export const PageCounter = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 
 	p,
 	label,
@@ -769,17 +760,13 @@ export const MPageCounter = styled(PageCounter)`
 `;
 
 export const UpdateWrapper = styled.div<{ childList?: boolean }>`
-	padding: ${(props) =>
-		props.childList
-			? `${CSS_DIMENSIONS.px15}`
-			: `0 ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15}`};
-	border-top: ${CSS_DIMENSIONS.px0_15} solid
-		${(props) => (props.childList ? props.theme.colors.border.alt4 : 'transparent')};
-	border-left: ${CSS_DIMENSIONS.px1} solid
+	padding: ${(props) => (props.childList ? `15px` : `0 15px 15px 15px`)};
+	border-top: 0.15px solid ${(props) => (props.childList ? props.theme.colors.border.alt4 : 'transparent')};
+	border-left: 1px solid
 		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
-	border-right: ${CSS_DIMENSIONS.px1} solid
+	border-right: 1px solid
 		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
-	border-bottom: ${CSS_DIMENSIONS.px1} solid
+	border-bottom: 1px solid
 		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)} !important;
 	background: ${(props) =>
 		props.childList ? props.theme.colors.container.alt2.background : props.theme.colors.container.primary.background};

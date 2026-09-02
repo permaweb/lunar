@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from 'styled-components';
 
 import {
+	getTransactions,
 	getTransactionsByBlock,
 	getTransactionsByBundle,
 	GQLEdge,
@@ -23,7 +24,14 @@ import { ASSETS, DEFAULT_ACTIONS, FLAGS, URLS } from 'helpers/config';
 import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
 import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
-import { formatCount, formatDate, getByteSizeDisplay, getTagValue, isNativeArTransfer } from 'helpers/utils';
+import {
+	formatCount,
+	formatDate,
+	getByteSizeDisplay,
+	getRelativeDate,
+	getTagValue,
+	isNativeArTransfer,
+} from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -91,7 +99,7 @@ function normalizeTypeFilter(value: string | null): TransactionTypeFilter | null
 	return null;
 }
 
-function getTransactionQueryKeys(mode: 'block' | 'bundle') {
+function getTransactionQueryKeys(mode: 'block' | 'bundle' | 'recent') {
 	return mode === 'bundle' ? BUNDLE_TRANSACTION_QUERY_KEYS : TRANSACTION_QUERY_KEYS;
 }
 
@@ -132,11 +140,13 @@ function normalizePathname(pathname: string) {
 
 function shouldSyncTransactionQueryParams(args: {
 	pathname: string;
-	mode: 'block' | 'bundle';
+	mode: 'block' | 'bundle' | 'recent';
 	blockHeight?: number;
 	blockId?: string;
 	bundleId?: string;
 }) {
+	if (args.mode === 'recent') return normalizePathname(args.pathname) === normalizePathname(URLS.transactions);
+
 	const parts = normalizePathname(args.pathname).split('/').filter(Boolean);
 	if (parts[0] !== 'explorer') return false;
 
@@ -156,7 +166,11 @@ function isTransferTransaction(transaction: TransactionNode) {
 	return getTagValue(transaction.tags, 'Action') === DEFAULT_ACTIONS.transfer.name || isNativeArTransfer(transaction);
 }
 
-function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (transaction: TransactionNode) => void }) {
+function TransactionRow(props: {
+	edge: GQLEdge<TransactionNode>;
+	onHydrated: (transaction: TransactionNode) => void;
+	preview?: boolean;
+}) {
 	const currentTheme: any = useTheme();
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
@@ -250,41 +264,52 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 	}
 
 	return (
-		<S.ElementWrapper ref={hydratedTransaction.ref} className={'transaction-list-element'} onClick={handleRowClick}>
-			<S.ID title={transaction.id}>
+		<S.ElementWrapper
+			ref={hydratedTransaction.ref}
+			className={'transaction-list-element'}
+			onClick={handleRowClick}
+			$preview={props.preview}
+		>
+			<S.ID title={transaction.id} $preview={props.preview}>
 				<S.LinkLabel>
 					<ExplorerLink value={transaction.id} type={'transaction'} />
 				</S.LinkLabel>
 			</S.ID>
-			<S.TypeValue background={getTypeBackground(transaction)}>
+			<S.TypeValue background={getTypeBackground(transaction)} $preview={props.preview}>
 				<div className={'type-indicator'} />
 				<p>{getTransactionType(transaction)}</p>
 				<TransferAmount tags={tags} target={transferTarget} quantity={transaction.quantity} />
 			</S.TypeValue>
-			<S.Owner>
-				{transaction.owner?.address ? (
-					<S.LabeledAddress>
-						<TxAddress address={transaction.owner.address} />
-						{bundlerLabel && <S.AddressLabel>{bundlerLabel}</S.AddressLabel>}
-					</S.LabeledAddress>
-				) : (
-					<p>{getPendingLabel()}</p>
-				)}
-			</S.Owner>
-			<S.Recipient>
-				{transaction.recipient ? (
-					<TxAddress address={transaction.recipient} />
-				) : (
-					<p>{pendingHydration ? `${language.loading}...` : 'No Recipient'}</p>
-				)}
-			</S.Recipient>
-			<S.Size>
+			{!props.preview && (
+				<>
+					<S.Owner>
+						{transaction.owner?.address ? (
+							<S.LabeledAddress>
+								<TxAddress address={transaction.owner.address} />
+								{bundlerLabel && <S.AddressLabel>{bundlerLabel}</S.AddressLabel>}
+							</S.LabeledAddress>
+						) : (
+							<p>{getPendingLabel()}</p>
+						)}
+					</S.Owner>
+					<S.Recipient>
+						{transaction.recipient ? (
+							<TxAddress address={transaction.recipient} />
+						) : (
+							<p>{pendingHydration ? `${language.loading}...` : 'No Recipient'}</p>
+						)}
+					</S.Recipient>
+				</>
+			)}
+			<S.Size $preview={props.preview}>
 				<p>{getSize(transaction)}</p>
 			</S.Size>
-			<S.Time>
+			<S.Time $preview={props.preview}>
 				<p>
 					{transaction.block?.timestamp
-						? formatDate(transaction.block.timestamp * 1000, 'timestamp', true)
+						? props.preview
+							? getRelativeDate(transaction.block.timestamp * 1000)
+							: formatDate(transaction.block.timestamp * 1000, 'timestamp', true)
 						: getPendingLabel()}
 				</p>
 			</S.Time>
@@ -293,12 +318,14 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 }
 
 export default function TransactionList(props: {
-	mode: 'block' | 'bundle';
+	mode: 'block' | 'bundle' | 'recent';
 	blockHeight?: number;
 	blockId?: string;
 	bundleId?: string;
 	header?: string;
 	onTotalCountChange?: (count: number | null) => void;
+	pageSize?: number;
+	preview?: boolean;
 }) {
 	const location = useLocation();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -316,10 +343,19 @@ export default function TransactionList(props: {
 		[location.search, searchParamString]
 	);
 	const routeSearchParams = React.useMemo(() => new URLSearchParams(routeSearch), [routeSearch]);
-	const queryFilterState = React.useMemo(
-		() => getTransactionQueryState(routeSearchParams, transactionQueryKeys),
-		[routeSearchParams, transactionQueryKeys]
-	);
+	const queryFilterState = React.useMemo(() => {
+		if (props.mode === 'recent' && props.preview) {
+			return {
+				hasQuery: false,
+				type: null,
+				limit: null,
+				page: null,
+				after: null,
+			};
+		}
+
+		return getTransactionQueryState(routeSearchParams, transactionQueryKeys);
+	}, [props.mode, props.preview, routeSearchParams, transactionQueryKeys]);
 	const syncQueryParams = React.useMemo(
 		() =>
 			shouldSyncTransactionQueryParams({
@@ -334,6 +370,7 @@ export default function TransactionList(props: {
 	const skipNextQueryWriteRef = React.useRef<boolean>(syncQueryParams && queryFilterState.hasQuery);
 	const dataScopeKey = React.useMemo(() => {
 		if (props.mode === 'bundle') return `bundle:${props.bundleId ?? ''}`;
+		if (props.mode === 'recent') return 'recent';
 
 		return `block:${props.blockHeight ?? props.blockId ?? ''}`;
 	}, [props.mode, props.blockHeight, props.blockId, props.bundleId]);
@@ -347,9 +384,11 @@ export default function TransactionList(props: {
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [pageNumber, setPageNumber] = React.useState<number>(queryFilterState.page ?? 1);
 	const [pageInput, setPageInput] = React.useState<string>((queryFilterState.page ?? 1).toString());
-	const [perPage, setPerPage] = React.useState<number>(queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE);
+	const [perPage, setPerPage] = React.useState<number>(
+		props.pageSize ?? queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE
+	);
 	const [perPageInput, setPerPageInput] = React.useState<string>(
-		(queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE).toString()
+		(props.pageSize ?? queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE).toString()
 	);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
@@ -360,10 +399,21 @@ export default function TransactionList(props: {
 	const totalPages = totalCount !== null ? Math.max(1, Math.ceil(totalCount / perPage)) : null;
 	const needsClientTypeFilter = !!activeTypeFilter && (props.mode === 'bundle' || activeTypeFilter === 'transaction');
 
-	const canLoad = props.mode === 'block' ? props.blockHeight !== undefined || !!props.blockId : !!props.bundleId;
+	const canLoad =
+		props.mode === 'recent' ||
+		(props.mode === 'block' ? props.blockHeight !== undefined || !!props.blockId : !!props.bundleId);
 
 	const fetchTransactionsPage = React.useCallback(
 		async (after: string | null) => {
+			if (props.mode === 'recent') {
+				return await getTransactions({
+					first: perPage,
+					after: after,
+					typeFilter: activeTypeFilter === 'transaction' ? null : activeTypeFilter,
+					includeCount: !props.preview && !after && activeTypeFilter !== 'transaction',
+				});
+			}
+
 			return props.mode === 'block'
 				? await getTransactionsByBlock({
 						blockHeight: props.blockHeight,
@@ -380,7 +430,16 @@ export default function TransactionList(props: {
 						includeCount: !!props.onTotalCountChange || !after,
 				  });
 		},
-		[props.mode, props.blockHeight, props.blockId, props.bundleId, props.onTotalCountChange, perPage, activeTypeFilter]
+		[
+			props.mode,
+			props.blockHeight,
+			props.blockId,
+			props.bundleId,
+			props.onTotalCountChange,
+			props.preview,
+			perPage,
+			activeTypeFilter,
+		]
 	);
 
 	const hydrateTransactionForFilter = React.useCallback(
@@ -699,9 +758,9 @@ export default function TransactionList(props: {
 					: props.blockId
 					? `block-${props.blockId}`
 					: 'block'
-				: props.bundleId
+				: props.mode === 'bundle' && props.bundleId
 				? `bundle-${props.bundleId}`
-				: 'bundle';
+				: props.mode;
 
 		downloadCsv(buildCsvFilename(['transactions', scope, `page-${pageNumber}`, `limit-${perPage}`]), csvRows);
 	}
@@ -735,11 +794,11 @@ export default function TransactionList(props: {
 
 	function getMessage() {
 		let message = language.transactionsNotFound;
-		if (loading) message = `${language.transactionsLoading}...`;
+		if (loading) message = language.transactionsLoading;
 		if (error) message = error;
 
 		return (
-			<S.UpdateWrapper>
+			<S.UpdateWrapper $preview={props.preview} role={loading ? 'status' : undefined}>
 				<p>{message}</p>
 			</S.UpdateWrapper>
 		);
@@ -791,7 +850,7 @@ export default function TransactionList(props: {
 
 	return (
 		<>
-			<S.Container ref={tableContainerRef}>
+			<S.Container ref={tableContainerRef} $preview={props.preview}>
 				<S.Header>
 					<S.HeaderMain>
 						<p>{props.header ?? language.transactions}</p>
@@ -801,75 +860,86 @@ export default function TransactionList(props: {
 							</div>
 						)}
 					</S.HeaderMain>
-					<S.HeaderActions className={'scroll-wrapper-hidden'}>
-						{activeTypeFilter && (
+					{!props.preview && (
+						<S.HeaderActions className={'scroll-wrapper-hidden'}>
+							{activeTypeFilter && (
+								<Button
+									type={'alt3'}
+									label={`${language.type} (${getTypeFilterLabel(activeTypeFilter)})`}
+									onPress={handleClearTypeFilter}
+									active={true}
+									disabled={loading}
+									icon={ASSETS.close}
+								/>
+							)}
+							<FilterS.FilterWrapper>
+								<Button
+									type={'alt3'}
+									label={language.filter}
+									onPress={() => setShowFilters((prev) => !prev)}
+									active={showFilters}
+									disabled={loading}
+									icon={ASSETS.filter}
+									iconLeftAlign
+								/>
+							</FilterS.FilterWrapper>
+							<S.Divider />
 							<Button
 								type={'alt3'}
-								label={`${language.type} (${getTypeFilterLabel(activeTypeFilter)})`}
-								onPress={handleClearTypeFilter}
-								active={true}
-								disabled={loading}
-								icon={ASSETS.close}
-							/>
-						)}
-						<FilterS.FilterWrapper>
-							<Button
-								type={'alt3'}
-								label={language.filter}
-								onPress={() => setShowFilters((prev) => !prev)}
-								active={showFilters}
-								disabled={loading}
-								icon={ASSETS.filter}
+								label={language.download}
+								onPress={handleExport}
+								disabled={loading || transactions.length <= 0}
+								icon={ASSETS.save}
 								iconLeftAlign
 							/>
-						</FilterS.FilterWrapper>
-						<S.Divider />
-						<Button
-							type={'alt3'}
-							label={language.download}
-							onPress={handleExport}
-							disabled={loading || transactions.length <= 0}
-							icon={ASSETS.save}
-							iconLeftAlign
-						/>
-						<S.Divider />
-						{getPaginator(false)}
-					</S.HeaderActions>
+							<S.Divider />
+							{getPaginator(false)}
+						</S.HeaderActions>
+					)}
 				</S.Header>
 				{transactions.length > 0 ? (
-					<S.Wrapper>
-						<S.HeaderWrapper className={'fade-in'}>
-							<S.ID>
+					<S.Wrapper $preview={props.preview}>
+						<S.HeaderWrapper className={'fade-in'} $preview={props.preview}>
+							<S.ID $preview={props.preview}>
 								<p>{language.id}</p>
 							</S.ID>
-							<S.Type>
+							<S.Type $preview={props.preview}>
 								<p>{language.type}</p>
 							</S.Type>
-							<S.Owner>
-								<p>{language.owner}</p>
-							</S.Owner>
-							<S.Recipient>
-								<p>{language.recipient}</p>
-							</S.Recipient>
-							<S.Size>
+							{!props.preview && (
+								<>
+									<S.Owner>
+										<p>{language.owner}</p>
+									</S.Owner>
+									<S.Recipient>
+										<p>{language.recipient}</p>
+									</S.Recipient>
+								</>
+							)}
+							<S.Size $preview={props.preview}>
 								<p>{language.size}</p>
 							</S.Size>
-							<S.Time>
+							<S.Time $preview={props.preview}>
 								<p>{language.time}</p>
 							</S.Time>
 						</S.HeaderWrapper>
-						<S.BodyWrapper className={'fade-in'}>
+						<S.BodyWrapper className={'fade-in'} $preview={props.preview}>
 							{transactions.map((edge) => (
-								<TransactionRow key={edge.node.id} edge={edge} onHydrated={handleTransactionHydrated} />
+								<TransactionRow
+									key={edge.node.id}
+									edge={edge}
+									onHydrated={handleTransactionHydrated}
+									preview={props.preview}
+								/>
 							))}
 						</S.BodyWrapper>
 					</S.Wrapper>
 				) : (
 					getMessage()
 				)}
-				<S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>
+				{!props.preview && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
 			</S.Container>
-			{showFilters && (
+			{!props.preview && showFilters && (
 				<Modal type="panel" width={515} header={language.transactionFilters} onClose={() => setShowFilters(false)}>
 					<FilterS.FilterDropdown>
 						<FilterS.FilterDropdownHeader>

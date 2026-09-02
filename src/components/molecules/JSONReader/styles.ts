@@ -1,9 +1,7 @@
 import styled from 'styled-components';
 
-import { CSS_DIMENSIONS } from 'helpers/themes';
-
 export const Wrapper = styled.div<{ noWrapper?: boolean; fixedHeight?: number }>`
-	padding: ${(props) => (props.noWrapper ? '0' : `${CSS_DIMENSIONS.px15}`)};
+	padding: ${(props) => (props.noWrapper ? '0' : `15px`)};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -13,7 +11,7 @@ export const Wrapper = styled.div<{ noWrapper?: boolean; fixedHeight?: number }>
 	${(props) => props.fixedHeight && `height: ${props.fixedHeight}px;`}
 
 	ul {
-		margin: 0 0 0 ${CSS_DIMENSIONS.px1_5} !important;
+		margin: 0 0 0 1.5px !important;
 	}
 `;
 
@@ -22,7 +20,7 @@ export const JSONWrapper = styled.div`
 `;
 
 export const Header = styled.div`
-	height: ${CSS_DIMENSIONS.px32_5};
+	height: 32.5px;
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
@@ -36,7 +34,7 @@ export const Header = styled.div`
 `;
 
 export const Placeholder = styled.div`
-	margin: ${CSS_DIMENSIONS.px10} 0 0 0;
+	margin: 10px 0 0 0;
 	p {
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -49,18 +47,12 @@ export const Placeholder = styled.div`
 export const ActionsWrapper = styled.div`
 	width: fit-content;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 `;
 
 export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight?: number; fixedHeight?: number }>`
-	height: ${(props) =>
-		props.fixedHeight
-			? `calc(${props.fixedHeight}px - ${CSS_DIMENSIONS.px32_5} - ${CSS_DIMENSIONS.px30})`
-			: `calc(100% - ${CSS_DIMENSIONS.px32_5})`};
-	max-height: ${(props) =>
-		props.maxHeight
-			? `calc(${props.maxHeight.toString()}px - ${CSS_DIMENSIONS.px32_5} - ${CSS_DIMENSIONS.px30})`
-			: 'none'};
+	height: ${(props) => (props.fixedHeight ? `calc(${props.fixedHeight}px - 32.5px - 30px)` : `calc(100% - 32.5px)`)};
+	max-height: ${(props) => (props.maxHeight ? `calc(${props.maxHeight.toString()}px - 32.5px - 30px)` : 'none')};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	line-height: 1.6;
@@ -71,7 +63,7 @@ export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight?: 
 `;
 
 export const JSONIndent = styled.div`
-	padding-left: ${CSS_DIMENSIONS.px22_5};
+	padding-left: 22.5px;
 `;
 
 export const JSONProperty = styled.div`
@@ -82,8 +74,8 @@ export const JSONProperty = styled.div`
 export const CollapseArrow = styled.span<{ isCollapsed: boolean }>`
 	display: inline-flex;
 	position: absolute;
-	top: -${CSS_DIMENSIONS.px4_5};
-	left: -${CSS_DIMENSIONS.px12_5};
+	top: -4.5px;
+	left: -12.5px;
 	color: ${(props) => props.theme.colors.font.alt1};
 	font-size: ${(props) => props.theme.typography.size.base};
 	transform: rotate(${(props) => (props.isCollapsed ? '0deg' : '90deg')});
@@ -116,7 +108,7 @@ export const JSONKey = styled.span`
 
 export const JSONColon = styled.span`
 	color: ${(props) => props.theme.colors.editor.alt4};
-	margin-right: ${CSS_DIMENSIONS.px4};
+	margin-right: 4px;
 `;
 
 export const JSONComma = styled.span`
@@ -133,12 +125,12 @@ export const JSONString = styled.span`
 
 export const LuaBlock = styled.div`
 	display: block;
-	max-width: min(${CSS_DIMENSIONS.px980}, 100%);
-	margin: ${CSS_DIMENSIONS.px5} 0 ${CSS_DIMENSIONS.px7_5} 0;
+	max-width: min(980px, 100%);
+	margin: 5px 0 7.5px 0;
 `;
 
 export const LuaPre = styled.pre`
-	margin: 0 0 0 ${CSS_DIMENSIONS.px25};
+	margin: 0 0 0 25px;
 	color: ${(props) => props.theme.colors.editor.primary};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -173,7 +165,7 @@ export const LuaToken = styled.span<{ $tokenType: string }>`
 export const JSONStringIDFlex = styled.span`
 	display: inline-flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px5};
+	gap: 5px;
 	position: relative;
 `;
 
@@ -181,7 +173,7 @@ export const JSONStringID = styled.span<{ copied?: boolean }>`
 	color: ${(props) => props.theme.colors.editor.alt8};
 	cursor: pointer;
 	text-decoration: ${(props) => (props.copied ? 'none' : 'underline')};
-	text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
+	text-decoration-thickness: 1.25px;
 	position: relative;
 	transition: all 100ms;
 
@@ -197,8 +189,8 @@ export const JSONStringID = styled.span<{ copied?: boolean }>`
 		&::after {
 			content: '✓';
 			position: absolute;
-			right: -${CSS_DIMENSIONS.px75};
-			top: -${CSS_DIMENSIONS.px2_5};
+			right: -75px;
+			top: -2.5px;
 			color: ${props.theme.colors.success};
 			font-size: ${props.theme.typography.size.base};
 		}
@@ -256,5 +248,5 @@ export const JSONArray = styled.span`
 
 export const LoadMoreItem = styled.div`
 	display: block;
-	margin: ${CSS_DIMENSIONS.px10} 0;
+	margin: 10px 0;
 `;

@@ -33,7 +33,6 @@ import { TransactionList } from 'components/molecules/TransactionList';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 import { GQLNodeResponseType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
 	capitalize,
@@ -709,14 +708,14 @@ function Transaction(props: {
 					break;
 				case PROCESSES.pi:
 					dimensions = 10.5;
-					margin = `0 0 ${CSS_DIMENSIONS.px6_5} 0`;
+					margin = `0 0 6.5px 0`;
 					icon = ASSETS.pi;
 					break;
 			}
 
 			if (balanceSource === 'arweave') {
 				dimensions = 12.5;
-				margin = `0 0 ${CSS_DIMENSIONS.px4_95} 0`;
+				margin = `0 0 4.95px 0`;
 				icon = ASSETS.arweave;
 			}
 
@@ -1209,18 +1208,18 @@ function Transaction(props: {
 					case 'ao':
 						icon = ASSETS.ao;
 						dimensions = 18.5;
-						margin = `${CSS_DIMENSIONS.px7_5} ${CSS_DIMENSIONS.px4_5} 0 0`;
+						margin = `7.5px 4.5px 0 0`;
 						break;
 					case 'pi':
 						dimensions = 10.5;
-						margin = `${CSS_DIMENSIONS.px7_5} ${CSS_DIMENSIONS.px4_5} 0 0`;
+						margin = `7.5px 4.5px 0 0`;
 						icon = ASSETS.pi;
 						break;
 				}
 
 				if (token === 'arweave') {
 					dimensions = 12.5;
-					margin = `0 0 ${CSS_DIMENSIONS.px4_95} 0`;
+					margin = `0 0 4.95px 0`;
 					icon = ASSETS.arweave;
 				}
 

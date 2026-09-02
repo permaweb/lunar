@@ -1,13 +1,11 @@
 import styled from 'styled-components';
 
-import { CSS_DIMENSIONS } from 'helpers/themes';
-
 export const Wrapper = styled.div`
 	height: 100%;
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 `;
 
 export const Header = styled.div`
@@ -15,8 +13,8 @@ export const Header = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15};
+	gap: 15px;
+	padding: 15px 15px 12.5px 15px;
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
 		font-family: ${(props) => props.theme.typography.family.alt1};
@@ -26,8 +24,8 @@ export const Header = styled.div`
 `;
 
 export const EditorWrapper = styled.div<{ useFixedHeight: boolean }>`
-	min-height: ${CSS_DIMENSIONS.px125};
-	max-height: ${(props) => (props.useFixedHeight ? '100%' : `calc(100vh - ${CSS_DIMENSIONS.px190})`)};
+	min-height: 125px;
+	max-height: ${(props) => (props.useFixedHeight ? '100%' : `calc(100vh - 190px)`)};
 	width: 100%;
 	min-width: 0;
 	display: flex;
@@ -42,8 +40,7 @@ export const Editor = styled.div<{ $hasHeader?: boolean }>`
 	min-width: 0;
 	flex: 1;
 	position: relative;
-	padding: ${(props) =>
-		props.$hasHeader ? `0 0 ${CSS_DIMENSIONS.px15} 0` : `${CSS_DIMENSIONS.px18_5} 0 ${CSS_DIMENSIONS.px15} 0`};
+	padding: ${(props) => (props.$hasHeader ? `0 0 15px 0` : `18.5px 0 15px 0`)};
 	background: ${(props) => props.theme.colors.container.alt1.background};
 
 	> div {
@@ -60,22 +57,22 @@ export const ActionsWrapper = styled.div`
 	width: fit-content;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 	position: absolute;
-	bottom: ${CSS_DIMENSIONS.px20};
-	right: ${CSS_DIMENSIONS.px32_5};
+	bottom: 20px;
+	right: 32.5px;
 	z-index: 1;
 	pointer-events: none;
 
 	button {
-		padding: ${CSS_DIMENSIONS.px3_5} 0 0 0 !important;
+		padding: 3.5px 0 0 0 !important;
 		pointer-events: auto;
 	}
 `;
 
 export const SubmitWrapper = styled.div`
 	button {
-		padding: 0 ${CSS_DIMENSIONS.px17_5} !important;
+		padding: 0 17.5px !important;
 		pointer-events: auto;
 	}
 `;

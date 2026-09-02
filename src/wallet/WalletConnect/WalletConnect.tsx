@@ -10,7 +10,6 @@ import { Checkbox } from 'components/atoms/Checkbox';
 import { Modal } from 'components/atoms/Modal';
 import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import {
-	CSS_DIMENSIONS,
 	darkTheme,
 	darkThemeAlt1,
 	darkThemeAlt2,
@@ -105,14 +104,14 @@ const WalletBalanceSection = React.memo(
 				break;
 			case PROCESSES.pi:
 				dimensions = 10.5;
-				margin = `0 0 ${CSS_DIMENSIONS.px6_5} 0`;
+				margin = `0 0 6.5px 0`;
 				icon = ASSETS.pi;
 				break;
 		}
 
 		if (balanceSource === 'arweave') {
 			dimensions = 12.5;
-			margin = `0 0 ${CSS_DIMENSIONS.px4_95} 0`;
+			margin = `0 0 4.95px 0`;
 			icon = ASSETS.arweave;
 		}
 

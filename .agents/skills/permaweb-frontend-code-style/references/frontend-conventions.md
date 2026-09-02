@@ -467,8 +467,9 @@ const message = error instanceof Error ? error.message : 'Unable to save changes
 
 ## Styling and responsive design
 
-- Use theme values or central styling tokens for colors, typography, spacing, radii, dimensions, z-index, animation, and breakpoints.
-- Do not add inline `style` props or unexplained visual literals when styled-components are the project standard.
+- Use theme values or central styling tokens for colors and typography, and named semantic configuration for shared dimensions, radii, z-index, animation, and breakpoints.
+- Write component-local pixel measurements such as spacing, sizing, borders, and offsets directly in `styles.ts`. Do not create or extend catalogs of one-off measurements such as `CSS_DIMENSIONS`; reserve shared pixel-size configuration for typography and genuinely semantic dimensions such as control heights, navigation dimensions, radii, and breakpoints.
+- Do not add inline `style` props when styled-components are the project standard, and do not duplicate raw palette colors outside the theme.
 - Prefer semantic tokens such as `button.primary.background` over palette positions.
 - Put styled-components in `styles.ts` and export names that describe semantic roles such as `Wrapper`, `Header`, and `Actions`.
 - Move complex conditional CSS into typed helper functions.

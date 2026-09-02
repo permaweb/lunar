@@ -61,7 +61,7 @@ Delete temporary migration maps and compatibility exports after adoption. Retain
 
 ### 4. Review
 
-Review the diff for dependency inversions, cycles, deep imports, duplicated primitives, feature leakage, unsafe casts, swallowed errors, string-matched errors, stale closures, missing cleanup, unstable keys, N+1 requests, hardcoded copy/design/infrastructure values, inaccessible controls, sensitive logs, unsafe token math, ambiguous transaction states, and unmeasured performance changes.
+Review the diff for dependency inversions, cycles, deep imports, duplicated primitives, feature leakage, unsafe casts, swallowed errors, string-matched errors, stale closures, missing cleanup, unstable keys, N+1 requests, hardcoded copy, palette colors, or infrastructure values, inaccessible controls, sensitive logs, unsafe token math, ambiguous transaction states, and unmeasured performance changes.
 
 ### 5. Verify
 

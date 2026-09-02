@@ -1,10 +1,8 @@
 import styled from 'styled-components';
 
-import { CSS_DIMENSIONS } from 'helpers/themes';
-
 export const HeaderWrapper = styled.div`
 	width: 100%;
-	margin: ${CSS_DIMENSIONS.px13_5} 0 ${CSS_DIMENSIONS.px35_5} 0;
+	margin: 35.5px 0;
 `;
 
 export const HeaderContent = styled.div`
@@ -12,7 +10,7 @@ export const HeaderContent = styled.div`
 	display: flex;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px30} ${CSS_DIMENSIONS.px40};
+	gap: 30px 40px;
 
 	h4 {
 		line-height: 1;
@@ -20,7 +18,7 @@ export const HeaderContent = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
-		letter-spacing: ${CSS_DIMENSIONS.px0_5};
+		letter-spacing: 0.5px;
 	}
 `;
 
@@ -28,5 +26,5 @@ export const HeaderActions = styled.div`
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 `;

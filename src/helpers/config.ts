@@ -237,12 +237,14 @@ function createURLs() {
 	const docs = `${base}docs/`;
 	const explorer = `${base}explorer/`;
 	const blocks = `${base}blocks/`;
+	const transactions = `${base}transactions/`;
 	const aos = `${base}aos/`;
 	const graphql = `${base}graphql/`;
 
 	return {
 		base: base,
 		blocks: blocks,
+		transactions: transactions,
 		explorer: explorer,
 		explorerInfo: (id: string) => `${explorer}${id}/info`,
 		explorerMessages: (id: string) => `${explorer}${id}/messages`,

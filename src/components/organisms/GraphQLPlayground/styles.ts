@@ -1,19 +1,18 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	width: 100%;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 	position: relative;
 
 	&:fullscreen {
 		background: ${(props) => props.theme.colors.container.primary.background};
-		padding: ${CSS_DIMENSIONS.px25};
+		padding: 25px;
 		overflow: auto;
 	}
 `;
@@ -21,20 +20,20 @@ export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 export const HeaderWrapper = styled.div`
 	width: 100%;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 	align-items: center;
 	justify-content: space-between;
 `;
 
 export const InputWrapper = styled.div`
-	height: ${CSS_DIMENSIONS.px38_5};
+	height: 38.5px;
 	max-width: 100%;
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	position: relative;
-	padding: 0 0 0 ${CSS_DIMENSIONS.px0_5};
+	padding: 0 0 0 0.5px;
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		height: auto;
@@ -42,30 +41,30 @@ export const InputWrapper = styled.div`
 `;
 
 export const InputFormWrapper = styled.div`
-	width: ${CSS_DIMENSIONS.px510};
+	width: 510px;
 	max-width: 100%;
 	position: relative;
 
 	input {
 		max-width: 100%;
-		padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px42_5} !important;
+		padding: 10px 10px 10px 42.5px !important;
 	}
 
 	svg {
-		height: ${CSS_DIMENSIONS.px15};
-		width: ${CSS_DIMENSIONS.px15};
+		height: 15px;
+		width: 15px;
 		color: ${(props) => props.theme.colors.font.alt1};
 		fill: ${(props) => props.theme.colors.font.alt1};
 		position: absolute;
 		z-index: 1;
-		top: ${CSS_DIMENSIONS.px11_5};
-		left: ${CSS_DIMENSIONS.px14_5};
+		top: 11.5px;
+		left: 14.5px;
 	}
 `;
 
 export const ActionsWrapper = styled.div`
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 	align-items: center;
 
 	button {
@@ -74,14 +73,14 @@ export const ActionsWrapper = styled.div`
 `;
 
 export const GatewaysLabel = styled.div`
-	height: calc(${STYLING.dimensions.form.small} - ${CSS_DIMENSIONS.px1_75});
+	height: calc(${STYLING.dimensions.form.small} - 1.75px);
 	width: fit-content;
-	padding: ${CSS_DIMENSIONS.px4_5} ${CSS_DIMENSIONS.px15};
+	padding: 4.5px 15px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.alt2};
+	border: 1px solid ${(props) => props.theme.colors.border.alt2};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -96,16 +95,16 @@ export const GatewaysLabel = styled.div`
 `;
 
 export const Container = styled.div<{ isFullscreen?: boolean }>`
-	height: calc(100vh - ${CSS_DIMENSIONS.px295});
+	height: calc(100vh - 295px);
 	width: 100%;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 	position: relative;
 
 	${(props) =>
 		props.isFullscreen &&
 		`
-		height: calc(100vh - ${CSS_DIMENSIONS.px112_5});
+		height: calc(100vh - 112.5px);
 	`}
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -121,7 +120,7 @@ export const EditorWrapper = styled.div<{ showVariables?: boolean }>`
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	gap: ${(props) => (props.showVariables ? `${CSS_DIMENSIONS.px25}` : '0')};
+	gap: ${(props) => (props.showVariables ? `25px` : '0')};
 `;
 
 export const QueryEditorWrapper = styled.div<{ showVariables?: boolean }>`
@@ -152,12 +151,12 @@ export const ResultWrapper = styled.div`
 
 export const ErrorMessage = styled.div`
 	position: absolute;
-	bottom: ${CSS_DIMENSIONS.px20};
-	left: ${CSS_DIMENSIONS.px20};
-	right: ${CSS_DIMENSIONS.px20};
-	padding: ${CSS_DIMENSIONS.px15};
+	bottom: 20px;
+	left: 20px;
+	right: 20px;
+	padding: 15px;
 	background: ${(props) => props.theme.colors.warning};
-	border-radius: ${CSS_DIMENSIONS.px5};
+	border-radius: 5px;
 	z-index: 10;
 
 	p {
@@ -169,17 +168,17 @@ export const ErrorMessage = styled.div`
 export const DocsPanel = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px12};
-	padding: 0 ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20};
+	gap: 12px;
+	padding: 0 20px 20px 20px;
 `;
 
 export const DocsEndpoint = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px6};
-	padding: ${CSS_DIMENSIONS.px12} 0 ${CSS_DIMENSIONS.px16} 0;
-	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	gap: 6px;
+	padding: 12px 0 16px 0;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	span {
 		color: ${(props) => props.theme.colors.font.alt1};
@@ -201,14 +200,14 @@ export const DocsEndpoint = styled.div`
 export const DocsSection = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px12};
+	gap: 12px;
 `;
 
 export const DocsSectionHeader = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px12};
+	gap: 12px;
 
 	p,
 	span {
@@ -222,8 +221,8 @@ export const DocsSectionHeader = styled.div`
 	}
 
 	span {
-		min-width: ${CSS_DIMENSIONS.px28};
-		padding: ${CSS_DIMENSIONS.px2} ${CSS_DIMENSIONS.px8};
+		min-width: 28px;
+		padding: 2px 8px;
 		border-radius: ${STYLING.dimensions.radius.alt2};
 		background: ${(props) => props.theme.colors.container.alt8.background};
 		color: ${(props) => props.theme.colors.font.light1};
@@ -235,16 +234,16 @@ export const DocsSectionHeader = styled.div`
 export const DocsList = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 `;
 
 export const DocsField = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px8};
-	padding: ${CSS_DIMENSIONS.px12};
+	gap: 8px;
+	padding: 12px;
 	background: ${(props) => props.theme.colors.container.primary.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 `;
 
@@ -252,7 +251,7 @@ export const DocsFieldHeader = styled.div`
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px12};
+	gap: 12px;
 
 	button {
 		flex: 0 0 auto;
@@ -286,17 +285,17 @@ export const DocsDescription = styled.div`
 export const DocsArgs = styled.div`
 	display: flex;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px7};
+	gap: 7px;
 `;
 
 export const DocsArg = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px6};
+	gap: 6px;
 	max-width: 100%;
-	padding: ${CSS_DIMENSIONS.px4} ${CSS_DIMENSIONS.px7};
+	padding: 4px 7px;
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	code,
@@ -324,19 +323,19 @@ export const DocsDeprecated = styled.div`
 
 export const DocsTypeGrid = styled.div`
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(${CSS_DIMENSIONS.px150}, 1fr));
-	gap: ${CSS_DIMENSIONS.px8};
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 8px;
 `;
 
 export const DocsType = styled.div`
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px8};
+	gap: 8px;
 	min-width: 0;
-	padding: ${CSS_DIMENSIONS.px8} ${CSS_DIMENSIONS.px10};
+	padding: 8px 10px;
 	background: ${(props) => props.theme.colors.container.primary.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	code,
@@ -359,7 +358,7 @@ export const DocsType = styled.div`
 `;
 
 export const DocsEmpty = styled.div`
-	padding: ${CSS_DIMENSIONS.px14} 0;
+	padding: 14px 0;
 
 	p {
 		color: ${(props) => props.theme.colors.font.alt1};

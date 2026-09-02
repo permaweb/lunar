@@ -381,11 +381,11 @@ for (const [filePath, sourceText] of sourceTexts) {
 	);
 	const isVisualSource = /(?:styles\.(?:js|jsx|ts|tsx)|\.(?:jsx|tsx))$/.test(filePath);
 	if (isVisualSource && !isTokenFile && !toPosix(filePath).includes('/assets/')) {
-		if (/(?:#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla)\(|\b\d+px\b)/.test(sourceText)) {
+		if (/(?:#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla)\()/.test(sourceText)) {
 			report(
 				'design-token',
 				filePath,
-				'Move colors and pixel dimensions into the shared theme/design tokens.',
+				'Move raw colors into the shared theme/design tokens.',
 			);
 		}
 	}

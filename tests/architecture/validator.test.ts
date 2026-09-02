@@ -10,7 +10,7 @@ const validator = resolve(
 	'.agents/skills/permaweb-frontend-code-style/scripts/validate_frontend_architecture.mjs'
 );
 
-function createFixture(source: string) {
+function createFixture(source: string, sourceFile = 'example.ts') {
 	const project = mkdtempSync(join(tmpdir(), 'lunar-architecture-'));
 	temporaryProjects.push(project);
 	mkdirSync(join(project, 'src'), { recursive: true });
@@ -19,7 +19,7 @@ function createFixture(source: string) {
 		join(project, '.permaweb-frontend.json'),
 		JSON.stringify({ status: 'adopting', sourceRoot: 'src', testRoot: 'tests' })
 	);
-	writeFileSync(join(project, 'src', 'example.ts'), source);
+	writeFileSync(join(project, 'src', sourceFile), source);
 	return project;
 }
 
@@ -34,5 +34,20 @@ describe('frontend architecture validator', () => {
 
 		expect(result.status).toBe(1);
 		expect(result.stderr).toContain('[api-boundary] src/example.ts');
+	});
+
+	it('allows local pixel dimensions while keeping raw colors behind design tokens', () => {
+		const dimensionsProject = createFixture(`export const styles = 'padding: 12px';`, 'styles.ts');
+		const dimensionsResult = spawnSync(process.execPath, [validator, '--root', dimensionsProject], {
+			encoding: 'utf8',
+		});
+
+		expect(dimensionsResult.status).toBe(0);
+
+		const colorsProject = createFixture(`export const styles = 'color: #fff';`, 'styles.ts');
+		const colorsResult = spawnSync(process.execPath, [validator, '--root', colorsProject], { encoding: 'utf8' });
+
+		expect(colorsResult.status).toBe(1);
+		expect(colorsResult.stderr).toContain('[design-token] src/styles.ts');
 	});
 });

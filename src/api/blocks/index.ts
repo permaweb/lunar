@@ -95,6 +95,14 @@ export type GetBlocksArgs = {
 	gateway?: string;
 };
 
+export type GetTransactionsArgs = {
+	first?: number;
+	after?: string | null;
+	typeFilter?: TransactionTypeFilter | null;
+	includeCount?: boolean;
+	gateway?: string;
+};
+
 export type GetTransactionsByBlockArgs = {
 	blockHeight?: number;
 	blockId?: string;
@@ -278,9 +286,10 @@ function getTransactionTypeFilterTags(typeFilter: TransactionTypeFilter | null |
 	}
 }
 
-function getTransactionsByBlockQuery(args: { includeCount: boolean; typeFilter?: TransactionTypeFilter | null }) {
-	const tags = getTransactionTypeFilterTags(args.typeFilter);
-	const tagsArg = tags.length
+function getTransactionTagsArg(typeFilter: TransactionTypeFilter | null | undefined) {
+	const tags = getTransactionTypeFilterTags(typeFilter);
+
+	return tags.length
 		? `
 			tags: [
 				${tags
@@ -289,12 +298,29 @@ function getTransactionsByBlockQuery(args: { includeCount: boolean; typeFilter?:
 			]
 		`
 		: '';
+}
 
+function getTransactionsQuery(args: { includeCount: boolean; typeFilter?: TransactionTypeFilter | null }) {
+	return `
+		query Transactions($first: Int, $after: String) {
+			transactions(
+				${getTransactionTagsArg(args.typeFilter)}
+				first: $first
+				after: $after
+				sort: HEIGHT_DESC
+			) {
+				${args.includeCount ? TRANSACTION_FIELDS_WITH_COUNT : TRANSACTION_FIELDS}
+			}
+		}
+	`;
+}
+
+function getTransactionsByBlockQuery(args: { includeCount: boolean; typeFilter?: TransactionTypeFilter | null }) {
 	return `
 		query TransactionsByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
 			transactions(
 				block: { min: $minBlock, max: $maxBlock }
-				${tagsArg}
+				${getTransactionTagsArg(args.typeFilter)}
 				first: $first
 				after: $after
 				sort: HEIGHT_DESC
@@ -590,6 +616,24 @@ export async function getTransactionCountByBlock(
 	});
 
 	return normalizeCount(response.transactions.count) ?? null;
+}
+
+export async function getTransactions(args: GetTransactionsArgs = {}): Promise<TransactionsQueryResponse> {
+	const response = await queryGraphQL<TransactionsQueryResponse>({
+		query: getTransactionsQuery({
+			includeCount: args.includeCount ?? false,
+			typeFilter: args.typeFilter,
+		}),
+		variables: {
+			first: getFirst(args.first),
+			after: args.after ?? null,
+		},
+		gateway: args.gateway,
+	});
+
+	return {
+		transactions: normalizeTransactionConnection(response.transactions),
+	};
 }
 
 export async function getTransactionsByBlock(

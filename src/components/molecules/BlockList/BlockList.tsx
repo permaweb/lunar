@@ -12,7 +12,14 @@ import { PaginationControls } from 'components/molecules/PaginationControls';
 import { ASSETS, FLAGS, STORAGE, URLS } from 'helpers/config';
 import { buildCsvFilename, downloadCsv, mapBlockForCsv } from 'helpers/csv';
 import { getSearchParam, updateSearchParams } from 'helpers/query';
-import { checkValidAddress, formatBlockId, formatCount, formatDate, getByteSizeDisplay } from 'helpers/utils';
+import {
+	checkValidAddress,
+	formatBlockId,
+	formatCount,
+	formatDate,
+	getByteSizeDisplay,
+	getRelativeDate,
+} from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -99,6 +106,7 @@ function getBlockQueryState(searchParams: URLSearchParams) {
 function BlockRow(props: {
 	edge: BlockListEdge;
 	onMetadataLoaded: (height: number, metadata: BlockMetadata | null) => void;
+	preview?: boolean;
 }) {
 	const navigate = useNavigate();
 
@@ -145,48 +153,72 @@ function BlockRow(props: {
 	}
 
 	return (
-		<S.ElementWrapper ref={metadataResponse.ref} className={'block-list-element'} onClick={handleRowClick}>
-			<S.Height>
+		<S.ElementWrapper
+			ref={metadataResponse.ref}
+			className={'block-list-element'}
+			onClick={handleRowClick}
+			$preview={props.preview}
+		>
+			<S.Height $preview={props.preview}>
 				<ExplorerLink value={props.edge.node.height} type={'block'} tooltipPosition={'right'} />
 			</S.Height>
-			<S.ID title={blockId}>
+			<S.ID title={blockId} $preview={props.preview}>
 				<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} tooltipPosition={'right'} />
 			</S.ID>
-			<S.Previous title={previous}>
-				<ExplorerLink value={previous} label={formatBlockId(previous, false)} tooltipPosition={'right'} />
-			</S.Previous>
-			<S.Miner title={miner ?? undefined}>
-				{miner ? (
-					checkValidAddress(miner) ? (
-						<TxAddress address={miner} tooltipPosition={'right'} />
-					) : (
-						<p>{miner}</p>
-					)
-				) : (
-					<p>-</p>
-				)}
-			</S.Miner>
-			<S.Size title={blockSizeValue ?? undefined}>
-				<p>{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : '-'}</p>
-			</S.Size>
-			<S.Transactions>
+			{!props.preview && (
+				<>
+					<S.Previous title={previous}>
+						<ExplorerLink value={previous} label={formatBlockId(previous, false)} tooltipPosition={'right'} />
+					</S.Previous>
+					<S.Miner title={miner ?? undefined}>
+						{miner ? (
+							checkValidAddress(miner) ? (
+								<TxAddress address={miner} tooltipPosition={'right'} />
+							) : (
+								<p>{miner}</p>
+							)
+						) : (
+							<p>-</p>
+						)}
+					</S.Miner>
+					<S.Size title={blockSizeValue ?? undefined}>
+						<p>{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : '-'}</p>
+					</S.Size>
+				</>
+			)}
+			<S.Transactions $preview={props.preview}>
 				<p>{metadataPending ? `${language.loading}...` : txCount !== null ? formatCount(txCount.toString()) : '-'}</p>
 			</S.Transactions>
-			<S.Time>
-				<p>{formatDate(timestamp * 1000, 'timestamp', true)}</p>
+			<S.Time $preview={props.preview}>
+				<p>{props.preview ? getRelativeDate(timestamp * 1000) : formatDate(timestamp * 1000, 'timestamp', true)}</p>
 			</S.Time>
 		</S.ElementWrapper>
 	);
 }
 
-export default function BlockList(props: { header?: string }) {
+export default function BlockList(props: { header?: string; pageSize?: number; preview?: boolean }) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
-	const queryFilterState = React.useMemo(() => getBlockQueryState(searchParams), []);
-	const loadedFilterState = React.useMemo(() => getStoredBlockFilterState(), []);
+	const queryFilterState = React.useMemo(
+		() =>
+			props.preview
+				? {
+						hasQuery: false,
+						minHeight: null,
+						maxHeight: null,
+						minHeightInput: '',
+						maxHeightInput: '',
+						limit: null,
+						after: null,
+						page: null,
+				  }
+				: getBlockQueryState(searchParams),
+		[props.preview, searchParams]
+	);
+	const loadedFilterState = React.useMemo(() => (props.preview ? null : getStoredBlockFilterState()), [props.preview]);
 	const initialFilterState = queryFilterState.hasQuery ? queryFilterState : loadedFilterState;
 
 	const [blocks, setBlocks] = React.useState<BlockListEdge[]>([]);
@@ -197,9 +229,11 @@ export default function BlockList(props: { header?: string }) {
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [pageNumber, setPageNumber] = React.useState<number>(queryFilterState.page ?? 1);
 	const [pageInput, setPageInput] = React.useState<string>((queryFilterState.page ?? 1).toString());
-	const [perPage, setPerPage] = React.useState<number>(queryFilterState.limit ?? DEFAULT_BLOCKS_PER_PAGE);
+	const [perPage, setPerPage] = React.useState<number>(
+		props.pageSize ?? queryFilterState.limit ?? DEFAULT_BLOCKS_PER_PAGE
+	);
 	const [perPageInput, setPerPageInput] = React.useState<string>(
-		(queryFilterState.limit ?? DEFAULT_BLOCKS_PER_PAGE).toString()
+		(props.pageSize ?? queryFilterState.limit ?? DEFAULT_BLOCKS_PER_PAGE).toString()
 	);
 	const [totalCount, setTotalCount] = React.useState<number | null>(null);
 	const [refreshTrigger, setRefreshTrigger] = React.useState<boolean>(false);
@@ -234,6 +268,8 @@ export default function BlockList(props: { header?: string }) {
 	}, [pageNumber]);
 
 	React.useEffect(() => {
+		if (props.preview) return;
+
 		updateSearchParams(searchParams, setSearchParams, {
 			[BLOCK_QUERY_KEYS.minHeight]: activeRange.minHeight,
 			[BLOCK_QUERY_KEYS.maxHeight]: activeRange.maxHeight,
@@ -241,9 +277,20 @@ export default function BlockList(props: { header?: string }) {
 			[BLOCK_QUERY_KEYS.after]: pageCursor,
 			[BLOCK_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
 		});
-	}, [activeRange.minHeight, activeRange.maxHeight, pageCursor, pageNumber, perPage, searchParams, setSearchParams]);
+	}, [
+		activeRange.minHeight,
+		activeRange.maxHeight,
+		pageCursor,
+		pageNumber,
+		perPage,
+		props.preview,
+		searchParams,
+		setSearchParams,
+	]);
 
 	React.useEffect(() => {
+		if (props.preview) return;
+
 		try {
 			localStorage.setItem(
 				STORAGE.blockFilters,
@@ -255,7 +302,7 @@ export default function BlockList(props: { header?: string }) {
 		} catch (e) {
 			console.error('Failed to save block filters:', e);
 		}
-	}, [activeRange.minHeight, activeRange.maxHeight]);
+	}, [activeRange.minHeight, activeRange.maxHeight, props.preview]);
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -506,11 +553,11 @@ export default function BlockList(props: { header?: string }) {
 
 	function getMessage() {
 		let message = language.blocksNotFound;
-		if (loading) message = `${language.blocksLoading}...`;
+		if (loading) message = language.blocksLoading;
 		if (error) message = error;
 
 		return (
-			<S.UpdateWrapper>
+			<S.UpdateWrapper $preview={props.preview} role={loading ? 'status' : undefined}>
 				<p>{message}</p>
 			</S.UpdateWrapper>
 		);
@@ -562,7 +609,7 @@ export default function BlockList(props: { header?: string }) {
 
 	return (
 		<>
-			<S.Container ref={tableContainerRef}>
+			<S.Container ref={tableContainerRef} $preview={props.preview}>
 				<S.Header>
 					<S.HeaderMain>
 						<p>{props.header ?? language.blocks}</p>
@@ -572,96 +619,107 @@ export default function BlockList(props: { header?: string }) {
 							</div>
 						)}
 					</S.HeaderMain>
-					<S.HeaderActions className={'scroll-wrapper-hidden'}>
-						{activeRange.minHeight !== null && (
+					{!props.preview && (
+						<S.HeaderActions className={'scroll-wrapper-hidden'}>
+							{activeRange.minHeight !== null && (
+								<Button
+									type={'alt3'}
+									label={`${language.minHeight} (${formatCount(activeRange.minHeight.toString())})`}
+									onPress={handleClearMinHeight}
+									active={true}
+									disabled={loading}
+									icon={ASSETS.close}
+								/>
+							)}
+							{activeRange.maxHeight !== null && (
+								<Button
+									type={'alt3'}
+									label={`${language.maxHeight} (${formatCount(activeRange.maxHeight.toString())})`}
+									onPress={handleClearMaxHeight}
+									active={true}
+									disabled={loading}
+									icon={ASSETS.close}
+								/>
+							)}
+							<FilterS.FilterWrapper>
+								<Button
+									type={'alt3'}
+									label={language.filter}
+									onPress={() => setShowFilters((prev) => !prev)}
+									active={showFilters}
+									disabled={loading}
+									icon={ASSETS.filter}
+									iconLeftAlign
+								/>
+							</FilterS.FilterWrapper>
+							<S.Divider />
 							<Button
 								type={'alt3'}
-								label={`${language.minHeight} (${formatCount(activeRange.minHeight.toString())})`}
-								onPress={handleClearMinHeight}
-								active={true}
+								label={language.refresh}
+								onPress={handleRefresh}
 								disabled={loading}
-								icon={ASSETS.close}
-							/>
-						)}
-						{activeRange.maxHeight !== null && (
-							<Button
-								type={'alt3'}
-								label={`${language.maxHeight} (${formatCount(activeRange.maxHeight.toString())})`}
-								onPress={handleClearMaxHeight}
-								active={true}
-								disabled={loading}
-								icon={ASSETS.close}
-							/>
-						)}
-						<FilterS.FilterWrapper>
-							<Button
-								type={'alt3'}
-								label={language.filter}
-								onPress={() => setShowFilters((prev) => !prev)}
-								active={showFilters}
-								disabled={loading}
-								icon={ASSETS.filter}
+								icon={ASSETS.refresh}
 								iconLeftAlign
 							/>
-						</FilterS.FilterWrapper>
-						<S.Divider />
-						<Button
-							type={'alt3'}
-							label={language.refresh}
-							onPress={handleRefresh}
-							disabled={loading}
-							icon={ASSETS.refresh}
-							iconLeftAlign
-						/>
-						<Button
-							type={'alt3'}
-							label={language.download}
-							onPress={handleExport}
-							disabled={loading || blocks.length <= 0}
-							icon={ASSETS.save}
-							iconLeftAlign
-						/>
-						<S.Divider />
-						{getPaginator(false)}
-					</S.HeaderActions>
+							<Button
+								type={'alt3'}
+								label={language.download}
+								onPress={handleExport}
+								disabled={loading || blocks.length <= 0}
+								icon={ASSETS.save}
+								iconLeftAlign
+							/>
+							<S.Divider />
+							{getPaginator(false)}
+						</S.HeaderActions>
+					)}
 				</S.Header>
 				{blocks.length > 0 ? (
-					<S.Wrapper>
-						<S.HeaderWrapper className={'fade-in'}>
-							<S.Height>
+					<S.Wrapper $preview={props.preview}>
+						<S.HeaderWrapper className={'fade-in'} $preview={props.preview}>
+							<S.Height $preview={props.preview}>
 								<p>{language.height}</p>
 							</S.Height>
-							<S.ID>
+							<S.ID $preview={props.preview}>
 								<p>{language.blockId}</p>
 							</S.ID>
-							<S.Previous>
-								<p>{language.previousBlock}</p>
-							</S.Previous>
-							<S.Miner>
-								<p>{language.miner}</p>
-							</S.Miner>
-							<S.Size>
-								<p>{language.size}</p>
-							</S.Size>
-							<S.Transactions>
-								<p>{language.transactions}</p>
+							{!props.preview && (
+								<>
+									<S.Previous>
+										<p>{language.previousBlock}</p>
+									</S.Previous>
+									<S.Miner>
+										<p>{language.miner}</p>
+									</S.Miner>
+									<S.Size>
+										<p>{language.size}</p>
+									</S.Size>
+								</>
+							)}
+							<S.Transactions $preview={props.preview}>
+								<p>{props.preview ? language.txCount : language.transactions}</p>
 							</S.Transactions>
-							<S.Time>
+							<S.Time $preview={props.preview}>
 								<p>{language.time}</p>
 							</S.Time>
 						</S.HeaderWrapper>
-						<S.BodyWrapper className={'fade-in'}>
+						<S.BodyWrapper className={'fade-in'} $preview={props.preview}>
 							{blocks.map((edge) => (
-								<BlockRow key={edge.node.id} edge={edge} onMetadataLoaded={handleBlockMetadataLoaded} />
+								<BlockRow
+									key={edge.node.id}
+									edge={edge}
+									onMetadataLoaded={handleBlockMetadataLoaded}
+									preview={props.preview}
+								/>
 							))}
 						</S.BodyWrapper>
 					</S.Wrapper>
 				) : (
 					getMessage()
 				)}
-				<S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>
+				{!props.preview && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
 			</S.Container>
-			{showFilters && (
+			{!props.preview && showFilters && (
 				<Modal type="panel" width={515} header={language.blockFilters} onClose={() => setShowFilters(false)}>
 					<FilterS.FilterDropdown>
 						<FilterS.FilterDropdownHeader>

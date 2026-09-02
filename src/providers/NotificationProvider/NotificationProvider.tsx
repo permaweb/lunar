@@ -3,7 +3,6 @@ import React from 'react';
 import { Notification } from 'components/atoms/Notification';
 import { Portal } from 'components/atoms/Portal';
 import { DOM } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export type NotificationKind = 'success' | 'warning' | 'info';
 
@@ -88,14 +87,14 @@ export function NotificationViewport() {
 			<div
 				style={{
 					position: 'fixed',
-					bottom: `${CSS_DIMENSIONS.px20}`,
+					bottom: `20px`,
 					left: '50%',
 					transform: 'translateX(-50%)',
 					zIndex: 2147483647,
 					display: 'flex',
 					flexDirection: 'column',
 					alignItems: 'center',
-					gap: `${CSS_DIMENSIONS.px15}`,
+					gap: `15px`,
 				}}
 			>
 				{notifications.map((notification) => (

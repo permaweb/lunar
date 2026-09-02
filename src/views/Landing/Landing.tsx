@@ -1,11 +1,13 @@
 import { ViewWrapper } from 'app/styles';
+import { BlockList } from 'components/molecules/BlockList';
 import { MessageList } from 'components/molecules/MessageList';
+import { TransactionList } from 'components/molecules/TransactionList';
 import { ViewTitle } from 'components/molecules/ViewTitle';
 import { FLAGS } from 'helpers/config';
 import { MessageVariantEnum } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
-import { Metrics } from './Metrics';
+import { Metrics, MetricTotals } from './Metrics';
 import { NodeConnection } from './NodeConnection';
 import { Nodes } from './Nodes';
 import * as S from './styles';
@@ -29,13 +31,23 @@ export default function Landing() {
 				</S.HeaderWrapper>
 				<ViewWrapper>
 					<S.MetricsSectionWrapper>
-						<Metrics section={'arweave-txs'} gridTemplate={1} />
+						<MetricTotals />
 					</S.MetricsSectionWrapper>
 				</ViewWrapper>
 				<ViewWrapper>
 					<S.MetricsSectionWrapper>
-						<Metrics section={'arweave'} gridTemplate={2} />
+						<Metrics section={'arweave-txs'} gridTemplate={1} />
 					</S.MetricsSectionWrapper>
+				</ViewWrapper>
+				<ViewWrapper>
+					<S.TablesWrapper>
+						<S.TablePanel>
+							<TransactionList mode={'recent'} header={language.transactions} pageSize={15} preview />
+						</S.TablePanel>
+						<S.TablePanel>
+							<BlockList header={language.blocks} pageSize={15} preview />
+						</S.TablePanel>
+					</S.TablesWrapper>
 				</ViewWrapper>
 				<ViewWrapper>
 					<S.DividerWrapper>

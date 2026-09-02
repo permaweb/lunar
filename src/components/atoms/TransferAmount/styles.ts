@@ -1,7 +1,5 @@
 import styled from 'styled-components';
 
-import { CSS_DIMENSIONS } from 'helpers/themes';
-
 export const Tooltip = styled.span`
 	position: absolute;
 	z-index: 2;
@@ -9,7 +7,7 @@ export const Tooltip = styled.span`
 	left: 100%;
 	top: 50%;
 	transform: translateY(-50%);
-	margin-left: ${CSS_DIMENSIONS.px5};
+	margin-left: 5px;
 	white-space: nowrap;
 
 	span {
@@ -37,22 +35,22 @@ export const Wrapper = styled.span`
 	}
 
 	.info {
-		padding: ${CSS_DIMENSIONS.px2} ${CSS_DIMENSIONS.px5} !important;
+		padding: 2px 5px !important;
 	}
 `;
 
 export const Quantity = styled.span`
 	min-width: 0;
-	max-width: ${CSS_DIMENSIONS.px80};
+	max-width: 80px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 `;
 
 export const Ticker = styled.span`
 	flex: 0 0 auto;
-	margin: 0 0 0 ${CSS_DIMENSIONS.px3_5};
+	margin: 0 0 0 3.5px;
 	text-transform: uppercase;
-	max-width: ${CSS_DIMENSIONS.px40};
+	max-width: 40px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 `;

@@ -1,19 +1,18 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div`
 	width: 100%;
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 `;
 
 export const SectionWrapper = styled.div`
 	width: 100%;
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 	position: relative;
 `;
 
@@ -28,7 +27,7 @@ export const Header = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin: 0 0 ${CSS_DIMENSIONS.px15} 0;
+	margin: 0 0 15px 0;
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -44,19 +43,19 @@ export const HeaderAlt = styled(Header)`
 export const HeaderMain = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px5};
+	gap: 5px;
 `;
 
 export const Body = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 `;
 
 export const Section = styled.div``;
 
 export const SectionHeader = styled.div`
-	margin: 0 0 ${CSS_DIMENSIONS.px5} 0;
+	margin: 0 0 5px 0;
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -67,7 +66,7 @@ export const SectionHeader = styled.div`
 export const SectionBody = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px2_5};
+	gap: 2.5px;
 `;
 
 export const Line = styled.div`
@@ -95,7 +94,7 @@ export const Line = styled.div`
 		flex-direction: column;
 		align-items: flex-start;
 		justify-content: flex-start;
-		gap: ${CSS_DIMENSIONS.px5};
+		gap: 5px;
 
 		p {
 			text-align: left;
@@ -104,7 +103,7 @@ export const Line = styled.div`
 `;
 
 export const Output = styled(Body)`
-	max-height: ${CSS_DIMENSIONS.px500};
+	max-height: 500px;
 `;
 
 export const JSONTree = styled.div`
@@ -114,7 +113,7 @@ export const JSONTree = styled.div`
 `;
 
 export const UpdateWrapper = styled.div`
-	margin: ${CSS_DIMENSIONS.px15} 0 0 0;
+	margin: 15px 0 0 0;
 	p {
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};

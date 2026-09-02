@@ -126,6 +126,7 @@ export default function Button(props: IProps) {
 
 		return (
 			<StyledButton
+				aria-label={iconOnly ? props.tooltip : undefined}
 				tabIndex={props.noFocus || props.disabled ? -1 : 0}
 				type={props.formSubmit ? 'submit' : 'button'}
 				onClick={handlePress}

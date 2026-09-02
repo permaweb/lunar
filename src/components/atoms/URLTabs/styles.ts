@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div`
 	height: 100%;
@@ -11,11 +10,11 @@ export const Wrapper = styled.div`
 export const TabsHeader = styled.div<{ useFixed: boolean }>`
 	width: 100%;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 	align-items: center;
 	justify-content: space-between;
 	overflow-x: auto;
-	margin: 0 0 ${CSS_DIMENSIONS.px25} 0;
+	margin: 0 0 25px 0;
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		position: relative;
@@ -27,7 +26,7 @@ export const Tabs = styled.div`
 	width: 100%;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 `;
 
 export const Content = styled.div``;
@@ -50,11 +49,11 @@ export const EndWrapper = styled.div`
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	flex: 1;
 
 	button {
-		min-width: ${CSS_DIMENSIONS.px160};
+		min-width: 160px;
 		border-radius: ${STYLING.dimensions.radius.primary} !important;
 		flex: 1;
 	}

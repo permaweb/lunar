@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
 import { loaderKeyFrame } from 'helpers/animations';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div`
 	height: 100%;
@@ -14,13 +13,13 @@ export const Wrapper = styled.div`
 `;
 
 export const Container = styled.div<{ relative: boolean; noPosition?: boolean }>`
-	height: ${(props) => (props.noPosition ? 'auto' : `${CSS_DIMENSIONS.px50}`)};
-	width: ${(props) => (props.noPosition ? 'auto' : `${CSS_DIMENSIONS.px50}`)};
+	height: ${(props) => (props.noPosition ? 'auto' : `50px`)};
+	width: ${(props) => (props.noPosition ? 'auto' : `50px`)};
 	position: ${(props) => (props.noPosition ? 'static' : props.relative ? 'relative' : 'fixed')};
 	top: ${(props) => (props.noPosition ? 'auto' : props.relative ? 'auto' : '50%')};
 	left: ${(props) => (props.noPosition ? 'auto' : props.relative ? 'auto' : '50%')};
 	transform: ${(props) => (props.noPosition ? 'none' : props.relative ? 'translate(0, 0)' : 'translate(-50%, -50%)')};
-	margin: ${(props) => (props.noPosition ? `${CSS_DIMENSIONS.px7_5} 0 0 0` : props.relative ? 'auto' : '0')};
+	margin: ${(props) => (props.noPosition ? `7.5px 0 0 0` : props.relative ? 'auto' : '0')};
 	z-index: 4;
 `;
 
@@ -30,7 +29,7 @@ export const Blade = styled.div<{ noPosition?: boolean }>`
 	position: absolute;
 	left: 0.4629em;
 	bottom: 0;
-	border-radius: ${CSS_DIMENSIONS.px12};
+	border-radius: 12px;
 	transform-origin: center -0.2222em;
 	-webkit-animation: ${loaderKeyFrame} 0.75s linear infinite;
 	animation: ${loaderKeyFrame} 0.75s linear infinite;
@@ -135,7 +134,7 @@ export const Placeholder = styled.div`
 
 export const MessageWrapper = styled.div`
 	max-width: 90vw;
-	padding: ${CSS_DIMENSIONS.px11_5} ${CSS_DIMENSIONS.px40} !important;
+	padding: 11.5px 40px !important;
 	position: absolute;
 	top: 50%;
 	left: 50%;
@@ -143,7 +142,7 @@ export const MessageWrapper = styled.div`
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 	border: none !important;
 
 	span {
