@@ -1,7 +1,9 @@
 import styled, { createGlobalStyle, css, keyframes } from 'styled-components';
 
+import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { open, transition1, transition2 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 const nodeStatusBlink = keyframes`
 	0%,
@@ -23,7 +25,7 @@ const nodeStatusPulse = keyframes`
 	}
 
 	70% {
-		box-shadow: 0 0 0 7px transparent;
+		box-shadow: 0 0 0 ${CSS_DIMENSIONS.px7} transparent;
 		transform: scale(1);
 	}
 
@@ -91,7 +93,7 @@ export const GlobalStyle = createGlobalStyle`
 			font-weight: ${(props) => props.theme.typography.weight.medium};
 			color: ${(props) => props.theme.colors.font.primary};
 			line-height: 1.5;
-			letter-spacing: 0.15px;
+			letter-spacing: ${CSS_DIMENSIONS.px0_15};
 			-webkit-font-smoothing: antialiased;
 			-moz-osx-font-smoothing: grayscale;
 			box-sizing: border-box;
@@ -102,13 +104,13 @@ export const GlobalStyle = createGlobalStyle`
 				background: ${(props) => props.theme.colors.scrollbar.track};
 			}
 			::-webkit-scrollbar {
-				width: 15px;
-				border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+				width: ${CSS_DIMENSIONS.px15};
+				border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 			}
 			::-webkit-scrollbar-thumb {
 				background-color: ${(props) => props.theme.colors.scrollbar.thumb};
-				border-radius: 36px;
-				border: 3.5px solid transparent;
+				border-radius: ${CSS_DIMENSIONS.px36};
+				border: ${CSS_DIMENSIONS.px3_5} solid transparent;
 				background-clip: padding-box;
 			}
 	}
@@ -119,7 +121,7 @@ export const GlobalStyle = createGlobalStyle`
     color: ${(props) => props.theme.colors.font.primary};
 		overflow-wrap: anywhere;
 		line-height: 1.25;
-		letter-spacing: 0.5px;
+		letter-spacing: ${CSS_DIMENSIONS.px0_5};
   }
 
 	h1 {
@@ -167,7 +169,7 @@ export const GlobalStyle = createGlobalStyle`
     appearance: none;
     background-color: transparent;
     margin: 0;
-    padding: 10px;
+    padding: ${CSS_DIMENSIONS.px10};
     &:focus {
       outline: 0;
     }
@@ -190,35 +192,39 @@ export const GlobalStyle = createGlobalStyle`
 
   .border-wrapper-primary {
     background: ${(props) => props.theme.colors.container.primary.background};
-    border: 1px solid ${(props) => props.theme.colors.border.primary};
+    border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
   }
 
   .border-wrapper-alt1 {
     background: ${(props) => props.theme.colors.container.primary.background};
-    box-shadow: 0 3.5px 7.5px 0 ${(props) => props.theme.colors.shadow.primary};
-    border: 1px solid ${(props) => props.theme.colors.border.primary};
+    box-shadow: 0 ${CSS_DIMENSIONS.px3_5} ${CSS_DIMENSIONS.px7_5} 0 ${(props) => props.theme.colors.shadow.primary};
+    border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
   }
 
 	.border-wrapper-alt2 {
     background: ${(props) => props.theme.colors.container.primary.background};
-    border: 1px solid ${(props) => props.theme.colors.border.primary};
+    border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
   }
 
 	.border-wrapper-alt3 {
     background: ${(props) => props.theme.colors.container.alt1.background};
-    border: 1px solid ${(props) => props.theme.colors.border.primary};
+    border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
     border-radius: ${STYLING.dimensions.radius.alt1};
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+		box-shadow: ${(props) => props.theme.colors.shadow.primary} ${CSS_DIMENSIONS.px0} ${CSS_DIMENSIONS.px1} ${
+	CSS_DIMENSIONS.px2
+} ${CSS_DIMENSIONS.px0_5};
   }
 
 	.border-wrapper-alt4 {
 		background: ${(props) => props.theme.colors.container.alt1.background};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.alt1};
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+		box-shadow: ${(props) => props.theme.colors.shadow.primary} ${CSS_DIMENSIONS.px0} ${CSS_DIMENSIONS.px1} ${
+	CSS_DIMENSIONS.px2
+} ${CSS_DIMENSIONS.px0_5};
   }
 
   .max-view-wrapper {
@@ -228,16 +234,18 @@ export const GlobalStyle = createGlobalStyle`
   }
 
 	.modal-wrapper {
-		padding: 0 20px !important;
+		padding: 0 ${CSS_DIMENSIONS.px20} !important;
 	}
 
   .info {
-    padding: 2px 5px;
+    padding: ${CSS_DIMENSIONS.px2} ${CSS_DIMENSIONS.px5};
     background: ${(props) => props.theme.colors.contrast.background};
-    border: 1px solid ${(props) => props.theme.colors.contrast.background};
+    border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.contrast.background};
     border-radius: ${STYLING.dimensions.radius.alt2};
     animation: ${open} ${transition2};
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+		box-shadow: ${(props) => props.theme.colors.shadow.primary} ${CSS_DIMENSIONS.px0} ${CSS_DIMENSIONS.px1} ${
+	CSS_DIMENSIONS.px2
+} ${CSS_DIMENSIONS.px0_5};
     span {
       color: ${(props) => props.theme.colors.contrast.color} !important;
       font-family: ${(props) => props.theme.typography.family.primary} !important;
@@ -251,12 +259,12 @@ export const GlobalStyle = createGlobalStyle`
 
 	.update-wrapper {
 		width: fit-content;
-		padding: 2.5px 40px;
+		padding: ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px40};
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		background: ${(props) => props.theme.colors.container.alt8.background};
-		border: 1px solid ${(props) => props.theme.colors.border.alt4};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.alt4};
 		border-radius: ${STYLING.dimensions.radius.alt1};
 		span {
 			font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -290,7 +298,7 @@ export const GlobalStyle = createGlobalStyle`
     animation: ${open} ${transition2};
     svg {
       height: auto;
-      width: 50px;
+      width: ${CSS_DIMENSIONS.px50};
 			fill: ${(props) => props.theme.colors.font.primary};
     }
   }
@@ -304,7 +312,7 @@ export const GlobalStyle = createGlobalStyle`
     
     scrollbar-color: transparent transparent;
     ::-webkit-scrollbar {
-      width: 12.5px;
+      width: ${CSS_DIMENSIONS.px12_5};
     }
 		scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} transparent;
 
@@ -346,33 +354,33 @@ export const App = styled.div`
 	flex-direction: column;
 `;
 
-export const NodeStatusButton = styled.button<{ $isLifted?: boolean }>`
+export const NodeStatusButton = styled(PrimitiveButton)<{ $isLifted?: boolean }>`
 	position: fixed;
-	right: 20px;
-	bottom: ${(props) => (props.$isLifted ? '80px' : '20px')};
+	right: ${CSS_DIMENSIONS.px20};
+	bottom: ${(props) => (props.$isLifted ? `${CSS_DIMENSIONS.px80}` : `${CSS_DIMENSIONS.px20}`)};
 	z-index: 10;
-	max-width: min(360px, calc(100vw - 40px));
+	max-width: min(${CSS_DIMENSIONS.px360}, calc(100vw - ${CSS_DIMENSIONS.px40}));
 	display: flex;
 	align-items: center;
 	gap: 0;
-	padding: 11.5px 14.5px 12.5px 14.5px;
+	padding: ${CSS_DIMENSIONS.px11_5} ${CSS_DIMENSIONS.px14_5} ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px14_5};
 	background: ${(props) => props.theme.colors.contrast.background};
-	border: 1px solid ${(props) => props.theme.colors.contrast.border};
+	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.contrast.border};
 	border-radius: ${STYLING.dimensions.radius.primary};
-	box-shadow: 0 3.5px 7.5px 0 ${(props) => props.theme.colors.shadow.primary};
+	box-shadow: 0 ${CSS_DIMENSIONS.px3_5} ${CSS_DIMENSIONS.px7_5} 0 ${(props) => props.theme.colors.shadow.primary};
 	color: ${(props) => props.theme.colors.font.primary};
 	text-align: left;
 	transition: bottom 180ms ease, gap 180ms ease, background 100ms, border-color 100ms;
 
 	&:hover,
 	&:focus {
-		gap: 12.5px;
+		gap: ${CSS_DIMENSIONS.px12_5};
 		background: ${(props) => props.theme.colors.contrast.active.background};
 		border-color: ${(props) => props.theme.colors.contrast.active.border};
 		outline: none;
 
 		> div:last-child {
-			max-width: 270px;
+			max-width: ${CSS_DIMENSIONS.px270};
 			opacity: 1;
 			visibility: visible;
 			transition-delay: 0s;
@@ -380,18 +388,18 @@ export const NodeStatusButton = styled.button<{ $isLifted?: boolean }>`
 	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		right: 12px;
-		bottom: ${(props) => (props.$isLifted ? '84px' : '12px')};
-		max-width: calc(100vw - 24px);
+		right: ${CSS_DIMENSIONS.px12};
+		bottom: ${(props) => (props.$isLifted ? `${CSS_DIMENSIONS.px84}` : `${CSS_DIMENSIONS.px12}`)};
+		max-width: calc(100vw - ${CSS_DIMENSIONS.px24});
 	}
 `;
 
 export const NodeStatusIndicator = styled.div<{ $isOnline: boolean; $isLoading: boolean }>`
-	height: 10px;
-	width: 10px;
+	height: ${CSS_DIMENSIONS.px10};
+	width: ${CSS_DIMENSIONS.px10};
 	flex: none;
 	border-radius: 50%;
-	margin: 2.5px 0 0 0;
+	margin: ${CSS_DIMENSIONS.px2_5} 0 0 0;
 	color: ${(props) =>
 		props.$isLoading
 			? props.theme.colors.font.alt1
@@ -424,7 +432,7 @@ export const NodeStatusText = styled.div`
 	max-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 1px;
+	gap: ${CSS_DIMENSIONS.px1};
 	opacity: 0;
 	overflow: hidden;
 	visibility: hidden;
@@ -447,7 +455,7 @@ export const View = styled.main<{ navigationOpen: boolean }>`
 	min-height: calc(100vh - ${STYLING.dimensions.nav.height});
 	width: 100%;
 	position: relative;
-	padding: 0 0 20px 0;
+	padding: 0 0 ${CSS_DIMENSIONS.px20} 0;
 	margin: 0 auto;
 	display: flex;
 	flex-direction: column;
@@ -463,11 +471,11 @@ export const CenteredWrapper = styled.div`
 export const ViewWrapper = styled.div`
 	width: 100%;
 	max-width: ${STYLING.cutoffs.max};
-	padding: 0 25px;
+	padding: 0 ${CSS_DIMENSIONS.px25};
 	margin: 0 auto;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
-		padding: 0 15px;
+		padding: 0 ${CSS_DIMENSIONS.px15};
 	}
 `;
 
@@ -476,8 +484,8 @@ export const MessageWrapper = styled.div`
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 20px;
-	padding: 12.5px 30px;
+	gap: ${CSS_DIMENSIONS.px20};
+	padding: ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px30};
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -490,12 +498,12 @@ export const MessageWrapper = styled.div`
 export const Footer = styled.footer<{ navigationOpen: boolean }>`
 	width: 100%;
 	display: flex;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 	align-items: center;
 	justify-content: space-between;
-	margin: 20px 0 0 0;
-	padding: 30px 50px;
-	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	margin: ${CSS_DIMENSIONS.px20} 0 0 0;
+	padding: ${CSS_DIMENSIONS.px30} ${CSS_DIMENSIONS.px50};
+	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 
 	p {
 		display: flex;
@@ -509,13 +517,13 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 	a {
 		display: flex;
 		align-items: center;
-		gap: 3.5px;
+		gap: ${CSS_DIMENSIONS.px3_5};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
 		color: ${(props) => props.theme.colors.font.primary};
 		text-decoration: underline;
-		text-decoration-thickness: 1.25px;
+		text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
 
 		&:hover {
 			color: ${(props) => props.theme.colors.link.color} !important;
@@ -523,30 +531,30 @@ export const Footer = styled.footer<{ navigationOpen: boolean }>`
 	}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		padding: 20px 0;
+		padding: ${CSS_DIMENSIONS.px20} 0;
 	}
 `;
 
 export const FooterIcon = styled.span`
-	height: 16px;
-	width: 16px;
+	height: ${CSS_DIMENSIONS.px16};
+	width: ${CSS_DIMENSIONS.px16};
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	margin: 0 6px 0 0;
+	margin: 0 ${CSS_DIMENSIONS.px6} 0 0;
 
 	> span,
 	div {
-		height: 16px;
-		width: 16px;
+		height: ${CSS_DIMENSIONS.px16};
+		width: ${CSS_DIMENSIONS.px16};
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 
 	svg {
-		height: 16px;
-		width: 16px;
+		height: ${CSS_DIMENSIONS.px16};
+		width: ${CSS_DIMENSIONS.px16};
 		color: ${(props) => props.theme.colors.font.primary};
 		fill: ${(props) => props.theme.colors.font.primary};
 	}
@@ -557,13 +565,13 @@ export const FooterIcon = styled.span`
 	}
 
 	&.app-icon {
-		margin: 0 10.5px -2.5px 0;
+		margin: 0 ${CSS_DIMENSIONS.px10_5} -${CSS_DIMENSIONS.px2_5} 0;
 	}
 
 	&.ar-icon,
 	&.ar-icon div,
 	&.ar-icon svg {
-		height: 14px;
-		width: 14px;
+		height: ${CSS_DIMENSIONS.px14};
+		width: ${CSS_DIMENSIONS.px14};
 	}
 `;

@@ -1,11 +1,12 @@
 import React from 'react';
 
-import { Types } from '@permaweb/libs';
+import { requestRemote } from 'api/http';
 
 import { Loader } from 'components/atoms/Loader';
 import { Editor } from 'components/molecules/Editor';
 import { DEFAULT_ACTIONS, DEFAULT_MESSAGE_TAGS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
+import { GQLNodeResponseType } from 'helpers/types';
 import { checkValidAddress } from 'helpers/utils';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
@@ -25,29 +26,27 @@ export default function ProcessSource(props: { processId: string; onBoot?: strin
 			if (props.processId && checkValidAddress(props.processId)) {
 				try {
 					if (props.onBoot && checkValidAddress(props.onBoot)) {
-						const srcResponse = await fetch(getTxEndpoint(props.onBoot));
+						const srcResponse = await requestRemote(getTxEndpoint(props.onBoot));
 						const rawSrc = await srcResponse.text();
 						setSrc(rawSrc);
 					} else {
-						const gqlResponse = await permawebProvider.libs.getGQLData({
+						const gqlResponse = await permawebProvider.legacyApi.getGQLData({
 							tags: [...DEFAULT_MESSAGE_TAGS, { name: 'Action', values: [DEFAULT_ACTIONS.eval.name] }],
 							recipients: [props.processId],
 							sort: 'ascending',
 						});
 
 						if (gqlResponse?.data) {
-							const sorted = [...gqlResponse.data]
-								.slice()
-								.sort((a: Types.GQLNodeResponseType, b: Types.GQLNodeResponseType) => {
-									const aSize = Number(a.node.data.size);
-									const bSize = Number(b.node.data.size);
-									if (aSize < bSize) return 1;
-									if (aSize > bSize) return -1;
-									return 0;
-								});
+							const sorted = [...gqlResponse.data].slice().sort((a: GQLNodeResponseType, b: GQLNodeResponseType) => {
+								const aSize = Number(a.node.data.size);
+								const bSize = Number(b.node.data.size);
+								if (aSize < bSize) return 1;
+								if (aSize > bSize) return -1;
+								return 0;
+							});
 
 							const foundSrcTx = sorted[0].node.id;
-							const srcResponse = await fetch(getTxEndpoint(foundSrcTx));
+							const srcResponse = await requestRemote(getTxEndpoint(foundSrcTx));
 							const rawSrc = await srcResponse.text();
 							setSrc(rawSrc);
 						}

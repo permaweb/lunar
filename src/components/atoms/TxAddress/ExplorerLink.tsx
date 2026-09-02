@@ -89,12 +89,12 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 				} else if (e.metaKey || e.ctrlKey) {
 					copyValue(e);
 				} else {
-					if (props.handlePress) props.handlePress();
+					if (props.onPress) props.onPress();
 					navigate(`${URLS.explorer}${value}`);
 				}
 			}
 		},
-		[value, copied, copyValue, navigate, props.handlePress, isCurrentTab]
+		[value, copied, copyValue, navigate, props.onPress, isCurrentTab]
 	);
 
 	function getLabel() {

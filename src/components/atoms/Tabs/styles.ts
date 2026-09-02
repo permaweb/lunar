@@ -1,22 +1,23 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Container = styled.div`
 	height: fit-content;
 	margin: auto 0 0 0;
 	position: relative;
-	padding: 0 7.5px;
+	padding: 0 ${CSS_DIMENSIONS.px7_5};
 `;
 
 export const List = styled.div`
 	display: flex;
 	flex-wrap: wrap;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 `;
 
 export const Content = styled.div`
-	height: calc(100% - 25px);
+	height: calc(100% - ${CSS_DIMENSIONS.px25});
 	position: relative;
 `;
 
@@ -49,10 +50,10 @@ export const AltTabAction = styled.button<{ active: boolean; icon: boolean }>`
 		position: absolute;
 		left: 50%;
 		transform: translate(-50%, 0);
-		bottom: -7.5px;
+		bottom: -${CSS_DIMENSIONS.px7_5};
 		background: ${(props) =>
 			props.active ? props.theme.colors.tabs.active.background : props.theme.colors.transparent};
-		height: 3.5px;
+		height: ${CSS_DIMENSIONS.px3_5};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		width: 100%;
 		pointer-events: none;
@@ -61,10 +62,10 @@ export const AltTabAction = styled.button<{ active: boolean; icon: boolean }>`
 
 export const Icon = styled.div<{ active: boolean }>`
 	svg {
-		height: 23.5px;
-		width: 23.5px;
-		padding: 3.5px 0 0 0;
-		margin: 0 12.5px 0 0;
+		height: ${CSS_DIMENSIONS.px23_5};
+		width: ${CSS_DIMENSIONS.px23_5};
+		padding: ${CSS_DIMENSIONS.px3_5} 0 0 0;
+		margin: 0 ${CSS_DIMENSIONS.px12_5} 0 0;
 		color: ${(props) => props.theme.colors.font.primary};
 	}
 `;

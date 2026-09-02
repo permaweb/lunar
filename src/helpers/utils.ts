@@ -1,4 +1,4 @@
-import { Types } from '@permaweb/libs';
+import { requestRemote } from 'api/http';
 
 import {
 	DEFAULT_ACTIONS,
@@ -321,25 +321,14 @@ export function removeCommitments(obj: any): any {
 	return obj;
 }
 
-export function resolveLibDeps(args: { variant: MessageVariantEnum; permawebProvider: any }) {
+export function resolvePermawebApi(args: { variant: MessageVariantEnum; permawebProvider: any }) {
 	switch (args.variant) {
 		case MessageVariantEnum.Legacynet:
-			return args.permawebProvider.deps;
+			return args.permawebProvider.legacyApi;
 		case MessageVariantEnum.Mainnet:
-			return args.permawebProvider.depsMainnet;
+			return args.permawebProvider.mainnetApi;
 		default:
-			return args.permawebProvider.deps;
-	}
-}
-
-export function resolveLibs(args: { variant: MessageVariantEnum; permawebProvider: any }) {
-	switch (args.variant) {
-		case MessageVariantEnum.Legacynet:
-			return args.permawebProvider.libs;
-		case MessageVariantEnum.Mainnet:
-			return args.permawebProvider.libsMainnet;
-		default:
-			return args.permawebProvider.libs;
+			return args.permawebProvider.legacyApi;
 	}
 }
 
@@ -437,7 +426,7 @@ export function buildSyntheticResultMessageEdge(args: {
 	message: ResultMessageType;
 	fromProcess?: string | null;
 	timestamp?: number;
-	mapFromProcessCase: (messages: any[]) => Types.GQLNodeResponseType[];
+	mapFromProcessCase: (messages: any[]) => GQLNodeResponseType[];
 }) {
 	const tags = [...(args.message.Tags ?? [])];
 
@@ -472,7 +461,7 @@ async function queryResultMessageEdges(args: {
 }) {
 	return (
 		(
-			await args.permawebProvider.libs.getGQLData({
+			await args.permawebProvider.legacyApi.getGQLData({
 				tags: args.variant === MessageVariantEnum.Mainnet ? lowercaseTagKeys(args.tags) : args.tags,
 				...(args.authority ? { owners: [args.authority] } : {}),
 			})
@@ -480,10 +469,7 @@ async function queryResultMessageEdges(args: {
 	);
 }
 
-function hydrateResultMessageEdge(
-	fallbackEdge: Types.GQLNodeResponseType | null,
-	resolvedEdge: Types.GQLNodeResponseType | null
-) {
+function hydrateResultMessageEdge(fallbackEdge: GQLNodeResponseType | null, resolvedEdge: GQLNodeResponseType | null) {
 	if (!fallbackEdge || !resolvedEdge) return fallbackEdge;
 
 	return {
@@ -497,7 +483,7 @@ function hydrateResultMessageEdge(
 	};
 }
 
-function dedupeResultMessageEdges(edges: Types.GQLNodeResponseType[]) {
+function dedupeResultMessageEdges(edges: GQLNodeResponseType[]) {
 	const seen = new Set<string>();
 	const deduped = [];
 
@@ -512,7 +498,7 @@ function dedupeResultMessageEdges(edges: Types.GQLNodeResponseType[]) {
 }
 
 function filterStrictSettledNoticeEdges(args: {
-	edges: Types.GQLNodeResponseType[];
+	edges: GQLNodeResponseType[];
 	fromProcess: string;
 	authority: string;
 	variant: MessageVariantEnum;
@@ -654,7 +640,7 @@ function collectStrictCuNoticeMessages(messages: ResultMessageType[], variant: M
 
 function findSettledNoticeMatch(args: {
 	message: ResultMessageType;
-	edges: Types.GQLNodeResponseType[];
+	edges: GQLNodeResponseType[];
 	matchReference: boolean;
 }) {
 	const action = getTagValue(args.message.Tags ?? [], 'Action');
@@ -695,7 +681,7 @@ export async function resolveResultMessages(args: {
 					message: message,
 					fromProcess: args.fromProcess,
 					timestamp: args.timestamp,
-					mapFromProcessCase: args.permawebProvider.libs.mapFromProcessCase,
+					mapFromProcessCase: args.permawebProvider.legacyApi.mapFromProcessCase,
 				})
 			)
 			.filter((edge) => !!edge?.node?.recipient);
@@ -744,7 +730,7 @@ export async function resolveResultMessages(args: {
 				message: message,
 				fromProcess: args.fromProcess,
 				timestamp: args.timestamp,
-				mapFromProcessCase: args.permawebProvider.libs.mapFromProcessCase,
+				mapFromProcessCase: args.permawebProvider.legacyApi.mapFromProcessCase,
 			});
 			const bucket = getNoticeBucket(getTagValue(message.Tags ?? [], 'Action'));
 
@@ -775,7 +761,7 @@ async function resolveMessageSchedule(edge: GQLNodeResponseType) {
 	) {
 		try {
 			const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
-			const response = await fetch(`${DEFAULT_LEGACY_SCHEDULER_URL}/${edge.node.id}?process-id=${recipient}`);
+			const response = await requestRemote(`${DEFAULT_LEGACY_SCHEDULER_URL}/${edge.node.id}?process-id=${recipient}`);
 			const parsed = await response.json();
 
 			return {
@@ -845,7 +831,7 @@ export async function resolveMessageId(args: {
 			const schedulerUrl = args.schedulerUrl ?? DEFAULT_SCHEDULER_URL;
 
 			try {
-				const gqlResponse = await args.permawebProvider.libs.getGQLData({
+				const gqlResponse = await args.permawebProvider.legacyApi.getGQLData({
 					tags: [{ name: 'body+link', values: [args.messageId] }],
 				});
 
@@ -855,10 +841,12 @@ export async function resolveMessageId(args: {
 				if (slot) {
 					idToUse = slot;
 				} else {
-					const schedulerResponse = await fetch(
+					const schedulerResponse = await requestRemote(
 						`${schedulerUrl}/~scheduler@1.0/schedule?target=${args.target}&accept=application/aos-2`
 					);
-					const parsedSchedulerResponse = args.permawebProvider.libs.mapFromProcessCase(await schedulerResponse.json());
+					const parsedSchedulerResponse = args.permawebProvider.legacyApi.mapFromProcessCase(
+						await schedulerResponse.json()
+					);
 					const currentElement = parsedSchedulerResponse?.edges?.find(
 						(element) => element.node?.message?.id === args.messageId
 					);

@@ -10,7 +10,7 @@ export default function TxAddress(props: IProps) {
 			wrap={props.wrap}
 			viewIcon={props.viewIcon}
 			tooltipPosition={props.tooltipPosition}
-			handlePress={props.handlePress}
+			onPress={props.onPress}
 		/>
 	);
 }

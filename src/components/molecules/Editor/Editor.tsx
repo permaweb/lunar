@@ -17,7 +17,7 @@ export default function _Editor(props: {
 	readOnly?: boolean;
 	noFullScreen?: boolean;
 	setEditorData?: (data: string) => void;
-	handleSubmit?: (currentValue?: string) => void;
+	onSubmit?: (currentValue?: string) => void;
 	header?: string;
 	useFixedHeight?: boolean;
 	fixedHeight?: number;
@@ -107,13 +107,13 @@ export default function _Editor(props: {
 		editorInstanceRef.current = editor;
 
 		// Add keyboard shortcut for submit (Cmd+Enter or Ctrl+Enter)
-		if (props.handleSubmit) {
+		if (props.onSubmit) {
 			editor.onKeyDown((e) => {
 				if ((e.metaKey || e.ctrlKey) && e.keyCode === monaco.KeyCode.Enter) {
 					e.preventDefault();
 					// Get the current value from the editor directly
 					const currentValue = editor.getValue();
-					props.handleSubmit(currentValue);
+					props.onSubmit(currentValue);
 				}
 			});
 		}
@@ -203,7 +203,7 @@ export default function _Editor(props: {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.fullscreen}
-							handlePress={toggleFullscreen}
+							onPress={toggleFullscreen}
 							height={25}
 							width={25}
 							noMinWidth
@@ -214,12 +214,12 @@ export default function _Editor(props: {
 							preventDefault
 						/>
 					)}
-					{props.handleSubmit && (
+					{props.onSubmit && (
 						<S.SubmitWrapper>
 							<Button
 								type={'alt1'}
 								label={`${language.run} (${isMac ? `⌘` : `CTRL`} + Enter)`}
-								handlePress={props.handleSubmit as any}
+								onPress={props.onSubmit as any}
 								disabled={props.loading}
 								loading={props.loading}
 							/>

@@ -1,12 +1,13 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div<{ gridTemplate: number }>`
 	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(${(props) => props.gridTemplate}, 1fr);
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 	position: relative;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -15,7 +16,7 @@ export const Wrapper = styled.div<{ gridTemplate: number }>`
 `;
 
 export const Placeholder = styled.div`
-	height: 313.5px;
+	height: ${CSS_DIMENSIONS.px313_5};
 	width: 100%;
 	box-shadow: none !important;
 	background: ${(props) => props.theme.colors.container.primary};
@@ -43,8 +44,8 @@ export const TotalsWrapper = styled.div`
 	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 25px;
-	margin: 0 0 30px 0;
+	gap: ${CSS_DIMENSIONS.px25};
+	margin: 0 0 ${CSS_DIMENSIONS.px30} 0;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		grid-template-columns: 1fr;
@@ -52,12 +53,12 @@ export const TotalsWrapper = styled.div`
 `;
 
 export const TotalCard = styled.div`
-	min-height: 102px;
-	padding: 17.5px 20px;
+	min-height: ${CSS_DIMENSIONS.px102};
+	padding: ${CSS_DIMENSIONS.px17_5} ${CSS_DIMENSIONS.px20};
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
-	gap: 8px;
+	gap: ${CSS_DIMENSIONS.px8};
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -67,7 +68,7 @@ export const TotalCard = styled.div`
 	}
 
 	p {
-		font-size: clamp(18px, 1.5vw, 24px);
+		font-size: clamp(${CSS_DIMENSIONS.px18}, 1.5vw, ${CSS_DIMENSIONS.px24});
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
@@ -75,12 +76,12 @@ export const TotalCard = styled.div`
 `;
 
 export const TotalPlaceholder = styled(Placeholder)`
-	height: 102px;
+	height: ${CSS_DIMENSIONS.px102};
 `;
 
 export const ErrorWrapper = styled.div`
 	width: 100%;
-	padding: 20px;
+	padding: ${CSS_DIMENSIONS.px20};
 	color: ${(props) => props.theme.colors.warning.primary};
 	background: ${(props) => props.theme.colors.container.primary.background};
 	border-radius: ${STYLING.dimensions.radius.alt1};

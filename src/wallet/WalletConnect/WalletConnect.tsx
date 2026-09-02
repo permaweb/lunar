@@ -2,14 +2,15 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
+import { readAoBalance, readArBalance } from 'api/balances';
+
 import { Avatar } from 'components/atoms/Avatar';
 import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { Modal } from 'components/atoms/Modal';
-import { readAoBalance } from 'helpers/balances';
 import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
-import { getARBalanceEndpoint } from 'helpers/endpoints';
 import {
+	CSS_DIMENSIONS,
 	darkTheme,
 	darkThemeAlt1,
 	darkThemeAlt2,
@@ -63,11 +64,7 @@ const WalletBalanceSection = React.memo(
 				let response: any = null;
 
 				if (balanceSource === 'arweave') {
-					const arResponse = await fetch(getARBalanceEndpoint(walletAddress));
-					if (!arResponse.ok) {
-						throw new Error(`AR balance request failed with status ${arResponse.status}`);
-					}
-					response = await arResponse.text();
+					response = await readArBalance(walletAddress);
 				} else {
 					if (!processId) {
 						setWalletBalance('Error');
@@ -108,14 +105,14 @@ const WalletBalanceSection = React.memo(
 				break;
 			case PROCESSES.pi:
 				dimensions = 10.5;
-				margin = '0 0 6.5px 0';
+				margin = `0 0 ${CSS_DIMENSIONS.px6_5} 0`;
 				icon = ASSETS.pi;
 				break;
 		}
 
 		if (balanceSource === 'arweave') {
 			dimensions = 12.5;
-			margin = '0 0 4.95px 0';
+			margin = `0 0 ${CSS_DIMENSIONS.px4_95} 0`;
 			icon = ASSETS.arweave;
 		}
 
@@ -138,7 +135,7 @@ const WalletBalanceSection = React.memo(
 				<S.Refresh>
 					<Button
 						type={'primary'}
-						handlePress={() => {
+						onPress={() => {
 							hasFetchedRef.current = false;
 							fetchBalance();
 						}}
@@ -226,7 +223,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 	}
 
 	function handleDisconnect() {
-		arProvider.handleDisconnect();
+		arProvider.disconnect();
 		setShowWalletDropdown(false);
 	}
 
@@ -389,7 +386,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 					type="panel"
 					width={450}
 					header={language.chooseAppAppearance}
-					handleClose={() => setShowThemeSelector(false)}
+					onClose={() => setShowThemeSelector(false)}
 				>
 					<S.MWrapper>
 						{Object.entries(THEMES).map(([key, theme]) => (
@@ -431,7 +428,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 							<S.SyncToggleLabel>
 								<p>{language.syncWithSystem}</p>
 							</S.SyncToggleLabel>
-							<Checkbox checked={settings.syncWithSystem} handleSelect={() => {}} disabled={false} />
+							<Checkbox checked={settings.syncWithSystem} onSelect={() => {}} disabled={false} />
 						</S.SyncToggle>
 					</S.MWrapper>
 				</Modal>

@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div<{ sm: boolean | undefined }>`
 	width: 100%;
@@ -14,10 +15,10 @@ export const TWrapper = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 0 2.5px 0 0;
+	padding: 0 ${CSS_DIMENSIONS.px2_5} 0 0;
 	button {
 		svg {
-			margin: 0 0 1.5px 0;
+			margin: 0 0 ${CSS_DIMENSIONS.px1_5} 0;
 		}
 	}
 `;
@@ -26,11 +27,11 @@ export const Label = styled.label`
 	color: ${(props) => props.theme.colors.font.alt1};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	margin: 0 0 7.5px 0;
+	margin: 0 0 ${CSS_DIMENSIONS.px7_5} 0;
 `;
 
 export const Tooltip = styled.div`
-	padding: 0 20px 20px 20px;
+	padding: 0 ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px20};
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		line-height: 1.5;
@@ -49,9 +50,9 @@ export const Input = styled.input<{
 	font-family: ${(props) => props.theme.typography.family.primary};
 	font-size: ${(props) => props.theme.typography.size.small};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	letter-spacing: 0.15px;
+	letter-spacing: ${CSS_DIMENSIONS.px0_15};
 	background: ${(props) => props.theme.colors.form.background};
-	border: 1px solid
+	border: ${CSS_DIMENSIONS.px1} solid
 		${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.border)};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
@@ -87,11 +88,11 @@ export const Input = styled.input<{
 
 	&:focus {
 		outline: 0;
-		border: 1px solid
+		border: ${CSS_DIMENSIONS.px1} solid
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.valid.outline)};
-		outline: 0.5px solid
+		outline: ${CSS_DIMENSIONS.px0_5} solid
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.valid.outline)};
-		box-shadow: 1px 1px 5.5px
+		box-shadow: ${CSS_DIMENSIONS.px1} ${CSS_DIMENSIONS.px1} ${CSS_DIMENSIONS.px5_5}
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.shadow : props.theme.colors.form.valid.shadow)};
 		transition: box-shadow, border, outline 325ms ease-in-out;
 	}
@@ -99,7 +100,7 @@ export const Input = styled.input<{
 		background: ${(props) => props.theme.colors.form.disabled.background};
 		color: ${(props) => props.theme.colors.form.disabled.label};
 		box-shadow: none;
-		border: 1px solid ${(props) => props.theme.colors.form.disabled.border};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.form.disabled.border};
 	}
 `;
 
@@ -107,12 +108,13 @@ export const EndTextContainer = styled.div<{
 	sm: boolean | undefined;
 	disabled: boolean;
 }>`
-	height: ${(props) => (props.sm ? STYLING.dimensions.form.small : `calc(${STYLING.dimensions.form.max} - 7.5px)`)};
+	height: ${(props) =>
+		props.sm ? STYLING.dimensions.form.small : `calc(${STYLING.dimensions.form.max} - ${CSS_DIMENSIONS.px7_5})`};
 	height: 100%;
-	max-width: 100px;
+	max-width: ${CSS_DIMENSIONS.px100};
 	position: absolute;
 	top: ${(props) => (props.sm ? '42.5%' : '37.5%')};
-	right: 47.5px;
+	right: ${CSS_DIMENSIONS.px47_5};
 	transform: translate(0, -50%);
 	display: flex;
 	justify-content: center;
@@ -125,14 +127,14 @@ export const EndTextContainer = styled.div<{
 
 export const EndText = styled.span<{ sm: boolean | undefined }>`
 	color: ${(props) => props.theme.colors.font.primary.alt4};
-	font-size: ${(props) => (props.sm ? props.theme.typography.size.small : '19px')};
+	font-size: ${(props) => (props.sm ? props.theme.typography.size.small : `${CSS_DIMENSIONS.px19}`)};
 	font-weight: ${(props) => props.theme.typography.weight.regular};
 	width: 100%;
 `;
 
 export const ErrorContainer = styled.div`
-	margin: 8.5px 0 0 0;
-	height: 25px;
+	margin: ${CSS_DIMENSIONS.px8_5} 0 0 0;
+	height: ${CSS_DIMENSIONS.px25};
 	overflow-x: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -141,6 +143,6 @@ export const ErrorContainer = styled.div`
 export const Error = styled.span`
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	border-left: 2.75px solid ${(props) => props.theme.colors.warning.primary};
-	padding-left: 5px;
+	border-left: ${CSS_DIMENSIONS.px2_75} solid ${(props) => props.theme.colors.warning.primary};
+	padding-left: ${CSS_DIMENSIONS.px5};
 `;

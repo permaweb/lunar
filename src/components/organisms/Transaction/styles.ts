@@ -1,11 +1,13 @@
 import styled, { DefaultTheme, keyframes } from 'styled-components';
 
+import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 const tooltipFadeIn = keyframes`
 	from {
 		opacity: 0;
-		transform: translateY(3px);
+		transform: translateY(${CSS_DIMENSIONS.px3});
 	}
 
 	to {
@@ -17,7 +19,7 @@ const tooltipFadeIn = keyframes`
 const tooltipFadeInBelow = keyframes`
 	from {
 		opacity: 0;
-		transform: translateY(-3px);
+		transform: translateY(-${CSS_DIMENSIONS.px3});
 	}
 
 	to {
@@ -31,12 +33,12 @@ export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 	position: relative;
 
 	&:fullscreen {
 		background: ${(props) => props.theme.colors.container.primary.background};
-		padding: 25px;
+		padding: ${CSS_DIMENSIONS.px25};
 		overflow: auto;
 	}
 `;
@@ -47,7 +49,7 @@ export const HeaderWrapper = styled.form`
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
-	gap: 20px;
+	gap: ${CSS_DIMENSIONS.px20};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		flex-direction: column;
@@ -59,7 +61,7 @@ export const HeaderActionsWrapper = styled.div`
 	display: flex;
 	align-items: flex-start;
 	flex-wrap: wrap;
-	gap: 20px;
+	gap: ${CSS_DIMENSIONS.px20};
 `;
 
 export const BodyWrapper = styled.div`
@@ -67,28 +69,28 @@ export const BodyWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 `;
 
 export const ColumnFlexWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 `;
 
 export const MessageHeaderWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 `;
 
 export const InfoWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	justify-content: space-between;
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		flex-direction: column-reverse;
@@ -96,7 +98,7 @@ export const InfoWrapper = styled.div`
 `;
 
 export const TagsWrapper = styled.div`
-	width: 450px;
+	width: ${CSS_DIMENSIONS.px450};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
@@ -104,7 +106,7 @@ export const TagsWrapper = styled.div`
 `;
 
 export const SectionWrapperFlex = styled.div`
-	width: calc(50% - 12.5px);
+	width: calc(50% - ${CSS_DIMENSIONS.px12_5});
 	flex: 1;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -113,10 +115,10 @@ export const SectionWrapperFlex = styled.div`
 `;
 
 export const ReadWrapper = styled.div<{ fullWidth: boolean }>`
-	width: ${(props) => (props.fullWidth ? '100%' : 'calc(100% - 475px)')};
+	width: ${(props) => (props.fullWidth ? '100%' : `calc(100% - ${CSS_DIMENSIONS.px475})`)};
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
@@ -132,17 +134,17 @@ export const MessageInfoHeader = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
-	padding: 12.5px 15px;
+	padding: ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15};
 
 	p {
 		display: flex;
 		align-items: center;
-		gap: 7.5px;
+		gap: ${CSS_DIMENSIONS.px7_5};
 
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -182,7 +184,7 @@ function getDesktopLastRowBorderStyles(props: {
 
 		return `
 			> * {
-				border-bottom: 1px solid ${props.theme.colors.border.primary};
+				border-bottom: ${CSS_DIMENSIONS.px1} solid ${props.theme.colors.border.primary};
 			}
 
 			> *:nth-child(n + ${lastRowStart}) {
@@ -219,11 +221,11 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 	> *:nth-child(4),
 	> *:nth-child(5),
 	> *:nth-child(6) {
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+		border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 	}
 
 	> *:nth-child(3n + 2) {
-		padding: 10px 15px;
+		padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px15};
 	}
 
 	@media (min-width: ${STYLING.cutoffs.desktop}) {
@@ -237,7 +239,7 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 			justify-content: flex-start;
 			text-align: left;
 			border-right: none;
-			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+			border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 		}
 
 		> *:last-child {
@@ -249,7 +251,7 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 export const TxOverviewValue = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 7.5px;
+	gap: ${CSS_DIMENSIONS.px7_5};
 
 	p {
 		line-height: 1.35;
@@ -265,12 +267,12 @@ export const TxOverviewValue = styled.div`
 `;
 
 export const MessageInfoLine = styled.div`
-	min-height: 47.5px;
+	min-height: ${CSS_DIMENSIONS.px47_5};
 	display: flex;
 	align-items: center;
-	gap: 7.5px;
-	padding: 10px 15px;
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+	gap: ${CSS_DIMENSIONS.px7_5};
+	padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px15};
+	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -290,7 +292,7 @@ export const MessageInfoLine = styled.div`
 		flex-direction: column;
 		align-items: flex-start;
 		border-right: none;
-		padding: 15px;
+		padding: ${CSS_DIMENSIONS.px15};
 	}
 `;
 
@@ -302,7 +304,7 @@ export const Height = styled.div`
 	a:hover p {
 		color: ${(props) => props.theme.colors.link.active};
 		text-decoration: underline;
-		text-decoration-thickness: 1.25px;
+		text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
 	}
 `;
 
@@ -314,11 +316,11 @@ export const HashLink = styled.div`
 	}
 `;
 
-export const CopyableValue = styled.button`
+export const CopyableValue = styled(PrimitiveButton)`
 	max-width: 100%;
 	display: flex;
 	align-items: center;
-	gap: 6.5px;
+	gap: ${CSS_DIMENSIONS.px6_5};
 	padding: 0;
 	background: transparent;
 	border: none;
@@ -328,14 +330,14 @@ export const CopyableValue = styled.button`
 	}
 
 	div {
-		height: 12.5px;
-		width: 12.5px;
+		height: ${CSS_DIMENSIONS.px12_5};
+		width: ${CSS_DIMENSIONS.px12_5};
 	}
 
 	svg {
-		height: 12.5px;
-		width: 12.5px;
-		margin: 2px 0 0 0;
+		height: ${CSS_DIMENSIONS.px12_5};
+		width: ${CSS_DIMENSIONS.px12_5};
+		margin: ${CSS_DIMENSIONS.px2} 0 0 0;
 		color: ${(props) => props.theme.colors.link.color};
 		fill: ${(props) => props.theme.colors.link.color};
 	}
@@ -346,7 +348,7 @@ export const CopyableValue = styled.button`
 		p {
 			color: ${(props) => props.theme.colors.link.active};
 			text-decoration: underline;
-			text-decoration-thickness: 1.25px;
+			text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
 		}
 
 		svg {
@@ -359,13 +361,13 @@ export const CopyableValue = styled.button`
 export const LabeledAddress = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 12.5px;
+	gap: ${CSS_DIMENSIONS.px12_5};
 	min-width: 0;
 `;
 
 export const AddressLabel = styled.small`
 	width: fit-content;
-	padding: 1px 5px;
+	padding: ${CSS_DIMENSIONS.px1} ${CSS_DIMENSIONS.px5};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	background: ${(props) => props.theme.colors.container.alt8.background};
 	color: ${(props) => props.theme.colors.font.light1};
@@ -376,12 +378,12 @@ export const AddressLabel = styled.small`
 `;
 
 export const MessageInfoID = styled(MessageInfoLine)`
-	min-height: 35px;
+	min-height: ${CSS_DIMENSIONS.px35};
 	align-items: center !important;
 
 	span {
 		display: flex;
-		margin: 1.5px 0 0 0;
+		margin: ${CSS_DIMENSIONS.px1_5} 0 0 0;
 	}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
@@ -394,24 +396,24 @@ export const TransferInfo = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 15px;
-	padding: 12.5px 15px 17.5px 15px;
+	gap: ${CSS_DIMENSIONS.px15};
+	padding: ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px17_5} ${CSS_DIMENSIONS.px15};
 `;
 
 export const TransferInfoHeader = styled(MessageInfoHeader)`
-	padding: 0 0 12.5px 0;
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+	padding: 0 0 ${CSS_DIMENSIONS.px12_5} 0;
+	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const TransferInfoBody = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 
 	> * {
 		&:not(:last-child) {
-			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-			padding: 0 0 15px 0;
+			border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+			padding: 0 0 ${CSS_DIMENSIONS.px15} 0;
 		}
 	}
 
@@ -430,16 +432,16 @@ export const TransferInfoBody = styled.div`
 export const TransferInfoID = styled(MessageInfoID)``;
 
 export const TransferInfoLine = styled(MessageInfoLine)`
-	min-height: 22.5px;
-	max-height: 45px;
+	min-height: ${CSS_DIMENSIONS.px22_5};
+	max-height: ${CSS_DIMENSIONS.px45};
 	padding: 0;
 	border-right: none;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 
 	> * {
 		&:not(:last-child) {
-			border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-			padding: 0 15px 0 0;
+			border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+			padding: 0 ${CSS_DIMENSIONS.px15} 0 0;
 		}
 	}
 
@@ -455,17 +457,17 @@ export const TransferInfoLine = styled(MessageInfoLine)`
 
 		> * {
 			width: 100%;
-			min-height: 47.5px;
+			min-height: ${CSS_DIMENSIONS.px47_5};
 			flex: none;
 			justify-content: center;
 			border-right: none;
-			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-			padding: 15px 0;
+			border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+			padding: ${CSS_DIMENSIONS.px15} 0;
 		}
 
 		> *:not(:last-child) {
 			border-right: none;
-			padding: 15px 0;
+			padding: ${CSS_DIMENSIONS.px15} 0;
 		}
 
 		> *:last-child {
@@ -482,7 +484,7 @@ export const TransferInfoLineElement = styled.div`
 	display: flex;
 	flex: 1;
 	align-items: center;
-	gap: 7.5px;
+	gap: ${CSS_DIMENSIONS.px7_5};
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		flex-direction: column;
@@ -493,7 +495,7 @@ export const TransferInfoLineElement = styled.div`
 export const TransferInfoAmount = styled.div<{ isNumber: boolean }>`
 	display: flex;
 	align-items: center;
-	gap: 5px;
+	gap: ${CSS_DIMENSIONS.px5};
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.small};
@@ -519,7 +521,7 @@ export const TransferLogoWrapper = styled.div``;
 
 export const TransferLogo = styled.div<{ dimensions: number; margin?: string }>`
 	div {
-		margin: 0 0 0 1.5px;
+		margin: 0 0 0 ${CSS_DIMENSIONS.px1_5};
 	}
 
 	svg {
@@ -536,10 +538,10 @@ export const TransferLogo = styled.div<{ dimensions: number; margin?: string }>`
 	}
 
 	img {
-		height: 15px;
-		width: 15px;
+		height: ${CSS_DIMENSIONS.px15};
+		width: ${CSS_DIMENSIONS.px15};
 		object-fit: contain;
-		margin: 6.5px 2.5px 0px 0;
+		margin: ${CSS_DIMENSIONS.px6_5} ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px0} 0;
 	}
 `;
 
@@ -547,7 +549,7 @@ export const TransferInfoStatus = styled.div`
 	display: flex;
 	flex: 1;
 	align-items: center;
-	gap: 7.5px;
+	gap: ${CSS_DIMENSIONS.px7_5};
 	border-right: none !important;
 
 	span {
@@ -589,7 +591,7 @@ export const TransferInfoResult = styled.div<{ disabled: boolean }>`
 		p {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
 			text-decoration: ${(props) => (props.disabled ? 'none' : 'underline')};
-			text-decoration-thickness: 1.25px;
+			text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
 		}
 		svg {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
@@ -599,8 +601,8 @@ export const TransferInfoResult = styled.div<{ disabled: boolean }>`
 `;
 
 export const TransferInfoStatusIndicator = styled.div<{ pending?: boolean; success?: boolean }>`
-	height: 17.5px;
-	width: 17.5px;
+	height: ${CSS_DIMENSIONS.px17_5};
+	width: ${CSS_DIMENSIONS.px17_5};
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -611,13 +613,13 @@ export const TransferInfoStatusIndicator = styled.div<{ pending?: boolean; succe
 			: props.success
 			? props.theme.colors.indicator.active
 			: props.theme.colors.warning.primary};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	margin: 0.5px 0 0 1.5px;
+	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	margin: ${CSS_DIMENSIONS.px0_5} 0 0 ${CSS_DIMENSIONS.px1_5};
 
 	svg {
-		height: 9.5px;
-		width: 9.5px;
-		margin: 0 0 1px 0;
+		height: ${CSS_DIMENSIONS.px9_5};
+		width: ${CSS_DIMENSIONS.px9_5};
+		margin: 0 0 ${CSS_DIMENSIONS.px1} 0;
 		color: ${(props) => props.theme.colors.font.light1};
 		fill: ${(props) => props.theme.colors.font.light1};
 	}
@@ -630,12 +632,12 @@ export const MessagesWrapper = styled.div`
 export const Section = styled.div<{ $fixedHeight?: number }>`
 	height: ${(props) => (props.$fixedHeight ? `${props.$fixedHeight}px` : 'fit-content')};
 	flex: 1;
-	padding: 15px;
+	padding: ${CSS_DIMENSIONS.px15};
 	overflow: hidden;
 
 	img,
 	video {
-		max-height: calc(100vh - 245px);
+		max-height: calc(100vh - ${CSS_DIMENSIONS.px245});
 		margin: 0 auto;
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -675,10 +677,10 @@ export const UnsupportedContent = styled.div`
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 60px 20px;
-	gap: 10px;
+	padding: ${CSS_DIMENSIONS.px60} ${CSS_DIMENSIONS.px20};
+	gap: ${CSS_DIMENSIONS.px10};
 	text-align: center;
-	min-height: 200px;
+	min-height: ${CSS_DIMENSIONS.px200};
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -694,9 +696,9 @@ export const UnsupportedContent = styled.div`
 		font-weight: ${(props) => props.theme.typography.weight.medium};
 		color: ${(props) => props.theme.colors.font.primary};
 		margin: 0;
-		padding: 6px 14px;
+		padding: ${CSS_DIMENSIONS.px6} ${CSS_DIMENSIONS.px14};
 		background: ${(props) => props.theme.colors.container.alt2.background};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		font-family: monospace;
 	}
@@ -710,7 +712,7 @@ export const UnsupportedContent = styled.div`
 	}
 
 	a {
-		margin-top: 10px;
+		margin-top: ${CSS_DIMENSIONS.px10};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
@@ -720,7 +722,7 @@ export const UnsupportedContent = styled.div`
 
 		&:hover {
 			text-decoration: underline;
-			text-decoration-thickness: 1.25px;
+			text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
 		}
 	}
 `;
@@ -730,25 +732,25 @@ export const MediaWrapper = styled.div`
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 20px;
-	min-height: 200px;
+	padding: ${CSS_DIMENSIONS.px20};
+	min-height: ${CSS_DIMENSIONS.px200};
 	width: 100%;
 
 	video {
 		max-width: 100%;
-		max-height: 500px;
+		max-height: ${CSS_DIMENSIONS.px500};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		background: ${(props) => props.theme.colors.container.primary.background};
 	}
 
 	audio {
 		width: 100%;
-		max-width: 600px;
+		max-width: ${CSS_DIMENSIONS.px600};
 	}
 `;
 
 export const MarkdownSection = styled.div`
-	padding: 10px 0 0 0;
+	padding: ${CSS_DIMENSIONS.px10} 0 0 0;
 `;
 
 export const SectionFull = styled.div`
@@ -759,7 +761,7 @@ export const SectionHeader = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin: 0 0 15px 0;
+	margin: 0 0 ${CSS_DIMENSIONS.px15} 0;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
@@ -777,28 +779,28 @@ export const SectionHeader = styled.div`
 `;
 
 export const SectionHeaderFull = styled(SectionHeader)`
-	padding: 15px;
+	padding: ${CSS_DIMENSIONS.px15};
 	margin: 0;
-	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
 	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
 `;
 
 export const SectionFullUpdateWrapper = styled.div`
-	padding: 0 15px 15px 15px;
+	padding: 0 ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15};
 `;
 
 export const SearchWrapper = styled.div`
-	height: 38.5px;
+	height: ${CSS_DIMENSIONS.px38_5};
 	max-width: 100%;
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 	position: relative;
-	padding: 0 0 0 0.5px;
+	padding: 0 0 0 ${CSS_DIMENSIONS.px0_5};
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		height: auto;
@@ -806,24 +808,24 @@ export const SearchWrapper = styled.div`
 `;
 
 export const SearchInputWrapper = styled.div`
-	width: 510px;
+	width: ${CSS_DIMENSIONS.px510};
 	max-width: 100%;
 	position: relative;
 
 	input {
 		max-width: 100%;
-		padding: 10px 10px 10px 42.5px !important;
+		padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px42_5} !important;
 	}
 
 	svg {
-		height: 15px;
-		width: 15px;
+		height: ${CSS_DIMENSIONS.px15};
+		width: ${CSS_DIMENSIONS.px15};
 		color: ${(props) => props.theme.colors.font.alt1};
 		fill: ${(props) => props.theme.colors.font.alt1};
 		position: absolute;
 		z-index: 1;
-		top: 11.5px;
-		left: 14.5px;
+		top: ${CSS_DIMENSIONS.px11_5};
+		left: ${CSS_DIMENSIONS.px14_5};
 	}
 `;
 
@@ -831,36 +833,36 @@ export const BlockNavigationWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 15px;
-	padding: 0 0 0 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	gap: ${CSS_DIMENSIONS.px15};
+	padding: 0 0 0 ${CSS_DIMENSIONS.px15};
+	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const InputActions = styled.div`
 	width: 100%;
 	display: flex;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 	justify-content: flex-end;
-	margin: 15px 0 0 0;
+	margin: ${CSS_DIMENSIONS.px15} 0 0 0;
 `;
 
 export const TxInfoWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 15px;
+	gap: ${CSS_DIMENSIONS.px15};
 	flex-wrap: wrap;
 `;
 
 export const UpdateWrapper = styled.div`
-	min-height: 30px;
+	min-height: ${CSS_DIMENSIONS.px30};
 	width: fit-content;
-	padding: 5.5px 15px 4.5px 15px;
+	padding: ${CSS_DIMENSIONS.px5_5} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px4_5} ${CSS_DIMENSIONS.px15};
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6.5px;
+	gap: ${CSS_DIMENSIONS.px6_5};
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
+	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.container.alt8.background};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	span {
@@ -881,20 +883,20 @@ export const UpdateWrapper = styled.div`
 `;
 
 export const UpdateWrapperType = styled(UpdateWrapper)`
-	padding: 5.5px 15px 4.5px 13.5px;
-	gap: 9.5px;
+	padding: ${CSS_DIMENSIONS.px5_5} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px4_5} ${CSS_DIMENSIONS.px13_5};
+	gap: ${CSS_DIMENSIONS.px9_5};
 
 	div {
-		height: 12px;
-		width: 12px;
+		height: ${CSS_DIMENSIONS.px12};
+		width: ${CSS_DIMENSIONS.px12};
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 
 	svg {
-		height: 12px;
-		width: 12px;
+		height: ${CSS_DIMENSIONS.px12};
+		width: ${CSS_DIMENSIONS.px12};
 		color: ${(props) => props.theme.colors.font.light2};
 		fill: ${(props) => props.theme.colors.font.light2};
 	}
@@ -919,7 +921,7 @@ export const Logo = styled.div<{ dimensions: number; margin?: string }>`
 	div {
 		height: ${(props) => `${props.dimensions.toString()}px`};
 		width: ${(props) => `${props.dimensions.toString()}px`};
-		margin: 0 0 0 1.5px;
+		margin: 0 0 0 ${CSS_DIMENSIONS.px1_5};
 	}
 
 	svg {
@@ -937,7 +939,7 @@ export const Logo = styled.div<{ dimensions: number; margin?: string }>`
 `;
 
 export const Refresh = styled.div`
-	margin: 0 -4.5px 0 4.5px;
+	margin: 0 -${CSS_DIMENSIONS.px4_5} 0 ${CSS_DIMENSIONS.px4_5};
 
 	svg {
 		color: ${(props) => props.theme.colors.font.light1} !important;
@@ -960,22 +962,22 @@ export const Refresh = styled.div`
 export const NodeConnectionWrapper = styled.div``;
 
 export const OverviewWrapper = styled.div<{ $fixedHeight?: number; $hasOverflow?: boolean }>`
-	height: ${(props) => (props.$fixedHeight ? `calc(${props.$fixedHeight}px - 80px)` : 'fit-content')};
-	max-height: 526.5px;
+	height: ${(props) => (props.$fixedHeight ? `calc(${props.$fixedHeight}px - ${CSS_DIMENSIONS.px80})` : 'fit-content')};
+	max-height: ${CSS_DIMENSIONS.px526_5};
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	padding-right: ${(props) => (props.$hasOverflow ? '12.5px' : '0')};
+	gap: ${CSS_DIMENSIONS.px10};
+	padding-right: ${(props) => (props.$hasOverflow ? `${CSS_DIMENSIONS.px12_5}` : '0')};
 
 	> * {
 		&:not(:last-child) {
-			padding: 0 0 10px 0;
-			border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
+			padding: 0 0 ${CSS_DIMENSIONS.px10} 0;
+			border-bottom: ${CSS_DIMENSIONS.px1} dotted ${(props) => props.theme.colors.border.primary};
 		}
 	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		gap: 20px;
+		gap: ${CSS_DIMENSIONS.px20};
 	}
 `;
 
@@ -983,7 +985,7 @@ export const OverviewLine = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	max-height: 30px;
+	max-height: ${CSS_DIMENSIONS.px30};
 
 	p,
 	span {
@@ -1016,7 +1018,7 @@ export const OverviewLine = styled.div`
 		flex-direction: column;
 		align-items: flex-start;
 		justify-content: flex-start;
-		gap: 5px;
+		gap: ${CSS_DIMENSIONS.px5};
 
 		p {
 			text-align: left;
@@ -1024,7 +1026,7 @@ export const OverviewLine = styled.div`
 	}
 `;
 
-export const TagValue = styled.button<{ $tooltipVisible?: boolean }>`
+export const TagValue = styled(PrimitiveButton)<{ $tooltipVisible?: boolean }>`
 	position: relative;
 	max-width: 45%;
 	display: flex;
@@ -1045,7 +1047,7 @@ export const TagValue = styled.button<{ $tooltipVisible?: boolean }>`
 	> div {
 		opacity: ${(props) => (props.$tooltipVisible ? 1 : 0)};
 		visibility: ${(props) => (props.$tooltipVisible ? 'visible' : 'hidden')};
-		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : 'translateY(3px)')};
+		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : `translateY(${CSS_DIMENSIONS.px3})`)};
 		transition-delay: ${(props) => (props.$tooltipVisible ? '0s' : '0s, 0s, 140ms')};
 	}
 
@@ -1079,12 +1081,13 @@ export const TagValueTooltip = styled.div<{
 	visibility: visible;
 	transform: translateY(0);
 	width: max-content;
-	max-width: ${(props) => (props.$position ? `${props.$position.maxWidth}px` : '400px')};
-	padding: 2.5px 5px;
+	max-width: ${(props) => (props.$position ? `${props.$position.maxWidth}px` : `${CSS_DIMENSIONS.px400}`)};
+	padding: ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px5};
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
-	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} ${CSS_DIMENSIONS.px0} ${CSS_DIMENSIONS.px1}
+		${CSS_DIMENSIONS.px2} ${CSS_DIMENSIONS.px0_5};
 	color: ${(props) => props.theme.colors.font.light1};
 	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	font-family: ${(props) => props.theme.typography.family.primary};
@@ -1099,23 +1102,23 @@ export const TagValueTooltip = styled.div<{
 `;
 
 export const OverviewDivider = styled.div`
-	height: 1px;
+	height: ${CSS_DIMENSIONS.px1};
 	width: 100%;
-	margin: 5px 0 0 0;
-	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	margin: ${CSS_DIMENSIONS.px5} 0 0 0;
+	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const MessagesSection = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: ${CSS_DIMENSIONS.px10};
 `;
 
 export const MessagesPlaceholder = styled.div`
-	padding: 0 15px 15px 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+	padding: 0 ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15};
+	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};
 
@@ -1132,26 +1135,26 @@ export const Placeholder = styled.div`
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 20px;
-	padding: 80px 0;
+	gap: ${CSS_DIMENSIONS.px20};
+	padding: ${CSS_DIMENSIONS.px80} 0;
 `;
 
 export const PlaceholderIcon = styled.div`
-	height: 150px;
-	width: 150px;
+	height: ${CSS_DIMENSIONS.px150};
+	width: ${CSS_DIMENSIONS.px150};
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 	border-radius: 50%;
 
 	svg {
-		height: 85px;
-		width: 85px;
+		height: ${CSS_DIMENSIONS.px85};
+		width: ${CSS_DIMENSIONS.px85};
 		color: ${(props) => props.theme.colors.icon.primary.fill};
 		fill: ${(props) => props.theme.colors.icon.primary.fill};
-		margin: 7.5px 0 0 0;
+		margin: ${CSS_DIMENSIONS.px7_5} 0 0 0;
 	}
 `;
 
@@ -1160,7 +1163,7 @@ export const PlaceholderDescription = styled.div`
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	gap: 10px;
+	gap: ${CSS_DIMENSIONS.px10};
 
 	p,
 	span {
@@ -1176,7 +1179,7 @@ export const PlaceholderDescription = styled.div`
 
 	span {
 		display: block;
-		max-width: 350px;
+		max-width: ${CSS_DIMENSIONS.px350};
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};

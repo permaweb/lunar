@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 
 import { Button } from 'components/atoms/Button';
 import { ASSETS } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -15,18 +16,18 @@ const LANGUAGE_CLASS = /language-([\w-]+)/;
 const COPY_RESET_MS = 2000;
 const MarkdownSyntaxHighlighter = SyntaxHighlighter as unknown as React.ComponentType<SyntaxHighlighterProps>;
 
-function getNodeText(node: ReactNode): string {
+function getNodeText(node: React.ReactNode): string {
 	if (node === null || node === undefined || typeof node === 'boolean') return '';
 	if (typeof node === 'string' || typeof node === 'number') return String(node);
 	if (Array.isArray(node)) return node.map(getNodeText).join('');
 	if (React.isValidElement(node)) {
-		return getNodeText((node.props as { children?: ReactNode }).children);
+		return getNodeText((node.props as { children?: React.ReactNode }).children);
 	}
 
 	return '';
 }
 
-function getHeadingId(children: ReactNode) {
+function getHeadingId(children: React.ReactNode) {
 	return getNodeText(children)
 		.toLowerCase()
 		.trim()
@@ -60,7 +61,7 @@ async function copyText(text: string) {
 	return copied;
 }
 
-function CodeBlock(props: { children: ReactNode }) {
+function CodeBlock(props: { children: React.ReactNode }) {
 	const [copied, setCopied] = React.useState(false);
 	const resetTimeout = React.useRef<number | null>(null);
 	const text = React.useMemo(() => getNodeText(props.children).replace(/\n$/, ''), [props.children]);
@@ -100,7 +101,7 @@ function CodeBlock(props: { children: ReactNode }) {
 	);
 }
 
-function Heading(props: { level: 1 | 2 | 3 | 4 | 5 | 6; children: ReactNode }) {
+function Heading(props: { level: 1 | 2 | 3 | 4 | 5 | 6; children: React.ReactNode }) {
 	const id = getHeadingId(props.children);
 
 	return React.createElement(`h${props.level}`, id ? { id } : undefined, props.children);
@@ -228,12 +229,12 @@ export default function MarkdownViewer(props: {
 							<Button
 								type={'alt1'}
 								icon={ASSETS.fullscreen}
-								handlePress={toggleFullscreen}
+								onPress={toggleFullscreen}
 								height={25}
 								width={25}
 								noMinWidth
 								iconSize={12.5}
-								padding={'3.95px 0 0 0'}
+								padding={`${CSS_DIMENSIONS.px3_95} 0 0 0`}
 								tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 								tooltipPosition={'bottom-right'}
 								stopPropagation

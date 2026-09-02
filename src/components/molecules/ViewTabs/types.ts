@@ -1,3 +1,5 @@
+import React from 'react';
+
 import { BaseTabType } from 'helpers/types';
 
 export interface TabsContainerProps<T extends BaseTabType> {

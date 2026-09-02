@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
-import { Types } from '@permaweb/libs';
+import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
 import { Calendar } from 'components/atoms/Calendar';
@@ -35,7 +35,13 @@ import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
-import { MessageFilterType, MessageVariantEnum, ResultMessageType, TransactionType } from 'helpers/types';
+import {
+	GQLNodeResponseType,
+	MessageFilterType,
+	MessageVariantEnum,
+	ResultMessageType,
+	TransactionType,
+} from 'helpers/types';
 import {
 	buildSyntheticResultMessageEdge,
 	checkValidAddress,
@@ -48,8 +54,8 @@ import {
 	lowercaseTagKeys,
 	normalizeTagKeys,
 	removeCommitments,
-	resolveLibDeps,
 	resolveMessageId,
+	resolvePermawebApi,
 	resolveResultMessages,
 	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
@@ -238,7 +244,7 @@ function mapSchedulerMessageEdge(args: {
 	edge: any;
 	processId: string;
 	variant: MessageVariantEnum;
-}): Types.GQLNodeResponseType | null {
+}): GQLNodeResponseType | null {
 	const rawNode = args.edge?.node ?? args.edge ?? {};
 	const message = readSchedulerField(rawNode, 'message', 'Message');
 	const assignment = readSchedulerField(rawNode, 'assignment', 'Assignment');
@@ -303,14 +309,14 @@ async function assertSchedulerResponse(response: Response, context: string) {
 
 async function fetchSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) {
 	if (variant === MessageVariantEnum.Mainnet) {
-		const response = await fetch(`${DEFAULT_SCHEDULER_URL}/${processId}~process@1.0/slot/current`);
+		const response = await requestRemote(`${DEFAULT_SCHEDULER_URL}/${processId}~process@1.0/slot/current`);
 		await assertSchedulerResponse(response, 'Scheduler latest slot request');
 		const value = Number((await response.text()).trim());
 
 		return Number.isFinite(value) ? value : -1;
 	}
 
-	const response = await fetch(`${DEFAULT_LEGACY_SCHEDULER_URL}/${processId}/latest`);
+	const response = await requestRemote(`${DEFAULT_LEGACY_SCHEDULER_URL}/${processId}/latest`);
 	await assertSchedulerResponse(response, 'Scheduler latest assignment request');
 	const parsed = await response.json();
 	const assignment =
@@ -365,7 +371,7 @@ async function fetchSchedulerProcessMessagePage(args: {
 		args.variant === MessageVariantEnum.Mainnet
 			? `${DEFAULT_SCHEDULER_URL}/~scheduler@1.0/schedule?target=${args.processId}&accept=application/aos-2&from=${range.from}&to=${range.to}`
 			: `${DEFAULT_LEGACY_SCHEDULER_URL}/${args.processId}?process-id=${args.processId}&from-nonce=${range.from}&to-nonce=${range.to}&limit=${args.perPage}`;
-	const response = await fetch(url);
+	const response = await requestRemote(url);
 	await assertSchedulerResponse(response, 'Scheduler message page request');
 	const parsed = await response.json();
 	if (parsed?.error && !Array.isArray(parsed?.edges)) {
@@ -391,12 +397,12 @@ async function fetchSchedulerProcessMessagePage(args: {
 }
 
 function Message(props: {
-	element: Types.GQLNodeResponseType;
+	element: GQLNodeResponseType;
 	type: TransactionType;
 	variant?: MessageVariantEnum;
 	currentFilter: MessageFilterType;
 	parentId: string;
-	handleOpen: (id: string) => void;
+	onOpen: (id: string) => void;
 	lastChild?: boolean;
 	isOverallLast?: boolean;
 	timestamp?: number;
@@ -445,7 +451,7 @@ function Message(props: {
 				if (processId) {
 					/* Find the variant of the recipient process to handle messages between networks */
 					try {
-						const processLookup = await permawebProvider.libs.getGQLData({
+						const processLookup = await permawebProvider.legacyApi.getGQLData({
 							ids: [processId],
 						});
 
@@ -459,7 +465,7 @@ function Message(props: {
 						console.error(e);
 					}
 
-					const deps = resolveLibDeps({
+					const deps = resolvePermawebApi({
 						variant: variant,
 						permawebProvider: permawebProvider,
 					});
@@ -491,7 +497,7 @@ function Message(props: {
 		(async function () {
 			if (!data && showViewData) {
 				try {
-					const messageFetch = await fetch(getTxEndpoint(props.element.node.id));
+					const messageFetch = await requestRemote(getTxEndpoint(props.element.node.id));
 					const rawMessage = await messageFetch.text();
 
 					const raw = rawMessage ?? '';
@@ -656,7 +662,7 @@ function Message(props: {
 					<TxAddress
 						address={v}
 						tooltipPosition={'top-right'}
-						handlePress={() => {
+						onPress={() => {
 							setShowViewData(false);
 							setShowViewResult(false);
 						}}
@@ -753,7 +759,7 @@ function Message(props: {
 		}
 
 		return open ? (
-			<Modal type="panel" width={750} header={header} handleClose={handleClose}>
+			<Modal type="panel" width={750} header={header} onClose={handleClose}>
 				<S.OverlayWrapper>
 					<S.OverlayInfo>
 						<S.OverlayInfoLine>
@@ -763,7 +769,7 @@ function Message(props: {
 							<TxAddress
 								address={props.element.node.id}
 								tooltipPosition={'bottom-right'}
-								handlePress={() => {
+								onPress={() => {
 									setShowViewData(false);
 									setShowViewResult(false);
 								}}
@@ -776,7 +782,7 @@ function Message(props: {
 							<TxAddress
 								address={props.element.node.owner?.address ?? '-'}
 								tooltipPosition={'bottom-right'}
-								handlePress={() => {
+								onPress={() => {
 									setShowViewData(false);
 									setShowViewResult(false);
 								}}
@@ -796,7 +802,7 @@ function Message(props: {
 					</S.OverlayInfo>
 					<S.OverlayOutput>{loading ? <p>{`${language.loading}...`}</p> : <>{content}</>}</S.OverlayOutput>
 					<S.OverlayActions>
-						<Button type={'primary'} label={language.close} handlePress={handleClose} />
+						<Button type={'primary'} label={language.close} onPress={handleClose} />
 					</S.OverlayActions>
 				</S.OverlayWrapper>
 			</Modal>
@@ -813,7 +819,7 @@ function Message(props: {
 							type={'transaction'}
 							label={'Result Message'}
 							tooltipPosition={'right'}
-							handlePress={props.handleOpen ? () => props.handleOpen(props.element.node.id) : undefined}
+							onPress={props.onOpen ? () => props.onOpen(props.element.node.id) : undefined}
 						/>
 					</S.ResultMessage>
 				);
@@ -893,7 +899,7 @@ function Message(props: {
 					<Button
 						type={'alt3'}
 						label={language.input}
-						handlePress={(e) => handleShowViewData(e)}
+						onPress={(e) => handleShowViewData(e)}
 						disabled={!props.element.node.id}
 					/>
 				</S.Input>
@@ -901,7 +907,7 @@ function Message(props: {
 					<Button
 						type={'alt3'}
 						label={language.output}
-						handlePress={(e) => handleShowViewResult(e)}
+						onPress={(e) => handleShowViewResult(e)}
 						disabled={!props.element.node.id || !canFetchAoResult}
 					/>
 				</S.Output>
@@ -929,7 +935,7 @@ function Message(props: {
 					showFilteredMessages
 					hydrateAoTransferNotices={hydrateNestedAoTransferNotices}
 					showResultMessageLabel={true}
-					handleMessageOpen={props.handleOpen ? (id: string) => props.handleOpen(id) : null}
+					onMessageOpen={props.onOpen ? (id: string) => props.onOpen(id) : null}
 					childList
 					nestingLevel={(props.nestingLevel ?? 0) + 1}
 					isOverallLast={props.isOverallLast && props.lastChild}
@@ -1073,7 +1079,7 @@ export default function MessageList(props: {
 	currentFilter?: MessageFilterType;
 	recipient?: string | null;
 	parentId?: string;
-	handleMessageOpen?: (id: string) => void;
+	onMessageOpen?: (id: string) => void;
 	childList?: boolean;
 	nestingLevel?: number;
 	isOverallLast?: boolean;
@@ -1554,12 +1560,12 @@ export default function MessageList(props: {
 	async function timestampToBlockHeight(timestamp: number): Promise<number> {
 		try {
 			// Fetch current network height
-			const networkResponse = await fetch(arweaveEndpoint);
+			const networkResponse = await requestRemote(arweaveEndpoint);
 			const networkData = await networkResponse.json();
 			const currentBlockHeight = networkData.height;
 
 			// Fetch current block data to get timestamp
-			const blockResponse = await fetch(`${arweaveEndpoint}/block/current`);
+			const blockResponse = await requestRemote(`${arweaveEndpoint}/block/current`);
 			const currentBlockData = await blockResponse.json();
 			const currentBlockTimestamp = currentBlockData.timestamp;
 
@@ -1582,8 +1588,8 @@ export default function MessageList(props: {
 		try {
 			const response = await searchTxById({
 				txId: address,
-				getGQLData: permawebProvider.libs.getGQLData,
-				readProcess: permawebProvider.libs.readProcess,
+				getGQLData: permawebProvider.legacyApi.getGQLData,
+				readProcess: permawebProvider.legacyApi.readProcess,
 				store: store,
 				dispatch: dispatch,
 			});
@@ -1651,7 +1657,7 @@ export default function MessageList(props: {
 		let count: number | null = null;
 
 		while (rows.length < amount) {
-			const response = await permawebProvider.libs.getGQLData(
+			const response = await permawebProvider.legacyApi.getGQLData(
 				withProcessMessageGateway({
 					...baseArgs,
 					paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
@@ -1899,10 +1905,10 @@ export default function MessageList(props: {
 										console.warn('Scheduler count request failed', e);
 										return null;
 									})
-							: permawebProvider.libs
+							: permawebProvider.legacyApi
 									.getGQLData(withProcessMessageGateway(incomingQueryArgs))
 									.then((response) => response.count),
-						permawebProvider.libs.getGQLData(withProcessMessageGateway(outgoingQueryArgs)),
+						permawebProvider.legacyApi.getGQLData(withProcessMessageGateway(outgoingQueryArgs)),
 					]);
 					if (cancelled) return;
 
@@ -2077,7 +2083,7 @@ export default function MessageList(props: {
 									}
 
 									if (!props.result && !props.skipResultFetch) {
-										const deps = resolveLibDeps({
+										const deps = resolvePermawebApi({
 											variant: props.variant,
 											permawebProvider: permawebProvider,
 										});
@@ -2115,7 +2121,7 @@ export default function MessageList(props: {
 												message: message,
 												fromProcess: props.recipient,
 												timestamp: props.timestamp,
-												mapFromProcessCase: permawebProvider.libs.mapFromProcessCase,
+												mapFromProcessCase: permawebProvider.legacyApi.mapFromProcessCase,
 											})
 										).filter((edge) => !!edge?.node?.recipient);
 
@@ -2183,7 +2189,7 @@ export default function MessageList(props: {
 		toggleFilterChange,
 		pageCursor,
 		pageNumber,
-		permawebProvider.libs,
+		permawebProvider.legacyApi,
 		schedulerCandidateForCurrentFilters,
 		hasSchedulerVariant,
 		useSchedulerForProcessMessages,
@@ -2490,7 +2496,7 @@ export default function MessageList(props: {
 				<Button
 					type={'alt3'}
 					label={language.previous}
-					handlePress={handlePrevious}
+					onPress={handlePrevious}
 					disabled={previousDisabled || loadingMessages}
 				/>
 				{showPages && FLAGS.CONTROL_PAGINATION && (
@@ -2511,12 +2517,7 @@ export default function MessageList(props: {
 					</S.DPageCounter>
 				)}
 				{showPages && !FLAGS.CONTROL_PAGINATION && <S.DPageCounter>{getPages()}</S.DPageCounter>}
-				<Button
-					type={'alt3'}
-					label={language.next}
-					handlePress={handleNext}
-					disabled={!nextCursor || loadingMessages}
-				/>
+				<Button type={'alt3'} label={language.next} onPress={handleNext} disabled={!nextCursor || loadingMessages} />
 				{showPages && FLAGS.CONTROL_PAGINATION && (
 					<S.MPageCounter>
 						<PaginationControls
@@ -2565,7 +2566,7 @@ export default function MessageList(props: {
 											label={`${language.outgoing}${
 												outgoingCount ? ` (${formatCount(outgoingCount.toString())})` : ''
 											}`}
-											handlePress={() => handleFilterChange('outgoing')}
+											onPress={() => handleFilterChange('outgoing')}
 											active={currentFilter === 'outgoing'}
 											disabled={loadingMessages}
 										/>
@@ -2574,7 +2575,7 @@ export default function MessageList(props: {
 											label={`${language.incoming}${
 												incomingCount ? ` (${formatCount(incomingCount.toString())})` : ''
 											}`}
-											handlePress={() => handleFilterChange('incoming')}
+											onPress={() => handleFilterChange('incoming')}
 											active={currentFilter === 'incoming'}
 											disabled={loadingMessages}
 										/>
@@ -2583,13 +2584,13 @@ export default function MessageList(props: {
 								)}
 								<S.AppliedActionsWrapper className={'scroll-wrapper-hidden'}>
 									{!hasAppliedFilters && (
-										<Button type={'alt2'} label={'No Filters Applied'} handlePress={() => {}} disabled={true} noFocus />
+										<Button type={'alt2'} label={'No Filters Applied'} onPress={() => {}} disabled={true} noFocus />
 									)}
 									{props.type === 'wallet' && appliedTypeFilter !== 'all' && (
 										<Button
 											type={'alt3'}
 											label={`${language.type} (${getWalletTypeFilterLabel(appliedTypeFilter)})`}
-											handlePress={() => {
+											onPress={() => {
 												setCurrentTypeFilter('all');
 												setAppliedTypeFilter('all');
 												setIncomingCount(null);
@@ -2606,7 +2607,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`${language.transfer} (${getWalletTransferFilterLabel(appliedTransferFilter)})`}
-											handlePress={() => {
+											onPress={() => {
 												setCurrentTransferFilter('all');
 												setAppliedTransferFilter('all');
 												setIncomingCount(null);
@@ -2623,7 +2624,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`Action (${appliedAction})`}
-											handlePress={() => {
+											onPress={() => {
 												setCurrentAction(null);
 												setAppliedAction(null);
 												setToggleFilterChange((prev) => !prev);
@@ -2638,7 +2639,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`${language.variant} (${appliedVariant})`}
-											handlePress={() => {
+											onPress={() => {
 												setCurrentVariant(null);
 												setAppliedVariant(null);
 												setToggleFilterChange((prev) => !prev);
@@ -2653,7 +2654,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`To (${formatAddress(appliedRecipient, false)})`}
-											handlePress={() => {
+											onPress={() => {
 												setRecipient('');
 												setAppliedRecipient('');
 												setToggleFilterChange((prev) => !prev);
@@ -2668,7 +2669,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`From (${formatAddress(appliedFromAddress, false)})`}
-											handlePress={() => {
+											onPress={() => {
 												setFromAddress('');
 												setAppliedFromAddress('');
 												setAppliedFromAddressIsProcess(false);
@@ -2688,7 +2689,7 @@ export default function MessageList(props: {
 													? `${appliedStartDate.month}-${appliedStartDate.day}-${appliedStartDate.year}`
 													: '-'
 											})`}
-											handlePress={() => {
+											onPress={() => {
 												setStartDate(null);
 												setAppliedStartDate(null);
 												setToggleFilterChange((prev) => !prev);
@@ -2705,7 +2706,7 @@ export default function MessageList(props: {
 											label={`End (${
 												appliedEndDate ? `${appliedEndDate.month}-${appliedEndDate.day}-${appliedEndDate.year}` : '-'
 											})`}
-											handlePress={() => {
+											onPress={() => {
 												setEndDate(null);
 												setAppliedEndDate(null);
 												setToggleFilterChange((prev) => !prev);
@@ -2720,7 +2721,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`${language.resultsPerPage} (${formatCount(parsedPerPage.toString())})`}
-											handlePress={handlePerPageReset}
+											onPress={handlePerPageReset}
 											active={true}
 											disabled={loadingMessages}
 											icon={ASSETS.close}
@@ -2732,7 +2733,7 @@ export default function MessageList(props: {
 									<Button
 										type={'alt3'}
 										label={language.filter}
-										handlePress={() => setShowFilters((prev) => !prev)}
+										onPress={() => setShowFilters((prev) => !prev)}
 										active={showFilters}
 										disabled={loadingMessages}
 										icon={ASSETS.filter}
@@ -2743,7 +2744,7 @@ export default function MessageList(props: {
 									<Button
 										type={'alt3'}
 										label={language.download}
-										handlePress={handleExport}
+										onPress={handleExport}
 										disabled={loadingMessages || !currentData?.length}
 										icon={ASSETS.save}
 										iconLeftAlign
@@ -2807,7 +2808,7 @@ export default function MessageList(props: {
 										variant={getTagValue(element.node.tags, TAGS.keys.variant) as MessageVariantEnum}
 										currentFilter={currentFilter}
 										parentId={props.parentId}
-										handleOpen={props.handleMessageOpen ? (id: string) => props.handleMessageOpen(id) : null}
+										onOpen={props.onMessageOpen ? (id: string) => props.onMessageOpen(id) : null}
 										lastChild={isLastChild}
 										isOverallLast={props.isOverallLast && isLastChild}
 										showFilteredMessages={props.showFilteredMessages}
@@ -2829,7 +2830,7 @@ export default function MessageList(props: {
 					type="panel"
 					width={515}
 					header={props.type === 'wallet' ? language.transactionFilters : language.messageFilters}
-					handleClose={() => setShowFilters(false)}
+					onClose={() => setShowFilters(false)}
 				>
 					<S.FilterDropdown>
 						{props.type === 'wallet' && (
@@ -2843,7 +2844,7 @@ export default function MessageList(props: {
 											key={typeFilter}
 											type={'primary'}
 											label={getWalletTypeFilterLabel(typeFilter)}
-											handlePress={() => handleTypeFilterChange(typeFilter)}
+											onPress={() => handleTypeFilterChange(typeFilter)}
 											disabled={loadingMessages}
 											active={currentTypeFilter === typeFilter}
 											height={40}
@@ -2866,7 +2867,7 @@ export default function MessageList(props: {
 												key={transferFilter}
 												type={'primary'}
 												label={getWalletTransferFilterLabel(transferFilter)}
-												handlePress={() => handleTransferFilterChange(transferFilter)}
+												onPress={() => handleTransferFilterChange(transferFilter)}
 												disabled={loadingMessages || incompatibleWithType}
 												active={currentTransferFilter === transferFilter}
 												height={40}
@@ -2893,7 +2894,7 @@ export default function MessageList(props: {
 										key={action}
 										type={'primary'}
 										label={action}
-										handlePress={() => handleActionChange(action)}
+										onPress={() => handleActionChange(action)}
 										disabled={loadingMessages || actionFiltersDisabled}
 										active={currentAction === action}
 										icon={currentAction === action ? ASSETS.close : null}
@@ -2913,7 +2914,7 @@ export default function MessageList(props: {
 							<Button
 								type={customActionSelected ? 'primary' : 'alt1'}
 								label={customActionSelected ? language.remove : language.submit}
-								handlePress={() => (customActionSelected ? handleActionRemove() : handleActionAdd())}
+								onPress={() => (customActionSelected ? handleActionRemove() : handleActionAdd())}
 								disabled={
 									actionFiltersDisabled
 										? true
@@ -2939,7 +2940,7 @@ export default function MessageList(props: {
 										key={optionId}
 										type={'primary'}
 										label={getVariantFilterLabel(variant)}
-										handlePress={() => setCurrentVariant(currentVariant === variant ? null : variant)}
+										onPress={() => setCurrentVariant(currentVariant === variant ? null : variant)}
 										disabled={loadingMessages || variantFiltersDisabled}
 										active={currentVariant === variant}
 										icon={currentVariant === variant && variant ? ASSETS.close : null}
@@ -2981,7 +2982,7 @@ export default function MessageList(props: {
 									<Button
 										type={'primary'}
 										label={startDate ? `${language.startDate}: ${formatDateLabel(startDate)}` : language.startDate}
-										handlePress={() => setShowStartCalendar((prev) => !prev)}
+										onPress={() => setShowStartCalendar((prev) => !prev)}
 										active={showStartCalendar}
 										height={40}
 										fullWidth
@@ -2990,7 +2991,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={language.clear}
-											handlePress={() => {
+											onPress={() => {
 												setStartDate(null);
 												setShowStartCalendar(false);
 											}}
@@ -3012,7 +3013,7 @@ export default function MessageList(props: {
 									<Button
 										type={'primary'}
 										label={endDate ? `${language.endDate}: ${formatDateLabel(endDate)}` : language.endDate}
-										handlePress={() => setShowEndCalendar((prev) => !prev)}
+										onPress={() => setShowEndCalendar((prev) => !prev)}
 										active={showEndCalendar}
 										height={40}
 										fullWidth
@@ -3021,7 +3022,7 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={language.clear}
-											handlePress={() => {
+											onPress={() => {
 												setEndDate(null);
 												setShowEndCalendar(false);
 											}}
@@ -3058,7 +3059,7 @@ export default function MessageList(props: {
 							<Button
 								type={'alt1'}
 								label={language.applyFilters}
-								handlePress={() => handleFilterUpdate()}
+								onPress={() => handleFilterUpdate()}
 								disabled={invalidPerPage}
 								active={false}
 								height={42.5}

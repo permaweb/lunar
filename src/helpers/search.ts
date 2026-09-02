@@ -1,11 +1,11 @@
-import { Types } from '@permaweb/libs';
+import { readAoBalance } from 'api/balances';
+import { requestRemote } from 'api/http';
 
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
-import { readAoBalance } from './balances';
 import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint, getTxEndpoint } from './endpoints';
-import { MessageVariantEnum, SearchTxArgs, TagType } from './types';
+import { GQLNodeResponseType, MessageVariantEnum, SearchTxArgs, TagType } from './types';
 import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse } from './utils';
 
 const MAX_DEPTH = 10;
@@ -194,27 +194,27 @@ function normalizeSchedulerTimestamp(value: number | null) {
 	return value > 10000000000 ? value / 1000 : value;
 }
 
-function hasBlockMetadata(response: Types.GQLNodeResponseType) {
+function hasBlockMetadata(response: GQLNodeResponseType) {
 	return response?.node?.block?.height != null || response?.node?.block?.timestamp != null;
 }
 
-function hasScheduleMetadata(response: Types.GQLNodeResponseType) {
+function hasScheduleMetadata(response: GQLNodeResponseType) {
 	return hasBlockMetadata(response) && response?.node?.slot != null;
 }
 
-function isLegacyMessage(response: Types.GQLNodeResponseType) {
+function isLegacyMessage(response: GQLNodeResponseType) {
 	const tags = response?.node?.tags;
 
 	return getTagValue(tags, 'Variant') === MessageVariantEnum.Legacynet && getTagValue(tags, 'Type') === 'Message';
 }
 
-function isMainnetMessage(response: Types.GQLNodeResponseType) {
+function isMainnetMessage(response: GQLNodeResponseType) {
 	const tags = response?.node?.tags;
 
 	return getTagValue(tags, 'Variant') === MessageVariantEnum.Mainnet && getTagValue(tags, 'Type') === 'Message';
 }
 
-function hasForwardedLegacyOriginTags(response: Types.GQLNodeResponseType) {
+function hasForwardedLegacyOriginTags(response: GQLNodeResponseType) {
 	const tags = response?.node?.tags;
 
 	return Boolean(
@@ -225,11 +225,11 @@ function hasForwardedLegacyOriginTags(response: Types.GQLNodeResponseType) {
 	);
 }
 
-function shouldHydrateMainnetMessageSchedule(response: Types.GQLNodeResponseType) {
+function shouldHydrateMainnetMessageSchedule(response: GQLNodeResponseType) {
 	return isMainnetMessage(response) && !hasForwardedLegacyOriginTags(response);
 }
 
-function needsForwardedMainnetCacheRefresh(response: Types.GQLNodeResponseType) {
+function needsForwardedMainnetCacheRefresh(response: GQLNodeResponseType) {
 	return (
 		isMainnetMessage(response) &&
 		!!getTagValue(response?.node?.tags, 'From-Process') &&
@@ -238,17 +238,17 @@ function needsForwardedMainnetCacheRefresh(response: Types.GQLNodeResponseType) 
 	);
 }
 
-function isWalletResponse(response: Types.GQLNodeResponseType) {
+function isWalletResponse(response: GQLNodeResponseType) {
 	return getTagValue(response?.node?.tags, 'Type') === 'Wallet';
 }
 
-function needsPushedMessageSchedule(response: Types.GQLNodeResponseType) {
+function needsPushedMessageSchedule(response: GQLNodeResponseType) {
 	return (
 		isLegacyMessage(response) && !!getTagValue(response?.node?.tags, 'Pushed-For') && !hasScheduleMetadata(response)
 	);
 }
 
-function shouldUseCachedTransaction(response: Types.GQLNodeResponseType) {
+function shouldUseCachedTransaction(response: GQLNodeResponseType) {
 	if (isWalletResponse(response)) return true;
 	if (!hasBlockMetadata(response)) return false;
 	if (needsForwardedMainnetCacheRefresh(response)) return false;
@@ -256,7 +256,7 @@ function shouldUseCachedTransaction(response: Types.GQLNodeResponseType) {
 	return !needsPushedMessageSchedule(response);
 }
 
-async function hydrateLegacyMessageSchedule(response: Types.GQLNodeResponseType) {
+async function hydrateLegacyMessageSchedule(response: GQLNodeResponseType) {
 	if (hasScheduleMetadata(response) || !isLegacyMessage(response)) {
 		return response;
 	}
@@ -266,7 +266,7 @@ async function hydrateLegacyMessageSchedule(response: Types.GQLNodeResponseType)
 	if (!recipient) return response;
 
 	try {
-		const schedulerResponse = await fetch(
+		const schedulerResponse = await requestRemote(
 			`${DEFAULT_LEGACY_SCHEDULER_URL}/${response.node.id}?process-id=${recipient}`
 		);
 		const parsedSchedulerResponse = await schedulerResponse.json();
@@ -320,7 +320,7 @@ function getMainnetScheduleEdgeTimestamp(edge: any) {
 async function fetchMainnetScheduleRange(target: string, from: number, to: number) {
 	const rangeFrom = Math.max(0, Math.min(from, to));
 	const rangeTo = Math.max(rangeFrom, Math.min(to, rangeFrom + MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE - 1));
-	const response = await fetch(
+	const response = await requestRemote(
 		`${DEFAULT_SCHEDULER_URL}/~scheduler@1.0/schedule?target=${target}&accept=application/aos-2&from=${rangeFrom}&to=${rangeTo}`
 	);
 
@@ -332,7 +332,7 @@ async function fetchMainnetScheduleRange(target: string, from: number, to: numbe
 }
 
 async function getMainnetLatestSlot(target: string) {
-	const response = await fetch(`${DEFAULT_SCHEDULER_URL}/${target}~process@1.0/slot/current`);
+	const response = await requestRemote(`${DEFAULT_SCHEDULER_URL}/${target}~process@1.0/slot/current`);
 	if (!response.ok) throw new Error(`Mainnet latest slot request failed with ${response.status}`);
 
 	const latestSlot = Number((await response.text()).trim());
@@ -340,7 +340,7 @@ async function getMainnetLatestSlot(target: string) {
 	return Number.isFinite(latestSlot) ? latestSlot : null;
 }
 
-async function findMainnetScheduleEdge(response: Types.GQLNodeResponseType) {
+async function findMainnetScheduleEdge(response: GQLNodeResponseType) {
 	const messageId = response?.node?.id;
 	const tags = response?.node?.tags;
 	const target = response?.node?.recipient ?? getTagValue(tags, 'Target');
@@ -395,7 +395,7 @@ async function findMainnetScheduleEdge(response: Types.GQLNodeResponseType) {
 	return await searchRange(centeredFrom, centeredTo);
 }
 
-async function hydrateMainnetMessageSchedule(response: Types.GQLNodeResponseType) {
+async function hydrateMainnetMessageSchedule(response: GQLNodeResponseType) {
 	if (hasScheduleMetadata(response) || !shouldHydrateMainnetMessageSchedule(response)) {
 		return response;
 	}
@@ -434,10 +434,7 @@ async function hydrateMainnetMessageSchedule(response: Types.GQLNodeResponseType
 	}
 }
 
-async function buildDirectLookupResponse(
-	txId: string,
-	directLookup: Response
-): Promise<Types.GQLNodeResponseType | null> {
+async function buildDirectLookupResponse(txId: string, directLookup: Response): Promise<GQLNodeResponseType | null> {
 	if (!directLookup.ok) return null;
 
 	const headers = directLookup.headers;
@@ -475,11 +472,7 @@ async function buildDirectLookupResponse(
 	};
 }
 
-function cacheTransaction(
-	response: Types.GQLNodeResponseType,
-	args: SearchTxArgs,
-	opts?: { skipBlockHeightCheck: boolean }
-) {
+function cacheTransaction(response: GQLNodeResponseType, args: SearchTxArgs, opts?: { skipBlockHeightCheck: boolean }) {
 	if (FLAGS.USE_TX_CACHE && args.store && args.dispatch) {
 		const hasDisplayName = Boolean(getTagValue(response?.node?.tags, 'Name'));
 
@@ -493,10 +486,10 @@ function cacheTransaction(
 }
 
 async function resolveResponseData(
-	responseData: Types.GQLNodeResponseType,
+	responseData: GQLNodeResponseType,
 	args: SearchTxArgs,
 	depth: number
-): Promise<Types.GQLNodeResponseType> {
+): Promise<GQLNodeResponseType> {
 	responseData = await hydrateMainnetMessageSchedule(responseData);
 
 	if (isMainnetMessage(responseData)) {
@@ -577,7 +570,7 @@ async function addressHasTransactions(args: SearchTxArgs) {
 
 async function addressHasArBalance(address: string) {
 	try {
-		const response = await fetch(getARBalanceEndpoint(address));
+		const response = await requestRemote(getARBalanceEndpoint(address));
 		if (!response.ok) return false;
 
 		const balance = await response.text();
@@ -608,7 +601,7 @@ async function isWalletAddress(args: SearchTxArgs) {
 	return false;
 }
 
-export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<Types.GQLNodeResponseType> {
+export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<GQLNodeResponseType> {
 	if (FLAGS.USE_TX_CACHE && args.store) {
 		const cached = selectTransaction(args.store.getState(), args.txId);
 		if (cached && shouldUseCachedTransaction(cached)) {
@@ -619,7 +612,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 
 	try {
 		const url = getTxEndpoint(args.txId);
-		const directLookup = await fetch(url, {
+		const directLookup = await requestRemote(url, {
 			redirect: 'follow',
 		});
 		const directLookupResponse = await buildDirectLookupResponse(args.txId, directLookup);
@@ -694,8 +687,8 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 					},
 				};
 
-				cacheTransaction(walletResponse as Types.GQLNodeResponseType, args, { skipBlockHeightCheck: true });
-				return walletResponse as Types.GQLNodeResponseType;
+				cacheTransaction(walletResponse as GQLNodeResponseType, args, { skipBlockHeightCheck: true });
+				return walletResponse as GQLNodeResponseType;
 			}
 
 			return null;

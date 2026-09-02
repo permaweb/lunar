@@ -522,7 +522,7 @@ export default function BlockList(props: { header?: string }) {
 				<Button
 					type={'alt3'}
 					label={language.previous}
-					handlePress={handlePrevious}
+					onPress={handlePrevious}
 					disabled={cursorHistory.length === 0 || loading}
 				/>
 				{showPages && FLAGS.CONTROL_PAGINATION && (
@@ -540,7 +540,7 @@ export default function BlockList(props: { header?: string }) {
 					</S.DPageCounter>
 				)}
 				{showPages && !FLAGS.CONTROL_PAGINATION && <S.DPageCounter>{getPages()}</S.DPageCounter>}
-				<Button type={'alt3'} label={language.next} handlePress={handleNext} disabled={!nextCursor || loading} />
+				<Button type={'alt3'} label={language.next} onPress={handleNext} disabled={!nextCursor || loading} />
 				{showPages && FLAGS.CONTROL_PAGINATION && (
 					<S.MPageCounter>
 						<PaginationControls
@@ -577,7 +577,7 @@ export default function BlockList(props: { header?: string }) {
 							<Button
 								type={'alt3'}
 								label={`${language.minHeight} (${formatCount(activeRange.minHeight.toString())})`}
-								handlePress={handleClearMinHeight}
+								onPress={handleClearMinHeight}
 								active={true}
 								disabled={loading}
 								icon={ASSETS.close}
@@ -587,7 +587,7 @@ export default function BlockList(props: { header?: string }) {
 							<Button
 								type={'alt3'}
 								label={`${language.maxHeight} (${formatCount(activeRange.maxHeight.toString())})`}
-								handlePress={handleClearMaxHeight}
+								onPress={handleClearMaxHeight}
 								active={true}
 								disabled={loading}
 								icon={ASSETS.close}
@@ -597,7 +597,7 @@ export default function BlockList(props: { header?: string }) {
 							<Button
 								type={'alt3'}
 								label={language.filter}
-								handlePress={() => setShowFilters((prev) => !prev)}
+								onPress={() => setShowFilters((prev) => !prev)}
 								active={showFilters}
 								disabled={loading}
 								icon={ASSETS.filter}
@@ -608,7 +608,7 @@ export default function BlockList(props: { header?: string }) {
 						<Button
 							type={'alt3'}
 							label={language.refresh}
-							handlePress={handleRefresh}
+							onPress={handleRefresh}
 							disabled={loading}
 							icon={ASSETS.refresh}
 							iconLeftAlign
@@ -616,7 +616,7 @@ export default function BlockList(props: { header?: string }) {
 						<Button
 							type={'alt3'}
 							label={language.download}
-							handlePress={handleExport}
+							onPress={handleExport}
 							disabled={loading || blocks.length <= 0}
 							icon={ASSETS.save}
 							iconLeftAlign
@@ -662,7 +662,7 @@ export default function BlockList(props: { header?: string }) {
 				<S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>
 			</S.Container>
 			{showFilters && (
-				<Modal type="panel" width={515} header={language.blockFilters} handleClose={() => setShowFilters(false)}>
+				<Modal type="panel" width={515} header={language.blockFilters} onClose={() => setShowFilters(false)}>
 					<FilterS.FilterDropdown>
 						<FilterS.FilterDropdownHeader>
 							<p>{language.filterByHeight}</p>
@@ -695,7 +695,7 @@ export default function BlockList(props: { header?: string }) {
 							<Button
 								type={'primary'}
 								label={language.clear}
-								handlePress={handleClearRange}
+								onPress={handleClearRange}
 								disabled={
 									loading ||
 									(!minHeightInput &&
@@ -711,7 +711,7 @@ export default function BlockList(props: { header?: string }) {
 							<Button
 								type={'alt1'}
 								label={language.applyFilters}
-								handlePress={handleApplyRange}
+								onPress={handleApplyRange}
 								disabled={invalidMinHeight || invalidMaxHeight || invalidRange}
 								active={false}
 								height={42.5}

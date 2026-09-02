@@ -18,7 +18,7 @@ export default function WalletBlock() {
 				<ReactSVG src={ASSETS.wallet} />
 			</S.Icon>
 			<p>{language.connectToContinue}</p>
-			<Button type={'alt1'} label={language.connect} handlePress={() => arProvider.setWalletModalVisible(true)} />
+			<Button type={'alt1'} label={language.connect} onPress={() => arProvider.setWalletModalVisible(true)} />
 		</S.Wrapper>
 	);
 }

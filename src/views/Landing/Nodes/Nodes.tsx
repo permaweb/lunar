@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { requestRemote } from 'api/http';
+
 import { getRoutesEndpoint } from 'helpers/endpoints';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -15,7 +17,7 @@ function Node(props: { index: number; node: any }) {
 		(async function () {
 			if (props.node) {
 				try {
-					const result = await fetch(`${props.node.prefix}/~meta@1.0/info/address`);
+					const result = await requestRemote(`${props.node.prefix}/~meta@1.0/info/address`);
 					setHealthy(result.status === 200);
 				} catch (e: any) {
 					setHealthy(false);
@@ -60,7 +62,7 @@ export default function Nodes() {
 
 			try {
 				for (const routerUrl of routerUrls) {
-					const res = await fetch(getRoutesEndpoint(routerUrl));
+					const res = await requestRemote(getRoutesEndpoint(routerUrl));
 					const data = await res.json();
 					const parsed = Object.values(data).find((route: any) => route.strategy === 'Nearest');
 					const groups = makeScoreGroups((parsed as any).nodes);

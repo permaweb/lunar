@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import JSONbig from 'json-bigint';
 
-import { Types } from '@permaweb/libs';
-
+import { readAoBalance, readArBalance } from 'api/balances';
 import {
 	BlockMetadata,
 	BlockNode,
@@ -16,6 +15,7 @@ import {
 	getTransactionById,
 	getTransactionCountByBlock,
 } from 'api/blocks';
+import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
@@ -30,11 +30,11 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
-import { readAoBalance } from 'helpers/balances';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
-import { getARBalanceEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { getTxEndpoint } from 'helpers/endpoints';
 import { searchTxById } from 'helpers/search';
-import { MessageVariantEnum, TransactionType } from 'helpers/types';
+import { CSS_DIMENSIONS } from 'helpers/themes';
+import { GQLNodeResponseType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
 	capitalize,
 	checkValidAddress,
@@ -50,8 +50,8 @@ import {
 	isLegacyMessageSpam,
 	isNumeric,
 	removeCommitments,
-	resolveLibDeps,
 	resolveMessageId,
+	resolvePermawebApi,
 	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
@@ -115,7 +115,7 @@ function fetchArUsdPrice() {
 	if (arUsdPriceCache !== undefined) return Promise.resolve(arUsdPriceCache);
 	if (arUsdPriceRequestCache) return arUsdPriceRequestCache;
 
-	arUsdPriceRequestCache = fetch(ARWEAVE_PRICE_ENDPOINT)
+	arUsdPriceRequestCache = requestRemote(ARWEAVE_PRICE_ENDPOINT)
 		.then(async (response) => {
 			if (!response.ok) return null;
 
@@ -176,7 +176,7 @@ async function fetchTransactionOverview(id: string, refreshKey: number): Promise
 
 // Create a context to provide txResponse to all tab views without recreating them
 const TxResponseContext = React.createContext<{
-	txResponse: Types.GQLNodeResponseType | null;
+	txResponse: GQLNodeResponseType | null;
 	inputTxId: string;
 	type: TransactionType | null;
 	refreshKey: number;
@@ -276,8 +276,8 @@ function Transaction(props: {
 	txId: string;
 	type: TransactionType | null;
 	active: boolean;
-	onTxChange?: (newTx: Types.GQLNodeResponseType) => void;
-	handleMessageOpen: (id: string) => void;
+	onTxChange?: (newTx: GQLNodeResponseType) => void;
+	onMessageOpen: (id: string) => void;
 	tabKey?: string; // Stable key from TransactionTabs to maintain component identity
 	onLoadingChange?: (loading: boolean) => void;
 }) {
@@ -293,7 +293,7 @@ function Transaction(props: {
 
 	const [inputTxId, setInputTxId] = React.useState<string>(props.txId);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
-	const [txResponse, setTxResponse] = React.useState<Types.GQLNodeResponseType | null>(null);
+	const [txResponse, setTxResponse] = React.useState<GQLNodeResponseType | null>(null);
 
 	React.useEffect(() => {
 		if (props.onLoadingChange) {
@@ -342,7 +342,7 @@ function Transaction(props: {
 		metadata: BlockMetadata | null = null,
 		transactionCount: number | null = null,
 		currentBlockHeight: number | null = null
-	): Types.GQLNodeResponseType {
+	): GQLNodeResponseType {
 		const metadataTxCount = Array.isArray(metadata?.txs) ? metadata.txs.length : null;
 		const confirmations =
 			currentBlockHeight !== null && Number.isFinite(currentBlockHeight)
@@ -377,7 +377,7 @@ function Transaction(props: {
 		} as any;
 	}
 
-	function buildBundleResponse(response: Types.GQLNodeResponseType | null): Types.GQLNodeResponseType {
+	function buildBundleResponse(response: GQLNodeResponseType | null): GQLNodeResponseType {
 		const bundleTags = [
 			{ name: 'bundle-format', value: 'binary' },
 			{ name: 'bundle-version', value: '2.0.0' },
@@ -413,7 +413,7 @@ function Transaction(props: {
 		} as any;
 	}
 
-	function isBundleResponse(response: Types.GQLNodeResponseType | null) {
+	function isBundleResponse(response: GQLNodeResponseType | null) {
 		const tags = response?.node?.tags ?? [];
 
 		return (
@@ -504,13 +504,13 @@ function Transaction(props: {
 				}
 
 				if (props.type === 'bundle') {
-					let bundleLookup: Types.GQLNodeResponseType | null = null;
+					let bundleLookup: GQLNodeResponseType | null = null;
 
 					try {
 						bundleLookup = await searchTxById({
 							txId: inputTxId,
-							getGQLData: permawebProvider.libs.getGQLData,
-							readProcess: permawebProvider.libs.readProcess,
+							getGQLData: permawebProvider.legacyApi.getGQLData,
+							readProcess: permawebProvider.legacyApi.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});
@@ -528,8 +528,8 @@ function Transaction(props: {
 
 				const response = await searchTxById({
 					txId: inputTxId,
-					getGQLData: permawebProvider.libs.getGQLData,
-					readProcess: permawebProvider.libs.readProcess,
+					getGQLData: permawebProvider.legacyApi.getGQLData,
+					readProcess: permawebProvider.legacyApi.readProcess,
 					store: store,
 					dispatch: dispatch,
 				});
@@ -560,7 +560,7 @@ function Transaction(props: {
 								if (recipient && checkValidAddress(recipient)) {
 									// Find the variant of the recipient process to handle messages between networks
 									try {
-										const processLookup = await permawebProvider.libs.getGQLData({
+										const processLookup = await permawebProvider.legacyApi.getGQLData({
 											ids: [recipient],
 										});
 
@@ -574,7 +574,7 @@ function Transaction(props: {
 										console.error(e);
 									}
 
-									const deps = resolveLibDeps({
+									const deps = resolvePermawebApi({
 										variant: variant,
 										permawebProvider: permawebProvider,
 									});
@@ -662,11 +662,7 @@ function Transaction(props: {
 					let response: any = null;
 
 					if (balanceSource === 'arweave') {
-						const arResponse = await fetch(getARBalanceEndpoint(walletId));
-						if (!arResponse.ok) {
-							throw new Error(`AR balance request failed with status ${arResponse.status}`);
-						}
-						response = await arResponse.text();
+						response = await readArBalance(walletId);
 					} else {
 						if (!processId) {
 							setWalletBalance(useNaOnError ? 'N/A' : 'Error');
@@ -713,14 +709,14 @@ function Transaction(props: {
 					break;
 				case PROCESSES.pi:
 					dimensions = 10.5;
-					margin = '0 0 6.5px 0';
+					margin = `0 0 ${CSS_DIMENSIONS.px6_5} 0`;
 					icon = ASSETS.pi;
 					break;
 			}
 
 			if (balanceSource === 'arweave') {
 				dimensions = 12.5;
-				margin = '0 0 4.95px 0';
+				margin = `0 0 ${CSS_DIMENSIONS.px4_95} 0`;
 				icon = ASSETS.arweave;
 			}
 
@@ -743,7 +739,7 @@ function Transaction(props: {
 					<S.Refresh>
 						<Button
 							type={'primary'}
-							handlePress={() => {
+							onPress={() => {
 								hasFetchedRef.current = false;
 								fetchBalance();
 							}}
@@ -1144,8 +1140,8 @@ function Transaction(props: {
 					try {
 						const response = await searchTxById({
 							txId: target,
-							getGQLData: permawebProvider.libs.getGQLData,
-							readProcess: permawebProvider.libs.readProcess,
+							getGQLData: permawebProvider.legacyApi.getGQLData,
+							readProcess: permawebProvider.legacyApi.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});
@@ -1213,18 +1209,18 @@ function Transaction(props: {
 					case 'ao':
 						icon = ASSETS.ao;
 						dimensions = 18.5;
-						margin = '7.5px 4.5px 0 0';
+						margin = `${CSS_DIMENSIONS.px7_5} ${CSS_DIMENSIONS.px4_5} 0 0`;
 						break;
 					case 'pi':
 						dimensions = 10.5;
-						margin = '7.5px 4.5px 0 0';
+						margin = `${CSS_DIMENSIONS.px7_5} ${CSS_DIMENSIONS.px4_5} 0 0`;
 						icon = ASSETS.pi;
 						break;
 				}
 
 				if (token === 'arweave') {
 					dimensions = 12.5;
-					margin = '0 0 4.95px 0';
+					margin = `0 0 ${CSS_DIMENSIONS.px4_95} 0`;
 					icon = ASSETS.arweave;
 				}
 
@@ -1648,7 +1644,7 @@ function Transaction(props: {
 					setLoading(true);
 					setHtmlPreviewReady(false);
 					try {
-						const messageFetch = await fetch(getTxEndpoint(inputTxId));
+						const messageFetch = await requestRemote(getTxEndpoint(inputTxId));
 						const rawMessage = await messageFetch.text();
 
 						const raw = rawMessage ?? '';
@@ -1932,7 +1928,7 @@ function Transaction(props: {
 													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 													parentId={inputTxId}
 													authority={getTagValue(txResponse?.node?.tags, 'Authority')}
-													handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
+													onMessageOpen={(id: string) => props.onMessageOpen(id)}
 													result={messageResult}
 													timestamp={txResponse?.node?.block?.timestamp}
 													skipResultFetch={true}
@@ -1957,7 +1953,7 @@ function Transaction(props: {
 											type={resolvedType}
 											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 											parentId={inputTxId}
-											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
+											onMessageOpen={(id: string) => props.onMessageOpen(id)}
 										/>
 									)}
 								</>
@@ -2007,7 +2003,7 @@ function Transaction(props: {
 											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
 											parentId={inputTxId}
 											authority={getTagValue(txResponse?.node?.tags, 'Authority')}
-											handleMessageOpen={(id: string) => props.handleMessageOpen(id)}
+											onMessageOpen={(id: string) => props.onMessageOpen(id)}
 										/>
 									)}
 								</S.MessagesSection>
@@ -2244,7 +2240,7 @@ function Transaction(props: {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.copy}
-							handlePress={() => copyAddress(inputTxId)}
+							onPress={() => copyAddress(inputTxId)}
 							disabled={!inputTxId}
 							height={32.5}
 							width={32.5}
@@ -2257,7 +2253,7 @@ function Transaction(props: {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.link}
-							handlePress={async () => {
+							onPress={async () => {
 								await navigator.clipboard.writeText(window.location.href);
 								setUrlCopied(true);
 								setTimeout(() => setUrlCopied(false), 2000);
@@ -2273,7 +2269,7 @@ function Transaction(props: {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.fullscreen}
-							handlePress={toggleFullscreen}
+							onPress={toggleFullscreen}
 							height={32.5}
 							width={32.5}
 							noMinWidth
@@ -2285,7 +2281,7 @@ function Transaction(props: {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.refresh}
-							handlePress={() => handleSubmit()}
+							onPress={() => handleSubmit()}
 							disabled={loadingTx || !isValidExplorerInput(inputTxId)}
 							height={32.5}
 							width={32.5}
@@ -2302,7 +2298,7 @@ function Transaction(props: {
 										type={'primary'}
 										icon={ASSETS.arrowLeft}
 										iconLeftAlign
-										handlePress={() => handleBlockNavigation(previousBlockHeight)}
+										onPress={() => handleBlockNavigation(previousBlockHeight)}
 										disabled={loadingTx}
 										height={32.5}
 										iconSize={14.5}
@@ -2315,7 +2311,7 @@ function Transaction(props: {
 									<Button
 										type={'primary'}
 										icon={ASSETS.arrowRight}
-										handlePress={() => handleBlockNavigation(nextBlockHeight)}
+										onPress={() => handleBlockNavigation(nextBlockHeight)}
 										disabled={loadingTx || nextBlockDisabled}
 										height={32.5}
 										iconSize={14.5}

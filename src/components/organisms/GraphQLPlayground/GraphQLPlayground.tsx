@@ -1,6 +1,8 @@
 import React from 'react';
 import { ReactSVG } from 'react-svg';
 
+import { requestRemote } from 'api/http';
+
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
@@ -231,7 +233,7 @@ async function fetchSchemaDocs(endpoint: string): Promise<GQLSchemaDocs> {
 	const pending = SCHEMA_REQUEST_CACHE.get(endpoint);
 	if (pending) return pending;
 
-	const request = fetch(endpoint, {
+	const request = requestRemote(endpoint, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -563,7 +565,7 @@ export default function GraphQLPlayground(props: {
 						body.variables = parsedVariables;
 					}
 
-					const response = await fetch(gatewayUrl, {
+					const response = await requestRemote(gatewayUrl, {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
@@ -660,7 +662,7 @@ export default function GraphQLPlayground(props: {
 							<S.DocsFieldSignature>
 								<code>{buildFieldSignature(field)}</code>
 							</S.DocsFieldSignature>
-							<Button type={'alt3'} label={'Use'} handlePress={() => useFieldQuery(operation, field)} height={30} />
+							<Button type={'alt3'} label={'Use'} onPress={() => useFieldQuery(operation, field)} height={30} />
 						</S.DocsFieldHeader>
 						{field.description && (
 							<S.DocsDescription>
@@ -719,7 +721,7 @@ export default function GraphQLPlayground(props: {
 		const subscriptionFields = getRootFields(schemaDocs?.subscriptionType);
 
 		return (
-			<Modal type="panel" width={680} header={`${language.docs} - GraphQL`} handleClose={() => setShowDocs(false)}>
+			<Modal type="panel" width={680} header={`${language.docs} - GraphQL`} onClose={() => setShowDocs(false)}>
 				<S.DocsPanel>
 					<S.DocsEndpoint>
 						<span>Gateway</span>
@@ -792,7 +794,7 @@ export default function GraphQLPlayground(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.save}
-						handlePress={saveCustomGateway}
+						onPress={saveCustomGateway}
 						disabled={!getGatewayStorageValue(inputGateway) || gateways.includes(getGatewayStorageValue(inputGateway))}
 						height={32.5}
 						width={32.5}
@@ -805,7 +807,7 @@ export default function GraphQLPlayground(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.fullscreen}
-						handlePress={toggleFullscreen}
+						onPress={toggleFullscreen}
 						height={32.5}
 						width={32.5}
 						noMinWidth
@@ -816,7 +818,7 @@ export default function GraphQLPlayground(props: {
 					/>
 					<Button
 						type={'alt1'}
-						handlePress={() => setShowVariables((prev) => !prev)}
+						onPress={() => setShowVariables((prev) => !prev)}
 						active={showVariables}
 						icon={showVariables ? ASSETS.close : ASSETS.code}
 						height={32.5}
@@ -826,7 +828,7 @@ export default function GraphQLPlayground(props: {
 					/>
 					<Button
 						type={'alt1'}
-						handlePress={() => setShowDocs(true)}
+						onPress={() => setShowDocs(true)}
 						active={showDocs}
 						icon={ASSETS.docs}
 						height={32.5}
@@ -845,7 +847,7 @@ export default function GraphQLPlayground(props: {
 						}}
 						options={gatewayOptions}
 						disabled={false}
-						handleRemoveOption={removeGateway}
+						onRemoveOption={removeGateway}
 						isOptionRemovable={() => gateways.length > 1}
 						removeOptionLabel={language.remove}
 					/>
@@ -858,7 +860,7 @@ export default function GraphQLPlayground(props: {
 							initialData={query}
 							language={'graphql'}
 							setEditorData={setQuery}
-							handleSubmit={executeQuery}
+							onSubmit={executeQuery}
 							loading={loading}
 							useFixedHeight
 							noFullScreen

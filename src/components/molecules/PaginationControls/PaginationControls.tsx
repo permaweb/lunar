@@ -1,6 +1,8 @@
 import React from 'react';
 
 import { Button } from 'components/atoms/Button';
+import { PrimitiveInput } from 'components/atoms/PrimitiveInput';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 import { formatCount } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -35,7 +37,7 @@ export default function PaginationControls(props: {
 		<S.Wrapper>
 			<S.ControlGroup>
 				<label>{language.page}</label>
-				<input
+				<PrimitiveInput
 					aria-label={language.page}
 					type={'number'}
 					min={1}
@@ -48,17 +50,17 @@ export default function PaginationControls(props: {
 				<Button
 					type={'alt3'}
 					label={language.apply}
-					handlePress={props.onPageSubmit}
+					onPress={props.onPageSubmit}
 					disabled={props.disabled || props.pageDisabled || props.pageSubmitDisabled}
 					height={30}
 					noMinWidth
-					padding={'0 10px'}
+					padding={`0 ${CSS_DIMENSIONS.px10}`}
 				/>
 			</S.ControlGroup>
 			<S.Divider />
 			<S.ControlGroup>
 				<label>{language.resultsPerPage}</label>
-				<input
+				<PrimitiveInput
 					aria-label={language.resultsPerPage}
 					type={'number'}
 					min={1}
@@ -70,11 +72,11 @@ export default function PaginationControls(props: {
 				<Button
 					type={'alt3'}
 					label={language.apply}
-					handlePress={props.onPerPageSubmit}
+					onPress={props.onPerPageSubmit}
 					disabled={props.disabled || props.perPageDisabled || props.perPageSubmitDisabled}
 					height={30}
 					noMinWidth
-					padding={'0 10px'}
+					padding={`0 ${CSS_DIMENSIONS.px10}`}
 				/>
 			</S.ControlGroup>
 		</S.Wrapper>

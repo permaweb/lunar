@@ -42,7 +42,7 @@ export default function Slider(props: IProps) {
 				max={props.maxValue.toString()}
 				step={props.useFractional ? '0.000001' : '1'}
 				value={props.value.toString()}
-				onChange={props.handleChange}
+				onChange={props.onChange}
 				disabled={props.disabled}
 				invalid={props.invalid.status}
 				onWheel={(e) => e.preventDefault()}

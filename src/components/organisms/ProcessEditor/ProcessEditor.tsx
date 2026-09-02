@@ -3,7 +3,7 @@ import React from 'react';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { JSONWriter } from 'components/molecules/JSONWriter';
 import { MessageVariantEnum } from 'helpers/types';
-import { removeCommitments, resolveLibDeps, withRetries } from 'helpers/utils';
+import { removeCommitments, resolvePermawebApi, withRetries } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -41,7 +41,7 @@ export default function ProcessEditor(props: {
 		setLoading(true);
 		setOutput(null);
 
-		const deps = resolveLibDeps({
+		const deps = resolvePermawebApi({
 			variant: props.variant,
 			permawebProvider: permawebProvider,
 		});
@@ -55,7 +55,6 @@ export default function ProcessEditor(props: {
 				break;
 			case 'write':
 				connectFn = deps.ao.message;
-				messageToSend.signer = deps.signer;
 				break;
 		}
 
@@ -100,7 +99,7 @@ export default function ProcessEditor(props: {
 							},
 						],
 					}}
-					handleSubmit={(message: object) => handleSubmit(message)}
+					onSubmit={(message: object) => handleSubmit(message)}
 					loading={loading}
 				/>
 			</S.EditorWrapper>

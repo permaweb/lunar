@@ -23,7 +23,7 @@ export default function FormField(props: IProps) {
 	return (
 		<>
 			{props.tooltip && showTooltip && (
-				<Modal header={props.tooltipLabel ? props.tooltipLabel : props.label} handleClose={() => setShowTooltip(false)}>
+				<Modal header={props.tooltipLabel ? props.tooltipLabel : props.label} onClose={() => setShowTooltip(false)}>
 					<S.Tooltip>
 						<p>{props.tooltip}</p>
 					</S.Tooltip>
@@ -38,7 +38,7 @@ export default function FormField(props: IProps) {
 								type={'primary'}
 								active={false}
 								icon={ASSETS.info}
-								handlePress={() => setShowTooltip(!showTooltip)}
+								onPress={() => setShowTooltip(!showTooltip)}
 								height={22.5}
 								width={22.5}
 								noMinWidth

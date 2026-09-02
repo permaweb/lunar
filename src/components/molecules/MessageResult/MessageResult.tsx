@@ -1,11 +1,13 @@
 import React from 'react';
 import JSONbig from 'json-bigint';
 
+import { requestRemote } from 'api/http';
+
 import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TagType } from 'helpers/types';
-import { checkValidAddress, getTagValue, removeCommitments, resolveLibDeps, resolveMessageId } from 'helpers/utils';
+import { checkValidAddress, getTagValue, removeCommitments, resolveMessageId, resolvePermawebApi } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 
@@ -75,7 +77,7 @@ export default function MessageResult(props: {
 
 					/* Find the variant of the recipient process to handle messages between networks */
 					try {
-						const processLookup = await permawebProvider.libs.getGQLData({
+						const processLookup = await permawebProvider.legacyApi.getGQLData({
 							ids: [props.processId],
 						});
 
@@ -89,7 +91,7 @@ export default function MessageResult(props: {
 						console.error(e);
 					}
 
-					const deps = resolveLibDeps({
+					const deps = resolvePermawebApi({
 						variant: variant,
 						permawebProvider: permawebProvider,
 					});
@@ -125,7 +127,7 @@ export default function MessageResult(props: {
 			if (checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
 				dataFetchedRef.current = true;
 				try {
-					const messageFetch = await fetch(getTxEndpoint(props.messageId));
+					const messageFetch = await requestRemote(getTxEndpoint(props.messageId));
 					const rawMessage = await messageFetch.text();
 
 					const raw = rawMessage ?? '';

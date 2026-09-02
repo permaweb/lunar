@@ -4,6 +4,7 @@ import { ReactSVG } from 'react-svg';
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
+import { PrimitiveInput } from 'components/atoms/PrimitiveInput';
 import { TextArea } from 'components/atoms/TextArea';
 import { ASSETS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
@@ -52,8 +53,8 @@ export default function ProfileManager(props: IProps) {
 	function handleUpdate(response: string) {
 		permawebProvider.refreshProfile();
 
-		if (props.handleUpdate) props.handleUpdate();
-		if (props.handleClose) props.handleClose();
+		if (props.onUpdate) props.onUpdate();
+		if (props.onClose) props.onClose();
 
 		addNotification(response, 'success');
 	}
@@ -73,13 +74,15 @@ export default function ProfileManager(props: IProps) {
 				if (banner) data.banner = banner;
 
 				if (props.profile && props.profile.id) {
-					const profileUpdateId = await permawebProvider.libs.updateProfile(data, props.profile.id, (status: any) =>
-						console.log(status)
+					const profileUpdateId = await permawebProvider.legacyApi.updateProfile(
+						data,
+						props.profile.id,
+						(status: any) => console.log(status)
 					);
 					console.log(`Profile update: ${profileUpdateId}`);
 					handleUpdate(`${language.profileUpdated}!`);
 				} else {
-					const profileId = await permawebProvider.libs.createProfile(data, (status: any) => console.log(status));
+					const profileId = await permawebProvider.legacyApi.createProfile(data, (status: any) => console.log(status));
 
 					console.log(`Profile ID: ${profileId}`);
 
@@ -166,7 +169,7 @@ export default function ProfileManager(props: IProps) {
 									>
 										{getBannerWrapper()}
 									</S.BInput>
-									<input
+									<PrimitiveInput
 										ref={bannerInputRef}
 										type={'file'}
 										onChange={(e: any) => handleFileChange(e, 'banner')}
@@ -180,7 +183,7 @@ export default function ProfileManager(props: IProps) {
 									>
 										{getAvatarWrapper()}
 									</S.AInput>
-									<input
+									<PrimitiveInput
 										ref={avatarInputRef}
 										type={'file'}
 										onChange={(e: any) => handleFileChange(e, 'thumbnail')}
@@ -192,13 +195,13 @@ export default function ProfileManager(props: IProps) {
 									<Button
 										type={'primary'}
 										label={language.removeAvatar}
-										handlePress={() => setThumbnail(null)}
+										onPress={() => setThumbnail(null)}
 										disabled={loading || !thumbnail}
 									/>
 									<Button
 										type={'primary'}
 										label={language.removeBanner}
-										handlePress={() => setBanner(null)}
+										onPress={() => setBanner(null)}
 										disabled={loading || !banner}
 									/>
 								</S.PActions>
@@ -233,11 +236,11 @@ export default function ProfileManager(props: IProps) {
 								/>
 							</S.Form>
 							<S.SAction>
-								{props.handleClose && (
+								{props.onClose && (
 									<Button
 										type={'primary'}
 										label={language.close}
-										handlePress={() => props.handleClose()}
+										onPress={() => props.onClose()}
 										disabled={loading}
 										loading={false}
 									/>
@@ -245,7 +248,7 @@ export default function ProfileManager(props: IProps) {
 								<Button
 									type={'alt1'}
 									label={language.save}
-									handlePress={handleSubmit}
+									onPress={handleSubmit}
 									disabled={!username || !name || loading}
 									loading={false}
 								/>

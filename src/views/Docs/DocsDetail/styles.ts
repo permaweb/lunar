@@ -1,14 +1,15 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div`
 	height: 100%;
 	width: 100%;
-	padding: 0 25px;
+	padding: 0 ${CSS_DIMENSIONS.px25};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
-		padding: 0 15px;
+		padding: 0 ${CSS_DIMENSIONS.px15};
 	}
 `;
 
@@ -24,15 +25,15 @@ export const BodyWrapper = styled.div`
 export const ContentWrapper = styled.div`
 	width: calc(100% - ${STYLING.dimensions.nav.width});
 	flex: 1;
-	padding: 25px 0 25px 45px;
+	padding: ${CSS_DIMENSIONS.px25} 0 ${CSS_DIMENSIONS.px25} ${CSS_DIMENSIONS.px45};
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: ${CSS_DIMENSIONS.px25};
 	position: relative;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
 		left: 0;
-		padding: calc(${STYLING.dimensions.nav.height} + 20px) 0;
+		padding: calc(${STYLING.dimensions.nav.height} + ${CSS_DIMENSIONS.px20}) 0;
 	}
 `;

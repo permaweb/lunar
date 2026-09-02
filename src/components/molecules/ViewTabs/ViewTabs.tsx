@@ -4,7 +4,7 @@ import { ReactSVG } from 'react-svg';
 import { ViewWrapper } from 'app/styles';
 import { Button } from 'components/atoms/Button';
 import { Modal } from 'components/atoms/Modal';
-import { ViewHeader } from 'components/atoms/ViewHeader';
+import { ViewTitle } from 'components/molecules/ViewTitle';
 import { ASSETS } from 'helpers/config';
 import { BaseTabType } from 'helpers/types';
 
@@ -394,7 +394,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 										<Button
 											type={'primary'}
 											icon={ASSETS.close}
-											handlePress={() => {
+											onPress={() => {
 												handleDeleteTab(index);
 											}}
 											height={10}
@@ -459,20 +459,20 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 		<>
 			<S.Wrapper>
 				<S.HeaderWrapper>
-					<ViewHeader
+					<ViewTitle
 						header={props.header}
 						actions={[
 							<Button
 								type={'primary'}
 								label={props.languageLabels.newTab}
-								handlePress={() => handleAddTab()}
+								onPress={() => handleAddTab()}
 								icon={ASSETS.add}
 								iconLeftAlign
 							/>,
 							<Button
 								type={'primary'}
 								label={props.languageLabels.clearTabs}
-								handlePress={() => setShowClearConfirmation(true)}
+								onPress={() => setShowClearConfirmation(true)}
 								icon={ASSETS.delete}
 								iconLeftAlign
 							/>,
@@ -508,7 +508,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 				</ViewWrapper>
 			</S.Wrapper>
 			{showClearConfirmation && (
-				<Modal header={props.languageLabels.clearTabs} handleClose={() => setShowClearConfirmation(false)}>
+				<Modal header={props.languageLabels.clearTabs} onClose={() => setShowClearConfirmation(false)}>
 					<S.ModalWrapper>
 						<S.ModalBodyWrapper>
 							<p>{props.languageLabels.tabsDeleteConfirmationInfo}</p>
@@ -517,12 +517,12 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 							<Button
 								type={'primary'}
 								label={props.languageLabels.cancel}
-								handlePress={() => setShowClearConfirmation(false)}
+								onPress={() => setShowClearConfirmation(false)}
 							/>
 							<Button
 								type={'primary'}
 								label={props.languageLabels.clearTabs}
-								handlePress={() => handleClearTabs()}
+								onPress={() => handleClearTabs()}
 								icon={ASSETS.delete}
 								iconLeftAlign
 								warning

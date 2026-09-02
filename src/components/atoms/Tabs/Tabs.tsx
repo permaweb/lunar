@@ -15,14 +15,14 @@ class Tab extends React.Component<any, any> {
 		type: PropTypes.string.isRequired,
 	};
 
-	handlePress = () => {
+	onPress = () => {
 		const { label, onClick } = this.props as any;
 		onClick(label);
 	};
 
 	render() {
 		const {
-			handlePress,
+			onPress,
 			props: { activeTab, label, icon, type },
 		} = this;
 
@@ -35,7 +35,7 @@ class Tab extends React.Component<any, any> {
 								type={'primary'}
 								label={label}
 								active={activeTab === label}
-								handlePress={handlePress}
+								onPress={onPress}
 								icon={icon}
 								iconLeftAlign
 								noFocus
@@ -45,7 +45,7 @@ class Tab extends React.Component<any, any> {
 				case 'alt1':
 					return (
 						<S.AltTab>
-							<S.AltTabAction active={activeTab === label} onClick={handlePress} icon={icon !== null} tabIndex={-1}>
+							<S.AltTabAction active={activeTab === label} onClick={onPress} icon={icon !== null} tabIndex={-1}>
 								{icon && (
 									<S.Icon active={activeTab === label}>
 										<ReactSVG src={icon} />

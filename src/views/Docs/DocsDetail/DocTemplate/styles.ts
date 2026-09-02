@@ -1,28 +1,30 @@
 import styled from 'styled-components';
 
+import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Container = styled.div`
 	width: 100%;
 	display: flex;
 	justify-content: space-between;
-	gap: 40px;
+	gap: ${CSS_DIMENSIONS.px40};
 	position: relative;
 `;
 
 export const TableOfContents = styled.aside`
 	height: fit-content;
-	width: 240px;
+	width: ${CSS_DIMENSIONS.px240};
 	position: sticky;
-	top: 100px;
+	top: ${CSS_DIMENSIONS.px100};
 	align-self: flex-start;
-	max-height: calc(100vh - 120px);
+	max-height: calc(100vh - ${CSS_DIMENSIONS.px120});
 	overflow-y: auto;
 	order: 2;
-	padding: 0 0 0 15px;
+	padding: 0 0 0 ${CSS_DIMENSIONS.px15};
 	overflow-y: auto;
 
-	@media (max-width: 1024px) {
+	@media (max-width: ${CSS_DIMENSIONS.px1024}) {
 		display: none;
 	}
 `;
@@ -32,7 +34,7 @@ export const TOCTitle = styled.h4`
 	font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 	font-family: ${(props) => props.theme.typography.family.primary} !important;
 	color: ${(props) => props.theme.colors.font.alt1} !important;
-	margin: 0 0 15px 0 !important;
+	margin: 0 0 ${CSS_DIMENSIONS.px15} 0 !important;
 	color: ${(props) => props.theme.colors.font.primary} !important;
 `;
 
@@ -40,10 +42,10 @@ export const TOCList = styled.ul`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: ${CSS_DIMENSIONS.px10};
 	margin: 0 !important;
-	padding: 0 0 0 15px !important;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	padding: 0 0 0 ${CSS_DIMENSIONS.px15} !important;
+	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const TOCItem = styled.li<{ $active?: boolean }>`
@@ -84,7 +86,7 @@ export const CodeBlock = styled.div`
 		padding: 0 !important;
 		margin: 0 !important;
 		background: ${(props) => props.theme.colors.transparent} !important;
-		border: 1px solid ${(props) => props.theme.colors.transparent} !important;
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.transparent} !important;
 		color: ${(props) => props.theme.colors.font.primary.alt1} !important;
 		font-weight: ${(props) => props.theme.typography.weight.regular} !important;
 		font-size: ${(props) => props.theme.typography.size.small} !important;
@@ -97,19 +99,19 @@ export const CodeBlock = styled.div`
 	}
 
 	button {
-		margin: 1.5px 0 0 10px !important;
+		margin: ${CSS_DIMENSIONS.px1_5} 0 0 ${CSS_DIMENSIONS.px10} !important;
 	}
 `;
 
-export const CopyIcon = styled.button<{
+export const CopyIcon = styled(PrimitiveButton)<{
 	dimensions: { wrapper: number; icon: number } | undefined;
 }>`
-	height: ${(props) => (props.dimensions ? `${props.dimensions.wrapper.toString()}px` : `32.5px`)};
-	min-width: ${(props) => (props.dimensions ? `${props.dimensions.wrapper.toString()}px` : `32.5px`)};
+	height: ${(props) => (props.dimensions ? `${props.dimensions.wrapper.toString()}px` : `${CSS_DIMENSIONS.px32_5}`)};
+	min-width: ${(props) => (props.dimensions ? `${props.dimensions.wrapper.toString()}px` : `${CSS_DIMENSIONS.px32_5}`)};
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	padding: 2.5px 0 0 0;
+	padding: ${CSS_DIMENSIONS.px2_5} 0 0 0;
 	background: ${(props) => props.theme.colors.button.alt1.background};
 	border-radius: ${STYLING.dimensions.radius.primary};
 	position: relative;
@@ -130,8 +132,8 @@ export const CopyIcon = styled.button<{
 	}
 
 	svg {
-		height: ${(props) => (props.dimensions ? `${props.dimensions.icon.toString()}px` : `17.5px`)};
-		width: ${(props) => (props.dimensions ? `${props.dimensions.icon.toString()}px` : `17.5px`)};
+		height: ${(props) => (props.dimensions ? `${props.dimensions.icon.toString()}px` : `${CSS_DIMENSIONS.px17_5}`)};
+		width: ${(props) => (props.dimensions ? `${props.dimensions.icon.toString()}px` : `${CSS_DIMENSIONS.px17_5}`)};
 		fill: ${(props) => props.theme.colors.button.alt1.label};
 		position: absolute;
 		top: 50%;

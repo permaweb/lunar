@@ -1,11 +1,9 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { Types } from '@permaweb/libs';
-
 import { ViewTabs } from 'components/molecules/ViewTabs';
 import { ASSETS, URLS } from 'helpers/config';
-import { BaseTabType, TransactionTabType } from 'helpers/types';
+import { BaseTabType, GQLNodeResponseType, TransactionTabType } from 'helpers/types';
 import {
 	checkValidAddress,
 	formatAddress,
@@ -34,7 +32,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const navigate = useNavigate();
 
 	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
-	const callbacksRef = React.useRef<Map<string, (newTx: Types.GQLNodeResponseType) => void>>(new Map());
+	const callbacksRef = React.useRef<Map<string, (newTx: GQLNodeResponseType) => void>>(new Map());
 	const loadingCallbacksRef = React.useRef<Map<string, (loading: boolean) => void>>(new Map());
 	const isDeletingRef = React.useRef<boolean>(false);
 	const tabsContainerRef = React.useRef<HTMLDivElement>(null);
@@ -303,7 +301,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	}
 
 	const handleTxChangeByKey = React.useCallback(
-		(tabKey: string, newTx: Types.GQLNodeResponseType) => {
+		(tabKey: string, newTx: GQLNodeResponseType) => {
 			const tabIndex = tabIndexMapRef.current.get(tabKey);
 			if (tabIndex === undefined) return;
 
@@ -495,7 +493,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		tabIndexMapRef.current.set(tab.tabKey, index);
 
 		if (!callbacksRef.current.has(tab.tabKey)) {
-			callbacksRef.current.set(tab.tabKey, (newTx: Types.GQLNodeResponseType) => {
+			callbacksRef.current.set(tab.tabKey, (newTx: GQLNodeResponseType) => {
 				handleTxChangeByKey(tab.tabKey, newTx);
 			});
 		}
@@ -515,7 +513,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				type={tab.type as any}
 				active={isActive}
 				onTxChange={onTxChange}
-				handleMessageOpen={handleAddTab}
+				onMessageOpen={handleAddTab}
 				tabKey={tab.tabKey}
 				onLoadingChange={onLoadingChange}
 			/>

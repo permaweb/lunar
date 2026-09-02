@@ -1,3 +1,5 @@
+import { requestRemote } from 'api/http';
+
 import { debugLog } from './utils';
 
 const ARNS_ID_KEY = 'lunar-arns-id';
@@ -60,7 +62,7 @@ export class ServiceWorkerManager {
 
 		try {
 			// Fetch the current ArNS ID from the response headers
-			const response = await fetch(`https://${window.location.host}`, {
+			const response = await requestRemote(`https://${window.location.host}`, {
 				method: 'HEAD',
 				cache: 'no-store',
 			});

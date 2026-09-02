@@ -1,3 +1,4 @@
+import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -117,7 +118,7 @@ export default function Button(props: IProps) {
 	function handlePress(e: React.MouseEvent) {
 		if (props.stopPropagation) e.stopPropagation();
 		if (props.preventDefault) e.preventDefault();
-		props.handlePress(e);
+		props.onPress(e);
 	}
 
 	function getAction() {

@@ -13,6 +13,7 @@ import { Modal } from 'components/atoms/Modal';
 import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
 import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -65,9 +66,9 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 
 		const handleScroll = () => {
 			if (window.scrollY > 0) {
-				header.style.borderBottom = `1px solid ${theme.colors.border.primary}`;
+				header.style.borderBottom = `${CSS_DIMENSIONS.px1} solid ${theme.colors.border.primary}`;
 			} else {
-				header.style.borderBottom = '1px solid transparent';
+				header.style.borderBottom = `${CSS_DIMENSIONS.px1} solid transparent`;
 			}
 		};
 
@@ -192,8 +193,8 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 					else {
 						const response = await searchTxById({
 							txId: inputTxId,
-							getGQLData: permawebProvider.libs.getGQLData,
-							readProcess: permawebProvider.libs.readProcess,
+							getGQLData: permawebProvider.legacyApi.getGQLData,
+							readProcess: permawebProvider.legacyApi.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});
@@ -210,7 +211,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				setTxOutputOpen(false);
 			}
 		})();
-	}, [inputTxId, language.block, permawebProvider.libs?.getGQLData, dispatch]);
+	}, [inputTxId, language.block, permawebProvider.legacyApi?.getGQLData, dispatch]);
 
 	const searchOutput = React.useMemo(() => {
 		if (loadingTx) {
@@ -355,7 +356,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							<Button
 								type={'alt1'}
 								icon={ASSETS.search}
-								handlePress={() => {
+								onPress={() => {
 									setPanelOpen(false);
 									setSearchOpen(true);
 								}}
@@ -372,7 +373,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							<Button
 								type={'alt1'}
 								icon={ASSETS.menu}
-								handlePress={() => {
+								onPress={() => {
 									setSearchOpen(false);
 									setPanelOpen(true);
 								}}
@@ -389,12 +390,12 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				</S.Content>
 			</S.Header>
 			{searchOpen && (
-				<Modal type={'panel'} width={500} header={language.search} handleClose={() => setSearchOpen(false)}>
+				<Modal type={'panel'} width={500} header={language.search} onClose={() => setSearchOpen(false)}>
 					<S.MSearchPanelContent>{getSearch(true)}</S.MSearchPanelContent>
 				</Modal>
 			)}
 			{panelOpen && (
-				<Modal type={'panel'} width={400} header={language.goTo} handleClose={() => setPanelOpen(false)}>
+				<Modal type={'panel'} width={400} header={language.goTo} onClose={() => setPanelOpen(false)}>
 					<S.MNavWrapper>
 						{paths.map((element: { path: string; label: string; target?: '_blank' }, index: number) => {
 							return (

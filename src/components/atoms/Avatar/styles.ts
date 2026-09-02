@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import { CSS_DIMENSIONS } from 'helpers/themes';
+
 export const Wrapper = styled.div<{
 	dimensions: { wrapper: number; icon: number };
 	hasCallback: boolean;
@@ -12,7 +14,7 @@ export const Wrapper = styled.div<{
 	width: ${(props) => `${props.dimensions.wrapper.toString()}px`};
 	background: ${(props) =>
 		props.hasOwner ? props.theme.colors.container.alt1.background : props.theme.colors.container.alt1.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 	border-radius: 50%;
 	overflow: hidden;
 	display: flex;
@@ -29,7 +31,7 @@ export const Wrapper = styled.div<{
 		min-width: ${(props) => `${props.dimensions.icon.toString()}px`};
 		height: ${(props) => `${props.dimensions.icon.toString()}px`};
 		width: ${(props) => `${props.dimensions.icon.toString()}px`};
-		padding: 3.5px 0 0 0px;
+		padding: ${CSS_DIMENSIONS.px3_5} 0 0 ${CSS_DIMENSIONS.px0};
 		color: ${(props) => props.theme.colors.font.primary};
 		color: ${(props) => (props.hasOwner ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};
 		fill: ${(props) => (props.hasOwner ? props.theme.colors.font.primary : props.theme.colors.font.alt2)};

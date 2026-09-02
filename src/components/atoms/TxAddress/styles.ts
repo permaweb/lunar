@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import { CSS_DIMENSIONS } from 'helpers/themes';
+
 export const Tooltip = styled.div<{ position: string }>`
 	position: absolute;
 	z-index: 2;
@@ -31,7 +33,7 @@ export const Tooltip = styled.div<{ position: string }>`
           left: 100%;
           top: 50%;
           transform: translateY(-50%);
-		  margin-left: 5px;
+		  margin-left: ${CSS_DIMENSIONS.px5};
         `;
 			case 'top-left':
 				return `
@@ -84,7 +86,7 @@ export const IconWrapper = styled.div`
 export const Wrapper = styled.div<{ disabled: boolean }>`
 	display: flex;
 	align-items: center;
-	gap: 6.5px;
+	gap: ${CSS_DIMENSIONS.px6_5};
 	pointer-events: all !important;
 	p {
 		color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
@@ -96,9 +98,9 @@ export const Wrapper = styled.div<{ disabled: boolean }>`
 	}
 
 	svg {
-		height: 12.5px;
-		width: 12.5px;
-		margin: 7.5px 0 0 0;
+		height: ${CSS_DIMENSIONS.px12_5};
+		width: ${CSS_DIMENSIONS.px12_5};
+		margin: ${CSS_DIMENSIONS.px7_5} 0 0 0;
 		color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
 		fill: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
 	}
@@ -108,7 +110,7 @@ export const Wrapper = styled.div<{ disabled: boolean }>`
 		p {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
 			text-decoration: ${(props) => (props.disabled ? 'none' : 'underline')};
-			text-decoration-thickness: 1.25px;
+			text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
 		}
 		svg {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;

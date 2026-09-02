@@ -1,19 +1,21 @@
 import styled from 'styled-components';
 
+import { CSS_DIMENSIONS } from 'helpers/themes';
+
 export const Wrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
-	padding: 15px;
+	gap: ${CSS_DIMENSIONS.px25};
+	padding: ${CSS_DIMENSIONS.px15};
 	position: relative;
 	background: ${(props) => props.theme.colors.container.alt1.background} !important;
 `;
 
 export const ActionWrapper = styled.div`
 	position: absolute;
-	top: 15px;
-	right: 15px;
+	top: ${CSS_DIMENSIONS.px15};
+	right: ${CSS_DIMENSIONS.px15};
 `;
 
 export const MetricsSection = styled.div`
@@ -22,7 +24,7 @@ export const MetricsSection = styled.div`
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 5.35px;
+	gap: ${CSS_DIMENSIONS.px5_35};
 
 	p {
 		width: 100%;
@@ -46,20 +48,20 @@ export const MetricsSection = styled.div`
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
-		margin: 7.5px 0 0 0;
+		margin: ${CSS_DIMENSIONS.px7_5} 0 0 0;
 	}
 `;
 
 export const MetricLineFlex = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 7.5px;
+	gap: ${CSS_DIMENSIONS.px7_5};
 `;
 
 export const Indicator = styled.div<{ isOnline: boolean }>`
-	height: 11.5px;
-	width: 11.5px;
-	margin: -0.15px 0 0 0;
+	height: ${CSS_DIMENSIONS.px11_5};
+	width: ${CSS_DIMENSIONS.px11_5};
+	margin: -${CSS_DIMENSIONS.px0_15} 0 0 0;
 	border-radius: 50%;
 	background: ${(props) => (props.isOnline ? props.theme.colors.indicator.active : props.theme.colors.warning.primary)};
 `;

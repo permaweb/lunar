@@ -47,14 +47,14 @@ export default function Select(props: IProps) {
 									}}
 								>
 									<S.OptionLabel>{option.label}</S.OptionLabel>
-									{props.handleRemoveOption && (props.isOptionRemovable ? props.isOptionRemovable(option) : true) && (
+									{props.onRemoveOption && (props.isOptionRemovable ? props.isOptionRemovable(option) : true) && (
 										<S.RemoveOption
 											type={'button'}
 											aria-label={props.removeOptionLabel ?? 'Remove'}
 											onClick={(e) => {
 												e.preventDefault();
 												e.stopPropagation();
-												props.handleRemoveOption(option);
+												props.onRemoveOption(option);
 											}}
 										>
 											<ReactSVG src={ASSETS.close} />

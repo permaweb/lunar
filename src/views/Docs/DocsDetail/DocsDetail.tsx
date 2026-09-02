@@ -1,5 +1,6 @@
-import { DocsNavigation } from './DocsNavigation';
-import { DocsNavigationFooter } from './DocsNavigationFooter';
+import { DocsNavigation } from 'navigation/DocsNavigation';
+import { DocsNavigationFooter } from 'navigation/DocsNavigationFooter';
+
 import { DocTemplate } from './DocTemplate';
 import * as S from './styles';
 

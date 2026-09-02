@@ -11,7 +11,7 @@ export interface ExplorerLinkProps {
 	viewIcon?: string;
 	showIcon?: boolean;
 	tooltipPosition?: string;
-	handlePress?: () => void;
+	onPress?: () => void;
 }
 
 export interface IProps {
@@ -21,5 +21,5 @@ export interface IProps {
 	view?: boolean;
 	viewIcon?: string;
 	tooltipPosition?: string;
-	handlePress?: () => void;
+	onPress?: () => void;
 }

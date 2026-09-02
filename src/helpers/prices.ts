@@ -1,3 +1,5 @@
+import { requestRemote } from 'api/http';
+
 type PriceSymbol = 'AO' | 'AR';
 
 type PriceSourceShape =
@@ -174,7 +176,7 @@ function parsePrice(source: PriceSource, data: any): number | null {
 
 async function fetchPriceFromSource(symbol: PriceSymbol, source: PriceSource): Promise<number | null> {
 	try {
-		const response = await fetch(getPriceUrl(source));
+		const response = await requestRemote(getPriceUrl(source));
 
 		if (!response.ok) {
 			console.error(`error fetching ${symbol} price from ${source.shape}: HTTP ${response.status}`);

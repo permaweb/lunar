@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Button } from 'components/atoms/Button';
 import { ASSETS } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { parseCSV } from './parse';
@@ -100,12 +101,12 @@ export default function CSVViewer(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.fullscreen}
-						handlePress={toggleFullscreen}
+						onPress={toggleFullscreen}
 						height={25}
 						width={25}
 						noMinWidth
 						iconSize={12.5}
-						padding={'3.95px 0 0 0'}
+						padding={`${CSS_DIMENSIONS.px3_95} 0 0 0`}
 						tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 						tooltipPosition={'bottom-right'}
 						stopPropagation
@@ -114,13 +115,13 @@ export default function CSVViewer(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.save}
-						handlePress={downloadCSV}
+						onPress={downloadCSV}
 						disabled={!props.csv}
 						height={25}
 						width={25}
 						noMinWidth
 						iconSize={12.5}
-						padding={'3.5px 0 0 0'}
+						padding={`${CSS_DIMENSIONS.px3_5} 0 0 0`}
 						tooltip={'Download CSV'}
 						tooltipPosition={'bottom-right'}
 						stopPropagation
@@ -129,7 +130,7 @@ export default function CSVViewer(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.copy}
-						handlePress={copyCSV}
+						onPress={copyCSV}
 						disabled={!props.csv}
 						height={25}
 						width={25}
@@ -169,7 +170,7 @@ export default function CSVViewer(props: {
 								<Button
 									type={'alt4'}
 									label={`Load ${Math.min(ROW_LIMIT_INCREMENT, remainingRows)} more rows (${remainingRows} remaining)`}
-									handlePress={() => setVisibleRowCount((current) => current + ROW_LIMIT_INCREMENT)}
+									onPress={() => setVisibleRowCount((current) => current + ROW_LIMIT_INCREMENT)}
 								/>
 							</S.LoadMoreWrapper>
 						)}

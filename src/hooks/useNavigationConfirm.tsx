@@ -5,7 +5,7 @@ export function useNavigationConfirm(url?: string, message?: string) {
 	const navigate = useNavigate();
 
 	React.useEffect(() => {
-		if (process.env.NODE_ENV === 'development' || !url) return;
+		if (import.meta.env.DEV || !url) return;
 
 		const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 			e.preventDefault();
@@ -26,7 +26,7 @@ export function useNavigationConfirm(url?: string, message?: string) {
 	}, [url]);
 
 	const confirmNavigation = (to: string) => {
-		if (process.env.NODE_ENV === 'development' || !url) {
+		if (import.meta.env.DEV || !url) {
 			navigate(to);
 			return;
 		}

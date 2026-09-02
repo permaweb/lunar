@@ -1,11 +1,13 @@
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
+import { requestRemote } from 'api/http';
+
 import { serviceWorkerManager } from 'helpers/serviceWorkerManager';
 import { pruneTransactionCache } from 'store/transactions/reducer';
-const views = (import.meta as any).glob('../views/**/index.tsx');
+const views = import.meta.glob('../views/**/index.ts');
 
 const Landing = getLazyImport('Landing');
 const Blocks = getLazyImport('Blocks');
@@ -16,6 +18,7 @@ const Docs = getLazyImport('Docs');
 const NotFound = getLazyImport('NotFound');
 
 import { Loader } from 'components/atoms/Loader';
+import { ProfileManagerOverlay } from 'components/organisms/ProfileManagerOverlay';
 import { ASSETS, DOM, LINKS, URLS } from 'helpers/config';
 import { stripUrlProtocol } from 'helpers/utils';
 import { Navigation } from 'navigation/Navigation';
@@ -25,15 +28,19 @@ import { useSettingsProvider } from 'providers/SettingsProvider';
 import * as S from './styles';
 
 function getLazyImport(view: string) {
-	const key = `../views/${view}/index.tsx`;
-	const loader = views[key];
+	const key = `../views/${view}/index.ts`;
+	const loader = views[key] as (() => Promise<Record<string, React.ComponentType>>) | undefined;
 	if (!loader) {
 		throw new Error(`View not found: ${view}`);
 	}
 
-	return lazy(async () => {
+	return React.lazy(async () => {
 		const module = await loader();
-		return { default: module.default };
+		const component = module[view];
+		if (!component) {
+			throw new Error(`View export not found: ${view}`);
+		}
+		return { default: component };
 	});
 }
 
@@ -148,7 +155,9 @@ export default function App() {
 
 			try {
 				const nodeUrl = activeNode.url.replace(/\/$/, '');
-				const response = await fetch(`${nodeUrl}/~hyperbuddy@1.0/metrics`, { signal: controller.signal });
+				const response = await requestRemote(`${nodeUrl}/~hyperbuddy@1.0/metrics`, {
+					signal: controller.signal,
+				});
 
 				if (!cancelled) {
 					setIsNodeOnline(response.ok);
@@ -245,7 +254,8 @@ export default function App() {
 			<div id={DOM.loader} />
 			<div id={DOM.notification} />
 			<div id={DOM.overlay} />
-			<Suspense fallback={<Loader />}>
+			<ProfileManagerOverlay />
+			<React.Suspense fallback={<Loader />}>
 				<S.App>
 					<Routes>
 						{getRoute(URLS.base, <Landing />)}
@@ -278,7 +288,7 @@ export default function App() {
 						</S.NodeStatusButton>
 					)}
 				</S.App>
-			</Suspense>
+			</React.Suspense>
 		</>
 	);
 }

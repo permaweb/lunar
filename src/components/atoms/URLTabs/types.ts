@@ -1,3 +1,5 @@
+import React from 'react';
+
 type URLViewType = {
 	label: string;
 	disabled: boolean;
@@ -11,7 +13,7 @@ export interface ITProps {
 	icon: string | null;
 	disabled: boolean;
 	active: boolean;
-	handlePress: (url: string) => void;
+	onPress: (url: string) => void;
 	url: string;
 }
 

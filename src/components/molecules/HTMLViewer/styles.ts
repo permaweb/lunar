@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import { CSS_COLORS, CSS_DIMENSIONS } from 'helpers/themes';
+
 export const Container = styled.div<{ $fixedHeight?: number; $fullScreenMode?: boolean }>`
 	height: ${(props) => (props.$fullScreenMode ? '100vh' : `${props.$fixedHeight ?? 600}px`)};
 	width: ${(props) => (props.$fullScreenMode ? '100vw' : '100%')};
@@ -14,8 +16,8 @@ export const Header = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: 15px;
-	padding: 15px 15px 12.5px 15px;
+	gap: ${CSS_DIMENSIONS.px15};
+	padding: ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15};
 
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
@@ -30,5 +32,5 @@ export const Frame = styled.iframe`
 	width: 100%;
 	flex: 1;
 	border: 0;
-	background: #ffffff;
+	background: ${CSS_COLORS.htmlCanvas};
 `;

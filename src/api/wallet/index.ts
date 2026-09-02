@@ -38,6 +38,14 @@ export function resolveBrowserWallet(scope: BrowserWalletScope, walletId: Browse
 	return rememberedWanderWallet;
 }
 
+export function hasBrowserWallet(scope: BrowserWalletScope): boolean {
+	return isBrowserWallet(scope.arweaveWallet);
+}
+
+export function setBrowserWallet(scope: BrowserWalletScope, wallet: BrowserWallet): void {
+	scope.arweaveWallet = wallet;
+}
+
 export async function connectBrowserWallet(
 	scope: BrowserWalletScope,
 	walletId: BrowserWalletId,

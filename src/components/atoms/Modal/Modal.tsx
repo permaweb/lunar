@@ -15,8 +15,8 @@ export default function Modal(props: IProps) {
 
 	const escFunction = React.useCallback(
 		(e: any) => {
-			if (e.key === 'Escape' && props.handleClose && !props.closeHandlerDisabled) {
-				props.handleClose();
+			if (e.key === 'Escape' && props.onClose && !props.closeHandlerDisabled) {
+				props.onClose();
 			}
 		},
 		[props]
@@ -70,12 +70,12 @@ export default function Modal(props: IProps) {
 					<S.LT>
 						<S.Title>{props.header}</S.Title>
 					</S.LT>
-					{props.handleClose && (
+					{props.onClose && (
 						<S.Close>
 							<Button
 								type={'alt1'}
 								icon={ASSETS.close}
-								handlePress={() => props.handleClose()}
+								onPress={() => props.onClose()}
 								active={false}
 								height={30}
 								width={30}
@@ -97,7 +97,7 @@ export default function Modal(props: IProps) {
 	const containerContent =
 		modalType === 'panel' && !props.closeHandlerDisabled ? (
 			<Container $noHeader={!props.header} width={props.width} className={'border-wrapper-primary'}>
-				<CloseHandler active={true} disabled={false} callback={() => props.handleClose && props.handleClose()}>
+				<CloseHandler active={true} disabled={false} callback={() => props.onClose && props.onClose()}>
 					{content}
 				</CloseHandler>
 			</Container>

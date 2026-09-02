@@ -1,3 +1,5 @@
+declare const require: any;
+
 const readDirectory = (ctx: any) => {
 	const dir = {};
 	ctx.keys().forEach((key: any) => {

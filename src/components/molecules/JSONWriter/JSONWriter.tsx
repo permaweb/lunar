@@ -9,11 +9,7 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
 
-export default function JSONWriter(props: {
-	initialData: object;
-	handleSubmit: (data: object) => void;
-	loading: boolean;
-}) {
+export default function JSONWriter(props: { initialData: object; onSubmit: (data: object) => void; loading: boolean }) {
 	const currentTheme: any = useTheme();
 
 	const languageProvider = useLanguageProvider();
@@ -40,7 +36,7 @@ export default function JSONWriter(props: {
 
 	// Add resize handler to ensure proper layout
 	React.useEffect(() => {
-		let resizeTimeout: NodeJS.Timeout;
+		let resizeTimeout: ReturnType<typeof setTimeout>;
 		const handleResize = () => {
 			// Clear any pending layout calls
 			clearTimeout(resizeTimeout);
@@ -77,8 +73,8 @@ export default function JSONWriter(props: {
 		// Use ResizeObserver on the parent container to handle layout changes
 		const parentContainer = editor.getContainerDomNode()?.parentElement?.parentElement;
 		if (parentContainer) {
-			let resizeTimeout: NodeJS.Timeout;
-			const resizeObserver = new ResizeObserver((entries) => {
+			let resizeTimeout: ReturnType<typeof setTimeout>;
+			const resizeObserver = new ResizeObserver(() => {
 				// Clear any pending layout calls
 				clearTimeout(resizeTimeout);
 				// Schedule a layout update
@@ -95,7 +91,7 @@ export default function JSONWriter(props: {
 		editor.onKeyDown((e) => {
 			if ((e.metaKey || e.ctrlKey) && e.keyCode === monaco.KeyCode.Enter) {
 				const current = editor.getValue();
-				props.handleSubmit(JSON.parse(current));
+				props.onSubmit(JSON.parse(current));
 			}
 		});
 	};
@@ -115,7 +111,7 @@ export default function JSONWriter(props: {
 		try {
 			const parsed = JSON.parse(jsonString);
 			setError(null);
-			props.handleSubmit(parsed);
+			props.onSubmit(parsed);
 		} catch {
 			setError(language.invalidJSON);
 		}
@@ -164,7 +160,7 @@ export default function JSONWriter(props: {
 					<Button
 						type={'alt1'}
 						label={`${language.run} (${isMac ? `⌘` : `CTRL`} + Enter)`}
-						handlePress={submitHandler}
+						onPress={submitHandler}
 						disabled={props.loading || Boolean(error)}
 						loading={props.loading}
 					/>

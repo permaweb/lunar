@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { requestRemote } from 'api/http';
+
 import { Button } from 'components/atoms/Button';
 import { formatCount, stripUrlProtocol } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -44,7 +46,7 @@ export default function NodeConnection() {
 
 		async function init() {
 			try {
-				const response = await fetch(`${activeNode}/~hyperbuddy@1.0/metrics`);
+				const response = await requestRemote(`${activeNode}/~hyperbuddy@1.0/metrics`);
 
 				if (!response.ok) {
 					setIsOnline(false);
@@ -173,7 +175,7 @@ export default function NodeConnection() {
 				<Button
 					type={'alt4'}
 					label={language.changeConnection}
-					handlePress={() => settingsProvider.setShowNodeSettings(true)}
+					onPress={() => settingsProvider.setShowNodeSettings(true)}
 				/>
 			</S.ActionWrapper>
 			<S.MetricsSection>

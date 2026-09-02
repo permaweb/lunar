@@ -4,6 +4,7 @@ import JSONbig from 'json-bigint';
 
 import { Button } from 'components/atoms/Button';
 import { ASSETS, URLS } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 import { checkValidAddress, stripAnsiChars } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -519,7 +520,7 @@ export default function _JSONTree(props: {
 													INITIAL_RENDER_THRESHOLD,
 													value.length - (currentLimit ?? 0)
 												)} more items (${value.length - (currentLimit ?? 0)} remaining)`}
-												handlePress={() => {
+												onPress={() => {
 													setRenderLimits((prev) => {
 														const newLimits = new Map(prev);
 														newLimits.set(path, (currentLimit ?? 0) + INITIAL_RENDER_THRESHOLD);
@@ -671,7 +672,7 @@ export default function _JSONTree(props: {
 													INITIAL_RENDER_THRESHOLD,
 													entries.length - (currentLimit ?? 0)
 												)} more keys (${entries.length - (currentLimit ?? 0)} remaining)`}
-												handlePress={() => {
+												onPress={() => {
 													setRenderLimits((prev) => {
 														const newLimits = new Map(prev);
 														newLimits.set(path, (currentLimit ?? 0) + INITIAL_RENDER_THRESHOLD);
@@ -853,7 +854,7 @@ export default function _JSONTree(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.plusMinus}
-						handlePress={handleToggleCollapse}
+						onPress={handleToggleCollapse}
 						disabled={!data}
 						height={25}
 						width={25}
@@ -868,12 +869,12 @@ export default function _JSONTree(props: {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.fullscreen}
-							handlePress={toggleFullscreen}
+							onPress={toggleFullscreen}
 							height={25}
 							width={25}
 							noMinWidth
 							iconSize={12.5}
-							padding={'3.95px 0 0 0'}
+							padding={`${CSS_DIMENSIONS.px3_95} 0 0 0`}
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'bottom-right'}
 							stopPropagation
@@ -883,13 +884,13 @@ export default function _JSONTree(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.save}
-						handlePress={downloadData}
+						onPress={downloadData}
 						disabled={!data}
 						height={25}
 						width={25}
 						noMinWidth
 						iconSize={12.5}
-						padding={'3.5px 0 0 0'}
+						padding={`${CSS_DIMENSIONS.px3_5} 0 0 0`}
 						tooltip={language.downloadJSON ?? 'Download JSON'}
 						tooltipPosition={'bottom-right'}
 						stopPropagation
@@ -898,7 +899,7 @@ export default function _JSONTree(props: {
 					<Button
 						type={'alt1'}
 						icon={ASSETS.copy}
-						handlePress={copyData}
+						onPress={copyData}
 						disabled={!data}
 						height={25}
 						width={25}

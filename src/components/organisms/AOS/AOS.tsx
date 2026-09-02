@@ -2,8 +2,6 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'styled-components';
 
-import { Types } from '@permaweb/libs';
-
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Loader } from 'components/atoms/Loader';
@@ -11,8 +9,9 @@ import { Modal } from 'components/atoms/Modal';
 import { Editor } from 'components/molecules/Editor';
 import { ASSETS, DEFAULT_AO_NODE, TAGS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
-import { MessageVariantEnum } from 'helpers/types';
-import { checkValidAddress, formatAddress, getTagValue, resolveLibDeps, resolveLibs } from 'helpers/utils';
+import { CSS_COLORS } from 'helpers/themes';
+import { GQLNodeResponseType, MessageVariantEnum } from 'helpers/types';
+import { checkValidAddress, formatAddress, getTagValue, resolvePermawebApi } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -92,7 +91,7 @@ const Input = React.forwardRef<
 function AOS(props: {
 	processId: string;
 	active: boolean;
-	onTxChange?: (newTx: Types.GQLNodeResponseType) => void;
+	onTxChange?: (newTx: GQLNodeResponseType) => void;
 	tabKey?: string;
 }) {
 	const dispatch = useDispatch();
@@ -109,13 +108,13 @@ function AOS(props: {
 
 	const [inputProcessId, setInputProcessId] = React.useState<string>(props.processId ?? '');
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
-	const [txResponse, setTxResponse] = React.useState<Types.GQLNodeResponseType | null>(null);
+	const [txResponse, setTxResponse] = React.useState<GQLNodeResponseType | null>(null);
 	const [_error, setError] = React.useState<string | null>(null);
 	const [fullScreenMode, setFullScreenMode] = React.useState<boolean>(false);
 	const [editorMode, setEditorMode] = React.useState<boolean>(true);
 	const [editorData, setEditorData] = React.useState<string>('');
 	const [loading, setLoading] = React.useState<boolean>(false);
-	const [txOptions, setTxOptions] = React.useState<Types.GQLNodeResponseType[] | null>(null);
+	const [txOptions, setTxOptions] = React.useState<GQLNodeResponseType[] | null>(null);
 	const [showCreatePanel, setShowCreatePanel] = React.useState<boolean>(false);
 	const [processName, setProcessName] = React.useState<string>('');
 	const [pageCursor, setPageCursor] = React.useState<string | null>(null);
@@ -149,7 +148,7 @@ function AOS(props: {
 				'34': theme.colors.editor.alt4, // blue
 				'35': theme.colors.editor.alt8, // magenta
 				'36': theme.colors.editor.alt7, // cyan
-				'37': '#EEEEEE', // white
+				'37': CSS_COLORS.terminalText, // white
 				'90': theme.colors.editor.alt10, // bright black (gray)
 				'91': theme.colors.warning.primary, // bright red
 				'92': theme.colors.editor.alt3, // bright green
@@ -157,7 +156,7 @@ function AOS(props: {
 				'94': theme.colors.editor.alt4, // bright blue
 				'95': theme.colors.editor.alt8, // bright magenta
 				'96': theme.colors.editor.alt7, // bright cyan
-				'97': '#EEEEEE', // bright white
+				'97': CSS_COLORS.terminalText, // bright white
 			};
 
 			let html = '';
@@ -238,8 +237,8 @@ function AOS(props: {
 						try {
 							const responseData = await searchTxById({
 								txId: inputProcessId,
-								getGQLData: permawebProvider.libs.getGQLData,
-								readProcess: permawebProvider.libs.readProcess,
+								getGQLData: permawebProvider.legacyApi.getGQLData,
+								readProcess: permawebProvider.legacyApi.readProcess,
 								store: store,
 								dispatch: dispatch,
 							});
@@ -260,7 +259,7 @@ function AOS(props: {
 					if (arProvider.walletAddress) {
 						setLoading(true);
 						try {
-							const gqlResponse = await permawebProvider.libs.getGQLData({
+							const gqlResponse = await permawebProvider.legacyApi.getGQLData({
 								owners: [arProvider.walletAddress],
 								tags: [{ name: TAGS.keys.type, values: [TAGS.values.process] }],
 								paginator: perPage,
@@ -317,7 +316,7 @@ function AOS(props: {
 				try {
 					const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
 
-					const deps = resolveLibDeps({
+					const deps = resolvePermawebApi({
 						variant: variant,
 						permawebProvider: permawebProvider,
 					});
@@ -462,7 +461,7 @@ function AOS(props: {
 			const name = processName.trim();
 
 			try {
-				const processId = await permawebProvider.libsMainnet.createProcess({
+				const processId = await permawebProvider.mainnetApi.createProcess({
 					tags: [{ name: 'Name', value: name }],
 				});
 
@@ -522,12 +521,12 @@ function AOS(props: {
 			try {
 				const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
 
-				const deps = resolveLibDeps({
+				const deps = resolvePermawebApi({
 					variant: variant,
 					permawebProvider: permawebProvider,
 				});
 
-				const libs = resolveLibs({
+				const libs = resolvePermawebApi({
 					variant: variant,
 					permawebProvider: permawebProvider,
 				});
@@ -627,7 +626,7 @@ function AOS(props: {
 								<Button
 									type={'alt1'}
 									label={loading ? `${language.creatingProcess}...` : language.createNewProcess}
-									handlePress={() => setShowCreatePanel(true)}
+									onPress={() => setShowCreatePanel(true)}
 									loading={loading}
 									disabled={loading}
 									height={42.5}
@@ -659,7 +658,7 @@ function AOS(props: {
 									{txOptions && (
 										<>
 											<S.Options>
-												{txOptions.map((tx: Types.GQLNodeResponseType, index: number) => {
+												{txOptions.map((tx: GQLNodeResponseType, index: number) => {
 													const name = getTagValue(tx.node.tags, 'Name');
 													return (
 														<Button
@@ -669,7 +668,7 @@ function AOS(props: {
 																tx.node.tags,
 																'Variant'
 															)})`}
-															handlePress={() => setInputProcessId(tx.node.id)}
+															onPress={() => setInputProcessId(tx.node.id)}
 															disabled={loading}
 															height={42.5}
 															fullWidth
@@ -681,13 +680,13 @@ function AOS(props: {
 												<Button
 													type={'alt3'}
 													label={language.previous}
-													handlePress={handlePrevious}
+													onPress={handlePrevious}
 													disabled={cursorHistory.length === 0 || loading}
 												/>
 												<Button
 													type={'alt3'}
 													label={language.next}
-													handlePress={handleNext}
+													onPress={handleNext}
 													disabled={!nextCursor || loading}
 												/>
 											</S.OptionsPaginator>
@@ -702,7 +701,7 @@ function AOS(props: {
 					<Modal
 						type="panel"
 						width={550}
-						handleClose={() => {
+						onClose={() => {
 							setShowCreatePanel(false);
 							setProcessName('');
 						}}
@@ -720,7 +719,7 @@ function AOS(props: {
 							<Button
 								type={'alt1'}
 								label={loading ? `${language.creatingProcess}...` : language.create}
-								handlePress={handleSpawnProcess}
+								onPress={handleSpawnProcess}
 								disabled={loading || !processName.trim()}
 								height={42.5}
 								fullWidth
@@ -753,7 +752,7 @@ function AOS(props: {
 							<Editor
 								initialData={'-- AOS Editor'}
 								setEditorData={(data: string) => setEditorData(data)}
-								handleSubmit={handleEditorSend}
+								onSubmit={handleEditorSend}
 								language={'lua'}
 								loading={loadingMessage}
 								noFullScreen
@@ -860,7 +859,7 @@ function AOS(props: {
 									<Button
 										type={'primary'}
 										icon={ASSETS.code}
-										handlePress={() => setEditorMode((prev) => !prev)}
+										onPress={() => setEditorMode((prev) => !prev)}
 										height={25}
 										width={25}
 										noMinWidth
@@ -874,7 +873,7 @@ function AOS(props: {
 									<Button
 										type={'primary'}
 										icon={ASSETS.fullscreen}
-										handlePress={toggleFullscreen}
+										onPress={toggleFullscreen}
 										height={25}
 										width={25}
 										noMinWidth
@@ -889,7 +888,7 @@ function AOS(props: {
 									<Button
 										type={'primary'}
 										icon={ASSETS.go}
-										handlePress={handleSubmit}
+										onPress={handleSubmit}
 										height={25}
 										width={25}
 										noMinWidth

@@ -1,6 +1,8 @@
 import React from 'react';
 import JSONbig from 'json-bigint';
 
+import { requestRemote } from 'api/http';
+
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
@@ -52,7 +54,7 @@ export default function ProcessRead(props: {
 			switch (props.variant) {
 				case MessageVariantEnum.Legacynet:
 					try {
-						const response = await fetch(getLegacyResultsEndpoint(props.processId, legacyComputeNode), {
+						const response = await requestRemote(getLegacyResultsEndpoint(props.processId, legacyComputeNode), {
 							method: 'GET',
 						});
 
@@ -107,7 +109,7 @@ export default function ProcessRead(props: {
 				switch (props.variant) {
 					case MessageVariantEnum.Legacynet:
 						node = cuLocation ?? legacyComputeNode;
-						response = await permawebProvider.libs.readProcess({
+						response = await permawebProvider.legacyApi.readProcess({
 							processId: props.processId,
 							action: 'Info',
 						});
@@ -115,7 +117,7 @@ export default function ProcessRead(props: {
 					case MessageVariantEnum.Mainnet:
 						const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
 						node = activeNode.url;
-						response = await permawebProvider.libsMainnet.readState({ processId: props.processId });
+						response = await permawebProvider.mainnetApi.readState({ processId: props.processId });
 						break;
 				}
 
@@ -190,7 +192,7 @@ export default function ProcessRead(props: {
 						type={'alt3'}
 						label={isFetching ? `${language.running}...` : language.run}
 						disabled={isFetching}
-						handlePress={() => setToggleRead((prev) => !prev)}
+						onPress={() => setToggleRead((prev) => !prev)}
 					/>
 				</S.Header>
 				<S.Body>

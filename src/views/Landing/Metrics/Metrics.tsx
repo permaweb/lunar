@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { requestRemote } from 'api/http';
+
 import { MetricChart } from 'components/molecules/MetricChart';
 import { getMetricsEndpoint, getMetricsFallbackEndpoint } from 'helpers/endpoints';
 import { MetricDataPoint, NetworkMetricsSnapshot } from 'helpers/types';
@@ -106,7 +108,7 @@ function writeMetricsCache(snapshot: NetworkMetricsSnapshot) {
 }
 
 async function fetchMetricsFromSource(source: (typeof METRICS_SOURCES)[number]) {
-	const response = await fetch(source.url, { headers: { Accept: 'application/json' } });
+	const response = await requestRemote(source.url, { headers: { Accept: 'application/json' } });
 
 	if (!response.ok) {
 		throw new Error(`${source.label} request failed with HTTP ${response.status}`);

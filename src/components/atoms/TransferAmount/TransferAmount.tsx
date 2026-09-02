@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 
 import { DEFAULT_ACTIONS, PROCESSES, TOKEN_DENOMINATIONS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 import { TagType } from 'helpers/types';
 import { formatUnits, getTagValue, hasPositiveAmount, removeCommitments } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
@@ -184,10 +185,10 @@ function safelyParseInfoResponse(response: any): any {
 }
 
 async function readTokenInfo(processId: string, permawebProvider: any) {
-	if (!permawebProvider.libs?.readProcess) return null;
+	if (!permawebProvider.legacyApi?.readProcess) return null;
 
 	try {
-		const response = await permawebProvider.libs.readProcess({
+		const response = await permawebProvider.legacyApi.readProcess({
 			processId: processId,
 			action: 'Info',
 		});
@@ -229,7 +230,7 @@ export default function TransferAmount(props: {
 		!!quantity &&
 		!!target &&
 		(!cachedTarget || (!cachedHasDenomination && !knownHasDenomination)) &&
-		!!permawebProvider.libs?.getGQLData;
+		!!permawebProvider.legacyApi?.getGQLData;
 
 	const fetchTarget = React.useCallback(async () => {
 		if (!target) return null;
@@ -241,13 +242,13 @@ export default function TransferAmount(props: {
 		const knownHasDenomination = hasDenomination(knownMetadata);
 
 		if (cached && (cachedHasDenomination || knownHasDenomination)) return cached;
-		if (!permawebProvider.libs?.getGQLData) return null;
+		if (!permawebProvider.legacyApi?.getGQLData) return null;
 
 		const shouldBypassCache = !!cached && !cachedHasDenomination && !knownHasDenomination;
 		const response = await searchTxById({
 			txId: target,
-			getGQLData: permawebProvider.libs.getGQLData,
-			readProcess: permawebProvider.libs.readProcess,
+			getGQLData: permawebProvider.legacyApi.getGQLData,
+			readProcess: permawebProvider.legacyApi.readProcess,
 			store: shouldBypassCache ? undefined : store,
 			dispatch: shouldBypassCache ? undefined : dispatch,
 		});
@@ -267,13 +268,13 @@ export default function TransferAmount(props: {
 		if (mergedResponse?.node) dispatch(addTransaction(target, mergedResponse));
 
 		return mergedResponse;
-	}, [dispatch, permawebProvider.libs, target]);
+	}, [dispatch, permawebProvider.legacyApi, target]);
 
 	const fetchedTarget = useVisibleData<any | null, HTMLSpanElement>({
 		cacheKey: shouldFetchMetadata ? target : null,
 		enabled: shouldFetchMetadata,
 		fetchData: fetchTarget,
-		rootMargin: '120px',
+		rootMargin: `${CSS_DIMENSIONS.px120}`,
 	});
 	const fetchedMetadata = React.useMemo(() => getTokenMetadataFromResponse(fetchedTarget.data), [fetchedTarget.data]);
 

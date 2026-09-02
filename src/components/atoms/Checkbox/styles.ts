@@ -1,15 +1,17 @@
 import styled from 'styled-components';
 
+import { CSS_DIMENSIONS } from 'helpers/themes';
+
 export const Wrapper = styled.div<{ disabled: boolean }>`
 	position: relative;
 	svg {
-		height: 9.5px;
-		width: 9.5px;
-		margin: 1.5px 0 0 0;
+		height: ${CSS_DIMENSIONS.px9_5};
+		width: ${CSS_DIMENSIONS.px9_5};
+		margin: ${CSS_DIMENSIONS.px1_5} 0 0 0;
 		position: absolute;
 		top: 0;
 		left: 50%;
-		transform: translate(-50%, 0px);
+		transform: translate(-50%, ${CSS_DIMENSIONS.px0});
 		pointer-events: none;
 		color: ${(props) =>
 			props.disabled ? props.theme.colors.button.primary.disabled.color : props.theme.colors.font.light1};
@@ -24,10 +26,11 @@ export const Input = styled.input`
 	padding: 0;
 	background: ${(props) =>
 		props.checked ? props.theme.colors.checkbox.active.background : props.theme.colors.checkbox.background};
-	border: 1px solid ${(props) => (props.checked ? props.theme.colors.border.alt2 : props.theme.colors.border.alt1)};
-	border-radius: 1.5px;
-	height: 12.5px;
-	width: 12.5px;
+	border: ${CSS_DIMENSIONS.px1} solid
+		${(props) => (props.checked ? props.theme.colors.border.alt2 : props.theme.colors.border.alt1)};
+	border-radius: ${CSS_DIMENSIONS.px1_5};
+	height: ${CSS_DIMENSIONS.px12_5};
+	width: ${CSS_DIMENSIONS.px12_5};
 	position: relative;
 	display: flex;
 	align-items: center;
@@ -55,7 +58,7 @@ export const Input = styled.input`
 
 	&:disabled {
 		background: ${(props) => props.theme.colors.checkbox.disabled};
-		border: 1px solid ${(props) => props.theme.colors.checkbox.disabled};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.checkbox.disabled};
 		cursor: default;
 	}
 `;

@@ -1,4 +1,4 @@
-import { Types } from '@permaweb/libs';
+import { GQLNodeResponseType } from 'helpers/types';
 
 // Action types
 export const ADD_TRANSACTION = 'ADD_TRANSACTION';
@@ -19,7 +19,7 @@ type TransactionCacheMetadata = {
 	viewCount: number;
 };
 
-type CachedTransaction = Types.GQLNodeResponseType & {
+type CachedTransaction = GQLNodeResponseType & {
 	__cache?: TransactionCacheMetadata;
 };
 
@@ -27,7 +27,7 @@ interface AddTransactionAction {
 	type: typeof ADD_TRANSACTION;
 	payload: {
 		id: string;
-		data: Types.GQLNodeResponseType;
+		data: GQLNodeResponseType;
 	};
 }
 
@@ -78,7 +78,7 @@ function getCacheMetadata(entry: CachedTransaction | null | undefined, now: numb
 }
 
 function markTransactionViewed(
-	entry: Types.GQLNodeResponseType,
+	entry: GQLNodeResponseType,
 	existingEntry: CachedTransaction | null | undefined,
 	now: number
 ): CachedTransaction {
@@ -174,7 +174,7 @@ export default function transactionReducer(state = initialState, action: Transac
 	}
 }
 
-export const addTransaction = (id: string, data: Types.GQLNodeResponseType): AddTransactionAction => ({
+export const addTransaction = (id: string, data: GQLNodeResponseType): AddTransactionAction => ({
 	type: ADD_TRANSACTION,
 	payload: { id, data },
 });

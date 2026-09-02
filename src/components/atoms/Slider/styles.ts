@@ -1,6 +1,7 @@
 import styled, { DefaultTheme } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
+import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div``;
 
@@ -19,12 +20,12 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 	background: ${(props) => props.theme.colors.container.primary.background} !important;
 	width: 100%;
 	appearance: none;
-	height: 15px;
+	height: ${CSS_DIMENSIONS.px15};
 	outline: none;
 	scroll-behavior: smooth;
 
 	&::-webkit-slider-runnable-track {
-		height: 12.5px;
+		height: ${CSS_DIMENSIONS.px12_5};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		background: ${(props) =>
 			props.disabled
@@ -32,7 +33,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 				: `linear-gradient(90deg, ${getRangeColor(props.theme, props.invalid)} ${(props.value / props.max) * 100}%, ${
 						props.theme.colors.container.primary.background
 				  } ${(props.value / props.max) * 100}% )`};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 		transition: background 0.1s;
 		&:hover {
 			background: ${(props) =>
@@ -46,7 +47,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 	}
 
 	&::-moz-range-track {
-		height: 12.5px;
+		height: ${CSS_DIMENSIONS.px12_5};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		background: ${(props) =>
 			props.disabled
@@ -54,7 +55,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 				: `linear-gradient(90deg, ${getRangeColor(props.theme, props.invalid)} ${(props.value / props.max) * 100}%, ${
 						props.theme.colors.container.primary.background
 				  } ${(props.value / props.max) * 100}% )`};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 		transition: background 0.1s;
 		&:hover {
 			background: ${(props) =>
@@ -68,7 +69,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 	}
 
 	&::-ms-track {
-		height: 12.5px;
+		height: ${CSS_DIMENSIONS.px12_5};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		background: ${(props) =>
 			props.disabled
@@ -76,7 +77,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 				: `linear-gradient(90deg, ${getRangeColor(props.theme, props.invalid)} ${(props.value / props.max) * 100}%, ${
 						props.theme.colors.container.primary.background
 				  } ${(props.value / props.max) * 100}% )`};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
 		transition: background 0.1s;
 		&:hover {
 			background: ${(props) =>
@@ -92,47 +93,47 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 	&::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		appearance: none;
-		height: 26.5px;
-		width: 9.5px;
+		height: ${CSS_DIMENSIONS.px26_5};
+		width: ${CSS_DIMENSIONS.px9_5};
 		background: ${(props) =>
 			props.disabled ? props.theme.colors.container.alt2.background : getRangeColor(props.theme, props.invalid)};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
-		border-radius: 2.5px;
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-radius: ${CSS_DIMENSIONS.px2_5};
 		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
-		margin-top: -6.5px;
+		margin-top: -${CSS_DIMENSIONS.px6_5};
 	}
 
 	&.custom-range::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		appearance: none;
-		height: 26.5px;
-		width: 9.5px;
+		height: ${CSS_DIMENSIONS.px26_5};
+		width: ${CSS_DIMENSIONS.px9_5};
 		background: ${(props) =>
 			props.disabled ? props.theme.colors.container.alt2.background : getRangeColor(props.theme, props.invalid)};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
-		border-radius: 2.5px;
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-radius: ${CSS_DIMENSIONS.px2_5};
 		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
-		margin-top: -7.5px;
+		margin-top: -${CSS_DIMENSIONS.px7_5};
 	}
 
 	&.custom-range::-moz-range-thumb {
 		-webkit-appearance: none;
 		appearance: none;
-		height: 25.5px;
-		width: 7.5px;
+		height: ${CSS_DIMENSIONS.px25_5};
+		width: ${CSS_DIMENSIONS.px7_5};
 		background: ${(props) =>
 			props.disabled ? props.theme.colors.container.alt2.background : getRangeColor(props.theme, props.invalid)};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
-		border-radius: 2.5px;
+		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-radius: ${CSS_DIMENSIONS.px2_5};
 		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
-		margin-top: -4.5px;
+		margin-top: -${CSS_DIMENSIONS.px4_5};
 	}
 
 	&::-webkit-slider-runnable-track:before {
 		content: '';
 		position: absolute;
 		width: ${(props) => (props.value / props.max) * 100 + '%'};
-		height: 15px;
+		height: ${CSS_DIMENSIONS.px15};
 		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')}
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -141,7 +142,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 		content: '';
 		position: absolute;
 		width: ${(props) => (props.value / props.max) * 100 + '%'};
-		height: 15px;
+		height: ${CSS_DIMENSIONS.px15};
 		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')}
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -150,7 +151,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 		content: '';
 		position: absolute;
 		width: ${(props) => (props.value / props.max) * 100 + '%'};
-		height: 15px;
+		height: ${CSS_DIMENSIONS.px15};
 		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')}
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -160,7 +161,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 		position: absolute;
 		left: ${(props) => (props.value / props.max) * 100 + '%'};
 		width: ${(props) => (1 - props.value / props.max) * 100 + '%'};
-		height: 15px;
+		height: ${CSS_DIMENSIONS.px15};
 		background: ${(props) => props.theme.colors.container.primary.background};
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -170,7 +171,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 		position: absolute;
 		left: ${(props) => (props.value / props.max) * 100 + '%'};
 		width: ${(props) => (1 - props.value / props.max) * 100 + '%'};
-		height: 15px;
+		height: ${CSS_DIMENSIONS.px15};
 		background: ${(props) => props.theme.colors.container.primary.background};
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -180,7 +181,7 @@ export const RangeBar = styled.input.attrs({ type: 'range' })<{
 		position: absolute;
 		left: ${(props) => (props.value / props.max) * 100 + '%'};
 		width: ${(props) => (1 - props.value / props.max) * 100 + '%'};
-		height: 15px;
+		height: ${CSS_DIMENSIONS.px15};
 		background: ${(props) => props.theme.colors.container.primary.background};
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -196,8 +197,8 @@ export const LabelWrapper = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: 10px;
-	margin: 0 0 10px 0;
+	gap: ${CSS_DIMENSIONS.px10};
+	margin: 0 0 ${CSS_DIMENSIONS.px10} 0;
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		flex-direction: column;
 		align-items: flex-start;

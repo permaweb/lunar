@@ -232,60 +232,10 @@ const BLOCK_BY_HEIGHT_QUERY = `
 	}
 `;
 
-const TRANSACTIONS_BY_BLOCK_QUERY = `
-	query TransactionsByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
-		transactions(block: { min: $minBlock, max: $maxBlock }, first: $first, after: $after, sort: HEIGHT_DESC) {
-			${TRANSACTION_FIELDS_WITH_COUNT}
-		}
-	}
-`;
-
-const TRANSACTIONS_BY_BLOCK_PAGINATED_QUERY = `
-	query TransactionsByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
-		transactions(block: { min: $minBlock, max: $maxBlock }, first: $first, after: $after, sort: HEIGHT_DESC) {
-			${TRANSACTION_FIELDS}
-		}
-	}
-`;
-
 const TRANSACTION_COUNT_BY_BLOCK_QUERY = `
 	query TransactionCountByBlock($minBlock: Int, $maxBlock: Int, $first: Int) {
 		transactions(block: { min: $minBlock, max: $maxBlock }, first: $first) {
 			count
-		}
-	}
-`;
-
-const BUNDLES_BY_BLOCK_QUERY = `
-	query BundlesByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
-		transactions(
-			block: { min: $minBlock, max: $maxBlock }
-			tags: [
-				{ name: "bundle-format", values: ["binary"] }
-				{ name: "bundle-version", values: ["2.0.0"] }
-			]
-			first: $first
-			after: $after
-			sort: HEIGHT_DESC
-		) {
-			${TRANSACTION_FIELDS_WITH_COUNT}
-		}
-	}
-`;
-
-const BUNDLES_BY_BLOCK_PAGINATED_QUERY = `
-	query BundlesByBlock($minBlock: Int, $maxBlock: Int, $first: Int, $after: String) {
-		transactions(
-			block: { min: $minBlock, max: $maxBlock }
-			tags: [
-				{ name: "bundle-format", values: ["binary"] }
-				{ name: "bundle-version", values: ["2.0.0"] }
-			]
-			first: $first
-			after: $after
-			sort: HEIGHT_DESC
-		) {
-			${TRANSACTION_FIELDS}
 		}
 	}
 `;

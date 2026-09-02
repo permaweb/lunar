@@ -53,7 +53,20 @@ export type GQLNodeResponseType = {
 		};
 		address?: string;
 		timestamp?: number;
+		slot?: number;
 	};
+};
+
+export type ProfileType = {
+	id: string;
+	walletAddress: string;
+	username: string;
+	displayName: string;
+	description: string;
+	thumbnail?: string;
+	banner?: string;
+	assets: { id: string; quantity: string }[];
+	authorities?: string[];
 };
 
 export type GQLResponseType = {

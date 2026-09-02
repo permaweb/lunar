@@ -169,17 +169,17 @@ function TransactionRow(props: { edge: GQLEdge<TransactionNode>; onHydrated: (tr
 	const fetchTransaction = React.useCallback(async () => {
 		const response = await searchTxById({
 			txId: props.edge.node.id,
-			getGQLData: permawebProvider.libs.getGQLData,
-			readProcess: permawebProvider.libs.readProcess,
+			getGQLData: permawebProvider.legacyApi.getGQLData,
+			readProcess: permawebProvider.legacyApi.readProcess,
 			store: store,
 			dispatch: dispatch,
 		});
 
 		return mapSearchResponseToTransaction(response);
-	}, [dispatch, permawebProvider.libs, props.edge.node.id]);
+	}, [dispatch, permawebProvider.legacyApi, props.edge.node.id]);
 	const hydratedTransaction = useVisibleData<TransactionNode | null>({
 		cacheKey: props.edge.node.id,
-		enabled: needsHydration && !!permawebProvider.libs?.getGQLData,
+		enabled: needsHydration && !!permawebProvider.legacyApi?.getGQLData,
 		fetchData: fetchTransaction,
 	});
 	const transaction = hydratedTransaction.data ?? props.edge.node;
@@ -386,19 +386,19 @@ export default function TransactionList(props: {
 	const hydrateTransactionForFilter = React.useCallback(
 		async (transaction: TransactionNode) => {
 			if (!isTransactionIdOnly(transaction)) return transaction;
-			if (!permawebProvider.libs?.getGQLData) return null;
+			if (!permawebProvider.legacyApi?.getGQLData) return null;
 
 			const response = await searchTxById({
 				txId: transaction.id,
-				getGQLData: permawebProvider.libs.getGQLData,
-				readProcess: permawebProvider.libs.readProcess,
+				getGQLData: permawebProvider.legacyApi.getGQLData,
+				readProcess: permawebProvider.legacyApi.readProcess,
 				store: store,
 				dispatch: dispatch,
 			});
 
 			return mapSearchResponseToTransaction(response);
 		},
-		[dispatch, permawebProvider.libs]
+		[dispatch, permawebProvider.legacyApi]
 	);
 
 	React.useEffect(() => {
@@ -751,7 +751,7 @@ export default function TransactionList(props: {
 				<Button
 					type={'alt3'}
 					label={language.previous}
-					handlePress={handlePrevious}
+					onPress={handlePrevious}
 					disabled={cursorHistory.length === 0 || loading}
 				/>
 				{showPages && FLAGS.CONTROL_PAGINATION && (
@@ -769,7 +769,7 @@ export default function TransactionList(props: {
 					</S.DPageCounter>
 				)}
 				{showPages && !FLAGS.CONTROL_PAGINATION && <S.DPageCounter>{getPages()}</S.DPageCounter>}
-				<Button type={'alt3'} label={language.next} handlePress={handleNext} disabled={!nextCursor || loading} />
+				<Button type={'alt3'} label={language.next} onPress={handleNext} disabled={!nextCursor || loading} />
 				{showPages && FLAGS.CONTROL_PAGINATION && (
 					<S.MPageCounter>
 						<PaginationControls
@@ -806,7 +806,7 @@ export default function TransactionList(props: {
 							<Button
 								type={'alt3'}
 								label={`${language.type} (${getTypeFilterLabel(activeTypeFilter)})`}
-								handlePress={handleClearTypeFilter}
+								onPress={handleClearTypeFilter}
 								active={true}
 								disabled={loading}
 								icon={ASSETS.close}
@@ -816,7 +816,7 @@ export default function TransactionList(props: {
 							<Button
 								type={'alt3'}
 								label={language.filter}
-								handlePress={() => setShowFilters((prev) => !prev)}
+								onPress={() => setShowFilters((prev) => !prev)}
 								active={showFilters}
 								disabled={loading}
 								icon={ASSETS.filter}
@@ -827,7 +827,7 @@ export default function TransactionList(props: {
 						<Button
 							type={'alt3'}
 							label={language.download}
-							handlePress={handleExport}
+							onPress={handleExport}
 							disabled={loading || transactions.length <= 0}
 							icon={ASSETS.save}
 							iconLeftAlign
@@ -870,7 +870,7 @@ export default function TransactionList(props: {
 				<S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>
 			</S.Container>
 			{showFilters && (
-				<Modal type="panel" width={515} header={language.transactionFilters} handleClose={() => setShowFilters(false)}>
+				<Modal type="panel" width={515} header={language.transactionFilters} onClose={() => setShowFilters(false)}>
 					<FilterS.FilterDropdown>
 						<FilterS.FilterDropdownHeader>
 							<p>{language.filterByType}</p>
@@ -879,7 +879,7 @@ export default function TransactionList(props: {
 							<Button
 								type={'primary'}
 								label={language.all}
-								handlePress={() => setTypeFilter(null)}
+								onPress={() => setTypeFilter(null)}
 								disabled={loading}
 								active={typeFilter === null}
 								height={40}
@@ -890,7 +890,7 @@ export default function TransactionList(props: {
 									key={option}
 									type={'primary'}
 									label={getTypeFilterLabel(option)}
-									handlePress={() => setTypeFilter(typeFilter === option ? null : option)}
+									onPress={() => setTypeFilter(typeFilter === option ? null : option)}
 									disabled={loading}
 									active={typeFilter === option}
 									icon={typeFilter === option ? ASSETS.close : null}
@@ -903,7 +903,7 @@ export default function TransactionList(props: {
 							<Button
 								type={'alt1'}
 								label={language.applyFilters}
-								handlePress={handleApplyTypeFilter}
+								onPress={handleApplyTypeFilter}
 								disabled={loading}
 								active={false}
 								height={42.5}

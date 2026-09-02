@@ -1,11 +1,13 @@
 import styled from 'styled-components';
 
+import { CSS_DIMENSIONS } from 'helpers/themes';
+
 export const Wrapper = styled.div`
 	height: 100%;
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
+	gap: ${CSS_DIMENSIONS.px20};
 	min-width: 0;
 `;
 
@@ -23,7 +25,7 @@ export const Editor = styled.div`
 	width: 100%;
 	flex: 1;
 	position: relative;
-	padding: 15px 0 0 0;
+	padding: ${CSS_DIMENSIONS.px15} 0 0 0;
 	background: ${(props) => props.theme.colors.container.alt1.background};
 	min-width: 0;
 	overflow: hidden;
@@ -43,10 +45,10 @@ export const ActionsWrapper = styled.div`
 	width: fit-content;
 	display: flex;
 	align-items: center;
-	gap: 20px;
+	gap: ${CSS_DIMENSIONS.px20};
 	position: absolute;
-	bottom: 20px;
-	right: 20px;
+	bottom: ${CSS_DIMENSIONS.px20};
+	right: ${CSS_DIMENSIONS.px20};
 `;
 
 export const ErrorWrapper = styled.div`

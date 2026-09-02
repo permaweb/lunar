@@ -7,7 +7,6 @@ import { BlockNode, getBlock } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
-import { TxAddress } from 'components/atoms/TxAddress';
 import { ASSETS, URLS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
 import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
@@ -93,8 +92,8 @@ export default function Search(props: SearchProps) {
 					else {
 						const response = await searchTxById({
 							txId: inputValue,
-							getGQLData: permawebProvider.libs.getGQLData,
-							readProcess: permawebProvider.libs.readProcess,
+							getGQLData: permawebProvider.legacyApi.getGQLData,
+							readProcess: permawebProvider.legacyApi.readProcess,
 							store: store,
 							dispatch: dispatch,
 						});
@@ -246,7 +245,7 @@ export default function Search(props: SearchProps) {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.copy}
-							handlePress={copyAddress}
+							onPress={copyAddress}
 							disabled={!inputValue}
 							height={32.5}
 							width={32.5}
@@ -261,7 +260,7 @@ export default function Search(props: SearchProps) {
 						<Button
 							type={'alt1'}
 							icon={ASSETS.refresh}
-							handlePress={props.onRefresh}
+							onPress={props.onRefresh}
 							disabled={loading || !isValidSearchInput(inputValue)}
 							height={32.5}
 							width={32.5}

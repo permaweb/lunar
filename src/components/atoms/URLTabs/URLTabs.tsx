@@ -20,7 +20,7 @@ function resolveTabUrl(tab: { url: any }, id: string) {
 function Tab(props: ITProps) {
 	function handlePress(e: any) {
 		e.preventDefault();
-		props.handlePress(props.url);
+		props.onPress(props.url);
 	}
 
 	return (
@@ -28,7 +28,7 @@ function Tab(props: ITProps) {
 			<Button
 				type={'primary'}
 				label={props.label}
-				handlePress={handlePress}
+				onPress={handlePress}
 				active={props.active}
 				icon={props.icon}
 				iconLeftAlign
@@ -98,7 +98,7 @@ export default function URLTabs(props: IUProps) {
 									icon={elem.icon}
 									disabled={elem.disabled}
 									active={normalizePath(url) === normalizePath(props.activeUrl)}
-									handlePress={() => handleRedirect(url)}
+									onPress={() => handleRedirect(url)}
 								/>
 							);
 						})}
@@ -108,7 +108,7 @@ export default function URLTabs(props: IUProps) {
 									<Button
 										type={'primary'}
 										label={urlCopied ? `${language.copied}!` : language.copyFullUrl}
-										handlePress={() => copyUrl()}
+										onPress={() => copyUrl()}
 										icon={ASSETS.copy}
 										iconLeftAlign
 										height={35}
