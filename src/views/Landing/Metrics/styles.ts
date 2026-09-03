@@ -61,9 +61,6 @@ export const TotalCard = styled.article`
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-radius: ${STYLING.dimensions.radius.alt1};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		padding: 20px;

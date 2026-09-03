@@ -85,6 +85,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				label: language.home,
 			},
 			{
+				path: URLS.explorer,
+				icon: ASSETS.explorer,
+				label: language.explorer,
+			},
+			{
 				path: URLS.transactions,
 				icon: ASSETS.transaction,
 				label: language.transactions,
@@ -95,9 +100,9 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				label: language.blocks,
 			},
 			{
-				path: URLS.explorer,
-				icon: ASSETS.explorer,
-				label: language.explorer,
+				path: URLS.addresses,
+				icon: ASSETS.users,
+				label: language.addresses,
 			},
 			{
 				path: URLS.aos,
@@ -328,12 +333,12 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								<ReactSVG className={'ar-icon'} src={ASSETS.arweave} />
 								<p>{formatUsdPrice(prices.ar)}</p>
 							</S.PriceItem>
-							<S.PriceItem>
-								<Link to={`${URLS.explorer}${PROCESSES.ao}`}>
+							<Link to={`${URLS.explorer}${PROCESSES.ao}`}>
+								<S.PriceItem>
 									<ReactSVG className={'ao-icon'} src={ASSETS.ao} />
-								</Link>
-								<p>{formatUsdPrice(prices.ao)}</p>
-							</S.PriceItem>
+									<p>{formatUsdPrice(prices.ao)}</p>
+								</S.PriceItem>
+							</Link>
 						</S.PriceWrapper>
 						<S.SearchActionWrapper>
 							<Button
@@ -346,7 +351,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								height={36.5}
 								width={36.5}
 								noMinWidth
-								iconSize={15.5}
+								iconSize={14.5}
 								tooltip={language.search}
 								stopPropagation
 								preventDefault

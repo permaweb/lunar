@@ -321,7 +321,7 @@ export function MetricTotals() {
 	return (
 		<S.TotalsWrapper>
 			{totals.map((total) => (
-				<S.TotalCard key={total.label}>
+				<S.TotalCard key={total.label} className={'border-wrapper-alt4'}>
 					<S.TotalIcon>
 						<Icon src={total.icon} size={15} />
 					</S.TotalIcon>

@@ -194,6 +194,7 @@ export const TypeValue = styled(Type)<{ background?: string; $preview?: boolean 
 		justify-content: center;
 		align-items: center;
 		background: ${(props) => (props.background ? props.background : props.theme.colors.container.alt8.background)};
+		opacity: 0.85;
 	}
 
 	p {

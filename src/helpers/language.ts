@@ -1,6 +1,10 @@
 export const language = {
 	en: {
 		action: `Action`,
+		addresses: `Addresses`,
+		addressesAtBlock: (height: string) => `Block ${height}`,
+		addressesLoading: `Loading Addresses...`,
+		addressesNotFound: `No addresses with a positive balance found`,
 		addANode: `Add a node`,
 		addNode: `Add Node`,
 		age: `Age`,
@@ -28,6 +32,7 @@ export const language = {
 		authority: `Authority`,
 		availableNodes: `Available Nodes`,
 		bio: `Bio`,
+		balance: `Balance`,
 		block: `Block`,
 		blockId: `Block ID`,
 		blockSize: `Block Size`,
@@ -158,6 +163,7 @@ export const language = {
 		language: `Language`,
 		largeResultSetWarning: `Fetching more than 100 results will take some time.`,
 		legacynet: `Legacynet`,
+		lastTransaction: `Last Transaction`,
 		lightDefault: `Light Default`,
 		lightMuted: `Light Muted`,
 		lightThemes: `Light themes`,

@@ -299,12 +299,16 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 				disabled={!showWalletDropdown}
 			>
 				<S.Wrapper>
-					<S.PWrapper>
+					<S.PWrapper
+						type={'button'}
+						aria-label={arProvider.walletAddress ? language.profileMenu : language.connectWallet}
+						onClick={handlePress}
+					>
 						<Avatar
 							owner={permawebProvider.profile}
 							isConnected={!!arProvider.walletAddress}
-							dimensions={{ wrapper: 35, icon: 21.5 }}
-							callback={handlePress}
+							dimensions={{ wrapper: 35, icon: 15.5 }}
+							callback={null}
 						/>
 					</S.PWrapper>
 					{showWalletDropdown && (

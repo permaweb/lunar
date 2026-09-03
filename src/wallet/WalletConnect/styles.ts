@@ -11,13 +11,39 @@ export const Wrapper = styled.div`
 	animation: ${open} ${transition3};
 `;
 
-export const PWrapper = styled.div`
+export const PWrapper = styled(PrimitiveButton)`
+	background: transparent;
+	border: none;
+	border-radius: 50%;
+	padding: 0;
 	display: flex;
 	align-items: center;
+	cursor: pointer;
+
+	> div {
+		background: transparent;
+		border-color: transparent;
+		transition: background 100ms, border-color 100ms;
+
+		> div {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+	}
+
+	&:hover,
+	&:focus-visible {
+		> div {
+			background: ${(props) => props.theme.colors.container.alt3.background};
+			border-color: ${(props) => props.theme.colors.border.alt3};
+		}
+	}
 
 	svg {
-		padding: 2.5px 0 0 0;
-		margin: 2.5px 0 0 0;
+		display: block;
+		padding: 0;
+		margin: 0;
 	}
 `;
 

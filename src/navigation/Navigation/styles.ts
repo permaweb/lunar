@@ -194,7 +194,7 @@ export const InfoWrapper = styled.div`
 export const DNavWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 25px;
+	gap: 30px;
 	margin: 0 0 0 12.5px;
 
 	@media (max-width: ${STYLING.cutoffs.tablet}) {
@@ -206,17 +206,12 @@ export const DNavLink = styled.div<{ active: boolean }>`
 	a {
 		color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		text-transform: uppercase;
 		letter-spacing: 0;
-
-		/* padding: 0 0 3px 0;
-		border-bottom: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')}; */
 
 		&:hover {
 			color: ${(props) => props.theme.colors.font.primary};
-			/* border-bottom: 2px solid ${(props) => props.theme.colors.border.alt5}; */
 		}
 	}
 `;
@@ -231,8 +226,14 @@ export const ActionsWrapper = styled.div`
 export const PriceWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: 25px;
+	gap: 35px;
 	margin: 0 15px 0 0;
+
+	a {
+		&:hover {
+			opacity: 0.75;
+		}
+	}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		display: none;
@@ -251,14 +252,14 @@ export const PriceItem = styled.div`
 	}
 
 	.ar-icon {
-		height: 14px;
-		width: 14px;
+		height: 12px;
+		width: 12px;
 	}
 
 	svg {
-		height: 18px;
-		width: 18px;
-		margin: 0 0 3px 0;
+		height: 17px;
+		width: 17px;
+		margin: 0 0 6px 0;
 
 		path {
 			color: ${(props) => props.theme.colors.font.primary};
@@ -267,16 +268,16 @@ export const PriceItem = styled.div`
 	}
 
 	.ar-icon svg {
-		height: 14px;
-		width: 14px;
+		height: 12px;
+		width: 12px;
 	}
 
 	.ao-icon svg {
-		margin: 0 0 -1px 0;
+		margin: 0 0 3px 0;
 	}
 
 	p {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
@@ -286,7 +287,15 @@ export const PriceItem = styled.div`
 
 export const SearchActionWrapper = styled.div`
 	button {
+		background: transparent !important;
+		border-color: transparent !important;
 		padding: 3.5px 0 0 0 !important;
+
+		&:hover,
+		&:focus-visible {
+			background: ${(props) => props.theme.colors.container.alt3.background} !important;
+			border-color: ${(props) => props.theme.colors.border.alt3} !important;
+		}
 	}
 `;
 
