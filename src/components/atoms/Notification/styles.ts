@@ -2,17 +2,16 @@ import styled from 'styled-components';
 
 import { open, transition1 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div<{ warning: boolean | undefined }>`
-	min-width: ${CSS_DIMENSIONS.px375};
+	min-width: 375px;
 	max-width: 50vw;
 	animation: ${open} ${transition1};
 	display: flex;
 	align-items: center;
-	padding: ${CSS_DIMENSIONS.px11_5} ${CSS_DIMENSIONS.px17_5} !important;
-	gap: ${CSS_DIMENSIONS.px45};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.alt1} !important;
+	padding: 11.5px 17.5px !important;
+	gap: 45px;
+	border: 1px solid ${(props) => props.theme.colors.border.alt1} !important;
 	border-radius: ${STYLING.dimensions.radius.primary};
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
@@ -25,16 +24,16 @@ export const Wrapper = styled.div<{ warning: boolean | undefined }>`
 export const MessageWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 `;
 
 export const Icon = styled.div<{ type: 'success' | 'warning' | 'info' }>`
-	min-height: ${CSS_DIMENSIONS.px17_5};
-	height: ${CSS_DIMENSIONS.px17_5};
-	min-width: ${CSS_DIMENSIONS.px17_5};
-	width: ${CSS_DIMENSIONS.px17_5};
+	min-height: 17.5px;
+	height: 17.5px;
+	min-width: 17.5px;
+	width: 17.5px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -47,9 +46,9 @@ export const Icon = styled.div<{ type: 'success' | 'warning' | 'info' }>`
 	border-radius: 50%;
 
 	svg {
-		height: ${CSS_DIMENSIONS.px11_5};
-		width: ${CSS_DIMENSIONS.px11_5};
-		margin: ${CSS_DIMENSIONS.px6_5} 0 0 0;
+		height: 11.5px;
+		width: 11.5px;
+		margin: 6.5px 0 0 0;
 		color: ${(props) => props.theme.colors.font.light1};
 		fill: ${(props) => props.theme.colors.font.light1};
 	}

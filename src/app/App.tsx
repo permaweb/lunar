@@ -11,6 +11,8 @@ const views = import.meta.glob('../views/**/index.ts');
 
 const Landing = getLazyImport('Landing');
 const Blocks = getLazyImport('Blocks');
+const Addresses = getLazyImport('Addresses');
+const Transactions = getLazyImport('Transactions');
 const Explorer = getLazyImport('Explorer');
 const Console = getLazyImport('Console');
 const GraphQL = getLazyImport('GraphQL');
@@ -260,6 +262,8 @@ export default function App() {
 					<Routes>
 						{getRoute(URLS.base, <Landing />)}
 						{getRoute(URLS.blocks, <Blocks />)}
+						{getRoute(URLS.addresses, <Addresses />)}
+						{getRoute(URLS.transactions, <Transactions />)}
 						{getRoute(URLS.explorer, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid`, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid/:active`, <Explorer />)}

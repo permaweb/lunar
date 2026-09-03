@@ -2,7 +2,6 @@ import React from 'react';
 
 import { Button } from 'components/atoms/Button';
 import { PrimitiveInput } from 'components/atoms/PrimitiveInput';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 import { formatCount } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -54,7 +53,7 @@ export default function PaginationControls(props: {
 					disabled={props.disabled || props.pageDisabled || props.pageSubmitDisabled}
 					height={30}
 					noMinWidth
-					padding={`0 ${CSS_DIMENSIONS.px10}`}
+					padding={`0 10px`}
 				/>
 			</S.ControlGroup>
 			<S.Divider />
@@ -76,7 +75,7 @@ export default function PaginationControls(props: {
 					disabled={props.disabled || props.perPageDisabled || props.perPageSubmitDisabled}
 					height={30}
 					noMinWidth
-					padding={`0 ${CSS_DIMENSIONS.px10}`}
+					padding={`0 10px`}
 				/>
 			</S.ControlGroup>
 		</S.Wrapper>

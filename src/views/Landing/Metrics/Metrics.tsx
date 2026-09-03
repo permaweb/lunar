@@ -2,13 +2,15 @@ import React from 'react';
 
 import { requestRemote } from 'api/http';
 
+import { Icon } from 'components/atoms/Icon';
 import { MetricChart } from 'components/molecules/MetricChart';
+import { ASSETS } from 'helpers/config';
 import { getMetricsEndpoint, getMetricsFallbackEndpoint } from 'helpers/endpoints';
 import { MetricDataPoint, NetworkMetricsSnapshot } from 'helpers/types';
 
 import * as S from './styles';
 
-type MetricsSection = 'arweave-txs' | 'arweave' | 'legacynet' | 'mainnet';
+type MetricsSection = 'arweave-txs' | 'legacynet' | 'mainnet';
 
 let metricsRequest: Promise<NetworkMetricsSnapshot> | null = null;
 let metricsSnapshot: NetworkMetricsSnapshot | null = null;
@@ -204,11 +206,6 @@ function buildCurrentMetricPoint(snapshot: NetworkMetricsSnapshot): MetricDataPo
 		legacynet_processes_total: getMetric(snapshot, 'ao-legacynet-processes-total'),
 		arweave_txs_rolling: getMetric(snapshot, 'txs-rolling'),
 		arweave_txs_total: getMetric(snapshot, 'total-txs'),
-		arweave_data_uploaded_rolling: getMetric(snapshot, 'data-uploaded-rolling', 'bytes'),
-		arweave_weave_size_total: getMetric(snapshot, 'total-weave-size', 'bytes'),
-		arweave_tps: getMetric(snapshot, 'current-tps'),
-		arweave_proof_rate: getMetric(snapshot, 'proof-rate'),
-		arweave_storage_cost_per_gib: getMetric(snapshot, 'storage-cost-ar-per-gib'),
 	};
 }
 
@@ -256,7 +253,7 @@ const CHARTS: Record<
 	mainnet: [
 		{
 			chartLabel: 'Mainnet Messages / 720 Blocks',
-			chartType: 'line',
+			chartType: 'vertical-bar',
 			metric: 'mainnet_messages_rolling',
 			totalField: 'mainnet_messages_total',
 			totalLabel: 'Total Mainnet Messages',
@@ -281,44 +278,10 @@ const CHARTS: Record<
 	['arweave-txs']: [
 		{
 			chartLabel: 'Transactions / 720 Blocks',
-			chartType: 'line',
+			chartType: 'vertical-bar',
 			metric: 'arweave_txs_rolling',
 			totalField: 'arweave_txs_total',
 			totalLabel: 'Total Arweave Transactions',
-		},
-	],
-	arweave: [
-		{
-			chartLabel: 'Weave Size',
-			chartType: 'vertical-bar',
-			metric: 'arweave_weave_size_total',
-			totalField: 'arweave_weave_size_total',
-			totalLabel: 'Total Weave Size',
-			valueFormatter: formatBytes,
-			valueScale: 'fit',
-		},
-		{
-			chartLabel: 'Data Uploaded Rolling / 720 Blocks',
-			chartType: 'vertical-bar',
-			metric: 'arweave_data_uploaded_rolling',
-			totalField: 'arweave_data_uploaded_rolling',
-			totalLabel: 'Data Uploaded Rolling / 720 Blocks',
-			valueFormatter: formatBytes,
-		},
-		{
-			chartLabel: 'Current TPS',
-			chartType: 'line',
-			metric: 'arweave_tps',
-			totalField: 'arweave_tps',
-			totalLabel: 'Current TPS',
-			valueFormatter: formatDecimal,
-		},
-		{
-			chartLabel: 'Proof Rate',
-			chartType: 'line',
-			metric: 'arweave_proof_rate',
-			totalField: 'arweave_proof_rate',
-			totalLabel: 'Proofs / Second',
 		},
 	],
 };
@@ -333,7 +296,7 @@ export function MetricTotals() {
 	if (!snapshot) {
 		return (
 			<S.TotalsWrapper>
-				{Array.from({ length: 7 }).map((_, index) => (
+				{Array.from({ length: 4 }).map((_, index) => (
 					<S.TotalPlaceholder key={index} />
 				))}
 			</S.TotalsWrapper>
@@ -341,16 +304,33 @@ export function MetricTotals() {
 	}
 
 	const totals = [
-		{ label: 'Total Weave Size', value: formatBytes(getMetric(snapshot, 'total-weave-size', 'bytes')) },
-		{ label: 'Estimated Network Size', value: formatBytes(getMetric(snapshot, 'network-size', 'bytes')) },
+		{
+			icon: ASSETS.data,
+			label: 'Total Weave Size',
+			value: formatBytes(getMetric(snapshot, 'total-weave-size', 'bytes')),
+		},
+		{
+			icon: ASSETS.upload,
+			label: 'Data Uploaded / 720 Blocks',
+			value: formatBytes(getMetric(snapshot, 'data-uploaded-rolling', 'bytes')),
+		},
+		{ icon: ASSETS.time, label: 'Current TPS', value: formatDecimal(getMetric(snapshot, 'current-tps')) },
+		{ icon: ASSETS.block, label: 'Proofs / Second', value: formatDecimal(getMetric(snapshot, 'proof-rate')) },
 	];
 
 	return (
 		<S.TotalsWrapper>
 			{totals.map((total) => (
-				<S.TotalCard className={'border-wrapper-alt4'} key={total.label}>
-					<span>{total.label}</span>
-					<p>{total.value}</p>
+				<S.TotalCard key={total.label} className={'border-wrapper-alt4'}>
+					<S.TotalIcon>
+						<Icon src={total.icon} size={15} />
+					</S.TotalIcon>
+					<S.TotalLabel>
+						<span>{total.label}</span>
+					</S.TotalLabel>
+					<S.TotalValue>
+						<strong>{total.value}</strong>
+					</S.TotalValue>
 				</S.TotalCard>
 			))}
 		</S.TotalsWrapper>

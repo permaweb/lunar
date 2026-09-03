@@ -1,9 +1,7 @@
 import styled from 'styled-components';
 
-import { CSS_DIMENSIONS } from 'helpers/themes';
-
 export const Wrapper = styled.div`
-	height: calc(100vh - ${CSS_DIMENSIONS.px190});
+	height: calc(100vh - 190px);
 	width: 100%;
-	scroll-margin-top: ${CSS_DIMENSIONS.px120};
+	scroll-margin-top: 120px;
 `;

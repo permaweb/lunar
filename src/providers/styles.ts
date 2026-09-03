@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const WalletListContainer = styled.div`
 	height: 100%;
@@ -10,19 +9,19 @@ export const WalletListContainer = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 	flex-wrap: wrap;
-	padding: ${CSS_DIMENSIONS.px20} 0;
+	padding: 20px 0;
 `;
 
 export const WalletListItem = styled(PrimitiveButton)`
-	width: ${CSS_DIMENSIONS.px200};
+	width: 200px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 	span {
 		color: ${(props) => props.theme.colors.font.primary};
 		font-size: ${(props) => props.theme.typography.size.base};
@@ -35,20 +34,20 @@ export const WalletListItem = styled(PrimitiveButton)`
 `;
 
 export const WalletLogo = styled.div`
-	height: ${CSS_DIMENSIONS.px35};
+	height: 35px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	img {
-		width: ${CSS_DIMENSIONS.px35};
+		width: 35px;
 		border-radius: 50%;
-		margin: 0 0 ${CSS_DIMENSIONS.px10} 0;
+		margin: 0 0 10px 0;
 	}
 `;
 
 export const WalletLink = styled.div`
-	margin: ${CSS_DIMENSIONS.px10} 0;
-	padding: 0 ${CSS_DIMENSIONS.px20};
+	margin: 10px 0;
+	padding: 0 20px;
 	text-align: center;
 	a,
 	span {
@@ -63,14 +62,14 @@ export const WalletLink = styled.div`
 export const MWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 `;
 
 export const NodeSection = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 `;
 
 export const NodeSectionHeader = styled.div`
@@ -85,10 +84,10 @@ export const NodeSectionHeader = styled.div`
 export const NodeDisplayOption = styled.label`
 	display: flex;
 	align-items: flex-start;
-	gap: ${CSS_DIMENSIONS.px10};
-	padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px12};
+	gap: 10px;
+	padding: 10px 12px;
 	background: ${(props) => props.theme.colors.container.primary.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	cursor: pointer;
 	transition: all 100ms;
@@ -100,7 +99,7 @@ export const NodeDisplayOption = styled.label`
 
 	> div:first-child {
 		flex: none;
-		margin: ${CSS_DIMENSIONS.px3_5} 0 0 0;
+		margin: 3.5px 0 0 0;
 	}
 `;
 
@@ -108,7 +107,7 @@ export const NodeDisplayOptionText = styled.div`
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px3};
+	gap: 3px;
 
 	span {
 		color: ${(props) => props.theme.colors.font.primary};
@@ -130,49 +129,48 @@ export const NodeDisplayOptionText = styled.div`
 export const NodeList = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 `;
 
 export const NodeItem = styled.div<{ active: boolean }>`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: ${CSS_DIMENSIONS.px12} ${CSS_DIMENSIONS.px15};
+	padding: 12px 15px;
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	background: ${(props) =>
 		props.active ? props.theme.colors.container.alt1.background : props.theme.colors.container.primary.background};
-	border: ${CSS_DIMENSIONS.px1} solid
-		${(props) => (props.active ? props.theme.colors.border.alt3 : props.theme.colors.border.primary)};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt3 : props.theme.colors.border.primary)};
 	transition: all 100ms;
 	cursor: ${(props) => (props.active ? 'default' : 'pointer')};
 	pointer-events: ${(props) => (!props.active ? 'all' : 'none')};
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.alt2};
+		border: 1px solid ${(props) => props.theme.colors.border.alt2};
 	}
 `;
 
 export const NodeInfo = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px12_5};
+	gap: 12.5px;
 	flex: 1;
 `;
 
 export const Indicator = styled.div<{ active: boolean }>`
-	height: ${CSS_DIMENSIONS.px12_5};
-	width: ${CSS_DIMENSIONS.px12_5};
+	height: 12.5px;
+	width: 12.5px;
 	border-radius: 50%;
 	background: ${(props) => (props.active ? props.theme.colors.indicator.active : 'transparent')};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	transition: all 150ms;
 `;
 
 export const NodeDetails = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px4};
+	gap: 4px;
 	overflow: hidden;
 
 	p {
@@ -198,7 +196,7 @@ export const NodeDetails = styled.div`
 
 export const NodeRemove = styled.div`
 	button {
-		padding: ${CSS_DIMENSIONS.px3_75} 0 0 0 !important;
+		padding: 3.75px 0 0 0 !important;
 	}
 `;
 
@@ -206,8 +204,8 @@ export const NodeDivider = styled.div`
 	width: 100%;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px12_5};
-	margin: ${CSS_DIMENSIONS.px1_5} 0;
+	gap: 12.5px;
+	margin: 1.5px 0;
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -218,18 +216,18 @@ export const NodeDivider = styled.div`
 	}
 
 	.node-divider {
-		height: ${CSS_DIMENSIONS.px1};
+		height: 1px;
 		flex: 1;
-		border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
 
 export const NodeAddSection = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 
 	button {
-		margin: ${CSS_DIMENSIONS.px5} 0 0 0;
+		margin: 5px 0 0 0;
 	}
 `;

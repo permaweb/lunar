@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Container = styled.div<{ $fixedHeight?: number; $fullScreenMode?: boolean }>`
 	height: ${(props) => (props.$fullScreenMode ? '100vh' : `${props.$fixedHeight ?? 600}px`)};
@@ -10,7 +9,7 @@ export const Container = styled.div<{ $fixedHeight?: number; $fullScreenMode?: b
 	flex-direction: column;
 	overflow: hidden;
 	z-index: ${(props) => (props.$fullScreenMode ? '999' : 'auto')};
-	padding: ${(props) => (props.$fullScreenMode ? `${CSS_DIMENSIONS.px15}` : '0')};
+	padding: ${(props) => (props.$fullScreenMode ? `15px` : '0')};
 	background: ${(props) => (props.$fullScreenMode ? props.theme.colors.container.primary.background : 'transparent')};
 `;
 
@@ -19,8 +18,8 @@ export const Header = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: 0 0 ${CSS_DIMENSIONS.px12_5} 0;
+	gap: 15px;
+	padding: 0 0 12.5px 0;
 
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
@@ -33,7 +32,7 @@ export const Header = styled.div`
 export const ActionsWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 `;
 
 export const TableWrapper = styled.div`
@@ -47,7 +46,7 @@ export const Table = styled.table`
 	min-width: 100%;
 	border-collapse: separate;
 	border-spacing: 0;
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.primary};
 	background: ${(props) => props.theme.colors.container.primary.background};
 	overflow: hidden;
@@ -55,9 +54,9 @@ export const Table = styled.table`
 	th,
 	td {
 		max-width: 100%;
-		padding: ${CSS_DIMENSIONS.px8} ${CSS_DIMENSIONS.px10};
-		border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-		border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		padding: 8px 10px;
+		border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 		color: ${(props) => props.theme.colors.font.primary};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -88,7 +87,7 @@ export const Table = styled.table`
 export const LoadMoreWrapper = styled.div`
 	display: flex;
 	justify-content: center;
-	padding: ${CSS_DIMENSIONS.px15} 0 0 0;
+	padding: 15px 0 0 0;
 `;
 
 export const Placeholder = styled.p`

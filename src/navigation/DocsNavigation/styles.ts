@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div`
 	height: calc(100vh - (${STYLING.dimensions.nav.height} * 2));
@@ -16,8 +15,8 @@ export const Wrapper = styled.div`
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		min-height: 0;
 		height: auto;
-		width: calc(100% - ${CSS_DIMENSIONS.px0});
-		top: ${CSS_DIMENSIONS.px15};
+		width: calc(100% - 0px);
+		top: 15px;
 		left: 50%;
 		transform: translate(-50%, 0);
 		position: absolute;
@@ -38,14 +37,14 @@ export const NContent = styled.div`
 	height: 100%;
 	width: 100%;
 	z-index: 1;
-	padding: ${CSS_DIMENSIONS.px25} ${CSS_DIMENSIONS.px25} ${CSS_DIMENSIONS.px25} 0;
+	padding: 25px 25px 25px 0;
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		position: relative;
 		top: auto;
-		padding: 0 ${CSS_DIMENSIONS.px15};
+		padding: 0 15px;
 		max-height: none;
 		background: ${(props) => props.theme.colors.container.alt1.background};
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
 `;
@@ -55,18 +54,18 @@ export const NTitle = styled.div`
 	display: flex;
 	justify-content: flex-start;
 	align-items: center;
-	margin: 0 0 ${CSS_DIMENSIONS.px20} 0;
+	margin: 0 0 20px 0;
 	display: none;
 	p {
 		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-size: ${CSS_DIMENSIONS.px22} !important;
+		font-size: 22px !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		color: ${(props) => props.theme.colors.font.primary} !important;
 	}
 `;
 
 export const NTitleMobile = styled(PrimitiveButton)<{ open: boolean }>`
-	height: ${CSS_DIMENSIONS.px50};
+	height: 50px;
 	width: 100%;
 	display: flex;
 	justify-content: space-between;
@@ -79,7 +78,7 @@ export const NTitleMobile = styled(PrimitiveButton)<{ open: boolean }>`
 		outline: 0;
 	}
 	@media (max-width: ${STYLING.cutoffs.initial}) {
-		height: ${CSS_DIMENSIONS.px40};
+		height: 40px;
 	}
 	p {
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -88,9 +87,9 @@ export const NTitleMobile = styled(PrimitiveButton)<{ open: boolean }>`
 		color: ${(props) => props.theme.colors.font.primary} !important;
 	}
 	svg {
-		height: ${CSS_DIMENSIONS.px12_5};
-		width: ${CSS_DIMENSIONS.px12_5};
-		margin: ${CSS_DIMENSIONS.px3_5} 0 0 0;
+		height: 12.5px;
+		width: 12.5px;
+		margin: 3.5px 0 0 0;
 		transform: rotate(${(props) => (props.open ? '180deg' : '0deg')});
 		fill: ${(props) => props.theme.colors.font.primary};
 		color: ${(props) => props.theme.colors.font.primary};
@@ -102,7 +101,7 @@ export const NList = styled.ul`
 	overflow: auto;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px4_5};
+	gap: 4.5px;
 	a {
 		width: fit-content;
 		text-decoration: none;
@@ -115,7 +114,7 @@ export const NList = styled.ul`
 `;
 
 export const NSubList = styled.div`
-	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const NListItem = styled.li<{ disabled: boolean; active: boolean }>`
@@ -128,22 +127,22 @@ export const NListItem = styled.li<{ disabled: boolean; active: boolean }>`
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	margin: 0 0 ${CSS_DIMENSIONS.px12} 0;
-	padding: 0 0 0 ${CSS_DIMENSIONS.px10};
+	margin: 0 0 12px 0;
+	padding: 0 0 0 10px;
 	line-height: 1.75;
 	text-align: left;
-	border-left: ${CSS_DIMENSIONS.px2} solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
+	border-left: 2px solid ${(props) => (props.active ? props.theme.colors.border.alt5 : 'transparent')};
 	transition: all 100ms;
 
 	&:hover {
 		color: ${(props) => props.theme.colors.font.primary};
-		border-left: ${CSS_DIMENSIONS.px2} solid ${(props) => props.theme.colors.border.alt5};
+		border-left: 2px solid ${(props) => props.theme.colors.border.alt5};
 	}
 `;
 
 export const NGroup = styled.div`
 	@media (max-width: ${STYLING.cutoffs.initial}) {
-		margin: 0 0 ${CSS_DIMENSIONS.px12_5} 0;
+		margin: 0 0 12.5px 0;
 	}
 `;
 
@@ -153,12 +152,12 @@ export const NSubHeader = styled(NTitle)`
 	font-size: ${(props) => props.theme.typography.size.small};
 	border-top-left-radius: 0;
 	border-top-right-radius: 0;
-	margin: 0 0 ${CSS_DIMENSIONS.px10} 0;
+	margin: 0 0 10px 0;
 	display: block;
 	p {
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 		color: ${(props) => props.theme.colors.font.alt2} !important;
-		letter-spacing: ${CSS_DIMENSIONS.px0_85};
+		letter-spacing: 0.85px;
 	}
 `;

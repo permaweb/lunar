@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-import { CSS_COLORS, CSS_DIMENSIONS } from 'helpers/themes';
+import { CSS_COLORS } from 'helpers/themes';
 
 export const Container = styled.div<{ $fixedHeight?: number; $fullScreenMode?: boolean }>`
 	height: ${(props) => (props.$fullScreenMode ? '100vh' : `${props.$fixedHeight ?? 600}px`)};
@@ -16,8 +16,8 @@ export const Header = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15};
+	gap: 15px;
+	padding: 15px 15px 12.5px 15px;
 
 	p {
 		color: ${(props) => props.theme.colors.font.primary};

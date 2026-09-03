@@ -618,7 +618,7 @@ function MetricChart(props: MetricChartProps) {
 				ticks: {
 					display: false,
 				},
-				// tickLength 0 stops the hidden axis from reserving ~${CSS_DIMENSIONS.px8} of empty
+				// tickLength 0 stops the hidden axis from reserving ~8px of empty
 				// space (otherwise the plot is inset from the edges).
 				grid: { display: false, drawBorder: false, drawOnChartArea: false, tickLength: 0 },
 				border: { display: false },

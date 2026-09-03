@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div``;
 
@@ -10,10 +9,10 @@ export const Header = styled.div`
 	display: flex;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	h4 {
 		color: ${(props) => props.theme.colors.font.primary};
-		font-size: clamp(${CSS_DIMENSIONS.px18}, 3.25vw, ${CSS_DIMENSIONS.px24});
+		font-size: clamp(18px, 3.25vw, 24px);
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		line-height: 1.5;
 	}
@@ -23,14 +22,14 @@ export const Body = styled.div`
 	display: flex;
 	justify-content: center;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px10};
-	padding: 0 ${CSS_DIMENSIONS.px20};
+	gap: 10px;
+	padding: 0 20px;
 `;
 
 export const Form = styled.div`
 	height: fit-content;
 	width: 100%;
-	@media (max-width: calc(${STYLING.cutoffs.initial} + ${CSS_DIMENSIONS.px105})) {
+	@media (max-width: calc(${STYLING.cutoffs.initial} + 105px)) {
 		min-width: 0;
 		width: 100%;
 		flex: none;
@@ -38,18 +37,18 @@ export const Form = styled.div`
 `;
 
 export const TForm = styled.div`
-	margin: ${CSS_DIMENSIONS.px40} 0 ${CSS_DIMENSIONS.px30} 0;
+	margin: 40px 0 30px 0;
 	> * {
 		&:last-child {
-			margin: ${CSS_DIMENSIONS.px20} 0 0 0;
+			margin: 20px 0 0 0;
 		}
 	}
 `;
 
 export const PWrapper = styled.div`
 	height: fit-content;
-	min-width: ${CSS_DIMENSIONS.px500};
-	width: calc(50% - ${CSS_DIMENSIONS.px20});
+	min-width: 500px;
+	width: calc(50% - 20px);
 	flex: 1;
 	input {
 		display: none;
@@ -75,7 +74,7 @@ export const CWrapper = styled.div`
 	}
 
 	.c-wrapper-checkbox {
-		margin: ${CSS_DIMENSIONS.px4_5} 0 0 ${CSS_DIMENSIONS.px7_5};
+		margin: 4.5px 0 0 7.5px;
 	}
 `;
 
@@ -85,11 +84,10 @@ export const FileInputWrapper = styled.div`
 `;
 
 export const BInput = styled(PrimitiveButton)<{ hasBanner: boolean }>`
-	height: ${CSS_DIMENSIONS.px200};
+	height: 200px;
 	width: 100%;
 	background: ${(props) => props.theme.colors.container.primary.background};
-	border: ${(props) =>
-		props.hasBanner ? `none` : `${CSS_DIMENSIONS.px1} dashed ${props.theme.colors.border.primary}`};
+	border: ${(props) => (props.hasBanner ? `none` : `1px dashed ${props.theme.colors.border.primary}`)};
 	border-radius: ${STYLING.dimensions.radius.primary};
 	overflow: hidden;
 	span {
@@ -98,19 +96,19 @@ export const BInput = styled(PrimitiveButton)<{ hasBanner: boolean }>`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 	}
 	svg {
-		height: ${CSS_DIMENSIONS.px35};
-		width: ${CSS_DIMENSIONS.px35};
-		margin: 0 0 ${CSS_DIMENSIONS.px10} 0;
+		height: 35px;
+		width: 35px;
+		margin: 0 0 10px 0;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
 		fill: ${(props) => props.theme.colors.icon.primary.fill};
 	}
 	img {
-		height: ${CSS_DIMENSIONS.px200};
+		height: 200px;
 		width: 100%;
 		object-fit: cover;
 	}
 	&:hover {
-		border: ${CSS_DIMENSIONS.px1} dashed ${(props) => props.theme.colors.border.alt2};
+		border: 1px dashed ${(props) => props.theme.colors.border.alt2};
 		background: ${(props) => props.theme.colors.container.primary.active};
 	}
 	&:focus {
@@ -118,7 +116,7 @@ export const BInput = styled(PrimitiveButton)<{ hasBanner: boolean }>`
 	}
 	&:disabled {
 		background: ${(props) => props.theme.colors.button.primary.disabled.background};
-		border: ${CSS_DIMENSIONS.px1} dashed ${(props) => props.theme.colors.button.primary.disabled.border};
+		border: 1px dashed ${(props) => props.theme.colors.button.primary.disabled.border};
 		span {
 			color: ${(props) => props.theme.colors.button.primary.disabled.color};
 		}
@@ -140,7 +138,7 @@ export const BInput = styled(PrimitiveButton)<{ hasBanner: boolean }>`
         ::after {
             content: "";
             position: absolute;
-            height: ${CSS_DIMENSIONS.px200};
+            height: 200px;
             width: 100%;
             top: 0;
             left: 0;
@@ -167,15 +165,14 @@ export const BInput = styled(PrimitiveButton)<{ hasBanner: boolean }>`
 `;
 
 export const AInput = styled(PrimitiveButton)<{ hasAvatar: boolean }>`
-	height: ${CSS_DIMENSIONS.px115};
-	width: ${CSS_DIMENSIONS.px115};
+	height: 115px;
+	width: 115px;
 	background: ${(props) => props.theme.colors.container.primary.background};
-	border: ${(props) =>
-		props.hasAvatar ? `none` : `${CSS_DIMENSIONS.px1} dashed ${props.theme.colors.border.primary}`};
+	border: ${(props) => (props.hasAvatar ? `none` : `1px dashed ${props.theme.colors.border.primary}`)};
 	border-radius: 50%;
 	position: absolute;
-	bottom: -${CSS_DIMENSIONS.px55};
-	left: ${CSS_DIMENSIONS.px20};
+	bottom: -55px;
+	left: 20px;
 	z-index: 1;
 	overflow: hidden;
 	span {
@@ -184,9 +181,9 @@ export const AInput = styled(PrimitiveButton)<{ hasAvatar: boolean }>`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 	}
 	svg {
-		height: ${CSS_DIMENSIONS.px25};
-		width: ${CSS_DIMENSIONS.px25};
-		margin: 0 0 ${CSS_DIMENSIONS.px5} 0;
+		height: 25px;
+		width: 25px;
+		margin: 0 0 5px 0;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
 		fill: ${(props) => props.theme.colors.icon.primary.fill};
 	}
@@ -197,7 +194,7 @@ export const AInput = styled(PrimitiveButton)<{ hasAvatar: boolean }>`
 		object-fit: cover;
 	}
 	&:hover {
-		border: ${CSS_DIMENSIONS.px1} dashed ${(props) => props.theme.colors.border.alt2};
+		border: 1px dashed ${(props) => props.theme.colors.border.alt2};
 		background: ${(props) => props.theme.colors.container.primary.active};
 	}
 	&:focus {
@@ -205,7 +202,7 @@ export const AInput = styled(PrimitiveButton)<{ hasAvatar: boolean }>`
 	}
 	&:disabled {
 		background: ${(props) => props.theme.colors.button.primary.disabled.background};
-		border: ${CSS_DIMENSIONS.px1} dashed ${(props) => props.theme.colors.button.primary.disabled.border};
+		border: 1px dashed ${(props) => props.theme.colors.button.primary.disabled.border};
 		span {
 			color: ${(props) => props.theme.colors.button.primary.disabled.color};
 		}
@@ -247,13 +244,13 @@ export const AInput = styled(PrimitiveButton)<{ hasAvatar: boolean }>`
 `;
 
 export const PActions = styled.div`
-	margin: ${CSS_DIMENSIONS.px20} 0 0 0;
+	margin: 20px 0 0 0;
 	display: flex;
 	justify-content: flex-end;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		margin: ${CSS_DIMENSIONS.px80} 0 0 0;
+		margin: 80px 0 0 0;
 	}
 `;
 
@@ -263,16 +260,16 @@ export const SAction = styled.div`
 	justify-content: flex-end;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	position: relative;
 `;
 
 export const MWrapper = styled.div`
-	padding: 0 ${CSS_DIMENSIONS.px20};
+	padding: 0 20px;
 `;
 
 export const MInfo = styled.div`
-	margin: 0 0 ${CSS_DIMENSIONS.px20} 0;
+	margin: 0 0 20px 0;
 	span {
 		color: ${(props) => props.theme.colors.font.primary};
 		font-size: ${(props) => props.theme.typography.size.small};
@@ -282,9 +279,9 @@ export const MInfo = styled.div`
 `;
 
 export const MActions = styled.div`
-	margin: ${CSS_DIMENSIONS.px10} 0 0 0;
+	margin: 10px 0 0 0;
 	display: flex;
 	justify-content: flex-end;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 `;

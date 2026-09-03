@@ -2,12 +2,11 @@ import styled, { DefaultTheme, keyframes } from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 const tooltipFadeIn = keyframes`
 	from {
 		opacity: 0;
-		transform: translateY(${CSS_DIMENSIONS.px3});
+		transform: translateY(3px);
 	}
 
 	to {
@@ -19,7 +18,7 @@ const tooltipFadeIn = keyframes`
 const tooltipFadeInBelow = keyframes`
 	from {
 		opacity: 0;
-		transform: translateY(-${CSS_DIMENSIONS.px3});
+		transform: translateY(-3px);
 	}
 
 	to {
@@ -33,12 +32,12 @@ export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 	position: relative;
 
 	&:fullscreen {
 		background: ${(props) => props.theme.colors.container.primary.background};
-		padding: ${CSS_DIMENSIONS.px25};
+		padding: 25px;
 		overflow: auto;
 	}
 `;
@@ -49,7 +48,7 @@ export const HeaderWrapper = styled.form`
 	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		flex-direction: column;
@@ -61,7 +60,7 @@ export const HeaderActionsWrapper = styled.div`
 	display: flex;
 	align-items: flex-start;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 `;
 
 export const BodyWrapper = styled.div`
@@ -69,28 +68,28 @@ export const BodyWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 `;
 
 export const ColumnFlexWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 `;
 
 export const MessageHeaderWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 `;
 
 export const InfoWrapper = styled.div`
 	width: 100%;
 	display: flex;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		flex-direction: column-reverse;
@@ -98,7 +97,7 @@ export const InfoWrapper = styled.div`
 `;
 
 export const TagsWrapper = styled.div`
-	width: ${CSS_DIMENSIONS.px450};
+	width: 450px;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
@@ -106,7 +105,7 @@ export const TagsWrapper = styled.div`
 `;
 
 export const SectionWrapperFlex = styled.div`
-	width: calc(50% - ${CSS_DIMENSIONS.px12_5});
+	width: calc(50% - 12.5px);
 	flex: 1;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -115,10 +114,10 @@ export const SectionWrapperFlex = styled.div`
 `;
 
 export const ReadWrapper = styled.div<{ fullWidth: boolean }>`
-	width: ${(props) => (props.fullWidth ? '100%' : `calc(100% - ${CSS_DIMENSIONS.px475})`)};
+	width: ${(props) => (props.fullWidth ? '100%' : `calc(100% - 475px)`)};
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
@@ -134,17 +133,17 @@ export const MessageInfoHeader = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
-	padding: ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15};
+	padding: 12.5px 15px;
 
 	p {
 		display: flex;
 		align-items: center;
-		gap: ${CSS_DIMENSIONS.px7_5};
+		gap: 7.5px;
 
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};
@@ -184,7 +183,7 @@ function getDesktopLastRowBorderStyles(props: {
 
 		return `
 			> * {
-				border-bottom: ${CSS_DIMENSIONS.px1} solid ${props.theme.colors.border.primary};
+				border-bottom: 1px solid ${props.theme.colors.border.primary};
 			}
 
 			> *:nth-child(n + ${lastRowStart}) {
@@ -221,11 +220,11 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 	> *:nth-child(4),
 	> *:nth-child(5),
 	> *:nth-child(6) {
-		border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 
 	> *:nth-child(3n + 2) {
-		padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px15};
+		padding: 10px 15px;
 	}
 
 	@media (min-width: ${STYLING.cutoffs.desktop}) {
@@ -239,7 +238,7 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 			justify-content: flex-start;
 			text-align: left;
 			border-right: none;
-			border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 		}
 
 		> *:last-child {
@@ -251,7 +250,7 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 export const TxOverviewValue = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 
 	p {
 		line-height: 1.35;
@@ -267,12 +266,12 @@ export const TxOverviewValue = styled.div`
 `;
 
 export const MessageInfoLine = styled.div`
-	min-height: ${CSS_DIMENSIONS.px47_5};
+	min-height: 47.5px;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
-	padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px15};
-	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	gap: 7.5px;
+	padding: 10px 15px;
+	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -292,7 +291,7 @@ export const MessageInfoLine = styled.div`
 		flex-direction: column;
 		align-items: flex-start;
 		border-right: none;
-		padding: ${CSS_DIMENSIONS.px15};
+		padding: 15px;
 	}
 `;
 
@@ -304,7 +303,7 @@ export const Height = styled.div`
 	a:hover p {
 		color: ${(props) => props.theme.colors.link.active};
 		text-decoration: underline;
-		text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
+		text-decoration-thickness: 1.25px;
 	}
 `;
 
@@ -320,7 +319,7 @@ export const CopyableValue = styled(PrimitiveButton)`
 	max-width: 100%;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px6_5};
+	gap: 6.5px;
 	padding: 0;
 	background: transparent;
 	border: none;
@@ -330,14 +329,14 @@ export const CopyableValue = styled(PrimitiveButton)`
 	}
 
 	div {
-		height: ${CSS_DIMENSIONS.px12_5};
-		width: ${CSS_DIMENSIONS.px12_5};
+		height: 12.5px;
+		width: 12.5px;
 	}
 
 	svg {
-		height: ${CSS_DIMENSIONS.px12_5};
-		width: ${CSS_DIMENSIONS.px12_5};
-		margin: ${CSS_DIMENSIONS.px2} 0 0 0;
+		height: 12.5px;
+		width: 12.5px;
+		margin: 2px 0 0 0;
 		color: ${(props) => props.theme.colors.link.color};
 		fill: ${(props) => props.theme.colors.link.color};
 	}
@@ -348,7 +347,7 @@ export const CopyableValue = styled(PrimitiveButton)`
 		p {
 			color: ${(props) => props.theme.colors.link.active};
 			text-decoration: underline;
-			text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
+			text-decoration-thickness: 1.25px;
 		}
 
 		svg {
@@ -361,13 +360,13 @@ export const CopyableValue = styled(PrimitiveButton)`
 export const LabeledAddress = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px12_5};
+	gap: 12.5px;
 	min-width: 0;
 `;
 
 export const AddressLabel = styled.small`
 	width: fit-content;
-	padding: ${CSS_DIMENSIONS.px1} ${CSS_DIMENSIONS.px5};
+	padding: 1px 5px;
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	background: ${(props) => props.theme.colors.container.alt8.background};
 	color: ${(props) => props.theme.colors.font.light1};
@@ -378,12 +377,12 @@ export const AddressLabel = styled.small`
 `;
 
 export const MessageInfoID = styled(MessageInfoLine)`
-	min-height: ${CSS_DIMENSIONS.px35};
+	min-height: 35px;
 	align-items: center !important;
 
 	span {
 		display: flex;
-		margin: ${CSS_DIMENSIONS.px1_5} 0 0 0;
+		margin: 1.5px 0 0 0;
 	}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
@@ -396,24 +395,24 @@ export const TransferInfo = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px17_5} ${CSS_DIMENSIONS.px15};
+	gap: 15px;
+	padding: 12.5px 15px 17.5px 15px;
 `;
 
 export const TransferInfoHeader = styled(MessageInfoHeader)`
-	padding: 0 0 ${CSS_DIMENSIONS.px12_5} 0;
-	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	padding: 0 0 12.5px 0;
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const TransferInfoBody = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 
 	> * {
 		&:not(:last-child) {
-			border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-			padding: 0 0 ${CSS_DIMENSIONS.px15} 0;
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+			padding: 0 0 15px 0;
 		}
 	}
 
@@ -432,16 +431,16 @@ export const TransferInfoBody = styled.div`
 export const TransferInfoID = styled(MessageInfoID)``;
 
 export const TransferInfoLine = styled(MessageInfoLine)`
-	min-height: ${CSS_DIMENSIONS.px22_5};
-	max-height: ${CSS_DIMENSIONS.px45};
+	min-height: 22.5px;
+	max-height: 45px;
 	padding: 0;
 	border-right: none;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 
 	> * {
 		&:not(:last-child) {
-			border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-			padding: 0 ${CSS_DIMENSIONS.px15} 0 0;
+			border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+			padding: 0 15px 0 0;
 		}
 	}
 
@@ -457,17 +456,17 @@ export const TransferInfoLine = styled(MessageInfoLine)`
 
 		> * {
 			width: 100%;
-			min-height: ${CSS_DIMENSIONS.px47_5};
+			min-height: 47.5px;
 			flex: none;
 			justify-content: center;
 			border-right: none;
-			border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-			padding: ${CSS_DIMENSIONS.px15} 0;
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+			padding: 15px 0;
 		}
 
 		> *:not(:last-child) {
 			border-right: none;
-			padding: ${CSS_DIMENSIONS.px15} 0;
+			padding: 15px 0;
 		}
 
 		> *:last-child {
@@ -484,7 +483,7 @@ export const TransferInfoLineElement = styled.div`
 	display: flex;
 	flex: 1;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		flex-direction: column;
@@ -495,7 +494,7 @@ export const TransferInfoLineElement = styled.div`
 export const TransferInfoAmount = styled.div<{ isNumber: boolean }>`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px5};
+	gap: 5px;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.small};
@@ -521,7 +520,7 @@ export const TransferLogoWrapper = styled.div``;
 
 export const TransferLogo = styled.div<{ dimensions: number; margin?: string }>`
 	div {
-		margin: 0 0 0 ${CSS_DIMENSIONS.px1_5};
+		margin: 0 0 0 1.5px;
 	}
 
 	svg {
@@ -538,10 +537,10 @@ export const TransferLogo = styled.div<{ dimensions: number; margin?: string }>`
 	}
 
 	img {
-		height: ${CSS_DIMENSIONS.px15};
-		width: ${CSS_DIMENSIONS.px15};
+		height: 15px;
+		width: 15px;
 		object-fit: contain;
-		margin: ${CSS_DIMENSIONS.px6_5} ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px0} 0;
+		margin: 6.5px 2.5px 0px 0;
 	}
 `;
 
@@ -549,7 +548,7 @@ export const TransferInfoStatus = styled.div`
 	display: flex;
 	flex: 1;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 	border-right: none !important;
 
 	span {
@@ -591,7 +590,7 @@ export const TransferInfoResult = styled.div<{ disabled: boolean }>`
 		p {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
 			text-decoration: ${(props) => (props.disabled ? 'none' : 'underline')};
-			text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
+			text-decoration-thickness: 1.25px;
 		}
 		svg {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
@@ -601,8 +600,8 @@ export const TransferInfoResult = styled.div<{ disabled: boolean }>`
 `;
 
 export const TransferInfoStatusIndicator = styled.div<{ pending?: boolean; success?: boolean }>`
-	height: ${CSS_DIMENSIONS.px17_5};
-	width: ${CSS_DIMENSIONS.px17_5};
+	height: 17.5px;
+	width: 17.5px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -613,13 +612,13 @@ export const TransferInfoStatusIndicator = styled.div<{ pending?: boolean; succe
 			: props.success
 			? props.theme.colors.indicator.active
 			: props.theme.colors.warning.primary};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	margin: ${CSS_DIMENSIONS.px0_5} 0 0 ${CSS_DIMENSIONS.px1_5};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	margin: 0.5px 0 0 1.5px;
 
 	svg {
-		height: ${CSS_DIMENSIONS.px9_5};
-		width: ${CSS_DIMENSIONS.px9_5};
-		margin: 0 0 ${CSS_DIMENSIONS.px1} 0;
+		height: 9.5px;
+		width: 9.5px;
+		margin: 0 0 1px 0;
 		color: ${(props) => props.theme.colors.font.light1};
 		fill: ${(props) => props.theme.colors.font.light1};
 	}
@@ -632,12 +631,12 @@ export const MessagesWrapper = styled.div`
 export const Section = styled.div<{ $fixedHeight?: number }>`
 	height: ${(props) => (props.$fixedHeight ? `${props.$fixedHeight}px` : 'fit-content')};
 	flex: 1;
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 	overflow: hidden;
 
 	img,
 	video {
-		max-height: calc(100vh - ${CSS_DIMENSIONS.px245});
+		max-height: calc(100vh - 245px);
 		margin: 0 auto;
 		border-radius: ${STYLING.dimensions.radius.primary};
 	}
@@ -677,10 +676,10 @@ export const UnsupportedContent = styled.div`
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: ${CSS_DIMENSIONS.px60} ${CSS_DIMENSIONS.px20};
-	gap: ${CSS_DIMENSIONS.px10};
+	padding: 60px 20px;
+	gap: 10px;
 	text-align: center;
-	min-height: ${CSS_DIMENSIONS.px200};
+	min-height: 200px;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -696,9 +695,9 @@ export const UnsupportedContent = styled.div`
 		font-weight: ${(props) => props.theme.typography.weight.medium};
 		color: ${(props) => props.theme.colors.font.primary};
 		margin: 0;
-		padding: ${CSS_DIMENSIONS.px6} ${CSS_DIMENSIONS.px14};
+		padding: 6px 14px;
 		background: ${(props) => props.theme.colors.container.alt2.background};
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		font-family: monospace;
 	}
@@ -712,7 +711,7 @@ export const UnsupportedContent = styled.div`
 	}
 
 	a {
-		margin-top: ${CSS_DIMENSIONS.px10};
+		margin-top: 10px;
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
@@ -722,7 +721,7 @@ export const UnsupportedContent = styled.div`
 
 		&:hover {
 			text-decoration: underline;
-			text-decoration-thickness: ${CSS_DIMENSIONS.px1_25};
+			text-decoration-thickness: 1.25px;
 		}
 	}
 `;
@@ -732,25 +731,25 @@ export const MediaWrapper = styled.div`
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: ${CSS_DIMENSIONS.px20};
-	min-height: ${CSS_DIMENSIONS.px200};
+	padding: 20px;
+	min-height: 200px;
 	width: 100%;
 
 	video {
 		max-width: 100%;
-		max-height: ${CSS_DIMENSIONS.px500};
+		max-height: 500px;
 		border-radius: ${STYLING.dimensions.radius.primary};
 		background: ${(props) => props.theme.colors.container.primary.background};
 	}
 
 	audio {
 		width: 100%;
-		max-width: ${CSS_DIMENSIONS.px600};
+		max-width: 600px;
 	}
 `;
 
 export const MarkdownSection = styled.div`
-	padding: ${CSS_DIMENSIONS.px10} 0 0 0;
+	padding: 10px 0 0 0;
 `;
 
 export const SectionFull = styled.div`
@@ -761,7 +760,7 @@ export const SectionHeader = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin: 0 0 ${CSS_DIMENSIONS.px15} 0;
+	margin: 0 0 15px 0;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
@@ -779,28 +778,28 @@ export const SectionHeader = styled.div`
 `;
 
 export const SectionHeaderFull = styled(SectionHeader)`
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 	margin: 0;
-	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
 	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
 `;
 
 export const SectionFullUpdateWrapper = styled.div`
-	padding: 0 ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15};
+	padding: 0 15px 15px 15px;
 `;
 
 export const SearchWrapper = styled.div`
-	height: ${CSS_DIMENSIONS.px38_5};
+	height: 38.5px;
 	max-width: 100%;
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	position: relative;
-	padding: 0 0 0 ${CSS_DIMENSIONS.px0_5};
+	padding: 0 0 0 0.5px;
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		height: auto;
@@ -808,24 +807,24 @@ export const SearchWrapper = styled.div`
 `;
 
 export const SearchInputWrapper = styled.div`
-	width: ${CSS_DIMENSIONS.px510};
+	width: 510px;
 	max-width: 100%;
 	position: relative;
 
 	input {
 		max-width: 100%;
-		padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px42_5} !important;
+		padding: 10px 10px 10px 42.5px !important;
 	}
 
 	svg {
-		height: ${CSS_DIMENSIONS.px15};
-		width: ${CSS_DIMENSIONS.px15};
+		height: 15px;
+		width: 15px;
 		color: ${(props) => props.theme.colors.font.alt1};
 		fill: ${(props) => props.theme.colors.font.alt1};
 		position: absolute;
 		z-index: 1;
-		top: ${CSS_DIMENSIONS.px11_5};
-		left: ${CSS_DIMENSIONS.px14_5};
+		top: 11.5px;
+		left: 14.5px;
 	}
 `;
 
@@ -833,36 +832,36 @@ export const BlockNavigationWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: 0 0 0 ${CSS_DIMENSIONS.px15};
-	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	gap: 15px;
+	padding: 0 0 0 15px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const InputActions = styled.div`
 	width: 100%;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	justify-content: flex-end;
-	margin: ${CSS_DIMENSIONS.px15} 0 0 0;
+	margin: 15px 0 0 0;
 `;
 
 export const TxInfoWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	flex-wrap: wrap;
 `;
 
 export const UpdateWrapper = styled.div`
-	min-height: ${CSS_DIMENSIONS.px30};
+	min-height: 30px;
 	width: fit-content;
-	padding: ${CSS_DIMENSIONS.px5_5} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px4_5} ${CSS_DIMENSIONS.px15};
+	padding: 5.5px 15px 4.5px 15px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: ${CSS_DIMENSIONS.px6_5};
+	gap: 6.5px;
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.container.alt8.background};
+	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 
 	span {
@@ -883,20 +882,20 @@ export const UpdateWrapper = styled.div`
 `;
 
 export const UpdateWrapperType = styled(UpdateWrapper)`
-	padding: ${CSS_DIMENSIONS.px5_5} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px4_5} ${CSS_DIMENSIONS.px13_5};
-	gap: ${CSS_DIMENSIONS.px9_5};
+	padding: 5.5px 15px 4.5px 13.5px;
+	gap: 9.5px;
 
 	div {
-		height: ${CSS_DIMENSIONS.px12};
-		width: ${CSS_DIMENSIONS.px12};
+		height: 12px;
+		width: 12px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 
 	svg {
-		height: ${CSS_DIMENSIONS.px12};
-		width: ${CSS_DIMENSIONS.px12};
+		height: 12px;
+		width: 12px;
 		color: ${(props) => props.theme.colors.font.light2};
 		fill: ${(props) => props.theme.colors.font.light2};
 	}
@@ -921,7 +920,7 @@ export const Logo = styled.div<{ dimensions: number; margin?: string }>`
 	div {
 		height: ${(props) => `${props.dimensions.toString()}px`};
 		width: ${(props) => `${props.dimensions.toString()}px`};
-		margin: 0 0 0 ${CSS_DIMENSIONS.px1_5};
+		margin: 0 0 0 1.5px;
 	}
 
 	svg {
@@ -939,7 +938,7 @@ export const Logo = styled.div<{ dimensions: number; margin?: string }>`
 `;
 
 export const Refresh = styled.div`
-	margin: 0 -${CSS_DIMENSIONS.px4_5} 0 ${CSS_DIMENSIONS.px4_5};
+	margin: 0 -4.5px 0 4.5px;
 
 	svg {
 		color: ${(props) => props.theme.colors.font.light1} !important;
@@ -962,22 +961,22 @@ export const Refresh = styled.div`
 export const NodeConnectionWrapper = styled.div``;
 
 export const OverviewWrapper = styled.div<{ $fixedHeight?: number; $hasOverflow?: boolean }>`
-	height: ${(props) => (props.$fixedHeight ? `calc(${props.$fixedHeight}px - ${CSS_DIMENSIONS.px80})` : 'fit-content')};
-	max-height: ${CSS_DIMENSIONS.px526_5};
+	height: ${(props) => (props.$fixedHeight ? `calc(${props.$fixedHeight}px - 80px)` : 'fit-content')};
+	max-height: 526.5px;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px10};
-	padding-right: ${(props) => (props.$hasOverflow ? `${CSS_DIMENSIONS.px12_5}` : '0')};
+	gap: 10px;
+	padding-right: ${(props) => (props.$hasOverflow ? `12.5px` : '0')};
 
 	> * {
 		&:not(:last-child) {
-			padding: 0 0 ${CSS_DIMENSIONS.px10} 0;
-			border-bottom: ${CSS_DIMENSIONS.px1} dotted ${(props) => props.theme.colors.border.primary};
+			padding: 0 0 10px 0;
+			border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
 		}
 	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		gap: ${CSS_DIMENSIONS.px20};
+		gap: 20px;
 	}
 `;
 
@@ -985,7 +984,7 @@ export const OverviewLine = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	max-height: ${CSS_DIMENSIONS.px30};
+	max-height: 30px;
 
 	p,
 	span {
@@ -1018,7 +1017,7 @@ export const OverviewLine = styled.div`
 		flex-direction: column;
 		align-items: flex-start;
 		justify-content: flex-start;
-		gap: ${CSS_DIMENSIONS.px5};
+		gap: 5px;
 
 		p {
 			text-align: left;
@@ -1047,7 +1046,7 @@ export const TagValue = styled(PrimitiveButton)<{ $tooltipVisible?: boolean }>`
 	> div {
 		opacity: ${(props) => (props.$tooltipVisible ? 1 : 0)};
 		visibility: ${(props) => (props.$tooltipVisible ? 'visible' : 'hidden')};
-		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : `translateY(${CSS_DIMENSIONS.px3})`)};
+		transform: ${(props) => (props.$tooltipVisible ? 'translateY(0)' : `translateY(3px)`)};
 		transition-delay: ${(props) => (props.$tooltipVisible ? '0s' : '0s, 0s, 140ms')};
 	}
 
@@ -1081,13 +1080,12 @@ export const TagValueTooltip = styled.div<{
 	visibility: visible;
 	transform: translateY(0);
 	width: max-content;
-	max-width: ${(props) => (props.$position ? `${props.$position.maxWidth}px` : `${CSS_DIMENSIONS.px400}`)};
-	padding: ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px5};
+	max-width: ${(props) => (props.$position ? `${props.$position.maxWidth}px` : `400px`)};
+	padding: 2.5px 5px;
 	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
-	box-shadow: ${(props) => props.theme.colors.shadow.primary} ${CSS_DIMENSIONS.px0} ${CSS_DIMENSIONS.px1}
-		${CSS_DIMENSIONS.px2} ${CSS_DIMENSIONS.px0_5};
+	box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
 	color: ${(props) => props.theme.colors.font.light1};
 	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	font-family: ${(props) => props.theme.typography.family.primary};
@@ -1102,23 +1100,23 @@ export const TagValueTooltip = styled.div<{
 `;
 
 export const OverviewDivider = styled.div`
-	height: ${CSS_DIMENSIONS.px1};
+	height: 1px;
 	width: 100%;
-	margin: ${CSS_DIMENSIONS.px5} 0 0 0;
-	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	margin: 5px 0 0 0;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
 export const MessagesSection = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 `;
 
 export const MessagesPlaceholder = styled.div`
-	padding: 0 ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15};
-	border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	padding: 0 15px 15px 15px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};
 
@@ -1135,26 +1133,26 @@ export const Placeholder = styled.div`
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: ${CSS_DIMENSIONS.px20};
-	padding: ${CSS_DIMENSIONS.px80} 0;
+	gap: 20px;
+	padding: 80px 0;
 `;
 
 export const PlaceholderIcon = styled.div`
-	height: ${CSS_DIMENSIONS.px150};
-	width: ${CSS_DIMENSIONS.px150};
+	height: 150px;
+	width: 150px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: 50%;
 
 	svg {
-		height: ${CSS_DIMENSIONS.px85};
-		width: ${CSS_DIMENSIONS.px85};
+		height: 85px;
+		width: 85px;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
 		fill: ${(props) => props.theme.colors.icon.primary.fill};
-		margin: ${CSS_DIMENSIONS.px7_5} 0 0 0;
+		margin: 7.5px 0 0 0;
 	}
 `;
 
@@ -1163,7 +1161,7 @@ export const PlaceholderDescription = styled.div`
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 
 	p,
 	span {
@@ -1179,7 +1177,7 @@ export const PlaceholderDescription = styled.div`
 
 	span {
 		display: block;
-		max-width: ${CSS_DIMENSIONS.px350};
+		max-width: 350px;
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.medium};

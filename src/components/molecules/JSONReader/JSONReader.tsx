@@ -4,7 +4,6 @@ import JSONbig from 'json-bigint';
 
 import { Button } from 'components/atoms/Button';
 import { ASSETS, URLS } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 import { checkValidAddress, stripAnsiChars } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -874,7 +873,7 @@ export default function _JSONTree(props: {
 							width={25}
 							noMinWidth
 							iconSize={12.5}
-							padding={`${CSS_DIMENSIONS.px3_95} 0 0 0`}
+							padding={`3.95px 0 0 0`}
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'bottom-right'}
 							stopPropagation
@@ -890,7 +889,7 @@ export default function _JSONTree(props: {
 						width={25}
 						noMinWidth
 						iconSize={12.5}
-						padding={`${CSS_DIMENSIONS.px3_5} 0 0 0`}
+						padding={`3.5px 0 0 0`}
 						tooltip={language.downloadJSON ?? 'Download JSON'}
 						tooltipPosition={'bottom-right'}
 						stopPropagation

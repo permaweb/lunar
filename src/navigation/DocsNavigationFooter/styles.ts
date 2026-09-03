@@ -1,21 +1,20 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div`
 	width: 100%;
-	max-width: ${CSS_DIMENSIONS.px910_5};
-	padding: ${CSS_DIMENSIONS.px25} 0 0 0;
+	max-width: 910.5px;
+	padding: 25px 0 0 0;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 
 	#docs-previous {
 		align-items: flex-start;
 		margin: 0 auto 0 0;
 
 		i {
-			margin: 0 ${CSS_DIMENSIONS.px7_5} 0 0;
+			margin: 0 7.5px 0 0;
 		}
 	}
 
@@ -24,19 +23,19 @@ export const Wrapper = styled.div`
 		margin: 0 0 0 auto;
 
 		i {
-			margin: 0 0 0 ${CSS_DIMENSIONS.px7_5};
+			margin: 0 0 0 7.5px;
 		}
 	}
 
 	a {
 		flex: 1;
-		max-width: calc(50% - ${CSS_DIMENSIONS.px17_5});
+		max-width: calc(50% - 17.5px);
 		display: flex;
 		flex-direction: column;
-		gap: ${CSS_DIMENSIONS.px5};
-		padding: ${CSS_DIMENSIONS.px8_5} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15};
+		gap: 5px;
+		padding: 8.5px 15px 15px 15px;
 		background: ${(props) => props.theme.colors.container.alt1.background};
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
 
 		span {
@@ -60,7 +59,7 @@ export const Wrapper = styled.div`
 		}
 
 		&:hover {
-			border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.alt1};
+			border: 1px solid ${(props) => props.theme.colors.border.alt1};
 			background: ${(props) => props.theme.colors.container.alt2.background};
 		}
 	}

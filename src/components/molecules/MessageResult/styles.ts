@@ -1,14 +1,13 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div`
 	width: 100%;
 	min-width: 0;
 	display: flex;
 	justify-content: space-between;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		flex-direction: column;
@@ -20,24 +19,24 @@ export const InputWrapper = styled.div`
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px23_5};
+	gap: 23.5px;
 `;
 
 export const TagsWrapper = styled.div`
-	max-height: ${CSS_DIMENSIONS.px276_5};
+	max-height: 276.5px;
 	flex: 1;
 	min-width: 0;
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 `;
 
 export const TagsHeader = styled.div`
-	height: ${CSS_DIMENSIONS.px40};
+	height: 40px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin: 0 0 ${CSS_DIMENSIONS.px15} 0;
-	padding: 0 0 ${CSS_DIMENSIONS.px15} 0;
-	border-bottom: ${CSS_DIMENSIONS.px1} dotted ${(props) => props.theme.colors.border.primary};
+	margin: 0 0 15px 0;
+	padding: 0 0 15px 0;
+	border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.lg};
@@ -54,11 +53,11 @@ export const TagsHeader = styled.div`
 `;
 
 export const TagsBody = styled.div`
-	height: calc(100% - ${CSS_DIMENSIONS.px55});
+	height: calc(100% - 55px);
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px10};
-	padding: 0 ${CSS_DIMENSIONS.px12_5} 0 0;
+	gap: 10px;
+	padding: 0 12.5px 0 0;
 
 	overflow-y: scroll;
 	scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} ${(props) => props.theme.colors.scrollbar.track};
@@ -67,22 +66,22 @@ export const TagsBody = styled.div`
 		background: ${(props) => props.theme.colors.scrollbar.track};
 	}
 	::-webkit-scrollbar {
-		width: ${CSS_DIMENSIONS.px15};
-		border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		width: 15px;
+		border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 	::-webkit-scrollbar-thumb {
 		background-color: ${(props) => props.theme.colors.scrollbar.thumb};
-		border-radius: ${CSS_DIMENSIONS.px36};
-		border: ${CSS_DIMENSIONS.px3_5} solid transparent;
+		border-radius: 36px;
+		border: 3.5px solid transparent;
 		background-clip: padding-box;
 	}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		max-height: ${CSS_DIMENSIONS.px190};
+		max-height: 190px;
 	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		gap: ${CSS_DIMENSIONS.px20};
+		gap: 20px;
 	}
 `;
 
@@ -121,7 +120,7 @@ export const TagLine = styled.div`
 		flex-direction: column;
 		align-items: flex-start;
 		justify-content: flex-start;
-		gap: ${CSS_DIMENSIONS.px5};
+		gap: 5px;
 
 		p {
 			text-align: left;

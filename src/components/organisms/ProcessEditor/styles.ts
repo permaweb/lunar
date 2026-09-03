@@ -1,14 +1,12 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div<{ $isFullscreen?: boolean }>`
-	height: ${(props) =>
-		props.$isFullscreen ? `calc(100dvh - ${CSS_DIMENSIONS.px175})` : `calc(100vh - ${CSS_DIMENSIONS.px275})`};
+	height: ${(props) => (props.$isFullscreen ? `calc(100dvh - 175px)` : `calc(100vh - 275px)`)};
 	width: 100%;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		flex-direction: column;

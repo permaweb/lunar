@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux';
 
 import { DEFAULT_ACTIONS, PROCESSES, TOKEN_DENOMINATIONS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 import { TagType } from 'helpers/types';
 import { formatUnits, getTagValue, hasPositiveAmount, removeCommitments } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
@@ -274,7 +273,7 @@ export default function TransferAmount(props: {
 		cacheKey: shouldFetchMetadata ? target : null,
 		enabled: shouldFetchMetadata,
 		fetchData: fetchTarget,
-		rootMargin: `${CSS_DIMENSIONS.px120}`,
+		rootMargin: `120px`,
 	});
 	const fetchedMetadata = React.useMemo(() => getTokenMetadataFromResponse(fetchedTarget.data), [fetchedTarget.data]);
 

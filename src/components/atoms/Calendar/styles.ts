@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const CalendarWrapper = styled.div`
 	width: 100%;
@@ -13,23 +12,23 @@ export const Header = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: ${CSS_DIMENSIONS.px20};
+	margin-bottom: 20px;
 `;
 
 export const NavButton = styled.button`
 	background: none;
 	border: none;
-	font-size: ${CSS_DIMENSIONS.px20};
+	font-size: 20px;
 	cursor: pointer;
 	color: ${(props) => props.theme.colors.font.primary};
-	width: ${CSS_DIMENSIONS.px30};
-	height: ${CSS_DIMENSIONS.px30};
-	padding: 0 0 ${CSS_DIMENSIONS.px2_5} 0;
+	width: 30px;
+	height: 30px;
+	padding: 0 0 2.5px 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	border-radius: ${STYLING.dimensions.radius.primary};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.alt1};
+	border: 1px solid ${(props) => props.theme.colors.border.alt1};
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
@@ -45,8 +44,8 @@ export const MonthYear = styled.div`
 export const DaysHeader = styled.div`
 	display: grid;
 	grid-template-columns: repeat(7, 1fr);
-	gap: ${CSS_DIMENSIONS.px20};
-	margin-bottom: ${CSS_DIMENSIONS.px7_5};
+	gap: 20px;
+	margin-bottom: 7.5px;
 `;
 
 export const DayName = styled.div`
@@ -54,29 +53,29 @@ export const DayName = styled.div`
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.medium};
 	color: ${(props) => props.theme.colors.font.alt1};
-	padding: ${CSS_DIMENSIONS.px8} 0;
+	padding: 8px 0;
 `;
 
 export const DaysGrid = styled.div`
 	display: grid;
 	grid-template-columns: repeat(7, 1fr);
-	gap: ${CSS_DIMENSIONS.px20};
+	gap: 20px;
 `;
 
 export const EmptyDay = styled.div`
 	aspect-ratio: 1;
-	min-height: ${CSS_DIMENSIONS.px20};
+	min-height: 20px;
 `;
 
 export const Day = styled.div<{ disabled?: boolean; selected?: boolean; isToday?: boolean }>`
 	aspect-ratio: 1;
-	min-height: ${CSS_DIMENSIONS.px28};
+	min-height: 28px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.alt1};
+	border: 1px solid ${(props) => props.theme.colors.border.alt1};
 	border-radius: ${STYLING.dimensions.radius.primary};
 	cursor: ${(props) => (props.disabled ? 'not-allowed' : 'pointer')};
 

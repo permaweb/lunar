@@ -2,7 +2,6 @@ import React from 'react';
 
 import { Button } from 'components/atoms/Button';
 import { ASSETS } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -168,7 +167,7 @@ export default function HTMLViewer(props: {
 					width={25}
 					noMinWidth
 					iconSize={12.5}
-					padding={`${CSS_DIMENSIONS.px3_95} 0 0 0`}
+					padding={`3.95px 0 0 0`}
 					tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 					tooltipPosition={'bottom-right'}
 					stopPropagation

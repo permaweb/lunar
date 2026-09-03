@@ -1,16 +1,15 @@
 import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Wrapper = styled.div<{ fullScreenMode: boolean; useFixedHeight: boolean }>`
-	min-height: ${CSS_DIMENSIONS.px500};
-	height: calc(100vh - ${CSS_DIMENSIONS.px145});
+	min-height: 500px;
+	height: calc(100vh - 145px);
 	width: 100%;
 	position: relative;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px25};
-	padding: ${(props) => (props.fullScreenMode ? `${CSS_DIMENSIONS.px15}` : '0')};
+	gap: 25px;
+	padding: ${(props) => (props.fullScreenMode ? `15px` : '0')};
 	background: ${(props) => props.theme.colors.view.background};
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -21,13 +20,13 @@ export const Wrapper = styled.div<{ fullScreenMode: boolean; useFixedHeight: boo
 export const ConsoleWrapper = styled.div<{ editorMode: boolean }>`
 	height: 100%;
 	width: ${(props) => (props.editorMode ? '50%' : '100%')};
-	max-width: ${(props) => (props.editorMode ? 'none' : `${CSS_DIMENSIONS.px850}`)};
+	max-width: ${(props) => (props.editorMode ? 'none' : `850px`)};
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px25};
+	gap: 25px;
 	flex-direction: column;
 	position: relative;
 	margin: 0 auto;
-	padding: ${CSS_DIMENSIONS.px1_5} 0;
+	padding: 1.5px 0;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
@@ -40,8 +39,8 @@ export const ResultsWrapper = styled.div`
 	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px20};
-	padding: 0 ${CSS_DIMENSIONS.px15} 0 0;
+	gap: 20px;
+	padding: 0 15px 0 0;
 
 	.result-command {
 		width: fit-content;
@@ -49,9 +48,9 @@ export const ResultsWrapper = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		background: ${(props) => props.theme.colors.container.alt2.background};
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.alt2};
-		padding: ${CSS_DIMENSIONS.px1_5} ${CSS_DIMENSIONS.px7_5};
+		padding: 1.5px 7.5px;
 	}
 
 	.result-error {
@@ -65,7 +64,7 @@ export const ResultsWrapper = styled.div`
 	}
 
 	.result-success {
-		letter-spacing: -${CSS_DIMENSIONS.px0_35};
+		letter-spacing: -0.35px;
 		font-family: ${(props) => props.theme.typography.family.alt2};
 		color: ${(props) => props.theme.colors.font.primary};
 	}
@@ -80,14 +79,14 @@ export const ResultLine = styled.div`
 	word-wrap: break-word;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px8};
+	gap: 8px;
 `;
 
 export const Spinner = styled.span`
 	display: inline-block;
-	width: ${CSS_DIMENSIONS.px12};
-	height: ${CSS_DIMENSIONS.px12};
-	border: ${CSS_DIMENSIONS.px2} solid ${(props) => props.theme.colors.font.alt3};
+	width: 12px;
+	height: 12px;
+	border: 2px solid ${(props) => props.theme.colors.font.alt3};
 	border-top-color: ${(props) => props.theme.colors.editor.alt1};
 	border-radius: 50%;
 	animation: spin 0.5s linear infinite;
@@ -125,12 +124,12 @@ export const LoadingText = styled.span`
 `;
 
 export const SplashScreen = styled.div`
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 	position: relative;
-	border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary} !important;
+	border: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 `;
 
 export const SplashScreenHeader = styled.div`
@@ -139,12 +138,12 @@ export const SplashScreenHeader = styled.div`
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	color: ${(props) => props.theme.colors.editor.alt1};
-	margin: 0 0 ${CSS_DIMENSIONS.px1_5} 0;
+	margin: 0 0 1.5px 0;
 `;
 
 export const SplashScreenLine = styled.div`
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px10};
+	gap: 10px;
 
 	p,
 	span {
@@ -155,7 +154,7 @@ export const SplashScreenLine = styled.div`
 	span {
 		font-family: ${(props) => props.theme.typography.family.alt2};
 		color: ${(props) => props.theme.colors.editor.alt1};
-		letter-spacing: -${CSS_DIMENSIONS.px0_5};
+		letter-spacing: -0.5px;
 	}
 
 	p {
@@ -165,22 +164,22 @@ export const SplashScreenLine = styled.div`
 `;
 
 export const SplashScreenDivider = styled.div`
-	height: ${CSS_DIMENSIONS.px1};
+	height: 1px;
 	width: 100%;
-	border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary} !important;
-	margin: ${CSS_DIMENSIONS.px10} 0;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary} !important;
+	margin: 10px 0;
 `;
 
 export const InputWrapper = styled.div<{ disabled: boolean }>`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	padding: ${CSS_DIMENSIONS.px15};
+	padding: 15px;
 	background: ${(props) =>
 		props.disabled
 			? props.theme.colors.button.primary.disabled.background
 			: props.theme.colors.container.alt1.background} !important;
-	border: ${CSS_DIMENSIONS.px1} solid
+	border: 1px solid
 		${(props) => (props.disabled ? props.theme.colors.border.primary : props.theme.colors.border.primary)} !important;
 	position: relative;
 	transition: border-color 100ms ease;
@@ -229,38 +228,38 @@ export const Input = styled.div<{ disabled: boolean }>`
 export const InputActionsWrapper = styled.div`
 	width: 100%;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	align-items: center;
 	justify-content: space-between;
-	margin: ${CSS_DIMENSIONS.px12_5} 0 0 0;
+	margin: 12.5px 0 0 0;
 `;
 
 export const InputActionsSection = styled.div`
 	width: fit-content;
 	display: flex;
-	gap: ${CSS_DIMENSIONS.px10};
-	margin: 0 0 0 -${CSS_DIMENSIONS.px3_5};
+	gap: 10px;
+	margin: 0 0 0 -3.5px;
 `;
 
 export const OptionsWrapper = styled.div`
 	height: fit-content;
-	max-height: calc(100% - ${CSS_DIMENSIONS.px30});
-	width: ${CSS_DIMENSIONS.px450};
+	max-height: calc(100% - 30px);
+	width: 450px;
 	max-width: 90vw;
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 	margin: 0 auto;
 	position: relative;
-	top: ${CSS_DIMENSIONS.px20};
-	padding: ${CSS_DIMENSIONS.px17_5};
+	top: 20px;
+	padding: 17.5px;
 `;
 
 export const OptionsHeader = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	margin: ${CSS_DIMENSIONS.px10} 0 ${CSS_DIMENSIONS.px12_5} 0;
+	margin: 10px 0 12.5px 0;
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -279,7 +278,7 @@ export const OptionsHeader = styled.div`
 `;
 
 export const OptionsCreate = styled.div`
-	margin: 0 0 ${CSS_DIMENSIONS.px2_5} 0;
+	margin: 0 0 2.5px 0;
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.alt2} !important;
@@ -293,8 +292,8 @@ export const OptionsDivider = styled.div`
 	width: 100%;
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px12_5};
-	margin: ${CSS_DIMENSIONS.px1_5} 0;
+	gap: 12.5px;
+	margin: 1.5px 0;
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -305,25 +304,25 @@ export const OptionsDivider = styled.div`
 	}
 
 	.aos-options-divider {
-		height: ${CSS_DIMENSIONS.px1};
+		height: 1px;
 		flex: 1;
-		border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
 
 export const OptionsInput = styled.div`
-	margin: 0 0 ${CSS_DIMENSIONS.px2_5} 0;
+	margin: 0 0 2.5px 0;
 
 	input {
-		height: ${CSS_DIMENSIONS.px42_5} !important;
+		height: 42.5px !important;
 	}
 `;
 
 export const Options = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: 0 ${CSS_DIMENSIONS.px12_5} 0 0;
+	gap: 15px;
+	padding: 0 12.5px 0 0;
 
 	overflow-y: scroll;
 	scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} ${(props) => props.theme.colors.scrollbar.track};
@@ -332,13 +331,13 @@ export const Options = styled.div`
 		background: ${(props) => props.theme.colors.scrollbar.track};
 	}
 	::-webkit-scrollbar {
-		width: ${CSS_DIMENSIONS.px15};
-		border-left: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		width: 15px;
+		border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 	::-webkit-scrollbar-thumb {
 		background-color: ${(props) => props.theme.colors.scrollbar.thumb};
-		border-radius: ${CSS_DIMENSIONS.px36};
-		border: ${CSS_DIMENSIONS.px3_5} solid transparent;
+		border-radius: 36px;
+		border: 3.5px solid transparent;
 		background-clip: padding-box;
 	}
 
@@ -368,9 +367,9 @@ export const LoadingWrapper = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: ${CSS_DIMENSIONS.px40};
-	padding: ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px60} ${CSS_DIMENSIONS.px20} ${CSS_DIMENSIONS.px35};
-	margin: ${CSS_DIMENSIONS.px40} auto;
+	gap: 40px;
+	padding: 20px 60px 20px 35px;
+	margin: 40px auto;
 
 	span {
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
@@ -401,28 +400,28 @@ export const Editor = styled.div`
 
 export const ActionsWrapper = styled.div<{ fullScreenMode: boolean }>`
 	position: absolute;
-	bottom: ${CSS_DIMENSIONS.px20};
-	right: ${CSS_DIMENSIONS.px20};
+	bottom: 20px;
+	right: 20px;
 
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px15};
+	gap: 15px;
 
 	button {
-		padding: ${CSS_DIMENSIONS.px3_5} 0 0 0 !important;
+		padding: 3.5px 0 0 0 !important;
 	}
 `;
 
 export const LoadWrapper = styled(ActionsWrapper)`
-	bottom: ${CSS_DIMENSIONS.px20};
-	right: ${CSS_DIMENSIONS.px27_5};
-	bottom: ${(props) => (props.fullScreenMode ? `${CSS_DIMENSIONS.px30}` : `${CSS_DIMENSIONS.px20}`)};
-	right: ${(props) => (props.fullScreenMode ? `${CSS_DIMENSIONS.px42_5}` : `${CSS_DIMENSIONS.px27_5}`)};
+	bottom: 20px;
+	right: 27.5px;
+	bottom: ${(props) => (props.fullScreenMode ? `30px` : `20px`)};
+	right: ${(props) => (props.fullScreenMode ? `42.5px` : `27.5px`)};
 `;
 
 export const PanelContent = styled.form`
 	display: flex;
 	flex-direction: column;
-	gap: ${CSS_DIMENSIONS.px20};
-	padding: ${CSS_DIMENSIONS.px20} 0;
+	gap: 20px;
+	padding: 20px 0;
 `;

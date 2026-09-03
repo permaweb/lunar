@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
-import { CSS_DIMENSIONS } from 'helpers/themes';
 
 export const Container = styled.div<{ $embedded?: boolean; $fixedHeight?: number; $fullScreenMode?: boolean }>`
 	height: ${(props) =>
@@ -11,23 +10,23 @@ export const Container = styled.div<{ $embedded?: boolean; $fixedHeight?: number
 			: props.$fixedHeight
 			? `${props.$fixedHeight}px`
 			: props.$embedded
-			? `${CSS_DIMENSIONS.px600}`
+			? `600px`
 			: 'auto'};
-	min-height: ${(props) => (props.$embedded ? `${CSS_DIMENSIONS.px125}` : '0')};
+	min-height: ${(props) => (props.$embedded ? `125px` : '0')};
 	width: ${(props) => (props.$fullScreenMode ? '100vw' : '100%')};
-	max-width: ${(props) => (props.$fullScreenMode ? '100vw' : props.$embedded ? '100%' : `${CSS_DIMENSIONS.px750}`)};
+	max-width: ${(props) => (props.$fullScreenMode ? '100vw' : props.$embedded ? '100%' : `750px`)};
 	flex: 1;
 	display: flex;
 	flex-direction: column;
 	order: 1;
-	padding: ${(props) => (props.$fullScreenMode ? '0' : props.$embedded ? '0' : `${CSS_DIMENSIONS.px15} 0 0 0`)};
+	padding: ${(props) => (props.$fullScreenMode ? '0' : props.$embedded ? '0' : `15px 0 0 0`)};
 	margin: ${(props) => (props.$fullScreenMode ? '0' : props.$embedded ? '0' : '0 auto')};
 	overflow: ${(props) => (props.$embedded ? 'hidden' : 'visible')};
 	z-index: ${(props) => (props.$fullScreenMode ? '999' : 'auto')};
 
-	@media (max-width: ${CSS_DIMENSIONS.px1024}) {
+	@media (max-width: 1024px) {
 		max-width: ${(props) => (props.$fullScreenMode ? '100vw' : '100%')};
-		padding: ${(props) => (props.$fullScreenMode ? '0' : props.$embedded ? '0' : `0 ${CSS_DIMENSIONS.px5}`)};
+		padding: ${(props) => (props.$fullScreenMode ? '0' : props.$embedded ? '0' : `0 5px`)};
 	}
 `;
 
@@ -36,8 +35,8 @@ export const Header = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	flex-wrap: wrap;
-	gap: ${CSS_DIMENSIONS.px15};
-	padding: ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px15} ${CSS_DIMENSIONS.px12_5} ${CSS_DIMENSIONS.px15};
+	gap: 15px;
+	padding: 15px 15px 12.5px 15px;
 
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
@@ -50,7 +49,7 @@ export const Header = styled.div`
 export const ActionsWrapper = styled.div`
 	display: flex;
 	align-items: center;
-	gap: ${CSS_DIMENSIONS.px7_5};
+	gap: 7.5px;
 `;
 
 export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fullScreenMode?: boolean }>`
@@ -59,9 +58,8 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 	display: flex;
 	flex: ${(props) => (props.$fullScreenMode || props.$embedded ? '1' : 'initial')};
 	flex-direction: column;
-	gap: ${(props) => (props.$embedded ? `${CSS_DIMENSIONS.px17_5}` : `${CSS_DIMENSIONS.px25}`)};
-	padding: ${(props) =>
-		props.$fullScreenMode ? `${CSS_DIMENSIONS.px20}` : props.$embedded ? `${CSS_DIMENSIONS.px15}` : '0'};
+	gap: ${(props) => (props.$embedded ? `17.5px` : `25px`)};
+	padding: ${(props) => (props.$fullScreenMode ? `20px` : props.$embedded ? `15px` : '0')};
 	overflow: ${(props) => (props.$fullScreenMode || props.$embedded ? 'auto' : 'visible')};
 	overflow-wrap: anywhere;
 
@@ -70,9 +68,9 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 	}
 
 	hr {
-		margin: ${CSS_DIMENSIONS.px12_5} 0;
+		margin: 12.5px 0;
 		border: 0;
-		border-top: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 
 	table {
@@ -81,7 +79,7 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 		table-layout: fixed;
 		border-collapse: separate;
 		border-spacing: 0;
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
 		background: ${(props) => props.theme.colors.container.alt1.background};
 		overflow: hidden;
@@ -92,9 +90,9 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 
 		th,
 		td {
-			padding: ${CSS_DIMENSIONS.px7_5} ${CSS_DIMENSIONS.px10};
-			border-right: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
-			border-bottom: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+			padding: 7.5px 10px;
+			border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 			font-size: ${(props) => props.theme.typography.size.xxSmall};
 			text-align: left;
 			overflow-wrap: anywhere;
@@ -124,7 +122,7 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.alt1} !important;
 		color: ${(props) => props.theme.colors.font.primary} !important;
-		padding: 0 0 ${CSS_DIMENSIONS.px2_5} 0;
+		padding: 0 0 2.5px 0;
 
 		code {
 			font-size: inherit !important;
@@ -133,18 +131,12 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 	}
 
 	h1 {
-		font-size: ${(props) =>
-			props.$compact
-				? `clamp(${CSS_DIMENSIONS.px22}, 2.4vw, ${CSS_DIMENSIONS.px26})`
-				: `clamp(${CSS_DIMENSIONS.px32}, 3.25vw, ${CSS_DIMENSIONS.px36})`} !important;
+		font-size: ${(props) => (props.$compact ? `clamp(22px, 2.4vw, 26px)` : `clamp(32px, 3.25vw, 36px)`)} !important;
 	}
 
 	h2 {
-		font-size: ${(props) =>
-			props.$compact
-				? `clamp(${CSS_DIMENSIONS.px20}, 2.2vw, ${CSS_DIMENSIONS.px24})`
-				: `clamp(${CSS_DIMENSIONS.px30}, 3.15vw, ${CSS_DIMENSIONS.px34})`} !important;
-		scroll-margin-top: ${CSS_DIMENSIONS.px100};
+		font-size: ${(props) => (props.$compact ? `clamp(20px, 2.2vw, 24px)` : `clamp(30px, 3.15vw, 34px)`)} !important;
+		scroll-margin-top: 100px;
 
 		a {
 			font-size: inherit !important;
@@ -152,38 +144,26 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 	}
 
 	h3 {
-		font-size: ${(props) =>
-			props.$compact
-				? `clamp(${CSS_DIMENSIONS.px18}, 2vw, ${CSS_DIMENSIONS.px21})`
-				: `clamp(${CSS_DIMENSIONS.px18}, 2.5vw, ${CSS_DIMENSIONS.px28})`} !important;
+		font-size: ${(props) => (props.$compact ? `clamp(18px, 2vw, 21px)` : `clamp(18px, 2.5vw, 28px)`)} !important;
 	}
 
 	h4 {
-		font-size: ${(props) =>
-			props.$compact
-				? `clamp(${CSS_DIMENSIONS.px16}, 1.8vw, ${CSS_DIMENSIONS.px19})`
-				: `clamp(${CSS_DIMENSIONS.px18}, 2.5vw, ${CSS_DIMENSIONS.px28})`} !important;
-		scroll-margin-top: ${CSS_DIMENSIONS.px100};
+		font-size: ${(props) => (props.$compact ? `clamp(16px, 1.8vw, 19px)` : `clamp(18px, 2.5vw, 28px)`)} !important;
+		scroll-margin-top: 100px;
 	}
 
 	h5 {
-		font-size: ${(props) =>
-			props.$compact
-				? `clamp(${CSS_DIMENSIONS.px15}, 1.6vw, ${CSS_DIMENSIONS.px17})`
-				: `clamp(${CSS_DIMENSIONS.px18}, 2.5vw, ${CSS_DIMENSIONS.px28})`} !important;
+		font-size: ${(props) => (props.$compact ? `clamp(15px, 1.6vw, 17px)` : `clamp(18px, 2.5vw, 28px)`)} !important;
 	}
 
 	h6 {
-		font-size: ${(props) =>
-			props.$compact
-				? `clamp(${CSS_DIMENSIONS.px14}, 1.4vw, ${CSS_DIMENSIONS.px16})`
-				: `clamp(${CSS_DIMENSIONS.px16}, 1.95vw, ${CSS_DIMENSIONS.px22})`} !important;
+		font-size: ${(props) => (props.$compact ? `clamp(14px, 1.4vw, 16px)` : `clamp(16px, 1.95vw, 22px)`)} !important;
 		color: ${(props) => props.theme.colors.font.alt1} !important;
-		border-bottom: ${CSS_DIMENSIONS.px1} solid transparent;
+		border-bottom: 1px solid transparent;
 
 		a {
 			font-size: inherit !important;
-			text-decoration-thickness: ${CSS_DIMENSIONS.px2};
+			text-decoration-thickness: 2px;
 		}
 	}
 
@@ -211,13 +191,13 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 		text-decoration: underline;
 
 		&:hover {
-			text-decoration-thickness: ${CSS_DIMENSIONS.px1_65};
+			text-decoration-thickness: 1.65px;
 		}
 	}
 
 	blockquote {
-		padding: ${CSS_DIMENSIONS.px2_5} 0 ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px15};
-		border-left: ${CSS_DIMENSIONS.px3} solid ${(props) => props.theme.colors.border.primary};
+		padding: 2.5px 0 2.5px 15px;
+		border-left: 3px solid ${(props) => props.theme.colors.border.primary};
 		color: ${(props) => props.theme.colors.font.alt1};
 	}
 
@@ -225,14 +205,14 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 	ul {
 		display: flex;
 		flex-direction: column;
-		gap: ${CSS_DIMENSIONS.px7_5};
-		margin: ${(props) => (props.$embedded ? '0' : `-${CSS_DIMENSIONS.px17_5} 0 0 0`)};
+		gap: 7.5px;
+		margin: ${(props) => (props.$embedded ? '0' : `-17.5px 0 0 0`)};
 		white-space: normal;
 
 		li {
 			list-style-type: none;
 			padding: 0;
-			margin: 0 0 0 ${CSS_DIMENSIONS.px30};
+			margin: 0 0 0 30px;
 			position: relative;
 			white-space: normal;
 
@@ -247,14 +227,14 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 
 		ol,
 		ul {
-			margin: ${CSS_DIMENSIONS.px7_5} 0 0 0;
+			margin: 7.5px 0 0 0;
 		}
 	}
 
 	ul li::before {
 		content: '\u2022';
 		position: absolute;
-		left: -${CSS_DIMENSIONS.px20};
+		left: -20px;
 	}
 
 	ol {
@@ -264,8 +244,8 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 			counter-increment: my-counter;
 			content: counter(my-counter) '. ';
 			position: absolute;
-			left: -${CSS_DIMENSIONS.px30};
-			width: ${CSS_DIMENSIONS.px25};
+			left: -30px;
+			width: 25px;
 			text-align: right;
 		}
 
@@ -277,7 +257,7 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 
 	li.task-list-item {
 		margin-left: 0;
-		padding-left: ${CSS_DIMENSIONS.px25};
+		padding-left: 25px;
 
 		&::before {
 			content: none;
@@ -286,15 +266,15 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 		input {
 			position: absolute;
 			left: 0;
-			top: ${CSS_DIMENSIONS.px4};
+			top: 4px;
 		}
 	}
 
 	code {
 		max-width: 100%;
-		padding: ${CSS_DIMENSIONS.px1_5} ${CSS_DIMENSIONS.px5_5} ${CSS_DIMENSIONS.px2_5} ${CSS_DIMENSIONS.px5_5} !important;
+		padding: 1.5px 5.5px 2.5px 5.5px !important;
 		background: ${(props) => props.theme.colors.container.alt2.background} !important;
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary} !important;
+		border: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 		border-radius: ${STYLING.dimensions.radius.alt2} !important;
 		color: ${(props) => props.theme.colors.font.primary} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
@@ -384,15 +364,14 @@ export const Content = styled.div<{ $compact?: boolean; $embedded?: boolean; $fu
 
 	img {
 		width: 100%;
-		max-width: ${CSS_DIMENSIONS.px700};
-		max-height: ${(props) => (props.$embedded ? `calc(100vh - ${CSS_DIMENSIONS.px245})` : 'none')};
+		max-width: 700px;
+		max-height: ${(props) => (props.$embedded ? `calc(100vh - 245px)` : 'none')};
 		height: auto;
 		object-fit: contain;
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-radius: ${STYLING.dimensions.radius.primary};
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} ${CSS_DIMENSIONS.px0} ${CSS_DIMENSIONS.px1}
-			${CSS_DIMENSIONS.px2} ${CSS_DIMENSIONS.px0_5};
-		margin: -${CSS_DIMENSIONS.px15} auto 0 auto;
+		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
+		margin: -15px auto 0 auto;
 	}
 `;
 
@@ -403,7 +382,7 @@ export const CodeBlockWrapper = styled.div`
 		flex: 0 0 auto;
 		position: relative;
 		background: ${(props) => props.theme.colors.container.alt1.background} !important;
-		border: ${CSS_DIMENSIONS.px1} solid ${(props) => props.theme.colors.border.primary} !important;
+		border: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 		border-radius: ${STYLING.dimensions.radius.primary} !important;
 		overflow: hidden;
 	}
@@ -416,7 +395,7 @@ export const CodeBlockContent = styled.pre`
 		max-height: none !important;
 		flex: 0 0 auto;
 		margin: 0 !important;
-		padding: ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px45} ${CSS_DIMENSIONS.px10} ${CSS_DIMENSIONS.px15} !important;
+		padding: 10px 45px 10px 15px !important;
 		background: transparent !important;
 		border: none !important;
 		border-radius: 0 !important;
@@ -434,19 +413,19 @@ export const CodeBlockContent = styled.pre`
 
 export const CodeBlockCopyButton = styled(PrimitiveButton)<{ $copied: boolean }>`
 	position: absolute;
-	top: ${CSS_DIMENSIONS.px8_5};
-	right: ${CSS_DIMENSIONS.px7_5};
+	top: 8.5px;
+	right: 7.5px;
 	z-index: 2;
-	height: ${CSS_DIMENSIONS.px28};
-	width: ${CSS_DIMENSIONS.px28};
-	min-width: ${CSS_DIMENSIONS.px28};
+	height: 28px;
+	width: 28px;
+	min-width: 28px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	padding: 0;
 	background: ${(props) =>
 		props.$copied ? props.theme.colors.button.primary.active.background : props.theme.colors.button.primary.background};
-	border: ${CSS_DIMENSIONS.px1} solid
+	border: 1px solid
 		${(props) =>
 			props.$copied ? props.theme.colors.button.primary.active.border : props.theme.colors.button.primary.border};
 	border-radius: ${STYLING.dimensions.radius.alt2};
@@ -472,8 +451,8 @@ export const CodeBlockCopyButton = styled(PrimitiveButton)<{ $copied: boolean }>
 	}
 
 	svg {
-		height: ${CSS_DIMENSIONS.px15};
-		width: ${CSS_DIMENSIONS.px15};
+		height: 15px;
+		width: 15px;
 		color: currentColor;
 		fill: currentColor;
 	}
