@@ -70,7 +70,7 @@ export type ProfileType = {
 };
 
 export type GQLResponseType = {
-	count: number;
+	count: number | null;
 	nextCursor: string | null;
 	previousCursor: string | null;
 };

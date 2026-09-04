@@ -639,19 +639,18 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 		let response: any = null;
 		let lastError: any = null;
 
-		for (const gqlArgs of [
-			{
-				id: [args.txId],
-			},
-			{
-				gateway: DEFAULT_GATEWAYS.fallback,
-				id: [args.txId],
-			},
-			{
-				gateway: DEFAULT_GATEWAYS.arweave,
-				id: [args.txId],
-			},
-		]) {
+		const sources = FLAGS.USE_AR_LMDB_GQL
+			? [{ id: [args.txId] }]
+			: [
+					{
+						id: [args.txId],
+					},
+					{
+						gateway: DEFAULT_GATEWAYS.arweave,
+						id: [args.txId],
+					},
+			  ];
+		for (const gqlArgs of sources) {
 			try {
 				response = await args.getGQLData(gqlArgs);
 				if (response.data?.length > 0) break;
@@ -696,6 +695,6 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 
 		return await resolveResponseData(responseData, args, depth);
 	} catch (e: any) {
-		throw new Error(e);
+		throw e instanceof Error ? e : new Error(String(e));
 	}
 }

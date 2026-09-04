@@ -4,6 +4,15 @@ export function getSearchParam(searchParams: URLSearchParams, key: string) {
 	return value || null;
 }
 
+export function isPaginationSourceCurrent(
+	searchParams: URLSearchParams,
+	sourceKey: string,
+	currentSource: string
+): boolean {
+	// Existing URLs predate source selection and contain remote GraphQL cursors.
+	return (getSearchParam(searchParams, sourceKey) ?? 'remote') === currentSource;
+}
+
 export function updateSearchParams(
 	searchParams: URLSearchParams,
 	setSearchParams: (nextInit: URLSearchParams, navigateOptions?: { replace?: boolean }) => void,

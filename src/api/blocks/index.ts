@@ -1,5 +1,8 @@
 import { FLAGS } from 'helpers/config';
 
+import { executeGraphQL, GraphQLApiError } from '../graphql';
+import { isRecord } from '../graphql/types';
+
 export type BlockNode = {
 	id: string;
 	timestamp: number;
@@ -127,12 +130,6 @@ export type GetTransactionByIdArgs = {
 	gateway?: string;
 };
 
-type GraphQLResponse<T> = {
-	data?: T;
-	errors?: { message: string }[];
-};
-
-const DEFAULT_GRAPHQL_ENDPOINT = 'https://arweave.net/graphql';
 const DEFAULT_ARWEAVE_ENDPOINT = 'https://arweave.net';
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
@@ -156,7 +153,9 @@ const BLOCK_FIELDS = `
 	}
 `;
 
-const TRANSACTION_FIELDS = `
+function getTransactionFields(includeCount = false) {
+	return `
+	${includeCount ? 'count' : ''}
 	pageInfo {
 		hasNextPage
 	}
@@ -172,13 +171,17 @@ const TRANSACTION_FIELDS = `
 			owner {
 				address
 			}
-			fee {
+			${
+				FLAGS.USE_AR_LMDB_GQL
+					? ''
+					: `fee {
 				winston
 				ar
 			}
 			quantity {
 				winston
 				ar
+			}`
 			}
 			block {
 				height
@@ -194,16 +197,12 @@ const TRANSACTION_FIELDS = `
 		}
 	}
 `;
+}
 
-const TRANSACTION_FIELDS_WITH_COUNT = `
-	count
-	${TRANSACTION_FIELDS}
-`;
-
-const TRANSACTION_BY_ID_QUERY = `
+const TRANSACTION_BY_ID_QUERY = () => `
 	query TransactionById($ids: [ID!]) {
 		transactions(ids: $ids, first: 1) {
-			${TRANSACTION_FIELDS}
+			${getTransactionFields()}
 		}
 	}
 `;
@@ -248,18 +247,18 @@ const TRANSACTION_COUNT_BY_BLOCK_QUERY = `
 	}
 `;
 
-const TRANSACTIONS_BY_BUNDLE_QUERY = `
+const TRANSACTIONS_BY_BUNDLE_QUERY = () => `
 	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
 		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
-			${TRANSACTION_FIELDS_WITH_COUNT}
+			${getTransactionFields(true)}
 		}
 	}
 `;
 
-const TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY = `
+const TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY = () => `
 	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
 		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
-			${TRANSACTION_FIELDS}
+			${getTransactionFields()}
 		}
 	}
 `;
@@ -309,7 +308,7 @@ function getTransactionsQuery(args: { includeCount: boolean; typeFilter?: Transa
 				after: $after
 				sort: HEIGHT_DESC
 			) {
-				${args.includeCount ? TRANSACTION_FIELDS_WITH_COUNT : TRANSACTION_FIELDS}
+				${getTransactionFields(args.includeCount)}
 			}
 		}
 	`;
@@ -325,7 +324,7 @@ function getTransactionsByBlockQuery(args: { includeCount: boolean; typeFilter?:
 				after: $after
 				sort: HEIGHT_DESC
 			) {
-				${args.includeCount ? TRANSACTION_FIELDS_WITH_COUNT : TRANSACTION_FIELDS}
+				${getTransactionFields(args.includeCount)}
 			}
 		}
 	`;
@@ -335,20 +334,6 @@ function getFirst(first: number | undefined) {
 	if (!first) return DEFAULT_PAGE_SIZE;
 
 	return Math.max(1, Math.min(first, MAX_PAGE_SIZE));
-}
-
-function getEndpoint(gateway?: string) {
-	if (!gateway) return DEFAULT_GRAPHQL_ENDPOINT;
-
-	const trimmedGateway = gateway.trim();
-	if (trimmedGateway.endsWith('/graphql')) return trimmedGateway;
-
-	const gatewayUrl =
-		trimmedGateway.startsWith('http://') || trimmedGateway.startsWith('https://')
-			? trimmedGateway
-			: `https://${trimmedGateway}`;
-
-	return `${gatewayUrl.replace(/\/$/, '')}/graphql`;
 }
 
 function getArweaveEndpoint(gateway?: string) {
@@ -409,32 +394,65 @@ export function isBundleTransaction(transaction: TransactionNode) {
 }
 
 async function queryGraphQL<T>(args: { query: string; variables: Record<string, any>; gateway?: string }): Promise<T> {
-	const response = await fetch(getEndpoint(args.gateway), {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			query: args.query,
-			variables: args.variables,
-		}),
-	});
-
-	if (!response.ok) {
-		throw new Error(`GraphQL request failed with status ${response.status}`);
-	}
-
-	const parsed: GraphQLResponse<T> = await response.json();
+	const parsed = await executeGraphQL<T>(args);
 
 	if (parsed.errors?.length) {
-		throw new Error(parsed.errors.map((error) => error.message).join(', '));
+		throw new GraphQLApiError('unavailable', parsed.errors.map((error) => error.message).join(', '));
 	}
 
 	if (!parsed.data) {
-		throw new Error('GraphQL response did not include data');
+		throw new GraphQLApiError('invalid-response', 'GraphQL response did not include data');
+	}
+	const localMetadata = parsed.extensions?.arLmdb;
+	if (
+		isRecord(localMetadata) &&
+		isRecord(localMetadata.count) &&
+		localMetadata.count.exact === false &&
+		isRecord(parsed.data) &&
+		isRecord(parsed.data.transactions)
+	) {
+		return { ...parsed.data, transactions: { ...parsed.data.transactions, count: undefined } };
 	}
 
 	return parsed.data;
+}
+
+async function queryTransactions(args: {
+	query: string;
+	variables: Record<string, any>;
+	gateway?: string;
+}): Promise<TransactionsQueryResponse> {
+	if (!FLAGS.USE_AR_LMDB_GQL) return queryGraphQL<TransactionsQueryResponse>(args);
+	const first = getFirst(args.variables.first);
+	const response = await queryGraphQL<TransactionsQueryResponse>({
+		...args,
+		variables: { ...args.variables, first: Math.min(50, first) },
+	});
+	const connection = response.transactions;
+	if (!connection || !Array.isArray(connection.edges) || typeof connection.pageInfo?.hasNextPage !== 'boolean') {
+		throw new GraphQLApiError('invalid-response', 'Invalid AR LMDB transaction page');
+	}
+	while (connection.pageInfo.hasNextPage && connection.edges.length < first) {
+		const cursor = connection.edges[connection.edges.length - 1]?.cursor;
+		if (!cursor) throw new GraphQLApiError('invalid-response', 'AR LMDB returned a page without a cursor');
+		const next = await queryGraphQL<TransactionsQueryResponse>({
+			...args,
+			variables: { ...args.variables, first: Math.min(50, first - connection.edges.length), after: cursor },
+		});
+		if (
+			!next.transactions ||
+			!Array.isArray(next.transactions.edges) ||
+			typeof next.transactions.pageInfo?.hasNextPage !== 'boolean' ||
+			(next.transactions.pageInfo.hasNextPage &&
+				(!next.transactions.edges.length ||
+					next.transactions.edges[next.transactions.edges.length - 1]?.cursor === cursor))
+		) {
+			throw new GraphQLApiError('invalid-response', 'AR LMDB returned a nonadvancing transaction page');
+		}
+		connection.edges.push(...next.transactions.edges);
+		connection.pageInfo = next.transactions.pageInfo;
+	}
+	return response;
 }
 
 async function getBlockHeightById(blockId: string, gateway?: string) {
@@ -619,7 +637,7 @@ export async function getTransactionCountByBlock(
 }
 
 export async function getTransactions(args: GetTransactionsArgs = {}): Promise<TransactionsQueryResponse> {
-	const response = await queryGraphQL<TransactionsQueryResponse>({
+	const response = await queryTransactions({
 		query: getTransactionsQuery({
 			includeCount: args.includeCount ?? false,
 			typeFilter: args.typeFilter,
@@ -654,7 +672,7 @@ export async function getTransactionsByBlock(
 	}
 
 	const serverTypeFilter = args.bundlesOnly ? 'bundle' : args.typeFilter === 'transaction' ? null : args.typeFilter;
-	const response = await queryGraphQL<TransactionsQueryResponse>({
+	const response = await queryTransactions({
 		query: getTransactionsByBlockQuery({
 			includeCount: !args.after && args.typeFilter !== 'transaction',
 			typeFilter: serverTypeFilter,
@@ -676,8 +694,8 @@ export async function getTransactionsByBlock(
 export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs): Promise<TransactionsQueryResponse> {
 	if (!FLAGS.USE_GATEWAY_BUNDLE_REQUEST) {
 		const includeCount = args.includeCount ?? !args.after;
-		const response = await queryGraphQL<TransactionsQueryResponse>({
-			query: includeCount ? TRANSACTIONS_BY_BUNDLE_QUERY : TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY,
+		const response = await queryTransactions({
+			query: includeCount ? TRANSACTIONS_BY_BUNDLE_QUERY() : TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY(),
 			variables: {
 				bundleId: [args.bundleId],
 				first: getFirst(args.first),
@@ -713,8 +731,8 @@ export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs)
 }
 
 export async function getTransactionById(args: GetTransactionByIdArgs): Promise<TransactionNode | null> {
-	const response = await queryGraphQL<TransactionsQueryResponse>({
-		query: TRANSACTION_BY_ID_QUERY,
+	const response = await queryTransactions({
+		query: TRANSACTION_BY_ID_QUERY(),
 		variables: {
 			ids: [args.id],
 		},

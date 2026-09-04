@@ -1,7 +1,17 @@
 import React from 'react';
 import { ReactSVG } from 'react-svg';
 
-import { requestRemote } from 'api/http';
+import type { GQLField, GQLSchemaDocs, GQLType, GQLTypeRef } from 'api/graphql';
+import {
+	executePlaygroundQuery,
+	fetchSchemaDocs,
+	getInitialPlaygroundGateway,
+	getPlaygroundGatewayInputValue,
+	getPlaygroundGatewayLabel,
+	getPlaygroundGateways,
+	getPlaygroundGatewayStorageValue,
+	isRetiredGraphQLGateway,
+} from 'api/graphql';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
@@ -9,7 +19,7 @@ import { Modal } from 'components/atoms/Modal';
 import { Select } from 'components/atoms/Select';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS } from 'helpers/config';
+import { AR_LMDB_GQL_GATEWAY, ASSETS } from 'helpers/config';
 import { SelectOptionType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -42,157 +52,9 @@ const DEFAULT_QUERY = `query Transactions {
     }
 }`;
 
-const DEFAULT_GATEWAYS = ['ao-search-gateway.goldsky.com', 'arweave-search.goldsky.com', 'arweave.net'];
 const STORAGE_KEY = 'lunar-gql-gateways';
 const STORAGE_KEY_VARIABLES = (playgroundId: string) => `lunar-gql-variables-${playgroundId}`;
 const STORAGE_KEY_SHOW_VARIABLES = (playgroundId: string) => `lunar-gql-show-variables-${playgroundId}`;
-const SCHEMA_CACHE = new Map<string, GQLSchemaDocs>();
-const SCHEMA_REQUEST_CACHE = new Map<string, Promise<GQLSchemaDocs>>();
-
-const INTROSPECTION_QUERY = `
-	query LunarSchemaDocs {
-		__schema {
-			queryType {
-				name
-			}
-			mutationType {
-				name
-			}
-			subscriptionType {
-				name
-			}
-			types {
-				kind
-				name
-				description
-				fields(includeDeprecated: true) {
-					name
-					description
-					args {
-						name
-						description
-						defaultValue
-						type {
-							...TypeRef
-						}
-					}
-					type {
-						...TypeRef
-					}
-					isDeprecated
-					deprecationReason
-				}
-				inputFields {
-					name
-					description
-					defaultValue
-					type {
-						...TypeRef
-					}
-				}
-				enumValues(includeDeprecated: true) {
-					name
-					description
-					isDeprecated
-					deprecationReason
-				}
-			}
-		}
-	}
-
-	fragment TypeRef on __Type {
-		kind
-		name
-		ofType {
-			kind
-			name
-			ofType {
-				kind
-				name
-				ofType {
-					kind
-					name
-					ofType {
-						kind
-						name
-					}
-				}
-			}
-		}
-	}
-`;
-
-type GQLTypeRef = {
-	kind: string;
-	name?: string | null;
-	ofType?: GQLTypeRef | null;
-};
-
-type GQLInputValue = {
-	name: string;
-	description?: string | null;
-	defaultValue?: string | null;
-	type: GQLTypeRef;
-};
-
-type GQLField = {
-	name: string;
-	description?: string | null;
-	args?: GQLInputValue[];
-	type: GQLTypeRef;
-	isDeprecated?: boolean;
-	deprecationReason?: string | null;
-};
-
-type GQLEnumValue = {
-	name: string;
-	description?: string | null;
-	isDeprecated?: boolean;
-	deprecationReason?: string | null;
-};
-
-type GQLType = {
-	kind: string;
-	name: string;
-	description?: string | null;
-	fields?: GQLField[] | null;
-	inputFields?: GQLInputValue[] | null;
-	enumValues?: GQLEnumValue[] | null;
-};
-
-type GQLSchemaDocs = {
-	queryType?: { name: string } | null;
-	mutationType?: { name: string } | null;
-	subscriptionType?: { name: string } | null;
-	types: GQLType[];
-};
-
-function ensureGatewayProtocol(gateway: string) {
-	const trimmed = gateway.trim();
-
-	return trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
-}
-
-function trimGraphqlPath(gateway: string) {
-	return gateway
-		.trim()
-		.replace(/\/+$/, '')
-		.replace(/\/graphql$/i, '');
-}
-
-function getGatewayStorageValue(gateway: string) {
-	return trimGraphqlPath(gateway).replace(/^https?:\/\//, '');
-}
-
-function getGatewayInputValue(gateway: string) {
-	return ensureGatewayProtocol(trimGraphqlPath(gateway));
-}
-
-function getGatewayGraphqlEndpoint(gateway: string) {
-	const withProtocol = ensureGatewayProtocol(gateway).replace(/\/+$/, '');
-
-	return /\/graphql$/i.test(withProtocol) ? withProtocol : `${withProtocol}/graphql`;
-}
 
 function formatTypeRef(type: GQLTypeRef | null | undefined): string {
 	if (!type) return 'Unknown';
@@ -226,43 +88,6 @@ function capitalize(value: string) {
 	return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : 'Query';
 }
 
-async function fetchSchemaDocs(endpoint: string): Promise<GQLSchemaDocs> {
-	const cached = SCHEMA_CACHE.get(endpoint);
-	if (cached) return cached;
-
-	const pending = SCHEMA_REQUEST_CACHE.get(endpoint);
-	if (pending) return pending;
-
-	const request = requestRemote(endpoint, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'Codec-Device': 'json@1.0',
-		},
-		body: JSON.stringify({ query: INTROSPECTION_QUERY }),
-	})
-		.then(async (response) => {
-			const payload = await response.json();
-
-			if (!response.ok || payload.errors?.length > 0 || !payload.data?.__schema) {
-				const message = payload.errors?.[0]?.message || `Schema request failed with status ${response.status}`;
-				throw new Error(message);
-			}
-
-			const schema = payload.data.__schema as GQLSchemaDocs;
-			SCHEMA_CACHE.set(endpoint, schema);
-
-			return schema;
-		})
-		.finally(() => {
-			SCHEMA_REQUEST_CACHE.delete(endpoint);
-		});
-
-	SCHEMA_REQUEST_CACHE.set(endpoint, request);
-
-	return request;
-}
-
 export default function GraphQLPlayground(props: {
 	playgroundId: string;
 	active: boolean;
@@ -280,26 +105,15 @@ export default function GraphQLPlayground(props: {
 	const [gateways, setGateways] = React.useState<string[]>(() => {
 		try {
 			const stored = localStorage.getItem(STORAGE_KEY);
-			const parsed = stored ? JSON.parse(stored) : DEFAULT_GATEWAYS;
-			const gatewayList = Array.isArray(parsed) ? parsed : DEFAULT_GATEWAYS;
-			const normalized = Array.from(
-				new Set(gatewayList.map((gateway: string) => getGatewayStorageValue(gateway)).filter(Boolean))
-			) as string[];
-
-			return normalized.length > 0 ? normalized : DEFAULT_GATEWAYS;
+			return getPlaygroundGateways(stored ? JSON.parse(stored) : undefined);
 		} catch {
-			return DEFAULT_GATEWAYS;
+			return getPlaygroundGateways(undefined);
 		}
 	});
-	const [selectedGateway, setSelectedGateway] = React.useState<string>(() => {
-		const initial = props.initialGateway ? getGatewayStorageValue(props.initialGateway) : gateways[0];
-		return gateways.includes(initial) ? initial : gateways[0];
-	});
-	const [inputGateway, setInputGateway] = React.useState<string>(() => {
-		const initial = props.initialGateway ? getGatewayStorageValue(props.initialGateway) : gateways[0];
-		const gateway = gateways.includes(initial) ? initial : gateways[0];
-		return getGatewayInputValue(gateway);
-	});
+	const [selectedGateway, setSelectedGateway] = React.useState<string>(() =>
+		getInitialPlaygroundGateway(props.initialGateway, gateways)
+	);
+	const [inputGateway, setInputGateway] = React.useState<string>(() => getPlaygroundGatewayInputValue(selectedGateway));
 	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
 	const [showVariables, setShowVariables] = React.useState<boolean>(() => {
 		try {
@@ -322,8 +136,25 @@ export default function GraphQLPlayground(props: {
 	const [schemaDocsLoading, setSchemaDocsLoading] = React.useState<boolean>(false);
 	const [schemaDocsError, setSchemaDocsError] = React.useState<string | null>(null);
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
-	const layoutTimeoutRef = React.useRef<any | null>(null);
-	const schemaDocsEndpoint = React.useMemo(() => getGatewayGraphqlEndpoint(inputGateway.trim()), [inputGateway]);
+	const layoutTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+	const queryControllerRef = React.useRef<AbortController | null>(null);
+	const schemaDocsGateway = inputGateway.trim();
+	const isRetiredGateway = isRetiredGraphQLGateway(inputGateway);
+
+	React.useEffect(() => {
+		setResult(null);
+		setLoading(false);
+		return () => queryControllerRef.current?.abort();
+	}, [inputGateway]);
+
+	// Persist the normalized list, including the local engine, and remove retired saved endpoints.
+	React.useEffect(() => {
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(gateways));
+		} catch (error) {
+			console.error('Failed to save GraphQL gateways:', error);
+		}
+	}, [gateways]);
 
 	// Trigger layout recalculation when tab becomes active
 	React.useEffect(() => {
@@ -394,13 +225,13 @@ export default function GraphQLPlayground(props: {
 	}, [showVariables, props.playgroundId]);
 
 	const gatewayOptions: SelectOptionType[] = React.useMemo(
-		() => gateways.map((gateway) => ({ id: gateway, label: gateway })),
+		() => gateways.map((gateway) => ({ id: gateway, label: getPlaygroundGatewayLabel(gateway) })),
 		[gateways]
 	);
 
 	const activeGatewayOption: SelectOptionType = React.useMemo(() => {
 		// Use selectedGateway as-is, even if it's not in the saved list
-		return { id: selectedGateway, label: selectedGateway };
+		return { id: selectedGateway, label: getPlaygroundGatewayLabel(selectedGateway) };
 	}, [selectedGateway]);
 
 	React.useEffect(() => {
@@ -409,25 +240,19 @@ export default function GraphQLPlayground(props: {
 		}
 	}, [props.initialQuery]);
 
-	// Only sync from props on initial mount, not on every change
-	const initialGatewayRef = React.useRef(props.initialGateway);
-	React.useEffect(() => {
-		if (initialGatewayRef.current !== undefined) {
-			const gateway = getGatewayStorageValue(initialGatewayRef.current);
-
-			if (gateways.includes(gateway)) {
-				setSelectedGateway(gateway);
-				setInputGateway(getGatewayInputValue(gateway));
-			}
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []); // Only run on mount
-
 	// Debounce gateway changes to avoid infinite loops
-	const lastReportedGatewayRef = React.useRef(props.initialGateway || gateways[0]);
+	const lastReportedGatewayRef = React.useRef(props.initialGateway);
 	React.useEffect(() => {
-		const trimmedGateway = inputGateway.trim();
-		if (props.onGatewayChange && trimmedGateway && trimmedGateway !== lastReportedGatewayRef.current) {
+		const trimmedGateway =
+			getPlaygroundGatewayStorageValue(inputGateway) === AR_LMDB_GQL_GATEWAY
+				? AR_LMDB_GQL_GATEWAY
+				: inputGateway.trim();
+		if (
+			props.onGatewayChange &&
+			trimmedGateway &&
+			!isRetiredGraphQLGateway(trimmedGateway) &&
+			trimmedGateway !== lastReportedGatewayRef.current
+		) {
 			lastReportedGatewayRef.current = trimmedGateway;
 			props.onGatewayChange(trimmedGateway);
 		}
@@ -451,22 +276,23 @@ export default function GraphQLPlayground(props: {
 	}, [query, props.onQueryChange, props.initialQuery, extractQueryName]);
 
 	React.useEffect(() => {
-		if (!showDocs || !schemaDocsEndpoint) return;
+		if (!showDocs || !schemaDocsGateway) return;
 
 		let active = true;
+		const controller = new AbortController();
 
 		setSchemaDocsLoading(true);
 		setSchemaDocsError(null);
 
-		fetchSchemaDocs(schemaDocsEndpoint)
+		fetchSchemaDocs(schemaDocsGateway, controller.signal)
 			.then((schema) => {
 				if (!active) return;
 				setSchemaDocs(schema);
 			})
-			.catch((e: any) => {
+			.catch((error: unknown) => {
 				if (!active) return;
 				setSchemaDocs(null);
-				setSchemaDocsError(e.message || language.errorFetchingData);
+				setSchemaDocsError(error instanceof Error ? error.message : language.errorFetchingData);
 			})
 			.finally(() => {
 				if (!active) return;
@@ -475,115 +301,64 @@ export default function GraphQLPlayground(props: {
 
 		return () => {
 			active = false;
+			controller.abort();
 		};
-	}, [showDocs, schemaDocsEndpoint, language.errorFetchingData]);
+	}, [showDocs, schemaDocsGateway, language.errorFetchingData]);
 
 	const saveCustomGateway = React.useCallback(() => {
-		const gateway = getGatewayStorageValue(inputGateway);
+		const gateway = getPlaygroundGatewayStorageValue(inputGateway);
 
-		if (gateway && !gateways.includes(gateway)) {
+		if (gateway && !isRetiredGraphQLGateway(gateway) && !gateways.includes(gateway)) {
 			const updatedGateways = [...gateways, gateway];
 			setGateways(updatedGateways);
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedGateways));
 			setSelectedGateway(gateway);
-			setInputGateway(getGatewayInputValue(gateway));
+			setInputGateway(getPlaygroundGatewayInputValue(gateway));
 		}
 	}, [inputGateway, gateways]);
 
 	const removeGateway = React.useCallback(
 		(option: SelectOptionType) => {
-			if (gateways.length <= 1) return;
+			if (option.id === AR_LMDB_GQL_GATEWAY || gateways.length <= 1) return;
 
 			const updatedGateways = gateways.filter((gateway) => gateway !== option.id);
-			const nextGateway = selectedGateway === option.id ? updatedGateways[0] : selectedGateway;
+			const nextGateway =
+				selectedGateway === option.id ? getInitialPlaygroundGateway(undefined, updatedGateways) : selectedGateway;
 
 			setGateways(updatedGateways);
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedGateways));
 			setSelectedGateway(nextGateway);
-			setInputGateway(getGatewayInputValue(nextGateway));
+			setInputGateway(getPlaygroundGatewayInputValue(nextGateway));
 		},
 		[gateways, selectedGateway]
 	);
 
-	// Prepare query for sending - only wrap if not already wrapped
-	const prepareQuery = React.useCallback((queryString: string): string => {
-		const trimmed = queryString.trim();
-
-		// Remove comments (both # single line and multi-line) to check the actual query structure
-		const withoutComments = trimmed
-			.replace(/#[^\n]*/g, '') // Remove # comments
-			.replace(/"""[\s\S]*?"""/g, '') // Remove """ multi-line comments
-			.trim();
-
-		// Check if query already starts with 'query', 'mutation', or 'subscription' keyword
-		// Allow for optional query name and optional variable definitions like ($var: Type!)
-		const hasWrapper = /^\s*(?:query|mutation|subscription)(?:\s+[A-Za-z][A-Za-z0-9_]*)?(?:\s*\([^)]*\))?\s*\{/.test(
-			withoutComments
-		);
-		const startsWithBrace = /^\s*\{/.test(withoutComments);
-
-		// If it has proper wrapper or starts with {, use as-is (return original with comments)
-		if (hasWrapper || startsWithBrace) {
-			return trimmed;
-		}
-
-		// Otherwise, wrap it with query {}
-		return `query { ${trimmed} }`;
-	}, []);
-
 	const executeQuery = React.useCallback(
 		async (queryOverride?: string) => {
-			// Use the override query if provided, otherwise use the state query
-			// Handle case where an event object might be passed instead of a string
 			const queryToExecute = typeof queryOverride === 'string' ? queryOverride : query;
-
-			if (queryToExecute && typeof queryToExecute === 'string') {
-				setResult(null);
-				setLoading(true);
-				try {
-					const trimmedGateway = inputGateway.trim();
-					const gatewayUrl = getGatewayGraphqlEndpoint(trimmedGateway);
-					const preparedQuery = prepareQuery(queryToExecute);
-
-					// Parse variables if they exist
-					let parsedVariables = undefined;
-					if (variables.trim() && variables.trim() !== '{}') {
-						try {
-							parsedVariables = JSON.parse(variables);
-							// Only include if it's a non-empty object
-							if (parsedVariables && typeof parsedVariables === 'object' && Object.keys(parsedVariables).length > 0) {
-							} else {
-								parsedVariables = undefined;
-							}
-						} catch (e) {
-							console.error('Invalid variables JSON:', e);
-						}
-					}
-
-					const body: any = { query: preparedQuery };
-					if (parsedVariables) {
-						body.variables = parsedVariables;
-					}
-
-					const response = await requestRemote(gatewayUrl, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Codec-Device': 'json@1.0',
-						},
-						body: JSON.stringify(body),
-					});
-
-					const data = await response.json();
-					setResult(JSON.stringify(data, null, 2));
-				} catch (e: any) {
-					console.error(e);
-					setResult(JSON.stringify({ error: e.message || language.failedToExecuteQuery }, null, 2));
-				}
-				setLoading(false);
+			if (!queryToExecute.trim()) return;
+			queryControllerRef.current?.abort();
+			const controller = new AbortController();
+			queryControllerRef.current = controller;
+			setResult(null);
+			setLoading(true);
+			try {
+				const data = await executePlaygroundQuery({
+					query: queryToExecute,
+					gateway: inputGateway.trim(),
+					variables,
+					signal: controller.signal,
+				});
+				if (controller.signal.aborted) return;
+				setResult(JSON.stringify(data, null, 2));
+			} catch (error: unknown) {
+				if (controller.signal.aborted) return;
+				setResult(
+					JSON.stringify({ error: error instanceof Error ? error.message : language.failedToExecuteQuery }, null, 2)
+				);
+			} finally {
+				if (!controller.signal.aborted) setLoading(false);
 			}
 		},
-		[query, inputGateway, prepareQuery, showVariables, variables]
+		[query, inputGateway, variables, language.failedToExecuteQuery]
 	);
 
 	const schemaTypesByName = React.useMemo(() => {
@@ -725,7 +500,7 @@ export default function GraphQLPlayground(props: {
 				<S.DocsPanel>
 					<S.DocsEndpoint>
 						<span>Gateway</span>
-						<p>{schemaDocsEndpoint}</p>
+						<p>{getPlaygroundGatewayLabel(schemaDocsGateway)}</p>
 					</S.DocsEndpoint>
 					{schemaDocsLoading && (
 						<S.DocsEmpty>
@@ -782,6 +557,7 @@ export default function GraphQLPlayground(props: {
 							value={inputGateway}
 							onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 								setInputGateway(e.target.value);
+								setSelectedGateway(getPlaygroundGatewayStorageValue(e.target.value));
 							}}
 							placeholder={'https://arweave.net'}
 							invalid={{ status: false, message: null }}
@@ -795,7 +571,11 @@ export default function GraphQLPlayground(props: {
 						type={'alt1'}
 						icon={ASSETS.save}
 						onPress={saveCustomGateway}
-						disabled={!getGatewayStorageValue(inputGateway) || gateways.includes(getGatewayStorageValue(inputGateway))}
+						disabled={
+							!getPlaygroundGatewayStorageValue(inputGateway) ||
+							isRetiredGateway ||
+							gateways.includes(getPlaygroundGatewayStorageValue(inputGateway))
+						}
 						height={32.5}
 						width={32.5}
 						noMinWidth
@@ -843,12 +623,12 @@ export default function GraphQLPlayground(props: {
 						activeOption={activeGatewayOption}
 						setActiveOption={(option) => {
 							setSelectedGateway(option.id);
-							setInputGateway(getGatewayInputValue(option.id));
+							setInputGateway(getPlaygroundGatewayInputValue(option.id));
 						}}
 						options={gatewayOptions}
 						disabled={false}
 						onRemoveOption={removeGateway}
-						isOptionRemovable={() => gateways.length > 1}
+						isOptionRemovable={(option) => option.id !== AR_LMDB_GQL_GATEWAY && gateways.length > 1}
 						removeOptionLabel={language.remove}
 					/>
 				</S.ActionsWrapper>

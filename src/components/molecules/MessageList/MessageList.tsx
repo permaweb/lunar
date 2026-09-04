@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
+import { getGraphQLSource, GraphQLApiError } from 'api/graphql';
 import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
@@ -33,7 +34,7 @@ import {
 } from 'helpers/config';
 import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
-import { getSearchParam, updateSearchParams } from 'helpers/query';
+import { getSearchParam, isPaginationSourceCurrent, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
 import {
 	GQLNodeResponseType,
@@ -96,6 +97,7 @@ const MESSAGE_QUERY_KEYS = {
 	limit: 'messageLimit',
 	after: 'messageAfter',
 	page: 'messagePage',
+	source: 'messageSource',
 };
 
 function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
@@ -1009,8 +1011,11 @@ function getMessageQueryState(searchParams: URLSearchParams) {
 	const startDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.start));
 	const endDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.end));
 	const perPage = normalizePerPageFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.limit));
-	const page = parsePositiveInteger(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.page) ?? '');
-	const after = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.after);
+	const isCurrentSource = isPaginationSourceCurrent(searchParams, MESSAGE_QUERY_KEYS.source, getGraphQLSource());
+	const page = isCurrentSource
+		? parsePositiveInteger(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.page) ?? '')
+		: null;
+	const after = isCurrentSource ? getSearchParam(searchParams, MESSAGE_QUERY_KEYS.after) : null;
 	const hasQuery = Object.values(MESSAGE_QUERY_KEYS).some((key) => searchParams.has(key));
 
 	return {
@@ -1208,6 +1213,7 @@ export default function MessageList(props: {
 
 	const [currentData, setCurrentData] = React.useState<any[] | null>(null);
 	const [loadingMessages, setLoadingMessages] = React.useState<boolean>(false);
+	const [messageError, setMessageError] = React.useState<string | null>(null);
 	const [schedulerFallbackActive, setSchedulerFallbackActive] = React.useState<boolean>(false);
 
 	const [incomingCount, setIncomingCount] = React.useState<number | null>(null);
@@ -1443,6 +1449,7 @@ export default function MessageList(props: {
 				parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE ? parsedPerPage : null,
 			[MESSAGE_QUERY_KEYS.after]: pageCursor,
 			[MESSAGE_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+			[MESSAGE_QUERY_KEYS.source]: pageCursor || pageNumber > 1 ? getGraphQLSource() : null,
 		});
 	}, [
 		appliedTypeFilter,
@@ -1941,10 +1948,13 @@ export default function MessageList(props: {
 	]);
 
 	React.useEffect(() => {
+		let cancelled = false;
+
 		(async function () {
 			let tags = getAppliedActionTags();
 
 			setLoadingMessages(true);
+			setMessageError(null);
 			if (!parsedPerPage) {
 				setCurrentData([]);
 				setNextCursor(null);
@@ -2131,12 +2141,12 @@ export default function MessageList(props: {
 									setCurrentData([]);
 								}
 							} catch (e: any) {
-								setLoadingMessages(false);
+								throw e;
 							}
 						}
 					}
 				} catch (e: any) {
-					console.error(e);
+					throw e;
 				}
 			} else {
 				tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
@@ -2167,7 +2177,17 @@ export default function MessageList(props: {
 				setNextCursor(gqlResponse.nextCursor);
 			}
 			setLoadingMessages(false);
-		})();
+		})().catch((error: unknown) => {
+			if (cancelled) return;
+			console.error(error);
+			setMessageError(error instanceof GraphQLApiError ? error.message : language.errorFetchingData);
+			setNextCursor(null);
+			setLoadingMessages(false);
+		});
+
+		return () => {
+			cancelled = true;
+		};
 	}, [
 		props.txId,
 		props.type,
@@ -2193,6 +2213,7 @@ export default function MessageList(props: {
 		schedulerCandidateForCurrentFilters,
 		hasSchedulerVariant,
 		useSchedulerForProcessMessages,
+		language.errorFetchingData,
 	]);
 
 	const scrollToTop = () => {
@@ -2348,6 +2369,7 @@ export default function MessageList(props: {
 			scrollToTop();
 		} catch (e: any) {
 			console.error(e);
+			setMessageError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 			setPageInput(pageNumber.toString());
 		} finally {
 			setLoadingMessages(false);
@@ -2463,8 +2485,12 @@ export default function MessageList(props: {
 		}
 		if (currentData?.length <= 0)
 			message = isTransactionView ? language.transactionsNotFound : language.associatedMessagesNotFound;
+		if (messageError) message = messageError;
 		return (
-			<S.UpdateWrapper childList={props.childList}>
+			<S.UpdateWrapper
+				childList={props.childList}
+				role={messageError ? 'alert' : loadingMessages ? 'status' : undefined}
+			>
 				<p>{message}</p>
 			</S.UpdateWrapper>
 		);
@@ -2756,6 +2782,7 @@ export default function MessageList(props: {
 						)}
 					</S.Header>
 				)}
+				{messageError && currentData?.length > 0 && getMessage()}
 				{currentData?.length > 0 ? (
 					<S.Wrapper childList={props.childList}>
 						{!props.childList && (

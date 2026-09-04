@@ -1,9 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getTransactions } from '../../src/api/blocks';
+import { FLAGS } from '../../src/helpers/config';
+
+beforeEach(() => {
+	FLAGS.USE_AR_LMDB_GQL = false;
+});
 
 afterEach(() => {
 	vi.unstubAllGlobals();
+	FLAGS.USE_AR_LMDB_GQL = true;
 });
 
 describe('Arweave block API adapter', () => {

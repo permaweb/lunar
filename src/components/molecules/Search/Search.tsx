@@ -109,9 +109,9 @@ export default function Search(props: SearchProps) {
 							setSearchResult({ type: 'not-found' });
 						}
 					}
-				} catch (e: any) {
+				} catch (e: unknown) {
 					console.error(e);
-					setSearchResult({ type: 'error', message: e.message });
+					setSearchResult({ type: 'error', message: e instanceof Error ? e.message : language.errorFetchingData });
 				}
 
 				setLoading(false);
@@ -120,7 +120,7 @@ export default function Search(props: SearchProps) {
 				setOutputOpen(false);
 			}
 		})();
-	}, [inputValue, permawebProvider, dispatch]);
+	}, [inputValue, permawebProvider, dispatch, language.errorFetchingData]);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = e.target.value;
@@ -168,7 +168,7 @@ export default function Search(props: SearchProps) {
 
 		if (searchResult.type === 'error') {
 			return (
-				<S.SearchOutputPlaceholder>
+				<S.SearchOutputPlaceholder role={'alert'}>
 					<p>{searchResult.message || language.errorFetchingData || 'Error fetching data'}</p>
 				</S.SearchOutputPlaceholder>
 			);

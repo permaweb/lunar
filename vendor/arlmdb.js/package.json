@@ -1,0 +1,14 @@
+{
+	"name": "arlmdb.js",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Arweave GraphQL executed locally from a published LMDB predicate index",
+	"type": "module",
+	"exports": {
+		".": "./src/index.js"
+	},
+	"dependencies": {
+		"graphql": "16.11.0",
+		"lmdb-wasm": "file:../lmdb-wasm"
+	}
+}
