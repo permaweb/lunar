@@ -33,6 +33,7 @@ import {
 	getTagValue,
 	isNativeArTransfer,
 } from 'helpers/utils';
+import { useGraphQLSource } from 'hooks/useGraphQLSource';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -321,7 +322,13 @@ function TransactionRow(props: {
 	);
 }
 
-export default function TransactionList(props: {
+export default function TransactionList(props: React.ComponentProps<typeof TransactionListContent>) {
+	const source = useGraphQLSource();
+
+	return <TransactionListContent key={source} {...props} />;
+}
+
+function TransactionListContent(props: {
 	mode: 'block' | 'bundle' | 'recent';
 	blockHeight?: number;
 	blockId?: string;
@@ -340,6 +347,7 @@ export default function TransactionList(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
+	const requestGenerationRef = React.useRef(0);
 	const transactionQueryKeys = React.useMemo(() => getTransactionQueryKeys(props.mode), [props.mode]);
 	const searchParamString = searchParams.toString();
 	const routeSearch = React.useMemo(
@@ -372,6 +380,7 @@ export default function TransactionList(props: {
 		[location.pathname, props.mode, props.blockHeight, props.blockId, props.bundleId]
 	);
 	const skipNextQueryWriteRef = React.useRef<boolean>(syncQueryParams && queryFilterState.hasQuery);
+	const hasRestoredQueryRef = React.useRef(false);
 	const dataScopeKey = React.useMemo(() => {
 		if (props.mode === 'bundle') return `bundle:${props.bundleId ?? ''}`;
 		if (props.mode === 'recent') return 'recent';
@@ -465,6 +474,13 @@ export default function TransactionList(props: {
 	);
 
 	React.useEffect(() => {
+		props.onTotalCountChange?.(null);
+		return () => {
+			requestGenerationRef.current += 1;
+		};
+	}, []);
+
+	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
 	}, [pageNumber]);
 
@@ -486,7 +502,10 @@ export default function TransactionList(props: {
 	React.useEffect(() => {
 		if (!syncQueryParams || !queryFilterState.hasQuery) return;
 
-		skipNextQueryWriteRef.current = true;
+		skipNextQueryWriteRef.current =
+			hasRestoredQueryRef.current ||
+			isPaginationSourceCurrent(routeSearchParams, transactionQueryKeys.source, getGraphQLSource());
+		hasRestoredQueryRef.current = true;
 
 		const nextPerPage = queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE;
 		const nextPage = queryFilterState.page ?? 1;
@@ -672,6 +691,7 @@ export default function TransactionList(props: {
 		}
 
 		setLoading(true);
+		const requestGeneration = requestGenerationRef.current;
 		try {
 			let cursor: string | null = null;
 			const nextHistory: (string | null)[] = [];
@@ -679,6 +699,7 @@ export default function TransactionList(props: {
 			for (let page = 1; page < targetPage; page++) {
 				nextHistory.push(cursor);
 				const response = await fetchTransactionsPage(cursor);
+				if (requestGenerationRef.current !== requestGeneration) return;
 				const lastEdge = response.transactions.edges[response.transactions.edges.length - 1];
 
 				if (!response.transactions.pageInfo.hasNextPage || !lastEdge) {
@@ -694,11 +715,12 @@ export default function TransactionList(props: {
 			setPageNumber(targetPage);
 			scrollToTop();
 		} catch (e: any) {
+			if (requestGenerationRef.current !== requestGeneration) return;
 			console.error(e);
 			setPageInput(pageNumber.toString());
 			setError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 		} finally {
-			setLoading(false);
+			if (requestGenerationRef.current === requestGeneration) setLoading(false);
 		}
 	}
 

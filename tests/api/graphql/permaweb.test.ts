@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { setConfiguredGraphQLSource } from '../../../src/api/graphql/source';
 import { createPermawebApis } from '../../../src/api/permaweb';
-import { FLAGS } from '../../../src/helpers/config';
 
 const mocks = vi.hoisted(() => ({
 	local: vi.fn(),
@@ -21,14 +21,15 @@ vi.mock('@permaweb/libs', () => ({
 		}),
 	},
 }));
-vi.mock('../../../src/api/graphql', () => ({
+vi.mock('../../../src/api/graphql', async (importOriginal) => ({
+	...(await importOriginal<typeof import('../../../src/api/graphql')>()),
 	getArLmdbTransactions: mocks.local,
 	getRemoteGraphQLEndpoint: mocks.validateEndpoint,
 }));
 
 afterEach(() => {
 	vi.clearAllMocks();
-	FLAGS.USE_AR_LMDB_GQL = true;
+	setConfiguredGraphQLSource('ar-lmdb');
 });
 
 describe('permaweb GraphQL source boundary', () => {
@@ -43,13 +44,23 @@ describe('permaweb GraphQL source boundary', () => {
 		expect(mocks.remote).not.toHaveBeenCalled();
 	});
 
-	it('retains the SDK call and original arguments when the flag is false', async () => {
-		FLAGS.USE_AR_LMDB_GQL = false;
+	it('retains the SDK call and original arguments when Remote is selected', async () => {
+		setConfiguredGraphQLSource('remote');
 		const apis = createPermawebApis({ wallet: null });
 		const args = { id: ['tx'], gateway: 'gateway.example', paginator: 25 };
 		await apis.legacyApi.getGQLData(args);
 		expect(mocks.remote).toHaveBeenCalledWith(args);
 		expect(mocks.local).not.toHaveBeenCalled();
+	});
+
+	it('keeps explicitly configured API instances pinned when the preference changes', async () => {
+		const localApis = createPermawebApis({ wallet: null, graphqlSource: 'ar-lmdb' });
+		setConfiguredGraphQLSource('remote');
+		const remoteApis = createPermawebApis({ wallet: null, graphqlSource: 'remote' });
+		await localApis.mainnetApi.getGQLData({ paginator: 1 });
+		await remoteApis.mainnetApi.getGQLData({ paginator: 1 });
+		expect(mocks.local).toHaveBeenCalledOnce();
+		expect(mocks.remote).toHaveBeenCalledOnce();
 	});
 
 	it('replaces the profile SDK hidden GraphQL lookup in local mode', async () => {

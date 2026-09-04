@@ -28,7 +28,7 @@ Lunar starts with:
 
 **AR LMDB** runs the JavaScript GraphQL engine locally using Arweave-hosted LMDB index data. It still downloads index pages as needed, and results reflect the configured index snapshot. The current index covers ANS-104 bundled data items, rather than all L1 Arweave transactions.
 
-`FLAGS.USE_AR_LMDB_GQL` in `src/helpers/config.ts` defaults to `true`, selecting AR LMDB for application queries and new Playground tabs. Setting it to `false` restores remote GraphQL for application queries and the original remote default for new tabs. Saved tabs keep their selected source, and explicitly selecting a remote gateway in the Playground uses that remote gateway regardless of the flag. AR LMDB remains available in the dropdown with either flag setting.
+**Settings → GraphQL Source** defaults to **AR LMDB** for application queries and new Playground tabs. Choose **Remote** to use remote GraphQL instead. The preference is saved in your browser and applies immediately; changing it resets list pagination while preserving filters. Saved Playground tabs keep their selected gateway, and an explicit gateway selection overrides the app-wide preference. AR LMDB remains available in the dropdown with either setting.
 
 Enter another gateway base URL and save it to add it to the local list. AR LMDB is saved as a local source, without an HTTP URL. The retired `cache.forward.computer` gateway is removed from saved choices and cannot be used for requests.
 

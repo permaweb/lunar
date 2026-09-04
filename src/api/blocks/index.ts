@@ -1,6 +1,7 @@
 import { FLAGS } from 'helpers/config';
 
-import { executeGraphQL, GraphQLApiError } from '../graphql';
+import type { GraphQLSource } from '../graphql';
+import { executeGraphQL, getConfiguredGraphQLSource, GraphQLApiError } from '../graphql';
 import { isRecord } from '../graphql/types';
 
 export type BlockNode = {
@@ -172,7 +173,7 @@ function getTransactionFields(includeCount = false) {
 				address
 			}
 			${
-				FLAGS.USE_AR_LMDB_GQL
+				getConfiguredGraphQLSource() === 'ar-lmdb'
 					? ''
 					: `fee {
 				winston
@@ -393,7 +394,12 @@ export function isBundleTransaction(transaction: TransactionNode) {
 	);
 }
 
-async function queryGraphQL<T>(args: { query: string; variables: Record<string, any>; gateway?: string }): Promise<T> {
+async function queryGraphQL<T>(args: {
+	query: string;
+	variables: Record<string, any>;
+	gateway?: string;
+	source?: GraphQLSource;
+}): Promise<T> {
 	const parsed = await executeGraphQL<T>(args);
 
 	if (parsed.errors?.length) {
@@ -422,10 +428,12 @@ async function queryTransactions(args: {
 	variables: Record<string, any>;
 	gateway?: string;
 }): Promise<TransactionsQueryResponse> {
-	if (!FLAGS.USE_AR_LMDB_GQL) return queryGraphQL<TransactionsQueryResponse>(args);
+	// Keep every page of one logical query on the source it started with.
+	const request = { ...args, source: getConfiguredGraphQLSource() };
+	if (request.source === 'remote') return queryGraphQL<TransactionsQueryResponse>(request);
 	const first = getFirst(args.variables.first);
 	const response = await queryGraphQL<TransactionsQueryResponse>({
-		...args,
+		...request,
 		variables: { ...args.variables, first: Math.min(50, first) },
 	});
 	const connection = response.transactions;
@@ -436,7 +444,7 @@ async function queryTransactions(args: {
 		const cursor = connection.edges[connection.edges.length - 1]?.cursor;
 		if (!cursor) throw new GraphQLApiError('invalid-response', 'AR LMDB returned a page without a cursor');
 		const next = await queryGraphQL<TransactionsQueryResponse>({
-			...args,
+			...request,
 			variables: { ...args.variables, first: Math.min(50, first - connection.edges.length), after: cursor },
 		});
 		if (

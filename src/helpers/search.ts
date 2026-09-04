@@ -1,4 +1,5 @@
 import { readAoBalance } from 'api/balances';
+import { getConfiguredGraphQLSource } from 'api/graphql';
 import { requestRemote } from 'api/http';
 
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
@@ -639,17 +640,18 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 		let response: any = null;
 		let lastError: any = null;
 
-		const sources = FLAGS.USE_AR_LMDB_GQL
-			? [{ id: [args.txId] }]
-			: [
-					{
-						id: [args.txId],
-					},
-					{
-						gateway: DEFAULT_GATEWAYS.arweave,
-						id: [args.txId],
-					},
-			  ];
+		const sources =
+			getConfiguredGraphQLSource() === 'ar-lmdb'
+				? [{ id: [args.txId] }]
+				: [
+						{
+							id: [args.txId],
+						},
+						{
+							gateway: DEFAULT_GATEWAYS.arweave,
+							id: [args.txId],
+						},
+				  ];
 		for (const gqlArgs of sources) {
 			try {
 				response = await args.getGQLData(gqlArgs);

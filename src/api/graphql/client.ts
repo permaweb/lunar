@@ -1,9 +1,10 @@
-import { AR_LMDB_GQL_GATEWAY, DEFAULT_GATEWAYS, FLAGS, RETIRED_GATEWAY_HOST } from 'helpers/config';
+import { AR_LMDB_GQL_GATEWAY, DEFAULT_GATEWAYS, RETIRED_GATEWAY_HOST } from 'helpers/config';
 
+import { getConfiguredGraphQLSource } from './source';
 import { GraphQLApiError, GraphQLRequest, GraphQLResponse, isRecord, validateGraphQLResponse } from './types';
 
 export function getGraphQLSource(request: Pick<GraphQLRequest, 'source' | 'gateway'> = {}) {
-	return request.source ?? (request.gateway === AR_LMDB_GQL_GATEWAY || FLAGS.USE_AR_LMDB_GQL ? 'ar-lmdb' : 'remote');
+	return request.source ?? (request.gateway === AR_LMDB_GQL_GATEWAY ? 'ar-lmdb' : getConfiguredGraphQLSource());
 }
 
 export function getRemoteGraphQLEndpoint(gateway = DEFAULT_GATEWAYS.arweave): string {

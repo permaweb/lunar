@@ -2,6 +2,7 @@ import React from 'react';
 import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
+import { type GraphQLSource, setConfiguredGraphQLSource } from 'api/graphql';
 import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
@@ -23,6 +24,7 @@ import {
 } from 'helpers/themes';
 import { validateUrl } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
+import { useGraphQLSource } from 'hooks/useGraphQLSource';
 import { NotificationViewport, useNotifications } from 'providers/NotificationProvider';
 
 import * as S from './styles';
@@ -55,6 +57,7 @@ export interface NodeConfig {
 }
 
 interface Settings {
+	graphqlSource: GraphQLSource;
 	theme: ThemeType;
 	syncWithSystem: boolean;
 	preferredLightTheme: ThemeType;
@@ -70,6 +73,8 @@ interface Settings {
 	nodes: NodeConfig[];
 }
 
+type ManagedSettings = Omit<Settings, 'graphqlSource'>;
+
 interface SettingsContextState {
 	settings: Settings;
 	updateSettings: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
@@ -84,7 +89,7 @@ interface SettingsProviderProps {
 	children: React.ReactNode;
 }
 
-const defaultSettings: Settings = {
+const defaultSettings: ManagedSettings = {
 	theme: window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark-primary' : 'light-primary',
 	syncWithSystem: true,
 	preferredLightTheme: 'light-primary',
@@ -100,14 +105,14 @@ const defaultSettings: Settings = {
 	nodes: [{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true }],
 };
 
-function getStoredSettings(settings: Settings) {
+function getStoredSettings(settings: ManagedSettings) {
 	const { isDesktop: _isDesktop, windowSize: _windowSize, ...storedSettings } = settings;
 
 	return storedSettings;
 }
 
 const SettingsContext = React.createContext<SettingsContextState>({
-	settings: defaultSettings,
+	settings: { ...defaultSettings, graphqlSource: 'ar-lmdb' },
 	updateSettings: () => {},
 	addNode: async () => {},
 	removeNode: () => {},
@@ -121,17 +126,28 @@ export function useSettingsProvider(): SettingsContextState {
 }
 
 export default function SettingsProvider(props: SettingsProviderProps) {
-	const loadStoredSettings = (): Settings => {
-		const stored = localStorage.getItem('settings');
+	const loadStoredSettings = (): ManagedSettings => {
+		let parsedSettings: Partial<ManagedSettings> | null = null;
+		try {
+			const stored = localStorage.getItem('settings');
+			const parsed = stored ? JSON.parse(stored) : null;
+			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+				// The GraphQL preference has its own synchronous store; never restore an older copy here.
+				const { graphqlSource: _graphqlSource, ...remainingSettings } = parsed;
+				parsedSettings = remainingSettings;
+			}
+		} catch {
+			// Settings remain usable when browser storage is restricted or the saved JSON is invalid.
+		}
 		const isDesktop = checkWindowCutoff(parseInt(STYLING.cutoffs.desktop));
 		const preferredTheme = window.matchMedia?.('(prefers-color-scheme: dark)').matches
 			? 'dark-primary'
 			: 'light-primary';
 
-		let settings: Settings;
-		if (stored) {
-			const parsedSettings = JSON.parse(stored);
+		let settings: ManagedSettings;
+		if (parsedSettings) {
 			settings = {
+				...defaultSettings,
 				...parsedSettings,
 				isDesktop,
 				windowSize: { width: window.innerWidth, height: window.innerHeight },
@@ -161,8 +177,10 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 	};
 
 	const { addNotification, removeNotification } = useNotifications();
+	const graphqlSource = useGraphQLSource();
 
-	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings());
+	const [managedSettings, setSettings] = React.useState<ManagedSettings>(loadStoredSettings);
+	const settings = React.useMemo(() => ({ ...managedSettings, graphqlSource }), [managedSettings, graphqlSource]);
 	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
 	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
 	const [legacyComputeNodeInput, setLegacyComputeNodeInput] = React.useState<string>(settings.legacyComputeNode);
@@ -171,13 +189,17 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 
 	React.useEffect(() => {
 		const persistTimeout = window.setTimeout(() => {
-			localStorage.setItem('settings', JSON.stringify(getStoredSettings(settings)));
+			try {
+				localStorage.setItem('settings', JSON.stringify(getStoredSettings(managedSettings)));
+			} catch {
+				// Keep settings available for this session when storage cannot be written.
+			}
 		}, 0);
 
 		return () => {
 			window.clearTimeout(persistTimeout);
 		};
-	}, [settings]);
+	}, [managedSettings]);
 
 	const handleWindowResize = React.useCallback(() => {
 		const newIsDesktop = checkWindowCutoff(parseInt(STYLING.cutoffs.desktop));
@@ -227,6 +249,11 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 	}, [settings.syncWithSystem, settings.preferredLightTheme, settings.preferredDarkTheme]);
 
 	const updateSettings = React.useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
+		if (key === 'graphqlSource') {
+			if (value === 'ar-lmdb' || value === 'remote') setConfiguredGraphQLSource(value);
+			return;
+		}
+
 		setSettings((prevSettings) => {
 			let newSettings = { ...prevSettings, [key]: value };
 
@@ -425,13 +452,36 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 			<ThemeProvider theme={selectedTheme}>
 				{props.children}
 				{showNodeSettings && (
-					<Modal
-						type="panel"
-						width={500}
-						header={language.en.nodeConfiguration}
-						onClose={() => setShowNodeSettings(false)}
-					>
+					<Modal type="panel" width={500} header={language.en.settings} onClose={() => setShowNodeSettings(false)}>
 						<S.MWrapper className={'modal-wrapper'}>
+							<S.NodeSection
+								role="group"
+								aria-labelledby="settings-graphql-source-label"
+								aria-describedby="settings-graphql-source-description"
+							>
+								<S.NodeSectionHeader>
+									<p id="settings-graphql-source-label">{language.en.graphqlSource}</p>
+								</S.NodeSectionHeader>
+								<S.GraphQLSourceOptions>
+									<S.GraphQLSourceOption
+										type="button"
+										aria-pressed={settings.graphqlSource === 'ar-lmdb'}
+										onClick={() => updateSettings('graphqlSource', 'ar-lmdb')}
+									>
+										{language.en.graphqlSourceArLmdb}
+									</S.GraphQLSourceOption>
+									<S.GraphQLSourceOption
+										type="button"
+										aria-pressed={settings.graphqlSource === 'remote'}
+										onClick={() => updateSettings('graphqlSource', 'remote')}
+									>
+										{language.en.graphqlSourceRemote}
+									</S.GraphQLSourceOption>
+								</S.GraphQLSourceOptions>
+								<S.GraphQLSourceDescription id="settings-graphql-source-description">
+									{language.en.graphqlSourceDescription}
+								</S.GraphQLSourceDescription>
+							</S.NodeSection>
 							<S.NodeSection>
 								<S.NodeSectionHeader>
 									<p>{`AO Mainnet ${language.en.nodeConfiguration}`}</p>

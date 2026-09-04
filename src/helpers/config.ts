@@ -184,7 +184,6 @@ export const DEFAULT_AO_TAGS = [{ name: 'Data-Protocol', values: ['ao'] }];
 export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...DEFAULT_AO_TAGS];
 
 export const FLAGS = {
-	USE_AR_LMDB_GQL: true,
 	CLIENT_SIDE_PAGINATION: false,
 	CONTROL_PAGINATION: false,
 	USE_GATEWAY_BUNDLE_REQUEST: false,

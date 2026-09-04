@@ -25,8 +25,9 @@ export function checkValidAddress(address: string | null) {
 
 export function formatAddress(address: string | null, wrap: boolean) {
 	if (!address) return '';
-	if (!checkValidAddress(address)) return address;
-	const formattedAddress = address.substring(0, 5) + '...' + address.substring(38, address.length);
+	const isEthAddress = /^0x[0-9a-f]{40}$/i.test(address);
+	if (!checkValidAddress(address) && !isEthAddress) return address;
+	const formattedAddress = address.slice(0, isEthAddress ? 6 : 5) + '...' + address.slice(isEthAddress ? -4 : -5);
 	return wrap ? `(${formattedAddress})` : formattedAddress;
 }
 

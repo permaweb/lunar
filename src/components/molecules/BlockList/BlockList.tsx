@@ -21,6 +21,7 @@ import {
 	getByteSizeDisplay,
 	getRelativeDate,
 } from 'helpers/utils';
+import { useGraphQLSource } from 'hooks/useGraphQLSource';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -199,12 +200,19 @@ function BlockRow(props: {
 	);
 }
 
-export default function BlockList(props: { header?: string; pageSize?: number; preview?: boolean }) {
+export default function BlockList(props: React.ComponentProps<typeof BlockListContent>) {
+	const source = useGraphQLSource();
+
+	return <BlockListContent key={source} {...props} />;
+}
+
+function BlockListContent(props: { header?: string; pageSize?: number; preview?: boolean }) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
+	const requestGenerationRef = React.useRef(0);
 	const queryFilterState = React.useMemo(
 		() =>
 			props.preview
@@ -265,6 +273,12 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 			}),
 		[activeRange.minHeight, activeRange.maxHeight, perPage]
 	);
+
+	React.useEffect(() => {
+		return () => {
+			requestGenerationRef.current += 1;
+		};
+	}, []);
 
 	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
@@ -419,6 +433,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 		}
 
 		setLoading(true);
+		const requestGeneration = requestGenerationRef.current;
 		try {
 			let cursor: string | null = null;
 			const nextHistory: (string | null)[] = [];
@@ -426,6 +441,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 			for (let page = 1; page < targetPage; page++) {
 				nextHistory.push(cursor);
 				const response = await fetchBlocksPage(cursor);
+				if (requestGenerationRef.current !== requestGeneration) return;
 				const lastEdge = response.blocks.edges[response.blocks.edges.length - 1];
 
 				if (!response.blocks.pageInfo.hasNextPage || !lastEdge) {
@@ -441,11 +457,12 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 			setPageNumber(targetPage);
 			scrollToTop();
 		} catch (e: any) {
+			if (requestGenerationRef.current !== requestGeneration) return;
 			console.error(e);
 			setPageInput(pageNumber.toString());
 			setError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 		} finally {
-			setLoading(false);
+			if (requestGenerationRef.current === requestGeneration) setLoading(false);
 		}
 	}
 

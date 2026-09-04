@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
 import { ASSETS, URLS } from 'helpers/config';
-import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { store } from 'store';
 import { selectTransaction } from 'store/transactions/reducer';
@@ -106,9 +106,7 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 		if (truncatedName) return truncatedName;
 
-		if (checkValidAddress(value)) return formatAddress(value, props.wrap);
-
-		return value;
+		return formatAddress(value, props.wrap);
 	}
 
 	if (!value) return <p>-</p>;

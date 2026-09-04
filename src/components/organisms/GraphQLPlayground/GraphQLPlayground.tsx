@@ -23,6 +23,8 @@ import { AR_LMDB_GQL_GATEWAY, ASSETS } from 'helpers/config';
 import { SelectOptionType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
+import type { QueryTiming } from './queryTimings';
+import { formatQueryDuration, QUERY_TIMINGS_PAGE_SIZE } from './queryTimings';
 import * as S from './styles';
 
 const DEFAULT_QUERY = `query Transactions {
@@ -132,14 +134,33 @@ export default function GraphQLPlayground(props: {
 		}
 	});
 	const [showDocs, setShowDocs] = React.useState<boolean>(false);
+	const [showQueryTimes, setShowQueryTimes] = React.useState(false);
+	const [queryTimings, setQueryTimings] = React.useState<QueryTiming[]>([]);
+	const [queryTimingsPage, setQueryTimingsPage] = React.useState(0);
 	const [schemaDocs, setSchemaDocs] = React.useState<GQLSchemaDocs | null>(null);
 	const [schemaDocsLoading, setSchemaDocsLoading] = React.useState<boolean>(false);
 	const [schemaDocsError, setSchemaDocsError] = React.useState<string | null>(null);
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const layoutTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 	const queryControllerRef = React.useRef<AbortController | null>(null);
+	const queryRunIdRef = React.useRef(0);
+	const isMountedRef = React.useRef(false);
 	const schemaDocsGateway = inputGateway.trim();
 	const isRetiredGateway = isRetiredGraphQLGateway(inputGateway);
+	const latestQueryTiming = queryTimings[0];
+	const queryTimingsPageCount = Math.max(1, Math.ceil(queryTimings.length / QUERY_TIMINGS_PAGE_SIZE));
+
+	React.useEffect(() => {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+			queryControllerRef.current?.abort();
+		};
+	}, []);
+
+	React.useEffect(() => {
+		if (!props.active) setShowQueryTimes(false);
+	}, [props.active]);
 
 	React.useEffect(() => {
 		setResult(null);
@@ -340,6 +361,23 @@ export default function GraphQLPlayground(props: {
 			queryControllerRef.current = controller;
 			setResult(null);
 			setLoading(true);
+			const run = {
+				id: ++queryRunIdRef.current,
+				startedAt: Date.now(),
+				gateway: inputGateway.trim(),
+				queryName: extractQueryName(queryToExecute),
+			};
+			const startedAt = performance.now();
+			let hasRecordedTiming = false;
+			const recordTiming = (status: QueryTiming['status']) => {
+				if (hasRecordedTiming) return;
+				hasRecordedTiming = true;
+				const durationMs = Math.max(0, performance.now() - startedAt);
+				if (!isMountedRef.current) return;
+				setQueryTimings((previous) => [...previous, { ...run, durationMs, status }].sort((a, b) => b.id - a.id));
+			};
+			const handleAbort = () => recordTiming('cancelled');
+			controller.signal.addEventListener('abort', handleAbort, { once: true });
 			try {
 				const data = await executePlaygroundQuery({
 					query: queryToExecute,
@@ -348,17 +386,20 @@ export default function GraphQLPlayground(props: {
 					signal: controller.signal,
 				});
 				if (controller.signal.aborted) return;
+				recordTiming(data.errors?.length ? 'failed' : 'success');
 				setResult(JSON.stringify(data, null, 2));
 			} catch (error: unknown) {
 				if (controller.signal.aborted) return;
+				recordTiming('failed');
 				setResult(
 					JSON.stringify({ error: error instanceof Error ? error.message : language.failedToExecuteQuery }, null, 2)
 				);
 			} finally {
+				controller.signal.removeEventListener('abort', handleAbort);
 				if (!controller.signal.aborted) setLoading(false);
 			}
 		},
-		[query, inputGateway, variables, language.failedToExecuteQuery]
+		[query, inputGateway, variables, language.failedToExecuteQuery, extractQueryName]
 	);
 
 	const schemaTypesByName = React.useMemo(() => {
@@ -547,6 +588,75 @@ export default function GraphQLPlayground(props: {
 		);
 	}
 
+	function handleShowQueryTimes() {
+		setShowDocs(false);
+		setQueryTimingsPage(0);
+		setShowQueryTimes(true);
+	}
+
+	function renderQueryTimesPanel() {
+		const visibleTimings = queryTimings.slice(
+			queryTimingsPage * QUERY_TIMINGS_PAGE_SIZE,
+			(queryTimingsPage + 1) * QUERY_TIMINGS_PAGE_SIZE
+		);
+
+		return (
+			<Modal type="panel" width={520} header={language.queryTimeHistory} onClose={() => setShowQueryTimes(false)}>
+				<S.TimingPanel>
+					<S.TimingDescription>{language.queryTimeHistoryInfo}</S.TimingDescription>
+					{queryTimings.length === 0 ? (
+						<S.TimingDescription>{language.queryTimeHistoryEmpty}</S.TimingDescription>
+					) : (
+						<>
+							<S.TimingList aria-label={language.queryTimeHistory}>
+								{visibleTimings.map((timing) => (
+									<S.TimingEntry key={timing.id}>
+										<S.TimingRow>
+											<strong>{formatQueryDuration(timing.durationMs)}</strong>
+											<S.TimingStatus $status={timing.status}>
+												{timing.status === 'success'
+													? language.success
+													: timing.status === 'failed'
+													? language.queryTimeFailed
+													: language.queryTimeCancelled}
+											</S.TimingStatus>
+										</S.TimingRow>
+										<p>{`${language.queryTimeRun(timing.id)} · ${timing.queryName || language.queryTimeUnnamed}`}</p>
+										<S.TimingRow>
+											<span>{getPlaygroundGatewayLabel(timing.gateway)}</span>
+											<time dateTime={new Date(timing.startedAt).toISOString()}>
+												{new Date(timing.startedAt).toLocaleString(languageProvider.current)}
+											</time>
+										</S.TimingRow>
+									</S.TimingEntry>
+								))}
+							</S.TimingList>
+							{queryTimingsPageCount > 1 && (
+								<S.TimingPagination>
+									<Button
+										type="alt1"
+										label={language.previous}
+										height={32.5}
+										disabled={queryTimingsPage === 0}
+										onPress={() => setQueryTimingsPage((page) => page - 1)}
+									/>
+									<span>{language.pageOf(queryTimingsPage + 1, queryTimingsPageCount)}</span>
+									<Button
+										type="alt1"
+										label={language.next}
+										height={32.5}
+										disabled={queryTimingsPage + 1 >= queryTimingsPageCount}
+										onPress={() => setQueryTimingsPage((page) => page + 1)}
+									/>
+								</S.TimingPagination>
+							)}
+						</>
+					)}
+				</S.TimingPanel>
+			</Modal>
+		);
+	}
+
 	return (
 		<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
 			<S.HeaderWrapper>
@@ -608,7 +718,10 @@ export default function GraphQLPlayground(props: {
 					/>
 					<Button
 						type={'alt1'}
-						onPress={() => setShowDocs(true)}
+						onPress={() => {
+							setShowQueryTimes(false);
+							setShowDocs(true);
+						}}
 						active={showDocs}
 						icon={ASSETS.docs}
 						height={32.5}
@@ -618,19 +731,35 @@ export default function GraphQLPlayground(props: {
 					/>
 				</S.InputWrapper>
 				<S.ActionsWrapper>
-					<Select
-						label={''}
-						activeOption={activeGatewayOption}
-						setActiveOption={(option) => {
-							setSelectedGateway(option.id);
-							setInputGateway(getPlaygroundGatewayInputValue(option.id));
-						}}
-						options={gatewayOptions}
-						disabled={false}
-						onRemoveOption={removeGateway}
-						isOptionRemovable={(option) => option.id !== AR_LMDB_GQL_GATEWAY && gateways.length > 1}
-						removeOptionLabel={language.remove}
-					/>
+					<S.TimingTrigger aria-live="polite">
+						<Button
+							type="primary"
+							label={
+								latestQueryTiming
+									? `${language.queryTimeLast}: ${formatQueryDuration(latestQueryTiming.durationMs)}`
+									: language.queryTimes
+							}
+							tooltip={language.queryTimeHistory}
+							onPress={handleShowQueryTimes}
+							active={showQueryTimes}
+							height={37.5}
+						/>
+					</S.TimingTrigger>
+					<S.GatewaySelect>
+						<Select
+							label={''}
+							activeOption={activeGatewayOption}
+							setActiveOption={(option) => {
+								setSelectedGateway(option.id);
+								setInputGateway(getPlaygroundGatewayInputValue(option.id));
+							}}
+							options={gatewayOptions}
+							disabled={false}
+							onRemoveOption={removeGateway}
+							isOptionRemovable={(option) => option.id !== AR_LMDB_GQL_GATEWAY && gateways.length > 1}
+							removeOptionLabel={language.remove}
+						/>
+					</S.GatewaySelect>
 				</S.ActionsWrapper>
 			</S.HeaderWrapper>
 			<S.Container isFullscreen={isFullscreen}>
@@ -669,6 +798,7 @@ export default function GraphQLPlayground(props: {
 				</S.ResultWrapper>
 			</S.Container>
 			{showDocs && renderDocsPanel()}
+			{props.active && showQueryTimes && renderQueryTimesPanel()}
 		</S.Wrapper>
 	);
 }

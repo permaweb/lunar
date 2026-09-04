@@ -35,7 +35,7 @@ describe('Playground source preferences', () => {
 		expect(getPlaygroundGatewayLabel(AR_LMDB_GQL_GATEWAY)).toBe('AR LMDB');
 	});
 
-	it('uses the flag for new tabs and respects explicit selections with either setting', () => {
+	it('uses the preference for new tabs and respects explicit selections with either setting', () => {
 		const gateways = getPlaygroundGateways(undefined);
 		expect(getInitialPlaygroundGateway(undefined, gateways, true)).toBe(AR_LMDB_GQL_GATEWAY);
 		expect(getInitialPlaygroundGateway(undefined, gateways, false)).toBe(DEFAULT_GQL_PLAYGROUND_GATEWAYS[0]);
@@ -80,7 +80,7 @@ describe('Playground execution boundary', () => {
 		});
 	});
 
-	it('explicit remote selection bypasses the default local flag', async () => {
+	it('explicit remote selection bypasses the default local preference', async () => {
 		const query = 'query Transactions { transactions(first: 10) { count } }';
 		await executePlaygroundQuery({ gateway: 'custom.example', query, variables: '{}' });
 		expect(executeGraphQL).toHaveBeenCalledWith({

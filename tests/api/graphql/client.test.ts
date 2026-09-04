@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { executeGraphQL } from '../../../src/api/graphql/client';
-import { FLAGS } from '../../../src/helpers/config';
+import { setConfiguredGraphQLSource } from '../../../src/api/graphql/source';
 
 const local = vi.hoisted(() => vi.fn());
 vi.mock('../../../src/api/graphql/arLmdbAdapter', () => ({ executeArLmdbGraphQL: local }));
@@ -9,7 +9,7 @@ vi.mock('../../../src/api/graphql/arLmdbAdapter', () => ({ executeArLmdbGraphQL:
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.clearAllMocks();
-	FLAGS.USE_AR_LMDB_GQL = true;
+	setConfiguredGraphQLSource('ar-lmdb');
 });
 
 describe('GraphQL source switch', () => {
@@ -23,8 +23,8 @@ describe('GraphQL source switch', () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	it('sends the original query and variables remotely with the flag off', async () => {
-		FLAGS.USE_AR_LMDB_GQL = false;
+	it('sends the original query and variables when Remote is selected in settings', async () => {
+		setConfiguredGraphQLSource('remote');
 		const fetch = vi
 			.fn()
 			.mockResolvedValue({ ok: true, json: async () => ({ data: { transactions: { edges: [] } } }) });
@@ -40,7 +40,7 @@ describe('GraphQL source switch', () => {
 		expect(local).not.toHaveBeenCalled();
 	});
 
-	it('honors an explicit remote playground selection even with the flag on', async () => {
+	it('honors an explicit remote playground selection even when settings select AR LMDB', async () => {
 		const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { __typename: 'Query' } }) });
 		vi.stubGlobal('fetch', fetch);
 		await executeGraphQL({ query: '{ __typename }', source: 'remote' });

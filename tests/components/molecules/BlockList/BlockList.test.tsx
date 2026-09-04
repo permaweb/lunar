@@ -2,18 +2,23 @@
 
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getBlocks } from '../../../../src/api/blocks';
-import { GraphQLApiError } from '../../../../src/api/graphql';
+import { GraphQLApiError, setConfiguredGraphQLSource } from '../../../../src/api/graphql';
 import { BlockList } from '../../../../src/components/molecules/BlockList';
 import { language } from '../../../../src/helpers/language';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 
 vi.mock('api/blocks', () => ({ getBlocks: vi.fn() }));
+vi.mock('react-svg', () => ({ ReactSVG: () => null }));
 vi.mock('components/atoms/TxAddress', () => ({ ExplorerLink: () => null, TxAddress: () => null }));
+
+function RouteSearch() {
+	return <output>{useLocation().search}</output>;
+}
 
 describe('BlockList query failures', () => {
 	let container: HTMLDivElement;
@@ -24,6 +29,8 @@ describe('BlockList query failures', () => {
 	});
 
 	beforeEach(() => {
+		vi.mocked(getBlocks).mockReset();
+		setConfiguredGraphQLSource('ar-lmdb');
 		vi.spyOn(console, 'error').mockImplementation(() => undefined);
 		container = document.createElement('div');
 		document.body.appendChild(container);
@@ -67,5 +74,39 @@ describe('BlockList query failures', () => {
 
 		expect(container.querySelector('[role="alert"]')?.textContent).toBe(language.en.errorFetchingData);
 		expect(container.querySelector('.loader')).toBeNull();
+	});
+
+	it('resets pagination on a source change, preserves filters, and ignores old responses', async () => {
+		setConfiguredGraphQLSource('remote');
+		let rejectOldRequest: (error: Error) => void;
+		vi.mocked(getBlocks).mockImplementationOnce(() => new Promise((_resolve, reject) => (rejectOldRequest = reject)));
+		vi.mocked(getBlocks).mockResolvedValue({
+			blocks: { edges: [], pageInfo: { hasNextPage: false } },
+		});
+
+		await React.act(async () => {
+			root.render(
+				<MemoryRouter
+					initialEntries={['/blocks?blockMinHeight=10&blockLimit=5&blockAfter=old&blockPage=2&blockSource=remote']}
+				>
+					<ThemeProvider theme={theme(darkTheme)}>
+						<BlockList />
+						<RouteSearch />
+					</ThemeProvider>
+				</MemoryRouter>
+			);
+		});
+		expect(getBlocks).toHaveBeenLastCalledWith({ first: 5, after: 'old', minHeight: 10, maxHeight: null });
+
+		await React.act(async () => setConfiguredGraphQLSource('ar-lmdb'));
+		expect(getBlocks).toHaveBeenLastCalledWith({ first: 5, after: null, minHeight: 10, maxHeight: null });
+		expect(container.querySelector('output')?.textContent).toBe('?blockMinHeight=10&blockLimit=5');
+
+		await React.act(async () => rejectOldRequest(new GraphQLApiError('unavailable', 'Old source failure')));
+		expect(container.querySelector('[role="alert"]')).toBeNull();
+		expect(container.textContent).not.toContain('Old source failure');
+
+		await React.act(async () => setConfiguredGraphQLSource('remote'));
+		expect(getBlocks).toHaveBeenLastCalledWith({ first: 5, after: null, minHeight: 10, maxHeight: null });
 	});
 });

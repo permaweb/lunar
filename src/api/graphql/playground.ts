@@ -1,6 +1,7 @@
-import { AR_LMDB_GQL_GATEWAY, DEFAULT_GQL_PLAYGROUND_GATEWAYS, FLAGS, RETIRED_GATEWAY_HOST } from 'helpers/config';
+import { AR_LMDB_GQL_GATEWAY, DEFAULT_GQL_PLAYGROUND_GATEWAYS, RETIRED_GATEWAY_HOST } from 'helpers/config';
 
 import { executeGraphQL } from './client';
+import { getConfiguredGraphQLSource } from './source';
 import type { GraphQLResponse } from './types';
 import { GraphQLApiError } from './types';
 
@@ -57,7 +58,7 @@ export function getPlaygroundGateways(stored: unknown): string[] {
 export function getInitialPlaygroundGateway(
 	initialGateway: unknown,
 	gateways: string[],
-	useArLmdb = FLAGS.USE_AR_LMDB_GQL
+	useArLmdb = getConfiguredGraphQLSource() === 'ar-lmdb'
 ): string {
 	if (typeof initialGateway === 'string' && initialGateway.trim() && !isRetiredGraphQLGateway(initialGateway)) {
 		return getPlaygroundGatewayStorageValue(initialGateway);

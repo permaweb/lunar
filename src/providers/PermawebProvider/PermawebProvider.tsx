@@ -34,30 +34,35 @@ export function usePermawebProvider(): PermawebContextState {
 export default function PermawebProvider(props: { children: React.ReactNode }) {
 	const arProvider = useArweaveProvider();
 	const settingsProvider = useSettingsProvider();
-	const [legacyApi, setLegacyApi] = React.useState<PermawebApi | null>(null);
-	const [mainnetApi, setMainnetApi] = React.useState<PermawebApi | null>(null);
 
 	const [profile, setProfile] = React.useState<ProfileType | null>(null);
 	const [showProfileManager, setShowProfileManager] = React.useState<boolean>(false);
 	const [refreshProfileTrigger, setRefreshProfileTrigger] = React.useState<boolean>(false);
 
-	React.useEffect(() => {
+	const apis = React.useMemo(() => {
 		try {
 			const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
-			const apis = createPermawebApis({
+			return createPermawebApis({
 				wallet: arProvider.wallet,
 				legacyComputeNode: settingsProvider.settings.legacyComputeNode,
 				node: activeNode,
+				graphqlSource: settingsProvider.settings.graphqlSource,
 			});
-
-			setLegacyApi(apis.legacyApi);
-			setMainnetApi(apis.mainnetApi);
 		} catch (error) {
 			console.error('Error in PermawebProvider initialization:', error);
+			return null;
 		}
-	}, [arProvider.wallet, settingsProvider.settings.nodes, settingsProvider.settings.legacyComputeNode]);
+	}, [
+		arProvider.wallet,
+		settingsProvider.settings.nodes,
+		settingsProvider.settings.legacyComputeNode,
+		settingsProvider.settings.graphqlSource,
+	]);
+	const legacyApi = apis?.legacyApi ?? null;
+	const mainnetApi = apis?.mainnetApi ?? null;
 
 	React.useEffect(() => {
+		let cancelled = false;
 		(async function () {
 			if (arProvider.wallet && arProvider.walletAddress && legacyApi) {
 				const cachedProfile = getCachedProfile(arProvider.walletAddress);
@@ -67,6 +72,7 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 
 				try {
 					const fetchedProfile = await legacyApi.getProfileByWalletAddress(arProvider.walletAddress);
+					if (cancelled) return;
 					setProfile(fetchedProfile);
 					cacheProfile(arProvider.walletAddress, fetchedProfile);
 				} catch (e: any) {
@@ -76,9 +82,13 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 				setProfile(null);
 			}
 		})();
+		return () => {
+			cancelled = true;
+		};
 	}, [arProvider.wallet, arProvider.walletAddress, legacyApi]);
 
 	React.useEffect(() => {
+		let cancelled = false;
 		(async function () {
 			if (arProvider.wallet && arProvider.walletAddress && legacyApi) {
 				const fetchProfileUntilChange = async () => {
@@ -86,10 +96,11 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 					let tries = 0;
 					const maxTries = 10;
 
-					while (!changeDetected && tries < maxTries) {
+					while (!cancelled && !changeDetected && tries < maxTries) {
 						try {
 							const existingProfile = profile;
 							const newProfile = await legacyApi.getProfileByWalletAddress(arProvider.walletAddress);
+							if (cancelled) return;
 
 							if (JSON.stringify(existingProfile) !== JSON.stringify(newProfile)) {
 								setProfile(newProfile);
@@ -105,7 +116,7 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 						}
 					}
 
-					if (!changeDetected) {
+					if (!cancelled && !changeDetected) {
 						console.warn(`No changes detected after ${maxTries} attempts`);
 					}
 				};
@@ -113,6 +124,9 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 				await fetchProfileUntilChange();
 			}
 		})();
+		return () => {
+			cancelled = true;
+		};
 	}, [arProvider.wallet, arProvider.walletAddress, legacyApi, refreshProfileTrigger]);
 
 	function getCachedProfile(address: string) {
