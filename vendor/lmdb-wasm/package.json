@@ -1,0 +1,12 @@
+{
+	"name": "lmdb-wasm",
+	"version": "0.4.0",
+	"private": true,
+	"description": "Pinned browser LMDB reader used by the reference AR LMDB dashboard",
+	"license": "(MIT AND OLDAP-2.8)",
+	"type": "module",
+	"exports": {
+		".": "./index.js"
+	},
+	"sideEffects": false
+}

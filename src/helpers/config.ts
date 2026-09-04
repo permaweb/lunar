@@ -27,9 +27,14 @@ export const LEGACY_AUTHORITIES: { address: string; minHeight: number | null; ma
 
 export const DEFAULT_GATEWAYS = {
 	legacy: 'ao-search-gateway.goldsky.com',
-	fallback: 'https://cache.forward.computer/~query@1.0/graphql',
 	arweave: 'https://arweave.net/graphql',
 };
+
+export const AR_LMDB_GQL_GATEWAY = 'ar-lmdb';
+export const AR_LMDB_INDEX_ID = 'oWRzBr3KHhULAL-s5ULeXac1mb_WQOX5uFBRea16iRI';
+export const AR_LMDB_DATA_GATEWAY = 'https://arweave.net';
+export const RETIRED_GATEWAY_HOST = 'cache.forward.computer';
+export const DEFAULT_GQL_PLAYGROUND_GATEWAYS = [DEFAULT_GATEWAYS.legacy, 'arweave-search.goldsky.com', 'arweave.net'];
 
 export const PROCESSES = {
 	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',

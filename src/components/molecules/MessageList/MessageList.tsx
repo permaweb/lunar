@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
+import { getGraphQLSource, GraphQLApiError } from 'api/graphql';
 import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
@@ -33,7 +34,7 @@ import {
 } from 'helpers/config';
 import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
-import { getSearchParam, updateSearchParams } from 'helpers/query';
+import { getSearchParam, isPaginationSourceCurrent, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
 import {
 	GQLNodeResponseType,
@@ -59,6 +60,7 @@ import {
 	resolveResultMessages,
 	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
+import { useGraphQLSource } from 'hooks/useGraphQLSource';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
@@ -96,6 +98,7 @@ const MESSAGE_QUERY_KEYS = {
 	limit: 'messageLimit',
 	after: 'messageAfter',
 	page: 'messagePage',
+	source: 'messageSource',
 };
 
 function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
@@ -1009,8 +1012,11 @@ function getMessageQueryState(searchParams: URLSearchParams) {
 	const startDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.start));
 	const endDate = parseDateFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.end));
 	const perPage = normalizePerPageFilter(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.limit));
-	const page = parsePositiveInteger(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.page) ?? '');
-	const after = getSearchParam(searchParams, MESSAGE_QUERY_KEYS.after);
+	const isCurrentSource = isPaginationSourceCurrent(searchParams, MESSAGE_QUERY_KEYS.source, getGraphQLSource());
+	const page = isCurrentSource
+		? parsePositiveInteger(getSearchParam(searchParams, MESSAGE_QUERY_KEYS.page) ?? '')
+		: null;
+	const after = isCurrentSource ? getSearchParam(searchParams, MESSAGE_QUERY_KEYS.after) : null;
 	const hasQuery = Object.values(MESSAGE_QUERY_KEYS).some((key) => searchParams.has(key));
 
 	return {
@@ -1071,7 +1077,13 @@ function shouldSyncMessageQueryParams(args: {
 	return false;
 }
 
-export default function MessageList(props: {
+export default function MessageList(props: React.ComponentProps<typeof MessageListContent>) {
+	const source = useGraphQLSource();
+
+	return <MessageListContent key={source} {...props} />;
+}
+
+function MessageListContent(props: {
 	header?: string;
 	txId?: string;
 	variant: MessageVariantEnum;
@@ -1102,6 +1114,7 @@ export default function MessageList(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef(null);
+	const requestGenerationRef = React.useRef(0);
 	const syncQueryParams = shouldSyncMessageQueryParams({
 		pathname: location.pathname,
 		txId: props.txId,
@@ -1119,6 +1132,7 @@ export default function MessageList(props: {
 		[syncQueryParams, routeSearch]
 	);
 	const skipNextQueryWriteRef = React.useRef<boolean>(queryFilterState?.hasQuery ?? false);
+	const hasRestoredQueryRef = React.useRef(false);
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
 	const filterStorageKey = React.useMemo(() => {
@@ -1208,6 +1222,7 @@ export default function MessageList(props: {
 
 	const [currentData, setCurrentData] = React.useState<any[] | null>(null);
 	const [loadingMessages, setLoadingMessages] = React.useState<boolean>(false);
+	const [messageError, setMessageError] = React.useState<string | null>(null);
 	const [schedulerFallbackActive, setSchedulerFallbackActive] = React.useState<boolean>(false);
 
 	const [incomingCount, setIncomingCount] = React.useState<number | null>(null);
@@ -1327,6 +1342,12 @@ export default function MessageList(props: {
 		: null;
 
 	React.useEffect(() => {
+		return () => {
+			requestGenerationRef.current += 1;
+		};
+	}, []);
+
+	React.useEffect(() => {
 		setSchedulerFallbackActive(false);
 	}, [props.txId, props.variant, currentFilter, hasAppliedMessageFilters]);
 
@@ -1347,7 +1368,10 @@ export default function MessageList(props: {
 	React.useEffect(() => {
 		if (!syncQueryParams || !queryFilterState?.hasQuery) return;
 
-		skipNextQueryWriteRef.current = true;
+		skipNextQueryWriteRef.current =
+			hasRestoredQueryRef.current ||
+			isPaginationSourceCurrent(routeSearchParams, MESSAGE_QUERY_KEYS.source, getGraphQLSource());
+		hasRestoredQueryRef.current = true;
 
 		const nextFilter = props.currentFilter ?? queryFilterState.filter ?? defaultFilter;
 		const nextTypeFilter =
@@ -1443,6 +1467,7 @@ export default function MessageList(props: {
 				parsedPerPage !== null && parsedPerPage !== DEFAULT_RESULTS_PER_PAGE ? parsedPerPage : null,
 			[MESSAGE_QUERY_KEYS.after]: pageCursor,
 			[MESSAGE_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+			[MESSAGE_QUERY_KEYS.source]: pageCursor || pageNumber > 1 ? getGraphQLSource() : null,
 		});
 	}, [
 		appliedTypeFilter,
@@ -1646,7 +1671,7 @@ export default function MessageList(props: {
 		}
 	}
 
-	async function fetchGqlDataPage(queryArgs: any, amount: number) {
+	async function fetchGqlDataPage(queryArgs: any, amount: number, isCancelled: () => boolean) {
 		const { cursor: initialCursor, paginator: _paginator, ...baseArgs } = queryArgs;
 		const excludeAoMessages = props.type === 'wallet' && appliedTypeFilter === 'transaction';
 		const filterTransfers = props.type === 'wallet' && appliedTransferFilter !== 'all';
@@ -1657,6 +1682,7 @@ export default function MessageList(props: {
 		let count: number | null = null;
 
 		while (rows.length < amount) {
+			if (isCancelled()) throw new GraphQLApiError('cancelled', 'Query cancelled');
 			const response = await permawebProvider.legacyApi.getGQLData(
 				withProcessMessageGateway({
 					...baseArgs,
@@ -1664,6 +1690,7 @@ export default function MessageList(props: {
 					...(cursor ? { cursor } : {}),
 				})
 			);
+			if (isCancelled()) throw new GraphQLApiError('cancelled', 'Query cancelled');
 			const pageRows = response?.data ?? [];
 			const matchingRows = pageRows.filter((row: any) => {
 				if (excludeAoMessages && isAoMessageTransaction(row?.node?.tags)) return false;
@@ -1941,10 +1968,13 @@ export default function MessageList(props: {
 	]);
 
 	React.useEffect(() => {
+		let cancelled = false;
+
 		(async function () {
 			let tags = getAppliedActionTags();
 
 			setLoadingMessages(true);
+			setMessageError(null);
 			if (!parsedPerPage) {
 				setCurrentData([]);
 				setNextCursor(null);
@@ -1968,6 +1998,7 @@ export default function MessageList(props: {
 						pageNumber,
 						perPage: schedulerPerPage,
 					});
+					if (cancelled) return;
 
 					setCurrentData(schedulerResponse.data);
 					setIncomingCount(schedulerResponse.count);
@@ -1975,6 +2006,7 @@ export default function MessageList(props: {
 					setLoadingMessages(false);
 					return;
 				} catch (e: any) {
+					if (cancelled) return;
 					console.warn('Scheduler request failed, falling back to GQL', e);
 					setSchedulerFallbackActive(true);
 					if (pageNumber > 1 && !pageCursor) {
@@ -2025,7 +2057,7 @@ export default function MessageList(props: {
 									);
 								}
 
-								gqlResponse = await fetchGqlDataPage(incomingQueryArgs, parsedPerPage);
+								gqlResponse = await fetchGqlDataPage(incomingQueryArgs, parsedPerPage, () => cancelled);
 								break;
 							case 'outgoing':
 								let outgoingArgs: any = {
@@ -2050,12 +2082,13 @@ export default function MessageList(props: {
 									);
 								}
 
-								gqlResponse = await fetchGqlDataPage(outgoingArgs, parsedPerPage);
+								gqlResponse = await fetchGqlDataPage(outgoingArgs, parsedPerPage, () => cancelled);
 								break;
 							default:
 								break;
 						}
 
+						if (cancelled) return;
 						setCurrentData(gqlResponse.data);
 						setNextCursor(gqlResponse.nextCursor);
 						if (props.type === 'wallet' && !pageCursor) {
@@ -2099,6 +2132,7 @@ export default function MessageList(props: {
 											process: props.recipient,
 											message: messageId,
 										});
+										if (cancelled) return;
 									}
 								}
 
@@ -2113,6 +2147,7 @@ export default function MessageList(props: {
 											authority: props.authority,
 											permawebProvider: permawebProvider,
 										});
+										if (cancelled) return;
 
 										setCurrentData(resolvedMessages.filter((edge) => !!edge?.node?.recipient));
 									} else {
@@ -2131,12 +2166,12 @@ export default function MessageList(props: {
 									setCurrentData([]);
 								}
 							} catch (e: any) {
-								setLoadingMessages(false);
+								throw e;
 							}
 						}
 					}
 				} catch (e: any) {
-					console.error(e);
+					throw e;
 				}
 			} else {
 				tags = [...DEFAULT_MESSAGE_TAGS, ...tags];
@@ -2160,14 +2195,25 @@ export default function MessageList(props: {
 					);
 				}
 
-				const gqlResponse = await fetchGqlDataPage(globalQueryArgs, parsedPerPage);
+				const gqlResponse = await fetchGqlDataPage(globalQueryArgs, parsedPerPage, () => cancelled);
+				if (cancelled) return;
 
 				if (!pageCursor) setTotalCount(gqlResponse.count);
 				setCurrentData(gqlResponse.data);
 				setNextCursor(gqlResponse.nextCursor);
 			}
 			setLoadingMessages(false);
-		})();
+		})().catch((error: unknown) => {
+			if (cancelled) return;
+			console.error(error);
+			setMessageError(error instanceof GraphQLApiError ? error.message : language.errorFetchingData);
+			setNextCursor(null);
+			setLoadingMessages(false);
+		});
+
+		return () => {
+			cancelled = true;
+		};
 	}, [
 		props.txId,
 		props.type,
@@ -2193,6 +2239,7 @@ export default function MessageList(props: {
 		schedulerCandidateForCurrentFilters,
 		hasSchedulerVariant,
 		useSchedulerForProcessMessages,
+		language.errorFetchingData,
 	]);
 
 	const scrollToTop = () => {
@@ -2321,6 +2368,7 @@ export default function MessageList(props: {
 		}
 
 		setLoadingMessages(true);
+		const requestGeneration = requestGenerationRef.current;
 		try {
 			let cursor: string | null = null;
 			const nextHistory: (string | null)[] = [];
@@ -2328,12 +2376,17 @@ export default function MessageList(props: {
 			for (let page = 1; page < targetPage; page++) {
 				nextHistory.push(cursor);
 				const queryArgs = await getMessagePageQueryArgs(cursor);
+				if (requestGenerationRef.current !== requestGeneration) return;
 				if (!queryArgs) {
 					setPageInput(pageNumber.toString());
 					return;
 				}
 
-				const response = await fetchGqlDataPage(queryArgs, parsedPerPage);
+				const response = await fetchGqlDataPage(
+					queryArgs,
+					parsedPerPage,
+					() => requestGenerationRef.current !== requestGeneration
+				);
 				if (!response.nextCursor) {
 					setPageInput(pageNumber.toString());
 					return;
@@ -2347,10 +2400,12 @@ export default function MessageList(props: {
 			setPageNumber(targetPage);
 			scrollToTop();
 		} catch (e: any) {
+			if (requestGenerationRef.current !== requestGeneration) return;
 			console.error(e);
+			setMessageError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 			setPageInput(pageNumber.toString());
 		} finally {
-			setLoadingMessages(false);
+			if (requestGenerationRef.current === requestGeneration) setLoadingMessages(false);
 		}
 	}
 
@@ -2463,8 +2518,12 @@ export default function MessageList(props: {
 		}
 		if (currentData?.length <= 0)
 			message = isTransactionView ? language.transactionsNotFound : language.associatedMessagesNotFound;
+		if (messageError) message = messageError;
 		return (
-			<S.UpdateWrapper childList={props.childList}>
+			<S.UpdateWrapper
+				childList={props.childList}
+				role={messageError ? 'alert' : loadingMessages ? 'status' : undefined}
+			>
 				<p>{message}</p>
 			</S.UpdateWrapper>
 		);
@@ -2756,6 +2815,7 @@ export default function MessageList(props: {
 						)}
 					</S.Header>
 				)}
+				{messageError && currentData?.length > 0 && getMessage()}
 				{currentData?.length > 0 ? (
 					<S.Wrapper childList={props.childList}>
 						{!props.childList && (

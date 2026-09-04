@@ -5,6 +5,9 @@ import PermawebLibs from '@permaweb/libs';
 import { DEFAULT_AO_NODE, DEFAULT_GATEWAYS, DEFAULT_LEGACY_CU_URL } from 'helpers/config';
 import { DefaultGQLResponseType, GQLNodeResponseType, ProfileType } from 'helpers/types';
 
+import type { GraphQLSource } from '../graphql';
+import { getArLmdbTransactions, getConfiguredGraphQLSource, getRemoteGraphQLEndpoint } from '../graphql';
+
 interface AoClient {
 	dryrun(args: Record<string, unknown>): Promise<any>;
 	message(args: Record<string, unknown>): Promise<string>;
@@ -38,6 +41,7 @@ export function createPermawebApis(args: {
 	wallet: unknown;
 	legacyComputeNode?: string;
 	node?: { url: string; authority?: string };
+	graphqlSource?: GraphQLSource;
 }): PermawebApis {
 	const signer = args.wallet ? createSigner(args.wallet as any) : null;
 	const legacyComputeNode = args.legacyComputeNode?.trim() || DEFAULT_LEGACY_CU_URL;
@@ -69,12 +73,18 @@ export function createPermawebApis(args: {
 	const mainnetLibrary = PermawebLibs.init(mainnetDependencies);
 
 	return {
-		legacyApi: createApi(legacyLibrary, legacyDependencies.ao, signer),
-		mainnetApi: createApi(mainnetLibrary, mainnetDependencies.ao, signer),
+		legacyApi: createApi(legacyLibrary, legacyDependencies.ao, signer, args.graphqlSource),
+		mainnetApi: createApi(mainnetLibrary, mainnetDependencies.ao, signer, args.graphqlSource),
 	};
 }
 
-function createApi(library: any, ao: any, signer: ReturnType<typeof createSigner> | null): PermawebApi {
+function createApi(
+	library: any,
+	ao: any,
+	signer: ReturnType<typeof createSigner> | null,
+	graphqlSource?: GraphQLSource
+): PermawebApi {
+	const getSource = () => graphqlSource ?? getConfiguredGraphQLSource();
 	return {
 		ao: {
 			dryrun: (args) => ao.dryrun(args),
@@ -84,8 +94,25 @@ function createApi(library: any, ao: any, signer: ReturnType<typeof createSigner
 		},
 		createProcess: (args) => library.createProcess(args),
 		createProfile: (data, onStatus) => library.createProfile(data, onStatus),
-		getGQLData: (args) => library.getGQLData(args),
-		getProfileByWalletAddress: (address) => library.getProfileByWalletAddress(address),
+		getGQLData: (args) => {
+			if (getSource() === 'ar-lmdb') return getArLmdbTransactions(args);
+			// Also reject retired endpoints supplied by old saved state or custom callers.
+			if (typeof args.gateway === 'string') getRemoteGraphQLEndpoint(args.gateway);
+			return library.getGQLData(args);
+		},
+		getProfileByWalletAddress: async (address) => {
+			if (getSource() === 'remote') return library.getProfileByWalletAddress(address);
+			// The SDK's profile lookup closes over its own remote GQL client.
+			const profiles = await getArLmdbTransactions({
+				tags: [
+					{ name: 'Data-Protocol', values: ['ao'] },
+					{ name: 'Zone-Type', values: ['User'] },
+				],
+				owners: [address],
+				paginator: 1,
+			});
+			return profiles.data[0] ? library.getProfileById(profiles.data[0].node.id) : null;
+		},
 		mapFromProcessCase: (messages) => library.mapFromProcessCase(messages),
 		readProcess: (args) => library.readProcess(args),
 		readState: (args) => library.readState(args),

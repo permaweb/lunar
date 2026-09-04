@@ -15,6 +15,7 @@ import {
 	getTransactionById,
 	getTransactionCountByBlock,
 } from 'api/blocks';
+import { GraphQLApiError } from 'api/graphql';
 import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
@@ -514,6 +515,7 @@ function Transaction(props: {
 							dispatch: dispatch,
 						});
 					} catch (e: any) {
+						if (e instanceof GraphQLApiError) throw e;
 						console.error(e);
 					}
 

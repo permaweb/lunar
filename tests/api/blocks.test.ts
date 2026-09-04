@@ -1,9 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getTransactions } from '../../src/api/blocks';
+import { setConfiguredGraphQLSource } from '../../src/api/graphql/source';
+
+beforeEach(() => {
+	setConfiguredGraphQLSource('remote');
+});
 
 afterEach(() => {
 	vi.unstubAllGlobals();
+	setConfiguredGraphQLSource('ar-lmdb');
 });
 
 describe('Arweave block API adapter', () => {

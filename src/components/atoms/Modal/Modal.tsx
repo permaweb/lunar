@@ -9,14 +9,52 @@ import { CloseHandler } from 'wrappers/CloseHandler';
 import * as S from './styles';
 import { IProps } from './types';
 
+const FOCUSABLE_SELECTOR =
+	'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function Modal(props: IProps) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider?.object?.[languageProvider.current] || { close: 'Close' };
+	const titleId = React.useId();
+	const dialogRef = React.useRef<HTMLDivElement | null>(null);
+	const restoreFocusRef = React.useRef<HTMLElement | null>(null);
+
+	// Portal content mounts after Modal's effects, so focus when its actual dialog is attached.
+	const handleDialogRef = React.useCallback((node: HTMLDivElement | null) => {
+		dialogRef.current = node;
+		if (node) {
+			restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+			(node.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) || node).focus();
+		} else if (restoreFocusRef.current?.isConnected) {
+			restoreFocusRef.current.focus();
+		}
+	}, []);
 
 	const escFunction = React.useCallback(
-		(e: any) => {
+		(e: KeyboardEvent) => {
+			const dialog = dialogRef.current;
+			const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+			if (!dialog || dialogs[dialogs.length - 1] !== dialog || e.defaultPrevented) return;
 			if (e.key === 'Escape' && props.onClose && !props.closeHandlerDisabled) {
+				e.preventDefault();
 				props.onClose();
+			}
+			if (e.key === 'Tab') {
+				const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+					(element) => !element.closest('[hidden]') && getComputedStyle(element).display !== 'none'
+				);
+				const first = focusable[0] || dialog;
+				const last = focusable[focusable.length - 1] || dialog;
+				if (!dialog.contains(document.activeElement) || document.activeElement === dialog) {
+					e.preventDefault();
+					(e.shiftKey ? last : first).focus();
+				} else if (e.shiftKey && document.activeElement === first) {
+					e.preventDefault();
+					last.focus();
+				} else if (!e.shiftKey && document.activeElement === last) {
+					e.preventDefault();
+					first.focus();
+				}
 			}
 		},
 		[props]
@@ -68,7 +106,7 @@ export default function Modal(props: IProps) {
 			{props.header && (
 				<S.Header>
 					<S.LT>
-						<S.Title>{props.header}</S.Title>
+						<S.Title id={titleId}>{props.header}</S.Title>
 					</S.LT>
 					{props.onClose && (
 						<S.Close>
@@ -96,13 +134,31 @@ export default function Modal(props: IProps) {
 	// Wrap Panel content with CloseHandler if it's a panel and not disabled
 	const containerContent =
 		modalType === 'panel' && !props.closeHandlerDisabled ? (
-			<Container $noHeader={!props.header} width={props.width} className={'border-wrapper-primary'}>
+			<Container
+				ref={handleDialogRef}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby={props.header ? titleId : undefined}
+				tabIndex={-1}
+				$noHeader={!props.header}
+				width={props.width}
+				className={'border-wrapper-primary'}
+			>
 				<CloseHandler active={true} disabled={false} callback={() => props.onClose && props.onClose()}>
 					{content}
 				</CloseHandler>
 			</Container>
 		) : (
-			<Container $noHeader={!props.header} width={props.width} className={'border-wrapper-primary'}>
+			<Container
+				ref={handleDialogRef}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby={props.header ? titleId : undefined}
+				tabIndex={-1}
+				$noHeader={!props.header}
+				width={props.width}
+				className={'border-wrapper-primary'}
+			>
 				{content}
 			</Container>
 		);

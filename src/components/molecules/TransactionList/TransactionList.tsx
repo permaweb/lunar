@@ -12,6 +12,7 @@ import {
 	TransactionNode,
 	TransactionTypeFilter,
 } from 'api/blocks';
+import { getGraphQLSource, GraphQLApiError } from 'api/graphql';
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
@@ -22,7 +23,7 @@ import { PaginationControls } from 'components/molecules/PaginationControls';
 import { getBundlerLabel } from 'helpers/bundlers';
 import { ASSETS, DEFAULT_ACTIONS, FLAGS, URLS } from 'helpers/config';
 import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
-import { getSearchParam, updateSearchParams } from 'helpers/query';
+import { getSearchParam, isPaginationSourceCurrent, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
 import {
 	formatCount,
@@ -32,6 +33,7 @@ import {
 	getTagValue,
 	isNativeArTransfer,
 } from 'helpers/utils';
+import { useGraphQLSource } from 'hooks/useGraphQLSource';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -48,12 +50,14 @@ const TRANSACTION_QUERY_KEYS = {
 	limit: 'txLimit',
 	after: 'txAfter',
 	page: 'txPage',
+	source: 'txSource',
 };
 const BUNDLE_TRANSACTION_QUERY_KEYS = {
 	type: 'bundleTxType',
 	limit: 'bundleTxLimit',
 	after: 'bundleTxAfter',
 	page: 'bundleTxPage',
+	source: 'bundleTxSource',
 };
 
 function parsePositiveInteger(value: string | number) {
@@ -106,8 +110,9 @@ function getTransactionQueryKeys(mode: 'block' | 'bundle' | 'recent') {
 function getTransactionQueryState(searchParams: URLSearchParams, queryKeys: typeof TRANSACTION_QUERY_KEYS) {
 	const type = normalizeTypeFilter(getSearchParam(searchParams, queryKeys.type));
 	const limit = parsePositiveInteger(getSearchParam(searchParams, queryKeys.limit) ?? '');
-	const page = parsePositiveInteger(getSearchParam(searchParams, queryKeys.page) ?? '');
-	const after = getSearchParam(searchParams, queryKeys.after);
+	const isCurrentSource = isPaginationSourceCurrent(searchParams, queryKeys.source, getGraphQLSource());
+	const page = isCurrentSource ? parsePositiveInteger(getSearchParam(searchParams, queryKeys.page) ?? '') : null;
+	const after = isCurrentSource ? getSearchParam(searchParams, queryKeys.after) : null;
 	const hasQuery = Object.values(queryKeys).some((key) => searchParams.has(key));
 
 	return {
@@ -317,7 +322,13 @@ function TransactionRow(props: {
 	);
 }
 
-export default function TransactionList(props: {
+export default function TransactionList(props: React.ComponentProps<typeof TransactionListContent>) {
+	const source = useGraphQLSource();
+
+	return <TransactionListContent key={source} {...props} />;
+}
+
+function TransactionListContent(props: {
 	mode: 'block' | 'bundle' | 'recent';
 	blockHeight?: number;
 	blockId?: string;
@@ -336,6 +347,7 @@ export default function TransactionList(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
+	const requestGenerationRef = React.useRef(0);
 	const transactionQueryKeys = React.useMemo(() => getTransactionQueryKeys(props.mode), [props.mode]);
 	const searchParamString = searchParams.toString();
 	const routeSearch = React.useMemo(
@@ -368,6 +380,7 @@ export default function TransactionList(props: {
 		[location.pathname, props.mode, props.blockHeight, props.blockId, props.bundleId]
 	);
 	const skipNextQueryWriteRef = React.useRef<boolean>(syncQueryParams && queryFilterState.hasQuery);
+	const hasRestoredQueryRef = React.useRef(false);
 	const dataScopeKey = React.useMemo(() => {
 		if (props.mode === 'bundle') return `bundle:${props.bundleId ?? ''}`;
 		if (props.mode === 'recent') return 'recent';
@@ -461,6 +474,13 @@ export default function TransactionList(props: {
 	);
 
 	React.useEffect(() => {
+		props.onTotalCountChange?.(null);
+		return () => {
+			requestGenerationRef.current += 1;
+		};
+	}, []);
+
+	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
 	}, [pageNumber]);
 
@@ -482,7 +502,10 @@ export default function TransactionList(props: {
 	React.useEffect(() => {
 		if (!syncQueryParams || !queryFilterState.hasQuery) return;
 
-		skipNextQueryWriteRef.current = true;
+		skipNextQueryWriteRef.current =
+			hasRestoredQueryRef.current ||
+			isPaginationSourceCurrent(routeSearchParams, transactionQueryKeys.source, getGraphQLSource());
+		hasRestoredQueryRef.current = true;
 
 		const nextPerPage = queryFilterState.limit ?? DEFAULT_TRANSACTIONS_PER_PAGE;
 		const nextPage = queryFilterState.page ?? 1;
@@ -507,6 +530,7 @@ export default function TransactionList(props: {
 			[transactionQueryKeys.limit]: perPage !== DEFAULT_TRANSACTIONS_PER_PAGE ? perPage : null,
 			[transactionQueryKeys.after]: pageCursor,
 			[transactionQueryKeys.page]: pageNumber > 1 ? pageNumber : null,
+			[transactionQueryKeys.source]: pageCursor || pageNumber > 1 ? getGraphQLSource() : null,
 		});
 	}, [
 		activeTypeFilter,
@@ -551,6 +575,7 @@ export default function TransactionList(props: {
 										  }
 										: null;
 								} catch (e: any) {
+									if (e instanceof GraphQLApiError) throw e;
 									console.error(e);
 									return null;
 								}
@@ -585,7 +610,7 @@ export default function TransactionList(props: {
 					setNextCursor(null);
 					setTotalCount(null);
 					props.onTotalCountChange?.(null);
-					setError(language.errorFetchingData);
+					setError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 				}
 			}
 
@@ -666,6 +691,7 @@ export default function TransactionList(props: {
 		}
 
 		setLoading(true);
+		const requestGeneration = requestGenerationRef.current;
 		try {
 			let cursor: string | null = null;
 			const nextHistory: (string | null)[] = [];
@@ -673,6 +699,7 @@ export default function TransactionList(props: {
 			for (let page = 1; page < targetPage; page++) {
 				nextHistory.push(cursor);
 				const response = await fetchTransactionsPage(cursor);
+				if (requestGenerationRef.current !== requestGeneration) return;
 				const lastEdge = response.transactions.edges[response.transactions.edges.length - 1];
 
 				if (!response.transactions.pageInfo.hasNextPage || !lastEdge) {
@@ -688,11 +715,12 @@ export default function TransactionList(props: {
 			setPageNumber(targetPage);
 			scrollToTop();
 		} catch (e: any) {
+			if (requestGenerationRef.current !== requestGeneration) return;
 			console.error(e);
 			setPageInput(pageNumber.toString());
-			setError(language.errorFetchingData);
+			setError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 		} finally {
-			setLoading(false);
+			if (requestGenerationRef.current === requestGeneration) setLoading(false);
 		}
 	}
 
@@ -798,7 +826,7 @@ export default function TransactionList(props: {
 		if (error) message = error;
 
 		return (
-			<S.UpdateWrapper $preview={props.preview} role={loading ? 'status' : undefined}>
+			<S.UpdateWrapper $preview={props.preview} role={error ? 'alert' : loading ? 'status' : undefined}>
 				<p>{message}</p>
 			</S.UpdateWrapper>
 		);
@@ -897,6 +925,7 @@ export default function TransactionList(props: {
 						</S.HeaderActions>
 					)}
 				</S.Header>
+				{error && transactions.length > 0 && getMessage()}
 				{transactions.length > 0 ? (
 					<S.Wrapper $preview={props.preview}>
 						<S.HeaderWrapper className={'fade-in'} $preview={props.preview}>

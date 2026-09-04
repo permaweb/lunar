@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { BlockMetadata, BlockNode, getBlockMetadataByHeight, getBlocks, GQLEdge } from 'api/blocks';
+import { getGraphQLSource, GraphQLApiError } from 'api/graphql';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
@@ -11,7 +12,7 @@ import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { PaginationControls } from 'components/molecules/PaginationControls';
 import { ASSETS, FLAGS, STORAGE, URLS } from 'helpers/config';
 import { buildCsvFilename, downloadCsv, mapBlockForCsv } from 'helpers/csv';
-import { getSearchParam, updateSearchParams } from 'helpers/query';
+import { getSearchParam, isPaginationSourceCurrent, updateSearchParams } from 'helpers/query';
 import {
 	checkValidAddress,
 	formatBlockId,
@@ -20,6 +21,7 @@ import {
 	getByteSizeDisplay,
 	getRelativeDate,
 } from 'helpers/utils';
+import { useGraphQLSource } from 'hooks/useGraphQLSource';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -34,6 +36,7 @@ const BLOCK_QUERY_KEYS = {
 	limit: 'blockLimit',
 	after: 'blockAfter',
 	page: 'blockPage',
+	source: 'blockSource',
 };
 
 type BlockListEdge = GQLEdge<
@@ -82,8 +85,9 @@ function getBlockQueryState(searchParams: URLSearchParams) {
 	const minHeight = parseHeightInput(getSearchParam(searchParams, BLOCK_QUERY_KEYS.minHeight));
 	const maxHeight = parseHeightInput(getSearchParam(searchParams, BLOCK_QUERY_KEYS.maxHeight));
 	const limit = parsePositiveInteger(getSearchParam(searchParams, BLOCK_QUERY_KEYS.limit) ?? '');
-	const page = parsePositiveInteger(getSearchParam(searchParams, BLOCK_QUERY_KEYS.page) ?? '');
-	const after = getSearchParam(searchParams, BLOCK_QUERY_KEYS.after);
+	const isCurrentSource = isPaginationSourceCurrent(searchParams, BLOCK_QUERY_KEYS.source, getGraphQLSource());
+	const page = isCurrentSource ? parsePositiveInteger(getSearchParam(searchParams, BLOCK_QUERY_KEYS.page) ?? '') : null;
+	const after = isCurrentSource ? getSearchParam(searchParams, BLOCK_QUERY_KEYS.after) : null;
 	const hasQuery =
 		searchParams.has(BLOCK_QUERY_KEYS.minHeight) ||
 		searchParams.has(BLOCK_QUERY_KEYS.maxHeight) ||
@@ -196,12 +200,19 @@ function BlockRow(props: {
 	);
 }
 
-export default function BlockList(props: { header?: string; pageSize?: number; preview?: boolean }) {
+export default function BlockList(props: React.ComponentProps<typeof BlockListContent>) {
+	const source = useGraphQLSource();
+
+	return <BlockListContent key={source} {...props} />;
+}
+
+function BlockListContent(props: { header?: string; pageSize?: number; preview?: boolean }) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
+	const requestGenerationRef = React.useRef(0);
 	const queryFilterState = React.useMemo(
 		() =>
 			props.preview
@@ -264,6 +275,12 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 	);
 
 	React.useEffect(() => {
+		return () => {
+			requestGenerationRef.current += 1;
+		};
+	}, []);
+
+	React.useEffect(() => {
 		setPageInput(pageNumber.toString());
 	}, [pageNumber]);
 
@@ -276,6 +293,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 			[BLOCK_QUERY_KEYS.limit]: perPage !== DEFAULT_BLOCKS_PER_PAGE ? perPage : null,
 			[BLOCK_QUERY_KEYS.after]: pageCursor,
 			[BLOCK_QUERY_KEYS.page]: pageNumber > 1 ? pageNumber : null,
+			[BLOCK_QUERY_KEYS.source]: pageCursor || pageNumber > 1 ? getGraphQLSource() : null,
 		});
 	}, [
 		activeRange.minHeight,
@@ -334,7 +352,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 				if (!cancelled) {
 					setBlocks([]);
 					setNextCursor(null);
-					setError(language.errorFetchingData);
+					setError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 				}
 			}
 
@@ -415,6 +433,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 		}
 
 		setLoading(true);
+		const requestGeneration = requestGenerationRef.current;
 		try {
 			let cursor: string | null = null;
 			const nextHistory: (string | null)[] = [];
@@ -422,6 +441,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 			for (let page = 1; page < targetPage; page++) {
 				nextHistory.push(cursor);
 				const response = await fetchBlocksPage(cursor);
+				if (requestGenerationRef.current !== requestGeneration) return;
 				const lastEdge = response.blocks.edges[response.blocks.edges.length - 1];
 
 				if (!response.blocks.pageInfo.hasNextPage || !lastEdge) {
@@ -437,11 +457,12 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 			setPageNumber(targetPage);
 			scrollToTop();
 		} catch (e: any) {
+			if (requestGenerationRef.current !== requestGeneration) return;
 			console.error(e);
 			setPageInput(pageNumber.toString());
-			setError(language.errorFetchingData);
+			setError(e instanceof GraphQLApiError ? e.message : language.errorFetchingData);
 		} finally {
-			setLoading(false);
+			if (requestGenerationRef.current === requestGeneration) setLoading(false);
 		}
 	}
 
@@ -557,7 +578,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 		if (error) message = error;
 
 		return (
-			<S.UpdateWrapper $preview={props.preview} role={loading ? 'status' : undefined}>
+			<S.UpdateWrapper $preview={props.preview} role={error ? 'alert' : loading ? 'status' : undefined}>
 				<p>{message}</p>
 			</S.UpdateWrapper>
 		);
@@ -674,6 +695,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 						</S.HeaderActions>
 					)}
 				</S.Header>
+				{error && blocks.length > 0 && getMessage()}
 				{blocks.length > 0 ? (
 					<S.Wrapper $preview={props.preview}>
 						<S.HeaderWrapper className={'fade-in'} $preview={props.preview}>

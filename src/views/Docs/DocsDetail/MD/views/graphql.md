@@ -1,6 +1,6 @@
 # GraphQL Playground
 
-The GraphQL Playground runs read-only queries against Arweave-compatible GraphQL gateways. It is useful for searching Arweave blocks and transactions, finding bundle contents, and filtering AO records by tags.
+The GraphQL Playground runs read-only queries using AR LMDB in the browser or Arweave-compatible remote GraphQL gateways. It is useful for searching transactions, finding bundle contents, and filtering AO records by tags. Remote gateways can also support block queries.
 
 #### Playground Features
 
@@ -21,13 +21,20 @@ No wallet connection is required.
 
 Lunar starts with:
 
+- **AR LMDB**
 - `ao-search-gateway.goldsky.com`
 - `arweave-search.goldsky.com`
 - `arweave.net`
 
-The first gateway is selected by default. Enter another gateway base URL and save it to add it to the local list.
+**AR LMDB** runs the JavaScript GraphQL engine locally using Arweave-hosted LMDB index data. It still downloads index pages as needed, and results reflect the configured index snapshot. The current index covers ANS-104 bundled data items, rather than all L1 Arweave transactions.
+
+**Settings → GraphQL Source** defaults to **AR LMDB** for application queries and new Playground tabs. Choose **Remote** to use remote GraphQL instead. The preference is saved in your browser and applies immediately; changing it resets list pagination while preserving filters. Saved Playground tabs keep their selected gateway, and an explicit gateway selection overrides the app-wide preference. AR LMDB remains available in the dropdown with either setting.
+
+Enter another gateway base URL and save it to add it to the local list. AR LMDB is saved as a local source, without an HTTP URL. The retired `cache.forward.computer` gateway is removed from saved choices and cannot be used for requests.
 
 Lunar appends `/graphql` when needed. Gateways can expose different schemas, indexes, or freshness, so a query that works on one gateway may need adjustment on another.
+
+AR LMDB currently supports the `transactions` root with a maximum page size of 50. Unsupported queries, including block and transaction-ID queries, return errors. It does not automatically switch to a remote GraphQL service. Block and bundle metadata may be `null`, and some filtered counts are capped; the response's `extensions.arLmdb.count` reports whether a count is exact. Use the Docs panel for the selected source's supported fields and arguments.
 
 #### Running a Query
 
@@ -207,11 +214,11 @@ The variables value must be a JSON object:
 }
 ```
 
-Invalid JSON is not sent with the request, so validate the object if a variable-based query returns an unexpected error.
+Invalid JSON or a value other than an object produces an error before the query runs.
 
 #### Schema Documentation
 
-Open **Docs** in the Playground to introspect the active gateway.
+Open **Docs** in the Playground to inspect the active source. AR LMDB provides its local schema; selecting a remote gateway introspects that gateway.
 
 The panel lists:
 
@@ -258,7 +265,7 @@ Use another gateway when:
 - A query times out or returns a schema error.
 - You want to compare indexing results.
 
-The Playground sends requests directly from the browser, so gateway CORS policy and availability also matter.
+Remote GraphQL requests and AR LMDB index reads originate in the browser, so gateway CORS policy and availability also matter.
 
 #### Related Reading
 

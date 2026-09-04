@@ -50,6 +50,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const [txOutputOpen, setTxOutputOpen] = React.useState<boolean>(false);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
 	const [txResponse, setTxResponse] = React.useState<any | null>(null);
+	const [txError, setTxError] = React.useState<string | null>(null);
 	const [panelOpen, setPanelOpen] = React.useState<boolean>(false);
 	const [prices, setPrices] = React.useState<{ ao: number | null; ar: number | null }>({
 		ao: null,
@@ -166,6 +167,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 			if (inputTxId && isValidSearchInput(inputTxId)) {
 				setTxOutputOpen(true);
 				setLoadingTx(true);
+				setTxError(null);
 				try {
 					// Handle block searches
 					if (checkValidBlockHeight(inputTxId) || checkValidBlockId(inputTxId)) {
@@ -200,23 +202,33 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 
 						setTxResponse(response ?? { node: { id: inputTxId, tags: [] } });
 					}
-				} catch (e: any) {
+				} catch (e: unknown) {
 					console.error(e);
 					setTxResponse(null);
+					setTxError(e instanceof Error ? e.message : language.errorFetchingData);
 				}
 				setLoadingTx(false);
 			} else {
 				setTxResponse(null);
+				setTxError(null);
 				setTxOutputOpen(false);
 			}
 		})();
-	}, [inputTxId, language.block, permawebProvider.legacyApi?.getGQLData, dispatch]);
+	}, [inputTxId, language.block, language.errorFetchingData, permawebProvider.legacyApi?.getGQLData, dispatch]);
 
 	const searchOutput = React.useMemo(() => {
 		if (loadingTx) {
 			return (
 				<S.SearchOutputPlaceholder>
 					<p>{`${language.loading}...`}</p>
+				</S.SearchOutputPlaceholder>
+			);
+		}
+
+		if (txError) {
+			return (
+				<S.SearchOutputPlaceholder role={'alert'}>
+					<p>{txError}</p>
 				</S.SearchOutputPlaceholder>
 			);
 		}
@@ -255,7 +267,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		}
 
 		return null;
-	}, [loadingTx, txResponse, inputTxId, language.txNotFound]);
+	}, [loadingTx, txResponse, txError, inputTxId, language.loading, language.txNotFound]);
 
 	function getSearch(autoFocus: boolean = false) {
 		return (

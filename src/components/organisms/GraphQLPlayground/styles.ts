@@ -23,6 +23,7 @@ export const HeaderWrapper = styled.div`
 	gap: 20px;
 	align-items: center;
 	justify-content: space-between;
+	flex-wrap: wrap;
 `;
 
 export const InputWrapper = styled.div`
@@ -66,10 +67,90 @@ export const ActionsWrapper = styled.div`
 	display: flex;
 	gap: 10px;
 	align-items: center;
+	margin-left: auto;
+	max-width: 100%;
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.alt2} !important;
 	}
+`;
+
+export const GatewaySelect = styled.div`
+	width: clamp(180px, 25vw, 315px);
+	min-width: 0;
+
+	> div > div {
+		width: 100%;
+		max-width: 100%;
+	}
+`;
+
+export const TimingTrigger = styled.div`
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+`;
+
+export const TimingPanel = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 0 20px 20px;
+`;
+
+export const TimingDescription = styled.p`
+	color: ${(props) => props.theme.colors.font.alt1};
+	font-size: ${(props) => props.theme.typography.size.xSmall};
+	line-height: 1.5;
+`;
+
+export const TimingList = styled.ol`
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+`;
+
+export const TimingEntry = styled.li`
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px;
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	background: ${(props) => props.theme.colors.container.primary.background};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	color: ${(props) => props.theme.colors.font.alt1};
+	overflow-wrap: anywhere;
+
+	strong {
+		color: ${(props) => props.theme.colors.font.primary};
+		font-size: ${(props) => props.theme.typography.size.small};
+		font-variant-numeric: tabular-nums;
+	}
+`;
+
+export const TimingRow = styled.div`
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 8px;
+`;
+
+export const TimingStatus = styled.span<{ $status: 'success' | 'failed' | 'cancelled' }>`
+	color: ${(props) => (props.$status === 'failed' ? props.theme.colors.warning.alt1 : props.theme.colors.font.alt1)};
+`;
+
+export const TimingPagination = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	color: ${(props) => props.theme.colors.font.alt1};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
 `;
 
 export const GatewaysLabel = styled.div`

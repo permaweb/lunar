@@ -1,0 +1,52 @@
+{
+	"contractVersion": 1,
+	"status": "compliant",
+	"sourceRoot": "src",
+	"testRoot": "tests",
+	"designTokenPaths": ["src/helpers/themes.ts", "src/helpers/monacoTheme.ts"],
+	"externalSdkPackages": ["arweave", "@permaweb/aoconnect", "@permaweb/libs", "arlmdb.js", "lmdb-wasm", "graphql"],
+	"performanceInputs": ["src", "public", "vendor", "index.html", "package.json", "package-lock.json", "vite.config.ts"],
+	"collectionThresholds": {
+		"virtualizeAfter": 200
+	},
+	"performanceBudgets": {
+		"directories": [
+			{
+				"path": "dist",
+				"maxBytes": 14000000
+			}
+		],
+		"extensions": [
+			{
+				"path": "dist",
+				"extension": ".js",
+				"maxFileBytes": 12000000
+			},
+			{
+				"path": "dist",
+				"extension": ".css",
+				"maxFileBytes": 350000
+			},
+			{
+				"path": "dist",
+				"extension": ".woff",
+				"maxFileBytes": 20000
+			},
+			{
+				"path": "dist",
+				"extension": ".woff2",
+				"maxFileBytes": 16000
+			},
+			{
+				"path": "dist",
+				"extension": ".webp",
+				"maxFileBytes": 20000
+			},
+			{
+				"path": "dist",
+				"extension": ".svg",
+				"maxFileBytes": 50000
+			}
+		]
+	}
+}

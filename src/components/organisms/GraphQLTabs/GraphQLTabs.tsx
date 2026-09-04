@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { getPlaygroundGatewayStorageValue, isRetiredGraphQLGateway } from 'api/graphql';
+
 import { ViewTabs } from 'components/molecules/ViewTabs';
 import { ASSETS } from 'helpers/config';
 import { BaseTabType } from 'helpers/types';
@@ -22,16 +24,31 @@ export default function GraphQLTabs() {
 	const language = languageProvider.object[languageProvider.current];
 
 	const [tabs, setTabs] = React.useState<GraphQLTabType[]>(() => {
-		const stored = localStorage.getItem(storageKey);
-		if (stored) {
-			const parsed = JSON.parse(stored);
-			return parsed.length > 0
-				? parsed.map((tab: any) => ({
-						...tab,
-						tabKey: tab.tabKey || `tab-${Date.now()}-${Math.random()}`,
-						gateway: tab.gateway || undefined,
-				  }))
-				: [{ id: `playground-${Date.now()}`, label: 'Transactions', tabKey: `tab-${Date.now()}-${Math.random()}` }];
+		try {
+			const stored = localStorage.getItem(storageKey);
+			const parsed: unknown = stored ? JSON.parse(stored) : undefined;
+			if (Array.isArray(parsed)) {
+				const restored = parsed.flatMap((tab: unknown): GraphQLTabType[] => {
+					if (tab === null || typeof tab !== 'object' || !('id' in tab) || !('label' in tab)) return [];
+					if (typeof tab.id !== 'string' || typeof tab.label !== 'string') return [];
+					const gateway = 'gateway' in tab && typeof tab.gateway === 'string' ? tab.gateway : undefined;
+					return [
+						{
+							id: tab.id,
+							label: tab.label,
+							tabKey:
+								'tabKey' in tab && typeof tab.tabKey === 'string' ? tab.tabKey : `tab-${Date.now()}-${Math.random()}`,
+							query: 'query' in tab && typeof tab.query === 'string' ? tab.query : undefined,
+							untitledId: 'untitledId' in tab && typeof tab.untitledId === 'string' ? tab.untitledId : undefined,
+							gateway:
+								gateway && !isRetiredGraphQLGateway(gateway) ? getPlaygroundGatewayStorageValue(gateway) : undefined,
+						},
+					];
+				});
+				if (restored.length > 0) return restored;
+			}
+		} catch (error) {
+			console.error('Failed to restore GraphQL tabs:', error);
 		}
 		return [{ id: `playground-${Date.now()}`, label: 'Transactions', tabKey: `tab-${Date.now()}-${Math.random()}` }];
 	});
