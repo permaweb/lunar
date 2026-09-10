@@ -1,0 +1,3 @@
+export const NODES_PAGE_SIZE = 50;
+export const INITIAL_REACHABLE_NODES = 10;
+export const INITIAL_CHECK_TIMEOUT_MS = 60_000;

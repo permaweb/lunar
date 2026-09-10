@@ -304,25 +304,24 @@ export const GlobalStyle = createGlobalStyle`
     overflow: auto;
     
     scrollbar-color: transparent transparent;
-    ::-webkit-scrollbar {
+    &::-webkit-scrollbar {
       width: 12.5px;
+      border: none;
     }
-		scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} transparent;
 
-    ::-webkit-scrollbar-thumb {
+    &::-webkit-scrollbar-track,
+    &::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
       background-color: transparent;
     }
-
-		scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} transparent;
-
-		::-webkit-scrollbar-thumb {
-			background-color: ${(props) => props.theme.colors.scrollbar.thumb};
-		}
 
     &:hover {
       scrollbar-color: ${(props) => props.theme.colors.scrollbar.thumb} transparent;
 
-      ::-webkit-scrollbar-thumb {
+      &::-webkit-scrollbar-thumb {
         background-color: ${(props) => props.theme.colors.scrollbar.thumb};
       }
     }

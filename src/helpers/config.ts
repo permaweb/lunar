@@ -178,12 +178,15 @@ export const MINT_ACTIONS = {
 export const DEFAULT_AO_TAGS = [{ name: 'Data-Protocol', values: ['ao'] }];
 export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...DEFAULT_AO_TAGS];
 
+export const NODE_INFO_CONCURRENCY = 8;
+
 export const FLAGS = {
 	CLIENT_SIDE_PAGINATION: false,
 	CONTROL_PAGINATION: false,
 	USE_GATEWAY_BUNDLE_REQUEST: false,
 	USE_TX_CACHE: true,
 	SHOW_AVAILABLE_NODES: false,
+	SHOW_NODES_LOADER: false,
 };
 
 export const DOM = {
@@ -238,6 +241,7 @@ function createURLs() {
 	const explorer = `${base}explorer/`;
 	const blocks = `${base}blocks/`;
 	const addresses = `${base}addresses/`;
+	const nodes = `${base}nodes/`;
 	const transactions = `${base}transactions/`;
 	const aos = `${base}aos/`;
 	const graphql = `${base}graphql/`;
@@ -246,6 +250,7 @@ function createURLs() {
 		base: base,
 		blocks: blocks,
 		addresses: addresses,
+		nodes: nodes,
 		transactions: transactions,
 		explorer: explorer,
 		explorerInfo: (id: string) => `${explorer}${id}/info`,

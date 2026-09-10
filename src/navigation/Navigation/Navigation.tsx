@@ -105,6 +105,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				label: language.addresses,
 			},
 			{
+				path: URLS.nodes,
+				icon: ASSETS.arweave,
+				label: language.nodes,
+			},
+			{
 				path: URLS.aos,
 				icon: ASSETS.console,
 				label: language.aos,
@@ -368,7 +373,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								height={36.5}
 								width={36.5}
 								noMinWidth
-								iconSize={18.5}
+								iconSize={16.5}
 								stopPropagation
 								preventDefault
 							/>
