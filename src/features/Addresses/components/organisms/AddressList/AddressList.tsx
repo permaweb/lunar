@@ -1,12 +1,6 @@
 import React from 'react';
 
-import {
-	AddressChunk,
-	AddressSnapshot,
-	ArAddressBalance,
-	getAddressChunk,
-	getLatestAddressSnapshot,
-} from 'api/addresses';
+import { AddressChunk, AddressSnapshot, getAddressChunk, getLatestAddressSnapshot } from 'api/addresses';
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
@@ -69,7 +63,22 @@ function formatArBalance(balance: string) {
 	return `${formatUnits(balance, TOKEN_DENOMINATIONS.ar, 6)} AR`;
 }
 
-export default function AddressList() {
+export default function AddressList(props: {
+	header?: string;
+	source?: {
+		addresses: string[];
+		columns: [
+			{ label: string; render: (address: string) => React.ReactNode },
+			{ label: string; render: (address: string) => React.ReactNode },
+			{ label: string; render: (address: string) => React.ReactNode }
+		];
+		loading: boolean;
+		onRefresh: () => void;
+		pagination?: React.ReactNode;
+		emptyMessage?: string;
+	};
+}) {
+	const hasSource = props.source !== undefined;
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -81,9 +90,14 @@ export default function AddressList() {
 
 	const data = getStateData(state);
 	const activeChunk = data?.chunks[data.chunkIndex] ?? null;
-	const visibleAddresses =
+	const loadedAddresses =
 		activeChunk?.addresses.slice(data?.offset ?? 0, (data?.offset ?? 0) + ADDRESSES_PER_PAGE) ?? [];
-	const isLoading = state.status === 'loading' || state.status === 'refreshing' || state.status === 'loading-next';
+	const visibleAddresses: { address: string; balance?: string; lastTransaction?: string | null }[] = props.source
+		? props.source.addresses.map((address) => ({ address }))
+		: loadedAddresses;
+	const isLoading =
+		props.source?.loading ??
+		(state.status === 'loading' || state.status === 'refreshing' || state.status === 'loading-next');
 	const canGoPrevious = !!data && (data.offset > 0 || data.chunkIndex > 0);
 	const canGoNext =
 		!!data &&
@@ -121,6 +135,7 @@ export default function AddressList() {
 	}, [language.errorFetchingData]);
 
 	React.useEffect(() => {
+		if (hasSource) return;
 		isMountedRef.current = true;
 		loadSnapshot();
 
@@ -128,9 +143,10 @@ export default function AddressList() {
 			isMountedRef.current = false;
 			activeRequestRef.current?.abort();
 		};
-	}, [loadSnapshot]);
+	}, [hasSource, loadSnapshot]);
 
 	React.useEffect(() => {
+		if (hasSource) return;
 		let cancelled = false;
 
 		async function loadArPrice() {
@@ -145,7 +161,7 @@ export default function AddressList() {
 			cancelled = true;
 			window.clearInterval(interval);
 		};
-	}, []);
+	}, [hasSource]);
 
 	function handlePrevious() {
 		if (!data || isLoading) return;
@@ -307,7 +323,10 @@ export default function AddressList() {
 		<S.Container>
 			<S.Header>
 				<S.HeaderMain>
-					<p>{data ? language.addressesAtBlock(formatCount(data.blockHeight.toString())) : language.addresses}</p>
+					<p>
+						{props.header ??
+							(data ? language.addressesAtBlock(formatCount(data.blockHeight.toString())) : language.addresses)}
+					</p>
 					{isLoading && (
 						<div className={'loader'}>
 							<Loader xSm relative />
@@ -318,62 +337,83 @@ export default function AddressList() {
 					<Button
 						type={'alt3'}
 						label={language.refresh}
-						onPress={loadSnapshot}
+						onPress={props.source?.onRefresh ?? loadSnapshot}
 						disabled={isLoading}
 						icon={ASSETS.refresh}
 						iconLeftAlign
 					/>
 					<S.Divider />
-					{getPaginator()}
+					{props.source ? props.source.pagination : getPaginator()}
 				</S.HeaderActions>
 			</S.Header>
 
 			{visibleAddresses.length > 0 ? (
-				<S.Table role={'table'} aria-label={language.addresses}>
+				<S.Table role={'table'} aria-label={props.header ?? language.addresses}>
 					<S.TableHeader role={'row'}>
 						<S.AddressColumn role={'columnheader'}>
 							<p>{language.walletAddress}</p>
 						</S.AddressColumn>
 						<S.BalanceColumn role={'columnheader'}>
-							<p>{language.balance}</p>
+							<p>{props.source?.columns[0].label ?? language.balance}</p>
 						</S.BalanceColumn>
 						<S.ValueColumn role={'columnheader'}>
-							<p>{language.value}</p>
+							<p>{props.source?.columns[1].label ?? language.value}</p>
 						</S.ValueColumn>
 						<S.LastTransactionColumn role={'columnheader'}>
-							<p>{language.lastTransaction}</p>
+							<p>{props.source?.columns[2].label ?? language.lastTransaction}</p>
 						</S.LastTransactionColumn>
 					</S.TableHeader>
 					<S.TableBody role={'rowgroup'}>
-						{visibleAddresses.map((address: ArAddressBalance) => (
+						{visibleAddresses.map((address) => (
 							<S.TableRow key={address.address} role={'row'}>
 								<S.AddressColumn role={'cell'} title={address.address}>
 									<TxAddress address={address.address} tooltipPosition={'right'} />
 								</S.AddressColumn>
-								<S.BalanceColumn role={'cell'} title={`${address.balance} winston`}>
-									<p>{formatArBalance(address.balance)}</p>
+								<S.BalanceColumn
+									role={'cell'}
+									title={address.balance === undefined ? undefined : `${address.balance} winston`}
+								>
+									{props.source ? (
+										props.source.columns[0].render(address.address)
+									) : (
+										<p>{address.balance === undefined ? '—' : formatArBalance(address.balance)}</p>
+									)}
 								</S.BalanceColumn>
 								<S.ValueColumn role={'cell'}>
-									<p>{formatArUsdValue(address.balance, arUsdPrice)}</p>
+									{props.source ? (
+										props.source.columns[1].render(address.address)
+									) : (
+										<p>{address.balance === undefined ? '—' : formatArUsdValue(address.balance, arUsdPrice)}</p>
+									)}
 								</S.ValueColumn>
 								<S.LastTransactionColumn role={'cell'} title={address.lastTransaction ?? undefined}>
-									<ExplorerLink value={address.lastTransaction} type={'transaction'} tooltipPosition={'left'} />
+									{props.source ? (
+										props.source.columns[2].render(address.address)
+									) : (
+										<ExplorerLink value={address.lastTransaction} type={'transaction'} tooltipPosition={'left'} />
+									)}
 								</S.LastTransactionColumn>
 							</S.TableRow>
 						))}
 					</S.TableBody>
 				</S.Table>
+			) : props.source ? (
+				<S.UpdateWrapper>
+					<p>{props.source.emptyMessage ?? language.loading}</p>
+				</S.UpdateWrapper>
 			) : (
 				getMessage()
 			)}
 
-			{state.status === 'stale' && (
+			{!props.source && state.status === 'stale' && (
 				<S.ErrorStatus role={'status'}>
 					<p>{state.error}</p>
 				</S.ErrorStatus>
 			)}
 
-			<S.Footer>{getPaginator({ showCounter: true })}</S.Footer>
+			<S.Footer $borderTop={visibleAddresses.length <= 0}>
+				{props.source ? props.source.pagination : getPaginator({ showCounter: true })}
+			</S.Footer>
 		</S.Container>
 	);
 }

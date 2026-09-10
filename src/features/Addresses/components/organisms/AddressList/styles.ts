@@ -204,7 +204,7 @@ export const ErrorStatus = styled.div`
 	}
 `;
 
-export const Footer = styled.div`
+export const Footer = styled.div<{ $borderTop: boolean }>`
 	width: 100%;
 	display: flex;
 	align-items: center;
@@ -214,7 +214,7 @@ export const Footer = styled.div`
 	padding: 15px;
 	background: ${(props) => props.theme.colors.container.alt1.background};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-top: 0;
+	border-top: 1px solid ${(props) => (props.$borderTop ? props.theme.colors.border.primary : 'transparent')};
 	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};
 `;

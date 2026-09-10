@@ -2,8 +2,11 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ViewTabs } from 'components/molecules/ViewTabs';
+import { AOS } from 'components/organisms/AOS';
+import { Transaction } from 'components/organisms/Transaction';
+import { getArweaveNodeRoute, readArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
-import { BaseTabType, GQLNodeResponseType, TransactionTabType } from 'helpers/types';
+import type { GQLNodeResponseType, TransactionTabType } from 'helpers/types';
 import {
 	checkValidAddress,
 	formatAddress,
@@ -13,14 +16,9 @@ import {
 } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
-import { AOS } from '../AOS';
-import { Transaction } from '../Transaction';
-
-type ExplorerTabType = BaseTabType & {
-	type: TransactionTabType['type'];
-	lastRoute?: string;
-	labelEdited?: boolean;
-};
+import type { ExplorerTab as ExplorerTabType } from '../../../model/tabs';
+import { parseExplorerTabs } from '../../../model/tabs';
+import { ArweaveNode } from '../ArweaveNode';
 
 function checkValidBlockId(id: string | null) {
 	if (!id) return false;
@@ -46,18 +44,15 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const language = languageProvider.object[languageProvider.current];
 
 	const [transactions, setTransactions] = React.useState<ExplorerTabType[]>(() => {
-		const stored = localStorage.getItem(storageKey);
-		if (stored) {
-			const parsed = JSON.parse(stored);
-			return parsed.length > 0
-				? parsed.map((tx: any) => ({
-						...tx,
-						lastRoute: tx.id
-							? getRouteForTab(tx, getStoredSubPath(tx.lastRoute), getStoredSearch(tx.lastRoute))
-							: undefined,
-						tabKey: tx.tabKey || `tab-${Date.now()}-${Math.random()}`,
-				  }))
-				: [{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }];
+		const parsed = parseExplorerTabs(localStorage.getItem(storageKey));
+		if (parsed.length) {
+			return parsed.map((tx) => ({
+				...tx,
+				lastRoute: tx.id
+					? getRouteForTab(tx, getStoredSubPath(tx.lastRoute), getStoredSearch(tx.lastRoute))
+					: undefined,
+				tabKey: tx.tabKey || `tab-${Date.now()}-${Math.random()}`,
+			}));
 		}
 		return [{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }];
 	});
@@ -184,6 +179,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	function getRouteForTab(tab: Pick<ExplorerTabType, 'id' | 'type'>, subPath: string = '', search: string = '') {
 		if (!tab.id) return URLS[props.type];
 		if (props.type === 'aos') return `${URLS.aos}${tab.id}${subPath}${search}`;
+		if (tab.type === 'arweave-node') return `${getArweaveNodeRoute(tab.id)}${subPath}${search}`;
 
 		return `${URLS.explorer}${tab.id}${subPath}${search}`;
 	}
@@ -252,6 +248,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		if (!route) return '';
 
 		const path = route.split('#')[0].split('?')[0];
+		const nodeRoute = props.type === 'explorer' ? readArweaveNodeRoute(path) : null;
+		if (nodeRoute) return nodeRoute.subPath;
 		const parts = path.split('/').filter(Boolean);
 		const subPathParts =
 			props.type === 'explorer' && ['block', 'bundle'].includes(parts[1]) ? parts.slice(3) : parts.slice(2);
@@ -271,6 +269,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 
 	function extractTxDetailsFromPath(pathname: string) {
 		const path = pathname.split('#')[0].split('?')[0];
+		const nodeRoute = props.type === 'explorer' ? readArweaveNodeRoute(path) : null;
+		if (nodeRoute) return { txId: nodeRoute.node, subPath: nodeRoute.subPath, txType: 'arweave-node' as const };
 		const parts = path.split('/').filter(Boolean);
 		const txId = parts[1] || '';
 		const subPathParts = parts.slice(2);
@@ -505,6 +505,17 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			});
 		}
 		const onLoadingChange = loadingCallbacksRef.current.get(tab.tabKey)!;
+
+		if (props.type === 'explorer' && tab.type === 'arweave-node') {
+			return (
+				<ArweaveNode
+					key={`${tab.tabKey}:${tab.id}`}
+					node={tab.id}
+					isActive={isActive}
+					onLoadingChange={onLoadingChange}
+				/>
+			);
+		}
 
 		return props.type === 'explorer' ? (
 			<Transaction

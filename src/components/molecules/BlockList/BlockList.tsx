@@ -36,9 +36,10 @@ const BLOCK_QUERY_KEYS = {
 	page: 'blockPage',
 };
 
-type BlockListEdge = GQLEdge<
+export type BlockListEdge = GQLEdge<
 	BlockNode & {
 		metadata?: BlockMetadata | null;
+		transactionCount?: number;
 	}
 >;
 
@@ -106,6 +107,7 @@ function getBlockQueryState(searchParams: URLSearchParams) {
 function BlockRow(props: {
 	edge: BlockListEdge;
 	onMetadataLoaded: (height: number, metadata: BlockMetadata | null) => void;
+	supplied?: boolean;
 	preview?: boolean;
 }) {
 	const navigate = useNavigate();
@@ -113,7 +115,8 @@ function BlockRow(props: {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const shouldLoadMetadata = props.edge.node.metadata === undefined;
+	const shouldLoadMetadata = !props.supplied && props.edge.node.metadata === undefined;
+	const blockLinkValue = props.supplied ? props.edge.node.id : props.edge.node.height;
 	const fetchMetadata = React.useCallback(
 		() => getBlockMetadataByHeight(props.edge.node.height),
 		[props.edge.node.height]
@@ -132,7 +135,7 @@ function BlockRow(props: {
 	const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
 	const miner = metadata?.reward_addr ?? metadata?.miner ?? null;
 	const txs = metadata?.txs;
-	const txCount = Array.isArray(txs) ? txs.length : null;
+	const txCount = props.edge.node.transactionCount ?? (Array.isArray(txs) ? txs.length : null);
 	const timestamp = metadata?.timestamp ?? props.edge.node.timestamp;
 
 	React.useEffect(() => {
@@ -149,7 +152,7 @@ function BlockRow(props: {
 	}, [metadataResponse.error, props.edge.node.height, props.onMetadataLoaded]);
 
 	function handleRowClick() {
-		navigate(`${URLS.explorer}${props.edge.node.height}`);
+		navigate(`${URLS.explorer}${blockLinkValue}`);
 	}
 
 	return (
@@ -160,7 +163,12 @@ function BlockRow(props: {
 			$preview={props.preview}
 		>
 			<S.Height $preview={props.preview}>
-				<ExplorerLink value={props.edge.node.height} type={'block'} tooltipPosition={'right'} />
+				<ExplorerLink
+					value={blockLinkValue}
+					label={props.supplied ? formatCount(props.edge.node.height.toString()) : undefined}
+					type={'block'}
+					tooltipPosition={'right'}
+				/>
 			</S.Height>
 			<S.ID title={blockId} $preview={props.preview}>
 				<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} tooltipPosition={'right'} />
@@ -196,7 +204,13 @@ function BlockRow(props: {
 	);
 }
 
-export default function BlockList(props: { header?: string; pageSize?: number; preview?: boolean }) {
+export default function BlockList(props: {
+	header?: string;
+	pageSize?: number;
+	preview?: boolean;
+	source?: { edges: BlockListEdge[]; loading: boolean; onRefresh: () => void; pagination?: React.ReactNode };
+}) {
+	const hasSource = props.source !== undefined;
 	const [searchParams, setSearchParams] = useSearchParams();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -204,7 +218,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 	const tableContainerRef = React.useRef<HTMLDivElement | null>(null);
 	const queryFilterState = React.useMemo(
 		() =>
-			props.preview
+			props.preview || hasSource
 				? {
 						hasQuery: false,
 						minHeight: null,
@@ -216,13 +230,18 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 						page: null,
 				  }
 				: getBlockQueryState(searchParams),
-		[props.preview, searchParams]
+		[props.preview, hasSource, searchParams]
 	);
-	const loadedFilterState = React.useMemo(() => (props.preview ? null : getStoredBlockFilterState()), [props.preview]);
+	const loadedFilterState = React.useMemo(
+		() => (props.preview || hasSource ? null : getStoredBlockFilterState()),
+		[props.preview, hasSource]
+	);
 	const initialFilterState = queryFilterState.hasQuery ? queryFilterState : loadedFilterState;
 
-	const [blocks, setBlocks] = React.useState<BlockListEdge[]>([]);
-	const [loading, setLoading] = React.useState<boolean>(true);
+	const [loadedBlocks, setBlocks] = React.useState<BlockListEdge[]>([]);
+	const [internalLoading, setLoading] = React.useState<boolean>(true);
+	const blocks = props.source?.edges ?? loadedBlocks;
+	const loading = props.source?.loading ?? internalLoading;
 	const [error, setError] = React.useState<string | null>(null);
 	const [pageCursor, setPageCursor] = React.useState<string | null>(queryFilterState.after ?? null);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
@@ -268,7 +287,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 	}, [pageNumber]);
 
 	React.useEffect(() => {
-		if (props.preview) return;
+		if (props.preview || hasSource) return;
 
 		updateSearchParams(searchParams, setSearchParams, {
 			[BLOCK_QUERY_KEYS.minHeight]: activeRange.minHeight,
@@ -284,12 +303,13 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 		pageNumber,
 		perPage,
 		props.preview,
+		hasSource,
 		searchParams,
 		setSearchParams,
 	]);
 
 	React.useEffect(() => {
-		if (props.preview) return;
+		if (props.preview || hasSource) return;
 
 		try {
 			localStorage.setItem(
@@ -302,9 +322,10 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 		} catch (e) {
 			console.error('Failed to save block filters:', e);
 		}
-	}, [activeRange.minHeight, activeRange.maxHeight, props.preview]);
+	}, [activeRange.minHeight, activeRange.maxHeight, props.preview, hasSource]);
 
 	React.useEffect(() => {
+		if (hasSource) return;
 		let cancelled = false;
 
 		(async function () {
@@ -346,7 +367,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 		return () => {
 			cancelled = true;
 		};
-	}, [pageCursor, refreshTrigger, fetchBlocksPage, language.errorFetchingData]);
+	}, [hasSource, pageCursor, refreshTrigger, fetchBlocksPage, language.errorFetchingData]);
 
 	function resetPagination() {
 		setPageCursor(null);
@@ -619,7 +640,20 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 							</div>
 						)}
 					</S.HeaderMain>
-					{!props.preview && (
+					{props.source && (
+						<S.HeaderActions>
+							<Button
+								type={'alt3'}
+								label={language.refresh}
+								icon={ASSETS.refresh}
+								iconLeftAlign
+								onPress={props.source.onRefresh}
+								disabled={loading}
+							/>
+							{props.source.pagination}
+						</S.HeaderActions>
+					)}
+					{!props.preview && !props.source && (
 						<S.HeaderActions className={'scroll-wrapper-hidden'}>
 							{activeRange.minHeight !== null && (
 								<Button
@@ -709,6 +743,7 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 									key={edge.node.id}
 									edge={edge}
 									onMetadataLoaded={handleBlockMetadataLoaded}
+									supplied={!!props.source}
 									preview={props.preview}
 								/>
 							))}
@@ -717,9 +752,11 @@ export default function BlockList(props: { header?: string; pageSize?: number; p
 				) : (
 					getMessage()
 				)}
-				{!props.preview && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
+				{!props.preview && (!props.source || props.source.pagination) && (
+					<S.FooterWrapper>{props.source ? props.source.pagination : getPaginator(true)}</S.FooterWrapper>
+				)}
 			</S.Container>
-			{!props.preview && showFilters && (
+			{!props.preview && !props.source && showFilters && (
 				<Modal type="panel" width={515} header={language.blockFilters} onClose={() => setShowFilters(false)}>
 					<FilterS.FilterDropdown>
 						<FilterS.FilterDropdownHeader>

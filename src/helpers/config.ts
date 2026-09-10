@@ -102,6 +102,7 @@ export const ASSETS = {
 	minus: getAssetEndpoint('minus.svg'),
 	navigation: getAssetEndpoint('navigation.svg'),
 	newTab: getAssetEndpoint('newTab.svg'),
+	'arweave-node': getAssetEndpoint('node.svg'),
 	paragraph: getAssetEndpoint('paragraph.svg'),
 	permawebOs: getAssetEndpoint('permawebos.svg'),
 	pending: getAssetEndpoint('pending.svg'),

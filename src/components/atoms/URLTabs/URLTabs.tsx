@@ -53,7 +53,7 @@ function TabContent(props: ICProps) {
 
 				return (
 					<div key={url} style={{ display: isActive ? 'block' : 'none' }}>
-						<TabView />
+						{TabView ? <TabView /> : tab.content}
 					</div>
 				);
 			})}

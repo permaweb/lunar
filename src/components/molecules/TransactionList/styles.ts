@@ -105,8 +105,8 @@ export const BodyWrapper = styled.div<{ $preview?: boolean }>`
 		border-bottom-right-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
 	}
 
-	> *:first-child:hover {
-		box-shadow: inset 0 1px 0 ${(props) => props.theme.colors.border.alt4};
+	> *:first-child::after {
+		top: ${(props) => (props.$preview ? '0' : '-1px')};
 	}
 
 	.transaction-list-element {
@@ -141,11 +141,17 @@ export const ElementWrapper = styled.div<{ $preview?: boolean }>`
 		text-overflow: ellipsis;
 	}
 
-	&:hover {
+	&:hover,
+	&:focus-visible {
 		background: ${(props) => props.theme.colors.container.primary.active};
 		border-left: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
 		border-right: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
+	}
+
+	&:focus-visible {
+		outline: 1px solid ${(props) => props.theme.colors.border.alt4};
+		outline-offset: -1px;
 	}
 
 	&:hover::after {
@@ -158,6 +164,7 @@ export const ElementWrapper = styled.div<{ $preview?: boolean }>`
 		right: 0;
 		bottom: 0;
 		border-top: 1px solid ${(props) => props.theme.colors.border.alt4};
+		pointer-events: none;
 		transition: all 100ms;
 	}
 `;

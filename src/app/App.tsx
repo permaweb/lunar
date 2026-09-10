@@ -267,6 +267,7 @@ export default function App() {
 						{getRoute(URLS.nodes, <Nodes />)}
 						{getRoute(URLS.transactions, <Transactions />)}
 						{getRoute(URLS.explorer, <Explorer />)}
+						{getRoute(`${URLS.explorer}arweave-node/:node/*`, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid`, <Explorer />)}
 						{getRoute(`${URLS.explorer}:txid/:active`, <Explorer />)}
 						{getRoute(URLS.aos, <Console />)}

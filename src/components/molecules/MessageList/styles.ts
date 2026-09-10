@@ -300,34 +300,24 @@ export const ElementWrapper = styled.div<{
 	&:hover {
 		background: ${(props) =>
 			props.$spam ? props.theme.colors.container.alt1.background : props.theme.colors.container.primary.active};
+		border-top: 0.5px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+		border-left: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+		border-right: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+		border-bottom: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 	}
 
-	${(props) =>
-		props.clickable &&
-		css`
-			&:hover {
-				background: ${props.$spam
-					? props.theme.colors.container.alt1.background
-					: props.theme.colors.container.primary.active};
-				border-top: 0.5px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-				border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-				border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-				border-bottom: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-			}
-
-			&:hover::after {
-				content: '';
-				position: absolute;
-				height: 1px;
-				width: calc(100% + 2px);
-				top: -1px;
-				left: -1px;
-				right: 0;
-				bottom: 0;
-				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
-				transition: all 100ms;
-			}
-		`}
+	&:hover::after {
+		content: '';
+		position: absolute;
+		height: 1px;
+		width: calc(100% + 2px);
+		top: -1px;
+		left: -1px;
+		right: 0;
+		bottom: 0;
+		border-top: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
+		transition: all 100ms;
+	}
 
 	${(props) =>
 		props.open &&
@@ -355,6 +345,7 @@ export const ElementWrapper = styled.div<{
 
 export const ElementItem = styled.div`
 	display: flex;
+	align-items: center;
 `;
 
 export const ID = styled(ElementItem)`

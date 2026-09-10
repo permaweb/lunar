@@ -3,6 +3,7 @@ import styled from 'styled-components';
 export const Link = styled.a`
 	display: inline-flex;
 	align-items: center;
+	vertical-align: middle;
 	gap: 6.5px;
 	color: ${(props) => props.theme.colors.link.color};
 	font-size: ${(props) => props.theme.typography.size.xSmall};

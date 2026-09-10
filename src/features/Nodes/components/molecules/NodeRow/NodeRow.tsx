@@ -1,6 +1,10 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import type { ArweavePeer, NodeObservation } from 'api/nodes';
 
-import { ExternalLink } from 'components/atoms/ExternalLink';
+import { ExplorerLink } from 'components/atoms/TxAddress';
+import { getArweaveNodeRoute } from 'helpers/arweaveNode';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { useNodeInfo } from '../../../hooks/useNodeInfo';
@@ -14,6 +18,7 @@ export default function NodeRow(props: {
 	observation: NodeObservation | undefined;
 	onObservation: (data: NodeObservation) => void;
 }) {
+	const navigate = useNavigate();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 	const result = useNodeInfo(props.peer, props.infoEnabled, props.observation, props.onObservation);
@@ -27,10 +32,14 @@ export default function NodeRow(props: {
 			: props.isChecking || result.state.status === 'loading'
 			? `${language.checking}...`
 			: language.nodeNotChecked;
+	function handleOpen(event: React.MouseEvent) {
+		if (event.target instanceof Element && event.target.closest('a, button')) return;
+		navigate(getArweaveNodeRoute(props.peer.address));
+	}
 	return (
-		<S.Row ref={result.ref}>
+		<S.Row ref={result.ref} onClick={handleOpen}>
 			<td>
-				<ExternalLink href={`http://${props.peer.address}/`} label={props.peer.address} title={props.peer.address} />
+				<ExplorerLink type={'arweave-node'} value={props.peer.address} label={props.peer.address} />
 			</td>
 			<td>
 				<S.Status title={props.infoEnabled || props.isChecking ? language.nodesInfoSource : language.nodesInfoPaused}>

@@ -169,6 +169,9 @@ function isTransferTransaction(transaction: TransactionNode) {
 function TransactionRow(props: {
 	edge: GQLEdge<TransactionNode>;
 	onHydrated: (transaction: TransactionNode) => void;
+	disableHydration?: boolean;
+	pending?: boolean;
+	observedAt?: number;
 	preview?: boolean;
 }) {
 	const currentTheme: any = useTheme();
@@ -193,13 +196,14 @@ function TransactionRow(props: {
 	}, [dispatch, permawebProvider.legacyApi, props.edge.node.id]);
 	const hydratedTransaction = useVisibleData<TransactionNode | null>({
 		cacheKey: props.edge.node.id,
-		enabled: needsHydration && !!permawebProvider.legacyApi?.getGQLData,
+		enabled: !props.disableHydration && needsHydration && !!permawebProvider.legacyApi?.getGQLData,
 		fetchData: fetchTransaction,
 	});
 	const transaction = hydratedTransaction.data ?? props.edge.node;
 	const tags = transaction.tags ?? [];
+	const timestamp = props.observedAt ?? (transaction.block?.timestamp ? transaction.block.timestamp * 1000 : null);
 	const transferTarget = transaction.recipient ?? getTagValue(tags, 'Target');
-	const pendingHydration = needsHydration && !hydratedTransaction.loaded;
+	const pendingHydration = props.pending || (needsHydration && !hydratedTransaction.loaded);
 	const failedHydration = needsHydration && hydratedTransaction.loaded && !hydratedTransaction.data;
 	const bundlerLabel = getBundlerLabel(transaction.owner?.address, tags);
 
@@ -217,6 +221,13 @@ function TransactionRow(props: {
 
 	function handleRowClick() {
 		navigate(`${URLS.explorer}${transaction.id}`);
+	}
+
+	function handleRowKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+		if (event.target === event.currentTarget && event.key === 'Enter') {
+			event.preventDefault();
+			handleRowClick();
+		}
 	}
 
 	function getPendingLabel() {
@@ -267,7 +278,11 @@ function TransactionRow(props: {
 		<S.ElementWrapper
 			ref={hydratedTransaction.ref}
 			className={'transaction-list-element'}
+			role={'link'}
+			tabIndex={0}
+			aria-label={`${language.inspect} ${transaction.id}`}
 			onClick={handleRowClick}
+			onKeyDown={handleRowKeyDown}
 			$preview={props.preview}
 		>
 			<S.ID title={transaction.id} $preview={props.preview}>
@@ -306,10 +321,10 @@ function TransactionRow(props: {
 			</S.Size>
 			<S.Time $preview={props.preview}>
 				<p>
-					{transaction.block?.timestamp
+					{timestamp
 						? props.preview
-							? getRelativeDate(transaction.block.timestamp * 1000)
-							: formatDate(transaction.block.timestamp * 1000, 'timestamp', true)
+							? getRelativeDate(timestamp)
+							: formatDate(timestamp, 'timestamp', true)
 						: getPendingLabel()}
 				</p>
 			</S.Time>
@@ -326,7 +341,17 @@ export default function TransactionList(props: {
 	onTotalCountChange?: (count: number | null) => void;
 	pageSize?: number;
 	preview?: boolean;
+	source?: {
+		edges: GQLEdge<TransactionNode>[];
+		loading: boolean;
+		onRefresh: () => void;
+		pagination?: React.ReactNode;
+		timeLabel?: string;
+		pendingIds?: string[];
+		timestamps?: Record<string, number>;
+	};
 }) {
+	const hasSource = props.source !== undefined;
 	const location = useLocation();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const dispatch = useDispatch();
@@ -344,7 +369,7 @@ export default function TransactionList(props: {
 	);
 	const routeSearchParams = React.useMemo(() => new URLSearchParams(routeSearch), [routeSearch]);
 	const queryFilterState = React.useMemo(() => {
-		if (props.mode === 'recent' && props.preview) {
+		if (hasSource || (props.mode === 'recent' && props.preview)) {
 			return {
 				hasQuery: false,
 				type: null,
@@ -355,8 +380,8 @@ export default function TransactionList(props: {
 		}
 
 		return getTransactionQueryState(routeSearchParams, transactionQueryKeys);
-	}, [props.mode, props.preview, routeSearchParams, transactionQueryKeys]);
-	const syncQueryParams = React.useMemo(
+	}, [hasSource, props.mode, props.preview, routeSearchParams, transactionQueryKeys]);
+	const routeSyncQueryParams = React.useMemo(
 		() =>
 			shouldSyncTransactionQueryParams({
 				pathname: location.pathname,
@@ -367,6 +392,7 @@ export default function TransactionList(props: {
 			}),
 		[location.pathname, props.mode, props.blockHeight, props.blockId, props.bundleId]
 	);
+	const syncQueryParams = !props.source && routeSyncQueryParams;
 	const skipNextQueryWriteRef = React.useRef<boolean>(syncQueryParams && queryFilterState.hasQuery);
 	const dataScopeKey = React.useMemo(() => {
 		if (props.mode === 'bundle') return `bundle:${props.bundleId ?? ''}`;
@@ -376,8 +402,10 @@ export default function TransactionList(props: {
 	}, [props.mode, props.blockHeight, props.blockId, props.bundleId]);
 	const previousDataScopeKeyRef = React.useRef<string>(dataScopeKey);
 
-	const [transactions, setTransactions] = React.useState<GQLEdge<TransactionNode>[]>([]);
-	const [loading, setLoading] = React.useState<boolean>(true);
+	const [loadedTransactions, setTransactions] = React.useState<GQLEdge<TransactionNode>[]>([]);
+	const [internalLoading, setLoading] = React.useState<boolean>(true);
+	const transactions = props.source?.edges ?? loadedTransactions;
+	const loading = props.source?.loading ?? internalLoading;
 	const [error, setError] = React.useState<string | null>(null);
 	const [pageCursor, setPageCursor] = React.useState<string | null>(queryFilterState.after ?? null);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
@@ -520,6 +548,7 @@ export default function TransactionList(props: {
 	]);
 
 	React.useEffect(() => {
+		if (hasSource) return;
 		let cancelled = false;
 
 		(async function () {
@@ -598,6 +627,7 @@ export default function TransactionList(props: {
 			cancelled = true;
 		};
 	}, [
+		hasSource,
 		activeTypeFilter,
 		canLoad,
 		hydrateTransactionForFilter,
@@ -860,7 +890,20 @@ export default function TransactionList(props: {
 							</div>
 						)}
 					</S.HeaderMain>
-					{!props.preview && (
+					{props.source && (
+						<S.HeaderActions>
+							<Button
+								type={'alt3'}
+								label={language.refresh}
+								icon={ASSETS.refresh}
+								iconLeftAlign
+								onPress={props.source.onRefresh}
+								disabled={loading}
+							/>
+							{props.source.pagination}
+						</S.HeaderActions>
+					)}
+					{!props.preview && !props.source && (
 						<S.HeaderActions className={'scroll-wrapper-hidden'}>
 							{activeTypeFilter && (
 								<Button
@@ -920,7 +963,7 @@ export default function TransactionList(props: {
 								<p>{language.size}</p>
 							</S.Size>
 							<S.Time $preview={props.preview}>
-								<p>{language.time}</p>
+								<p>{props.source?.timeLabel ?? language.time}</p>
 							</S.Time>
 						</S.HeaderWrapper>
 						<S.BodyWrapper className={'fade-in'} $preview={props.preview}>
@@ -929,6 +972,9 @@ export default function TransactionList(props: {
 									key={edge.node.id}
 									edge={edge}
 									onHydrated={handleTransactionHydrated}
+									disableHydration={hasSource}
+									pending={props.source?.pendingIds?.includes(edge.node.id)}
+									observedAt={props.source?.timestamps?.[edge.node.id]}
 									preview={props.preview}
 								/>
 							))}
@@ -937,9 +983,11 @@ export default function TransactionList(props: {
 				) : (
 					getMessage()
 				)}
-				{!props.preview && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
+				{!props.preview && (!props.source || props.source.pagination) && (
+					<S.FooterWrapper>{props.source ? props.source.pagination : getPaginator(true)}</S.FooterWrapper>
+				)}
 			</S.Container>
-			{!props.preview && showFilters && (
+			{!props.preview && !props.source && showFilters && (
 				<Modal type="panel" width={515} header={language.transactionFilters} onClose={() => setShowFilters(false)}>
 					<FilterS.FilterDropdown>
 						<FilterS.FilterDropdownHeader>

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
@@ -49,7 +50,9 @@ async function render() {
 	await React.act(async () =>
 		root.render(
 			<ThemeProvider theme={theme(darkTheme)}>
-				<NodesTable />
+				<MemoryRouter>
+					<NodesTable />
+				</MemoryRouter>
 			</ThemeProvider>
 		)
 	);
@@ -124,7 +127,7 @@ it.each([true, false])(
 		for (let index = 0; index < 12; index++) {
 			if (!showLoader) {
 				const checkingRow = [...container.querySelectorAll('tbody tr')].find(
-					(row) => row.querySelector('a')?.textContent === pending[index].peer
+					(row) => row.querySelector('a')?.getAttribute('title') === pending[index].peer
 				);
 				expect(checkingRow?.textContent).toContain('Checking...');
 			}
@@ -175,7 +178,7 @@ it.each([true, false])(
 it('paints cached reachable rows immediately without repeating initial probes', async () => {
 	vi.mocked(nodesApi.getCachedInfo).mockReturnValue(peers.slice(20, 30).map((peer) => reachable(peer.address)));
 	await render();
-	expect(container.querySelector('tbody a')?.textContent).toBe(peers[20].address);
+	expect(container.querySelector('tbody a')?.getAttribute('title')).toBe(peers[20].address);
 	expect(container.textContent.match(/Reachable/g)).toHaveLength(10);
 	expect(nodesApi.getInfo).not.toHaveBeenCalled();
 	expect(container.textContent).not.toContain('Checking');

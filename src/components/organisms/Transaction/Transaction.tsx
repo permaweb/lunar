@@ -18,16 +18,17 @@ import {
 import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
-import { FormField } from 'components/atoms/FormField';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { CSVViewer } from 'components/molecules/CSVViewer';
 import { Editor } from 'components/molecules/Editor';
+import { ExplorerControls, ExplorerControlStyles as C } from 'components/molecules/ExplorerControls';
 import { HTMLViewer } from 'components/molecules/HTMLViewer';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { MarkdownViewer } from 'components/molecules/MarkdownViewer';
 import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
+import { OverviewStyles as O } from 'components/molecules/Overview';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
@@ -308,8 +309,6 @@ function Transaction(props: {
 	const [refreshKey, setRefreshKey] = React.useState<number>(0);
 	const [messageResult, setMessageResult] = React.useState<any>(null);
 
-	const [idCopied, setIdCopied] = React.useState<boolean>(false);
-	const [urlCopied, setUrlCopied] = React.useState<boolean>(false);
 	const [bundleTransactionCount, setBundleTransactionCount] = React.useState<number | null>(null);
 
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
@@ -613,14 +612,6 @@ function Transaction(props: {
 		}
 	}
 
-	const copyAddress = React.useCallback(async (address: string) => {
-		if (address?.length > 0) {
-			await navigator.clipboard.writeText(address);
-			setIdCopied(true);
-			setTimeout(() => setIdCopied(false), 2000);
-		}
-	}, []);
-
 	const scrollToMessageList = React.useCallback(() => {
 		if (messageListRef.current) {
 			messageListRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -914,20 +905,20 @@ function Transaction(props: {
 		indicator?: React.ReactNode;
 	}) => {
 		return (
-			<S.TxOverviewValue>
+			<O.TxOverviewValue>
 				<p>{primary}</p>
 				{indicator}
 				{secondary && <small>({secondary})</small>}
-			</S.TxOverviewValue>
+			</O.TxOverviewValue>
 		);
 	};
 
 	const TxOverviewLine = ({ label, children }: { label: string; children: React.ReactNode }) => {
 		return (
-			<S.MessageInfoLine>
+			<O.MessageInfoLine>
 				<span>{`${label}: `}</span>
 				{children}
-			</S.MessageInfoLine>
+			</O.MessageInfoLine>
 		);
 	};
 
@@ -1037,8 +1028,8 @@ function Transaction(props: {
 		}
 
 		return (
-			<S.MessageInfo className={'border-wrapper-primary'}>
-				<S.MessageInfoHeader>
+			<O.MessageInfo className={'border-wrapper-primary'}>
+				<O.MessageInfoHeader>
 					<p>{isBundle ? language.bundleOverview : language.transactionOverview}</p>
 					<S.MessageInfoID>
 						<TxOverviewValue
@@ -1053,8 +1044,8 @@ function Transaction(props: {
 							}
 						/>
 					</S.MessageInfoID>
-				</S.MessageInfoHeader>
-				<S.MessageInfoBody $desktopItemCount={9}>
+				</O.MessageInfoHeader>
+				<O.MessageInfoBody $desktopItemCount={9}>
 					<TxOverviewLine label={language.value}>
 						<TxOverviewValue primary={formatArDisplay(quantity?.ar, quantity?.winston)} secondary={quantityUsd} />
 					</TxOverviewLine>
@@ -1096,8 +1087,8 @@ function Transaction(props: {
 					<TxOverviewLine label={language.size}>
 						<TxOverviewValue primary={formatCompactByteSize(size !== null ? Number(size) : null)} />
 					</TxOverviewLine>
-				</S.MessageInfoBody>
-			</S.MessageInfo>
+				</O.MessageInfoBody>
+			</O.MessageInfo>
 		);
 	};
 
@@ -1327,8 +1318,8 @@ function Transaction(props: {
 						</S.TransferInfoBody>
 					</S.TransferInfo>
 				)}
-				<S.MessageInfo className={'border-wrapper-primary'}>
-					<S.MessageInfoHeader>
+				<O.MessageInfo className={'border-wrapper-primary'}>
+					<O.MessageInfoHeader>
 						<p>
 							{language.messageInfo}
 							{isSpamMessage && <span> ({language.markedAsSpam})</span>}
@@ -1337,29 +1328,29 @@ function Transaction(props: {
 							<span>{`${language.id}: `}</span>
 							<TxAddress address={txResponse?.node?.id} />
 						</S.MessageInfoID>
-					</S.MessageInfoHeader>
-					<S.MessageInfoBody $desktopItemCount={6}>
-						<S.MessageInfoLine>
+					</O.MessageInfoHeader>
+					<O.MessageInfoBody $desktopItemCount={6}>
+						<O.MessageInfoLine>
 							<span>{`${language.action}: `}</span>
 							<p>{action}</p>
-						</S.MessageInfoLine>
-						<S.MessageInfoLine>
+						</O.MessageInfoLine>
+						<O.MessageInfoLine>
 							<span>{`${language.variant}: `}</span>
 							<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
-						</S.MessageInfoLine>
-						<S.MessageInfoLine>
+						</O.MessageInfoLine>
+						<O.MessageInfoLine>
 							<span>{`${language.dataProtocol}: `}</span>
 							<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
-						</S.MessageInfoLine>
-						<S.MessageInfoLine>
+						</O.MessageInfoLine>
+						<O.MessageInfoLine>
 							<span>{`${language.date}: `}</span>
 							<p>
 								{txResponse?.node?.block?.timestamp
 									? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
 									: 'Not Found'}
 							</p>
-						</S.MessageInfoLine>
-						<S.MessageInfoLine>
+						</O.MessageInfoLine>
+						<O.MessageInfoLine>
 							<span>{`${language.blockHeight}: `}</span>
 							{scheduledBlockHeight !== null && scheduledBlockHeight !== undefined ? (
 								<S.Height>
@@ -1368,20 +1359,20 @@ function Transaction(props: {
 							) : (
 								<p>None</p>
 							)}
-						</S.MessageInfoLine>
+						</O.MessageInfoLine>
 						{scheduledSlot !== null && scheduledSlot !== undefined ? (
-							<S.MessageInfoLine>
+							<O.MessageInfoLine>
 								<span>{`${language.slot}: `}</span>
 								<p>{formatCount(scheduledSlot.toString())}</p>
-							</S.MessageInfoLine>
+							</O.MessageInfoLine>
 						) : (
-							<S.MessageInfoLine>
+							<O.MessageInfoLine>
 								<span>{`${language.size}: `}</span>
 								<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
-							</S.MessageInfoLine>
+							</O.MessageInfoLine>
 						)}
-					</S.MessageInfoBody>
-				</S.MessageInfo>
+					</O.MessageInfoBody>
+				</O.MessageInfo>
 			</>
 		);
 	};
@@ -1401,8 +1392,8 @@ function Transaction(props: {
 		const timestamp = txResponse?.node?.block?.timestamp ?? null;
 
 		return (
-			<S.MessageInfo className={'border-wrapper-primary'}>
-				<S.MessageInfoHeader>
+			<O.MessageInfo className={'border-wrapper-primary'}>
+				<O.MessageInfoHeader>
 					<p>{language.blockOverview}</p>
 					<S.MessageInfoID>
 						<span>{`${language.height}: `}</span>
@@ -1414,9 +1405,9 @@ function Transaction(props: {
 							<p>-</p>
 						)}
 					</S.MessageInfoID>
-				</S.MessageInfoHeader>
-				<S.MessageInfoBody $desktopItemCount={9}>
-					<S.MessageInfoLine>
+				</O.MessageInfoHeader>
+				<O.MessageInfoBody $desktopItemCount={9}>
+					<O.MessageInfoLine>
 						<span>{`${language.blockId}: `}</span>
 						{blockId ? (
 							<S.HashLink>
@@ -1425,8 +1416,8 @@ function Transaction(props: {
 						) : (
 							<p>-</p>
 						)}
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.previousBlock}: `}</span>
 						{previous ? (
 							<S.HashLink>
@@ -1435,42 +1426,42 @@ function Transaction(props: {
 						) : (
 							<p>-</p>
 						)}
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.txRoot}: `}</span>
 						<CopyableValue value={txRoot} label={txRoot ? formatMetadataHash(txRoot) : '-'} />
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.miner}: `}</span>
 						{miner ? checkValidAddress(miner) ? <TxAddress address={miner} /> : <p>{miner}</p> : <p>-</p>}
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.minerReward}: `}</span>
 						<p>{formatArDisplay(null, minerReward)}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.transactions}: `}</span>
 						<p>{txCount !== null ? formatCount(txCount.toString()) : '-'}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.date}: `}</span>
 						<TxOverviewValue
 							primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'}
 							secondary={timestamp ? `${getRelativeDate(timestamp * 1000)}` : null}
 						/>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.confirmations}: `}</span>
 						<p>{confirmations !== null ? formatCount(confirmations.toString()) : '-'}</p>
-					</S.MessageInfoLine>
-					<S.MessageInfoLine>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
 						<span>{`${language.blockSize}: `}</span>
 						<p title={blockSizeValue ?? undefined}>
 							{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : blockSizeValue ?? '-'}
 						</p>
-					</S.MessageInfoLine>
-				</S.MessageInfoBody>
-			</S.MessageInfo>
+					</O.MessageInfoLine>
+				</O.MessageInfoBody>
+			</O.MessageInfo>
 		);
 	};
 
@@ -2220,136 +2211,80 @@ function Transaction(props: {
 
 	return (
 		<>
-			<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
-				<S.HeaderWrapper>
-					<S.SearchWrapper>
-						<S.SearchInputWrapper>
-							<ReactSVG src={ASSETS.search} />
-							<FormField
-								value={inputTxId}
-								onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
-								placeholder={language.explorerSearchInput}
-								invalid={{ status: inputTxId ? !isValidExplorerInput(inputTxId) : false, message: null }}
-								disabled={loadingTx}
-								autoFocus
-								hideErrorMessage
-								sm
-							/>
-						</S.SearchInputWrapper>
-						<Button
-							type={'alt1'}
-							icon={ASSETS.copy}
-							onPress={() => copyAddress(inputTxId)}
-							disabled={!inputTxId}
-							height={32.5}
-							width={32.5}
-							noMinWidth
-							iconSize={14.5}
-							tooltip={idCopied ? `${language.copied}!` : language.copyId}
-							stopPropagation
-							preventDefault
-						/>
-						<Button
-							type={'alt1'}
-							icon={ASSETS.link}
-							onPress={async () => {
-								await navigator.clipboard.writeText(window.location.href);
-								setUrlCopied(true);
-								setTimeout(() => setUrlCopied(false), 2000);
-							}}
-							height={32.5}
-							width={32.5}
-							noMinWidth
-							iconSize={14.5}
-							tooltip={urlCopied ? `${language.copied}!` : language.copyUrl || 'Copy URL'}
-							stopPropagation
-							preventDefault
-						/>
-						<Button
-							type={'alt1'}
-							icon={ASSETS.fullscreen}
-							onPress={toggleFullscreen}
-							height={32.5}
-							width={32.5}
-							noMinWidth
-							iconSize={14.5}
-							tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
-							stopPropagation
-							preventDefault
-						/>
-						<Button
-							type={'alt1'}
-							icon={ASSETS.refresh}
-							onPress={() => handleSubmit()}
-							disabled={loadingTx || !isValidExplorerInput(inputTxId)}
-							height={32.5}
-							width={32.5}
-							noMinWidth
-							iconSize={14.5}
-							tooltip={loadingTx ? `${language.loading}...` : language.refresh}
-							stopPropagation
-							preventDefault
-						/>
-						{hasBlockNavigation && (
-							<S.BlockNavigationWrapper>
-								{previousBlockHeight !== null && (
-									<Button
-										type={'primary'}
-										icon={ASSETS.arrowLeft}
-										iconLeftAlign
-										onPress={() => handleBlockNavigation(previousBlockHeight)}
-										disabled={loadingTx}
-										height={32.5}
-										iconSize={14.5}
-										tooltip={`${language.previous}: ${formatCount(previousBlockHeight.toString())}`}
-										stopPropagation
-										preventDefault
-									/>
-								)}
-								{nextBlockHeight !== null && (
-									<Button
-										type={'primary'}
-										icon={ASSETS.arrowRight}
-										onPress={() => handleBlockNavigation(nextBlockHeight)}
-										disabled={loadingTx || nextBlockDisabled}
-										height={32.5}
-										iconSize={14.5}
-										tooltip={`${language.next}: ${formatCount(nextBlockHeight.toString())}`}
-										stopPropagation
-										preventDefault
-									/>
-								)}
-							</S.BlockNavigationWrapper>
-						)}
-					</S.SearchWrapper>
-					<S.HeaderActionsWrapper>
-						{resolvedType && txResponse && (
-							<S.TxInfoWrapper>
-								<S.UpdateWrapperType>
-									<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
-									<span>{capitalize(resolvedType)}</span>
-								</S.UpdateWrapperType>
-								{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
-									<>
-										<S.UpdateWrapper>
-											<span>{getTagValue(txResponse.node.tags, 'Variant')}</span>
-										</S.UpdateWrapper>
-									</>
-								)}
-								{txResponse?.node?.block?.timestamp && (
-									<>
-										<S.UpdateWrapper>
-											<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>
-										</S.UpdateWrapper>
-									</>
-								)}
-								{balanceSections}
-							</S.TxInfoWrapper>
-						)}
-					</S.HeaderActionsWrapper>
-				</S.HeaderWrapper>
-				<S.BodyWrapper>{getTransaction()}</S.BodyWrapper>
-			</S.Wrapper>
+			<C.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
+				<ExplorerControls
+					value={inputTxId}
+					onValueChange={setInputTxId}
+					valid={isValidExplorerInput(inputTxId)}
+					loading={loadingTx}
+					onSubmit={handleSubmit}
+					isFullscreen={isFullscreen}
+					onFullscreen={toggleFullscreen}
+					actions={
+						<>
+							{hasBlockNavigation && (
+								<S.BlockNavigationWrapper>
+									{previousBlockHeight !== null && (
+										<Button
+											type={'primary'}
+											icon={ASSETS.arrowLeft}
+											iconLeftAlign
+											onPress={() => handleBlockNavigation(previousBlockHeight)}
+											disabled={loadingTx}
+											height={32.5}
+											iconSize={14.5}
+											tooltip={`${language.previous}: ${formatCount(previousBlockHeight.toString())}`}
+											stopPropagation
+											preventDefault
+										/>
+									)}
+									{nextBlockHeight !== null && (
+										<Button
+											type={'primary'}
+											icon={ASSETS.arrowRight}
+											onPress={() => handleBlockNavigation(nextBlockHeight)}
+											disabled={loadingTx || nextBlockDisabled}
+											height={32.5}
+											iconSize={14.5}
+											tooltip={`${language.next}: ${formatCount(nextBlockHeight.toString())}`}
+											stopPropagation
+											preventDefault
+										/>
+									)}
+								</S.BlockNavigationWrapper>
+							)}
+						</>
+					}
+					info={
+						<>
+							{resolvedType && txResponse && (
+								<C.TxInfoWrapper>
+									<C.UpdateWrapperType>
+										<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
+										<span>{capitalize(resolvedType)}</span>
+									</C.UpdateWrapperType>
+									{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
+										<>
+											<C.UpdateWrapper>
+												<span>{getTagValue(txResponse.node.tags, 'Variant')}</span>
+											</C.UpdateWrapper>
+										</>
+									)}
+									{txResponse?.node?.block?.timestamp && (
+										<>
+											<C.UpdateWrapper>
+												<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>
+											</C.UpdateWrapper>
+										</>
+									)}
+									{balanceSections}
+								</C.TxInfoWrapper>
+							)}
+						</>
+					}
+				/>
+				<C.BodyWrapper>{getTransaction()}</C.BodyWrapper>
+			</C.Wrapper>
 		</>
 	);
 }
