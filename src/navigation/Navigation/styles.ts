@@ -299,12 +299,8 @@ export const SearchActionWrapper = styled.div`
 	}
 `;
 
-export const MMenuWrapper = styled.div`
+export const MMenuWrapper = styled(SearchActionWrapper)`
 	display: none;
-
-	button {
-		padding: 3.5px 0 0 0 !important;
-	}
 
 	@media (max-width: ${STYLING.cutoffs.tablet}) {
 		display: block;

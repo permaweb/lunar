@@ -1,0 +1,19 @@
+{
+	"status": "adopting",
+	"contractVersion": 1,
+	"sourceRoot": "src",
+	"testRoot": "tests",
+	"designTokenPaths": ["src/helpers/themes.ts", "src/helpers/config.ts"],
+	"performanceInputs": ["src", "public", "package.json", "package-lock.json", "vite.config.ts"],
+	"performanceBudgets": {
+		"directories": [{ "path": "dist", "maxBytes": 14000000 }],
+		"extensions": [
+			{ "path": "dist", "extension": ".js", "maxFileBytes": 12000000 },
+			{ "path": "dist", "extension": ".bin", "maxFileBytes": 2000000 },
+			{ "path": "dist", "extension": ".css", "maxFileBytes": 250000 },
+			{ "path": "dist", "extension": ".woff2", "maxFileBytes": 500000 },
+			{ "path": "dist", "extension": ".png", "maxFileBytes": 1500000 }
+		]
+	},
+	"collectionThresholds": { "virtualizeAfter": 100 }
+}

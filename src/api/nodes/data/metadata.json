@@ -1,0 +1,14 @@
+{
+	"provider": "DB-IP",
+	"release": "2026-09",
+	"sourceUrl": "https://download.db-ip.com/free/dbip-country-lite-2026-09.csv.gz",
+	"sourceSha256": "a32bb3c384bd3de60ad9024596aa5b395a6dd5beaa27a7223407cc2edc681d0b",
+	"license": "CC BY 4.0",
+	"licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+	"attributionUrl": "https://db-ip.com",
+	"format": "LNC1",
+	"records": 357325,
+	"bytes": 1787127,
+	"sha256": "4051983e4f0b612ba29b1ca7a802ea693dafbb50e5e3fefd806fee0e36af7a61",
+	"changes": "IPv4 only; adjacent ranges for the same country merged; compact binary encoding."
+}

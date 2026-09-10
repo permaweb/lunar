@@ -12,6 +12,7 @@ export const HeaderContent = styled.div`
 	flex-wrap: wrap;
 	gap: 30px 40px;
 
+	h1,
 	h4 {
 		line-height: 1;
 		font-size: ${(props) => props.theme.typography.size.xxLg};

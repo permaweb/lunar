@@ -1,6 +1,7 @@
 import styled, { DefaultTheme, keyframes } from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
+import { transition1 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
 const tooltipFadeIn = keyframes`
@@ -966,7 +967,17 @@ export const OverviewWrapper = styled.div<{ $fixedHeight?: number; $hasOverflow?
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	padding-right: ${(props) => (props.$hasOverflow ? `12.5px` : '0')};
+	margin-right: ${(props) => (props.$hasOverflow ? '-15px' : '0')};
+	padding-right: 0;
+	transition: padding-right ${transition1};
+
+	&:hover {
+		padding-right: ${(props) => (props.$hasOverflow ? '12.5px' : '0')};
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
 
 	> * {
 		&:not(:last-child) {

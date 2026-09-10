@@ -50,6 +50,7 @@ export default function FormField(props: IProps) {
 					</S.TWrapper>
 				)}
 				<S.Input
+					aria-label={props.label || props.placeholder || undefined}
 					type={props.type ? props.type : 'text'}
 					step={props.step ? props.step : '1'}
 					value={getValue()}
