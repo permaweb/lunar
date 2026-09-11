@@ -41,7 +41,7 @@ export function parseInfo(value: unknown): NodeInfo {
 export function parseBlock(value: unknown): NodeBlock {
 	const block = record(value);
 	const height = count(block.height);
-	if (!Array.isArray(block.txs) || block.txs.length > 100_000) throw new ArweaveNodeError('invalid-response');
+	const transactionIds = parseBlockTransactionIds(block.txs);
 	const miner = block.reward_addr;
 	if (miner !== 'unclaimed' && !checkValidAddress(typeof miner === 'string' ? miner : null))
 		throw new ArweaveNodeError('invalid-response');
@@ -55,10 +55,20 @@ export function parseBlock(value: unknown): NodeBlock {
 		miner: miner === 'unclaimed' ? null : String(miner),
 		reward: block.reward == null ? null : integer(block.reward),
 		denomination: count(block.denomination ?? 1),
-		transactions: block.txs.length,
+		transactions: transactionIds.length,
 		dataSize: block.block_size == null ? null : integer(block.block_size),
 		weaveSize: block.weave_size == null ? null : integer(block.weave_size),
 	};
+}
+export function parseBlockTransactionIds(value: unknown): string[] {
+	if (!Array.isArray(value) || value.length > 100_000) throw new ArweaveNodeError('invalid-response');
+	const ids = value.map((entry) => {
+		const id = typeof entry === 'string' ? entry : record(entry).id;
+		if (typeof id !== 'string' || !checkValidAddress(id)) throw new ArweaveNodeError('invalid-response');
+		return id;
+	});
+	if (new Set(ids).size !== ids.length) throw new ArweaveNodeError('invalid-response');
+	return ids;
 }
 export function parsePending(value: unknown): string[] {
 	if (

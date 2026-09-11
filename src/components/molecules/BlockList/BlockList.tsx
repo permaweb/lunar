@@ -208,7 +208,13 @@ export default function BlockList(props: {
 	header?: string;
 	pageSize?: number;
 	preview?: boolean;
-	source?: { edges: BlockListEdge[]; loading: boolean; onRefresh: () => void; pagination?: React.ReactNode };
+	source?: {
+		edges: BlockListEdge[];
+		loading: boolean;
+		loadingMessage?: string;
+		onRefresh: () => void;
+		pagination?: (showCounter: boolean) => React.ReactNode;
+	};
 }) {
 	const hasSource = props.source !== undefined;
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -574,7 +580,7 @@ export default function BlockList(props: {
 
 	function getMessage() {
 		let message = language.blocksNotFound;
-		if (loading) message = language.blocksLoading;
+		if (loading) message = props.source?.loadingMessage ?? language.blocksLoading;
 		if (error) message = error;
 
 		return (
@@ -650,7 +656,7 @@ export default function BlockList(props: {
 								onPress={props.source.onRefresh}
 								disabled={loading}
 							/>
-							{props.source.pagination}
+							{props.source.pagination?.(false)}
 						</S.HeaderActions>
 					)}
 					{!props.preview && !props.source && (
@@ -753,7 +759,7 @@ export default function BlockList(props: {
 					getMessage()
 				)}
 				{!props.preview && (!props.source || props.source.pagination) && (
-					<S.FooterWrapper>{props.source ? props.source.pagination : getPaginator(true)}</S.FooterWrapper>
+					<S.FooterWrapper>{props.source ? props.source.pagination?.(true) : getPaginator(true)}</S.FooterWrapper>
 				)}
 			</S.Container>
 			{!props.preview && !props.source && showFilters && (

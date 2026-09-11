@@ -1,1 +1,1 @@
-export { Actions, ButtonGroup, Error, Note, Section } from '../ArweaveNode/styles';
+export { Actions, ButtonGroup, Divider, Error, Note, PageCount, PanelContent, Section } from '../ArweaveNode/styles';

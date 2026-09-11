@@ -10,6 +10,7 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 import type { useNodeHistory } from '../../../hooks/useNodeHistory';
 import type { useNodeResource } from '../../../hooks/useNodeResource';
 import { formatNodeBytes, NODE_PAGE_SIZE } from '../../../model/node';
+import { NodePagination } from '../../molecules/NodePagination';
 
 import * as S from './styles';
 
@@ -29,26 +30,38 @@ export default function NodeOverview(props: {
 				[language.nodeQueue, info.queueLength?.toLocaleString() ?? '—'],
 				[language.nodeStateLatency, info.latency === null ? '—' : `${info.latency.toLocaleString()} ms`],
 				[language.nodeStoredBlocks, info.blocks?.toLocaleString() ?? '—'],
-				[language.nodeGitCommit, info.gitHash ? <p title={info.gitHash}>{info.gitHash.slice(0, 7)}</p> : '—'],
 				[
 					language.nodeCurrentBlock,
 					<ExplorerLink value={info.hash} label={`${info.hash.slice(0, 8)}…${info.hash.slice(-8)}`} type={'block'} />,
 				],
 				[language.nodeWeaveSize, formatNodeBytes(props.history.blocks[0]?.weaveSize ?? null)],
 		  ]
-		: [];
+		: [
+				language.network,
+				language.height,
+				language.nodeVersion,
+				language.nodePeers,
+				language.nodeQueue,
+				language.nodeStateLatency,
+				language.nodeStoredBlocks,
+				language.nodeCurrentBlock,
+				language.nodeWeaveSize,
+		  ].map((label) => [label, props.info.isLoading ? `${language.loading}...` : '—']);
 	return (
 		<S.Section>
-			{!info && props.info.isLoading && <S.Note role={'status'}>{language.nodeLoading}</S.Note>}
-			{info && <Overview title={language.overview} fields={stats.map(([label, value]) => ({ label, value }))} />}
+			<Overview title={language.overview} fields={stats.map(([label, value]) => ({ label, value }))} />
 			{'error' in props.history.state && (
 				<S.Error role={'alert'}>{language.nodeErrors[props.history.state.error]}</S.Error>
 			)}
 			<BlockList
 				header={language.nodeRecentBlocks}
 				source={{
-					loading: props.history.isLoading,
+					loading: (!info && props.info.isLoading) || props.history.isLoading,
+					loadingMessage: !info ? language.nodeLoading : language.nodeBlocksLoading,
 					onRefresh: props.history.refresh,
+					pagination: (showCounter) => (
+						<NodePagination page={0} totalPages={1} showCounter={showCounter} onPageChange={() => {}} />
+					),
 					edges: props.history.blocks.slice(0, NODE_PAGE_SIZE).map((block) => ({
 						cursor: block.hash,
 						node: {

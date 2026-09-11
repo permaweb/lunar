@@ -4,6 +4,19 @@ import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { open, transition3 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
+export const MenuAction = styled(PrimitiveButton)`
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+`;
+
 export const Wrapper = styled.div`
 	height: 100%;
 	display: flex;

@@ -1,10 +1,12 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { Button } from 'components/atoms/Button';
 import { ViewTabs } from 'components/molecules/ViewTabs';
 import { AOS } from 'components/organisms/AOS';
 import { Transaction } from 'components/organisms/Transaction';
-import { getArweaveNodeRoute, readArweaveNodeRoute } from 'helpers/arweaveNode';
+import { PinnedTabsPanel } from 'features/Pins';
+import { getArweaveNodeRoute, normalizeArweaveNode, readArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
 import type { GQLNodeResponseType, TransactionTabType } from 'helpers/types';
 import {
@@ -15,6 +17,7 @@ import {
 	getTransactionTypeFromTags,
 } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
+import { usePinnedTabsProvider } from 'providers/PinnedTabsProvider';
 
 import type { ExplorerTab as ExplorerTabType } from '../../../model/tabs';
 import { parseExplorerTabs } from '../../../model/tabs';
@@ -28,6 +31,7 @@ function checkValidBlockId(id: string | null) {
 export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const location = useLocation();
 	const navigate = useNavigate();
+	const pins = usePinnedTabsProvider();
 
 	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
 	const callbacksRef = React.useRef<Map<string, (newTx: GQLNodeResponseType) => void>>(new Map());
@@ -48,6 +52,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		if (parsed.length) {
 			return parsed.map((tx) => ({
 				...tx,
+				...getTabName(tx.id, tx.label, tx.labelEdited),
 				lastRoute: tx.id
 					? getRouteForTab(tx, getStoredSubPath(tx.lastRoute), getStoredSearch(tx.lastRoute))
 					: undefined,
@@ -59,6 +64,16 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const [activeTabIndex, setActiveTabIndex] = React.useState<number>(getInitialIndex());
 	const [visitedTabs, setVisitedTabs] = React.useState<Set<number>>(() => new Set([getInitialIndex()]));
 	const [loadingStates, setLoadingStates] = React.useState<Map<string, boolean>>(new Map());
+	const [showPins, setShowPins] = React.useState(false);
+	const renderTabLabel = React.useCallback(
+		(tab: ExplorerTabType) => {
+			if (!tab.label) return language.untitled;
+			if (tab.labelEdited) return tab.label;
+			if (checkValidBlockId(tab.label)) return formatBlockId(tab.label, false);
+			return checkValidAddress(tab.label) ? formatAddress(tab.label, false) : tab.label;
+		},
+		[language.untitled]
+	);
 
 	React.useEffect(() => {
 		activeTabIndexRef.current = activeTabIndex;
@@ -77,7 +92,13 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			if (transactions.length === 1 && transactions[0].id === '') {
 				setTransactions((prev) => {
 					const updated = [...prev];
-					updated[0] = { ...updated[0], id: txId, label: txId, type: txType, lastRoute: route };
+					updated[0] = {
+						...updated[0],
+						id: txId,
+						...getTabName(txId, txId),
+						type: txType,
+						lastRoute: route,
+					};
 					return updated;
 				});
 				setActiveTabIndex(0);
@@ -88,7 +109,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 					const updated = [...prev];
 					updated.splice(newIndex, 0, {
 						id: txId,
-						label: txId,
+						...getTabName(txId, txId),
 						type: txType,
 						lastRoute: route,
 						tabKey: `tab-${Date.now()}-${Math.random()}`,
@@ -99,7 +120,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				});
 			}
 
-			navigateIfNeeded(route);
+			navigateIfNeeded(route, { replace: true });
 		} else if (txId) {
 			const tabIndex = transactions.findIndex((tab) => isSameTab(tab, txId, txType));
 			if (tabIndex !== -1) {
@@ -112,6 +133,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 					updated[tabIndex] = { ...updated[tabIndex], lastRoute: route };
 					return updated;
 				});
+				navigateIfNeeded(route, { replace: true });
 			}
 		}
 		previousLocationPathRef.current = location.pathname;
@@ -120,6 +142,15 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	React.useEffect(() => {
 		localStorage.setItem(storageKey, JSON.stringify(transactions));
 	}, [transactions]);
+
+	React.useEffect(() => {
+		if (props.type !== 'explorer') return;
+		pins.updateLabels(
+			transactions
+				.filter((tab) => tab.id && tab.label && (tab.labelEdited || tab.label !== tab.id))
+				.map((tab) => ({ id: tab.id, label: renderTabLabel(tab), labelEdited: tab.labelEdited }))
+		);
+	}, [transactions, props.type, pins.updateLabels, renderTabLabel]);
 
 	// Scroll active tab into view when activeTabIndex changes
 	React.useEffect(() => {
@@ -176,10 +207,22 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		[location.pathname, transactions, activeTabIndex, props.type, navigate]
 	);
 
+	function getTabName(
+		id: string,
+		label: string,
+		labelEdited?: boolean
+	): Pick<ExplorerTabType, 'label' | 'labelEdited'> {
+		const pin = props.type === 'explorer' ? pins.tabs.find((tab) => tab.id === id) : undefined;
+		if (pin && !labelEdited && (pin.labelEdited || !label || label === id)) {
+			return { label: pin.label, labelEdited: pin.labelEdited };
+		}
+		return { label, labelEdited };
+	}
+
 	function getRouteForTab(tab: Pick<ExplorerTabType, 'id' | 'type'>, subPath: string = '', search: string = '') {
 		if (!tab.id) return URLS[props.type];
 		if (props.type === 'aos') return `${URLS.aos}${tab.id}${subPath}${search}`;
-		if (tab.type === 'arweave-node') return `${getArweaveNodeRoute(tab.id)}${subPath}${search}`;
+		if (normalizeArweaveNode(tab.id)) return `${getArweaveNodeRoute(tab.id)}${subPath}${search}`;
 
 		return `${URLS.explorer}${tab.id}${subPath}${search}`;
 	}
@@ -270,7 +313,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	function extractTxDetailsFromPath(pathname: string) {
 		const path = pathname.split('#')[0].split('?')[0];
 		const nodeRoute = props.type === 'explorer' ? readArweaveNodeRoute(path) : null;
-		if (nodeRoute) return { txId: nodeRoute.node, subPath: nodeRoute.subPath, txType: 'arweave-node' as const };
+		if (nodeRoute)
+			return {
+				txId: nodeRoute.node,
+				subPath: nodeRoute.subPath,
+				txType: transactions.find((tab) => tab.id === nodeRoute.node)?.type ?? null,
+			};
 		const parts = path.split('/').filter(Boolean);
 		const txId = parts[1] || '';
 		const subPathParts = parts.slice(2);
@@ -358,6 +406,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		});
 	}, []);
 
+	const handleNodeResolved = React.useCallback((node: string) => {
+		setTransactions((prev) =>
+			prev.map((tab) => (tab.id === node && tab.type !== 'arweave-node' ? { ...tab, type: 'arweave-node' } : tab))
+		);
+	}, []);
+
 	const handleActiveTabChange = (index: number, skipNavigation?: boolean) => {
 		setActiveTabIndex(index);
 		setVisitedTabs((prev) => new Set(prev).add(index));
@@ -374,7 +428,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			const insertNewTabsNextToActive = props.type === 'explorer' && !!id;
 			const newTab = {
 				id: id ?? '',
-				label: id ?? '',
+				...getTabName(id ?? '', id ?? ''),
 				type: null,
 				tabKey: `tab-${Date.now()}-${Math.random()}`,
 				untitledId: id ? undefined : untitledId,
@@ -399,7 +453,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 
 			navigateIfNeeded(id ? getRouteForTab(newTab) : URLS[props.type]);
 		},
-		[props.type, navigate]
+		[props.type, navigate, pins.tabs]
 	);
 
 	const handleDeleteTab = (deletedIndex: number) => {
@@ -471,20 +525,6 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		});
 	}, []);
 
-	const renderTabLabel = (tab: ExplorerTabType) => {
-		let label = language.untitled;
-		if (tab.label) {
-			if (tab.labelEdited) {
-				label = tab.label;
-			} else if (checkValidBlockId(tab.label)) {
-				label = formatBlockId(tab.label, false);
-			} else {
-				label = checkValidAddress(tab.label) ? formatAddress(tab.label, false) : tab.label;
-			}
-		}
-		return label;
-	};
-
 	const renderTabIcon = (tab: ExplorerTabType) => {
 		return ASSETS[tab.type] ?? ASSETS.transaction;
 	};
@@ -506,19 +546,34 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		}
 		const onLoadingChange = loadingCallbacksRef.current.get(tab.tabKey)!;
 
-		if (props.type === 'explorer' && tab.type === 'arweave-node') {
+		if (props.type === 'explorer' && normalizeArweaveNode(tab.id)) {
 			return (
 				<ArweaveNode
+					pinTarget={{
+						id: tab.id,
+						label: renderTabLabel(tab),
+						labelEdited: tab.labelEdited,
+						type: tab.type,
+						route: tab.lastRoute ?? getRouteForTab(tab),
+					}}
 					key={`${tab.tabKey}:${tab.id}`}
 					node={tab.id}
 					isActive={isActive}
 					onLoadingChange={onLoadingChange}
+					onResolved={handleNodeResolved}
 				/>
 			);
 		}
 
 		return props.type === 'explorer' ? (
 			<Transaction
+				pinTarget={{
+					id: tab.id,
+					label: renderTabLabel(tab),
+					labelEdited: tab.labelEdited,
+					type: tab.type,
+					route: tab.lastRoute ?? getRouteForTab(tab),
+				}}
 				key={tab.tabKey}
 				txId={tab.id}
 				type={tab.type as any}
@@ -540,31 +595,45 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	};
 
 	return (
-		<ViewTabs<ExplorerTabType>
-			type={props.type}
-			header={language[props.type]}
-			defaultTab={defaultTab}
-			tabs={transactions}
-			activeTabIndex={activeTabIndex}
-			visitedTabs={visitedTabs}
-			loadingStates={loadingStates}
-			onTabsChange={setTransactions}
-			onActiveTabChange={handleActiveTabChange}
-			onVisitedTabsChange={setVisitedTabs}
-			onAddTab={handleAddTab}
-			onDeleteTab={handleDeleteTab}
-			onClearTabs={handleClearTabs}
-			onRenameTab={handleRenameTab}
-			onMount={handleMount}
-			renderTabIcon={renderTabIcon}
-			renderTabLabel={renderTabLabel}
-			renderContent={renderContent}
-			languageLabels={{
-				newTab: language.newTab,
-				clearTabs: language.clearTabs,
-				cancel: language.cancel,
-				tabsDeleteConfirmationInfo: language.tabsDeleteConfirmationInfo,
-			}}
-		/>
+		<>
+			<ViewTabs<ExplorerTabType>
+				type={props.type}
+				header={language[props.type]}
+				headerActions={[
+					<Button
+						type={'primary'}
+						label={language.pinned}
+						icon={ASSETS.pin}
+						iconLeftAlign
+						onPress={() => setShowPins(true)}
+					/>,
+				]}
+				defaultTab={defaultTab}
+				tabs={transactions}
+				activeTabIndex={activeTabIndex}
+				visitedTabs={visitedTabs}
+				loadingStates={loadingStates}
+				onTabsChange={setTransactions}
+				onActiveTabChange={handleActiveTabChange}
+				onVisitedTabsChange={setVisitedTabs}
+				onAddTab={handleAddTab}
+				onDeleteTab={handleDeleteTab}
+				onClearTabs={handleClearTabs}
+				onRenameTab={handleRenameTab}
+				onMount={handleMount}
+				renderTabIcon={renderTabIcon}
+				renderTabLabel={renderTabLabel}
+				renderContent={renderContent}
+				languageLabels={{
+					newTab: language.new,
+					newTabTooltip: language.createNewTab,
+					clearTabs: language.clear,
+					clearTabsTooltip: language.clearAllTabs,
+					cancel: language.cancel,
+					tabsDeleteConfirmationInfo: language.tabsDeleteConfirmationInfo,
+				}}
+			/>
+			{showPins && <PinnedTabsPanel onClose={() => setShowPins(false)} />}
+		</>
 	);
 }

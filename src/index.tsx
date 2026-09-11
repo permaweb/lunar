@@ -9,6 +9,8 @@ import { ArweaveProvider } from 'providers/ArweaveProvider';
 import { LanguageProvider } from 'providers/LanguageProvider';
 import { NotificationProvider } from 'providers/NotificationProvider';
 import { PermawebProvider } from 'providers/PermawebProvider';
+import { PinnedTabsProvider } from 'providers/PinnedTabsProvider';
+import { ProfileProvider } from 'providers/ProfileProvider';
 import { SettingsProvider } from 'providers/SettingsProvider';
 import { persistor, store } from 'store';
 
@@ -21,8 +23,12 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 						<SettingsProvider>
 							<ArweaveProvider>
 								<PermawebProvider>
-									<GlobalStyle />
-									<App />
+									<PinnedTabsProvider>
+										<ProfileProvider>
+											<GlobalStyle />
+											<App />
+										</ProfileProvider>
+									</PinnedTabsProvider>
 								</PermawebProvider>
 							</ArweaveProvider>
 						</SettingsProvider>

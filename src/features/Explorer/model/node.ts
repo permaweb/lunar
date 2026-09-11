@@ -1,5 +1,6 @@
-import type { NodeBlock, NodeErrorCode } from 'api/arweaveNode';
+import type { NodeBlock, NodeErrorCode, NodeTransaction } from 'api/arweaveNode';
 import { ArweaveNodeError } from 'api/arweaveNode';
+import type { GQLEdge, TransactionNode } from 'api/blocks';
 
 export const NODE_PAGE_SIZE = 25;
 export const NODE_HISTORY_BATCH = 100;
@@ -24,6 +25,16 @@ export function formatNodeAmount(value: string | null, denomination = 1): string
 	const fraction = (amount % 1_000_000_000_000n).toString().padStart(12, '0').replace(/0+$/, '');
 	const separator = new Intl.NumberFormat().formatToParts(1.1).find((part) => part.type === 'decimal')?.value ?? '.';
 	return `${whole}${fraction ? separator + fraction : ''} AR`;
+}
+
+export function formatNodeRewardTotal(value: string, denomination = 1): string {
+	if (denomination > 1) return formatNodeAmount(value, denomination);
+	// Round in Winston before formatting so large totals never lose integer precision.
+	const hundredths = (BigInt(value) + 5_000_000_000n) / 10_000_000_000n;
+	const whole = (hundredths / 100n).toLocaleString();
+	const fraction = (hundredths % 100n).toString().padStart(2, '0');
+	const separator = new Intl.NumberFormat().formatToParts(1.1).find((part) => part.type === 'decimal')?.value ?? '.';
+	return `${whole}${separator}${fraction} AR`;
 }
 
 export function formatNodeBytes(value: string | null): string {
@@ -63,6 +74,62 @@ export function getIndexedMiners(blocks: NodeBlock[]): { address: string; count:
 	return [...miners.values()].sort(
 		(a, b) => b.count - a.count || b.last.height - a.last.height || a.address.localeCompare(b.address)
 	);
+}
+
+export function sumMiningRewards(blocks: NodeBlock[]) {
+	const totals = new Map<number, bigint>();
+	const seen = new Set<string>();
+	let incomplete = false;
+	for (const block of blocks) {
+		if (!block.miner || seen.has(block.hash)) continue;
+		seen.add(block.hash);
+		if (block.reward === null) incomplete = true;
+		else totals.set(block.denomination, (totals.get(block.denomination) ?? 0n) + BigInt(block.reward));
+	}
+	return {
+		incomplete,
+		amounts: [...totals]
+			.sort(([a], [b]) => a - b)
+			.map(([denomination, total]) => ({ denomination, value: total.toString() })),
+	};
+}
+
+/** Page by transaction counts so indexing never retains every transaction ID. */
+export function getNodeTransactionPage(blocks: NodeBlock[], page: number) {
+	const count = blocks.reduce((total, block) => total + block.transactions, 0);
+	const totalPages = Math.max(1, Math.ceil(count / NODE_PAGE_SIZE));
+	const currentPage = Math.max(0, Math.min(page, totalPages - 1));
+	const segments: { block: NodeBlock; offset: number; count: number }[] = [];
+	let skip = currentPage * NODE_PAGE_SIZE;
+	let remaining = NODE_PAGE_SIZE;
+	for (const block of blocks) {
+		if (skip >= block.transactions) {
+			skip -= block.transactions;
+			continue;
+		}
+		const size = Math.min(remaining, block.transactions - skip);
+		segments.push({ block, offset: skip, count: size });
+		remaining -= size;
+		skip = 0;
+		if (!remaining) break;
+	}
+	return { count, totalPages, currentPage, segments };
+}
+
+export function toNodeTransactionEdge(id: string, tx?: NodeTransaction, block?: NodeBlock): GQLEdge<TransactionNode> {
+	return {
+		cursor: id,
+		node: {
+			id,
+			tags: tx?.tags ?? [],
+			block: block ? { height: block.height, timestamp: block.timestamp } : undefined,
+			owner: tx?.owner ? { address: tx.owner } : undefined,
+			recipient: tx?.recipient ?? undefined,
+			quantity: tx?.denomination === 1 ? { winston: tx.quantity } : undefined,
+			fee: tx?.denomination === 1 ? { winston: tx.fee } : undefined,
+			data: tx ? { size: tx.dataSize, type: tx.contentType ?? '' } : undefined,
+		},
+	};
 }
 
 export type MempoolSnapshot = {

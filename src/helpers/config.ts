@@ -107,6 +107,7 @@ export const ASSETS = {
 	permawebOs: getAssetEndpoint('permawebos.svg'),
 	pending: getAssetEndpoint('pending.svg'),
 	pi: getAssetEndpoint('pi.svg'),
+	pin: getAssetEndpoint('pin.svg'),
 	plus: getAssetEndpoint('plus.svg'),
 	plusMinus: getAssetEndpoint('plusMinus.svg'),
 	post: getAssetEndpoint('post.svg'),
@@ -252,6 +253,7 @@ function createURLs() {
 		blocks: blocks,
 		addresses: addresses,
 		nodes: nodes,
+		nodesByFork: `${nodes}by-fork`,
 		transactions: transactions,
 		explorer: explorer,
 		explorerInfo: (id: string) => `${explorer}${id}/info`,
@@ -274,5 +276,5 @@ export const URLS = createURLs();
 export const LINKS = {
 	arweave: `https://arweave.org`,
 	ao: `https://ao.arweave.net`,
-	wander: `https://wander.app`,
+	permawebos: `https://ao.arweave.net/#/blog/permawebos-comes-to-the-browser`,
 };

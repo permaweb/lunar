@@ -278,6 +278,8 @@ export const Primary = styled.button<{
 `;
 
 export const IconPrimary = styled.div<{
+	$iconTone?: 'yellow';
+	$iconFilled?: boolean;
 	active: boolean;
 	disabled: boolean;
 	leftAlign: boolean;
@@ -286,6 +288,12 @@ export const IconPrimary = styled.div<{
 	noLabel?: boolean;
 	iconSize?: number;
 }>`
+	&& svg {
+		${(props) => props.$iconTone === 'yellow' && `color: ${props.theme.colors.editor.alt7} !important;`}
+	}
+	&& svg path {
+		${(props) => props.$iconFilled && `fill: currentColor !important;`}
+	}
 	svg {
 		height: ${(props) => `${(props.iconSize ?? (props.noLabel ? 21.5 : 15.5)).toString()}px`};
 		width: ${(props) => `${(props.iconSize ?? (props.noLabel ? 21.5 : 15.5)).toString()}px`};
@@ -461,7 +469,9 @@ export const IconAlt1 = styled(IconPrimary)`
 				: props.warning || props.success
 				? props.theme.colors.font.light1
 				: props.active
-				? props.theme.colors.font.light1
+				? props.noLabel
+					? props.theme.colors.button.primary.active.color
+					: props.theme.colors.button.alt1.active.color
 				: props.theme.colors.button.primary.color};
 		fill: ${(props) =>
 			props.disabled
@@ -469,7 +479,9 @@ export const IconAlt1 = styled(IconPrimary)`
 				: props.warning || props.success
 				? props.theme.colors.font.light1
 				: props.active
-				? props.theme.colors.font.light1
+				? props.noLabel
+					? props.theme.colors.button.primary.active.color
+					: props.theme.colors.button.alt1.active.color
 				: props.theme.colors.button.primary.color};
 	}
 `;
@@ -671,7 +683,7 @@ export const Alt4 = styled(Primary)`
 			props.warning
 				? props.theme.colors.font.light1
 				: props.active
-				? props.theme.colors.font.light1
+				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color} !important;
 	}
 
@@ -731,7 +743,7 @@ export const IconAlt4 = styled(IconPrimary)`
 				: props.warning
 				? props.theme.colors.font.light1
 				: props.active
-				? props.theme.colors.font.light1
+				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color};
 		fill: ${(props) =>
 			props.disabled
@@ -739,7 +751,7 @@ export const IconAlt4 = styled(IconPrimary)`
 				: props.warning
 				? props.theme.colors.font.light1
 				: props.active
-				? props.theme.colors.font.light1
+				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color};
 	}
 `;

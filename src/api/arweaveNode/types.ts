@@ -54,8 +54,21 @@ export type NodeTransaction = {
 export type NodeAnchor = { height: number; hash: string };
 export type ArweaveNodeApi = {
 	getInfo: (node: string, signal: AbortSignal) => Promise<NodeInfo>;
-	getBlocks: (node: string, anchor: NodeAnchor, count: number, signal: AbortSignal) => Promise<NodeBlock[]>;
+	getAncestors: (node: string, anchor: NodeAnchor, heights: number[], signal: AbortSignal) => Promise<NodeAnchor[]>;
+	getBlocks: (
+		node: string,
+		anchor: NodeAnchor,
+		count: number,
+		signal: AbortSignal,
+		onProgress?: (blocks: NodeBlock[]) => void
+	) => Promise<NodeBlock[]>;
 	getPending: (node: string, signal: AbortSignal) => Promise<string[]>;
-	getTransaction: (node: string, id: string, signal: AbortSignal) => Promise<NodeTransaction>;
+	getBlockTransactionIds: (node: string, hash: string, signal: AbortSignal) => Promise<string[]>;
+	getTransaction: (
+		node: string,
+		id: string,
+		signal: AbortSignal,
+		state?: 'pending' | 'confirmed'
+	) => Promise<NodeTransaction>;
 	getBalance: (node: string, address: string, signal: AbortSignal) => Promise<string>;
 };

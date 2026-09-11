@@ -113,24 +113,21 @@ it.each([true, false])(
 		await render();
 		expect(container.textContent).not.toContain('No nodes found');
 		expect(container.textContent.includes('Loading nodes, this may take some time...')).toBe(showLoader);
+		const header = container.querySelector('h2');
+		expect(header).not.toBeNull();
+		expect(container.textContent).toContain('Page (1 of 1)');
 		await React.act(async () => resolvePeers(peers));
-		if (showLoader) {
-			expect(container.textContent).toBe('Loading nodes, this may take some time...');
-			expect(container.querySelector('table')).toBeNull();
-		} else {
-			expect(container.textContent).not.toContain('Loading nodes');
-			expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
-			expect(container.textContent.match(/Checking\.\.\./g)).toHaveLength(8);
-			expect(container.textContent.match(/Not checked/g)).toHaveLength(42);
-		}
+		expect(container.querySelector('h2')).toBe(header);
+		expect(container.textContent).not.toContain('Loading nodes');
+		expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
+		expect(container.textContent.match(/Checking\.\.\./g)).toHaveLength(8);
+		expect(container.textContent.match(/Not checked/g)).toHaveLength(42);
 		expect(pending).toHaveLength(8);
 		for (let index = 0; index < 12; index++) {
-			if (!showLoader) {
-				const checkingRow = [...container.querySelectorAll('tbody tr')].find(
-					(row) => row.querySelector('a')?.getAttribute('title') === pending[index].peer
-				);
-				expect(checkingRow?.textContent).toContain('Checking...');
-			}
+			const checkingRow = [...container.querySelectorAll('tbody tr')].find(
+				(row) => row.querySelector('a')?.getAttribute('title') === pending[index].peer
+			);
+			expect(checkingRow?.textContent).toContain('Checking...');
 			await React.act(async () =>
 				pending[index].resolve(
 					index < 2
@@ -138,11 +135,8 @@ it.each([true, false])(
 						: reachable(pending[index].peer)
 				)
 			);
-			if (index < 11 && showLoader) expect(container.querySelector('table')).toBeNull();
-			if (!showLoader) {
-				expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
-				expect(container.textContent).not.toContain('Unavailable');
-			}
+			expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
+			expect(container.textContent).not.toContain('Unavailable');
 		}
 		expect(maximum).toBe(8);
 		expect(container.textContent).not.toContain('Loading nodes');

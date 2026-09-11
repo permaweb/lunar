@@ -579,15 +579,6 @@ export const SectionFullUpdateWrapper = styled.div`
 	padding: 0 15px 15px 15px;
 `;
 
-export const BlockNavigationWrapper = styled.div`
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 15px;
-	padding: 0 0 0 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-`;
-
 export const InputActions = styled.div`
 	width: 100%;
 	display: flex;

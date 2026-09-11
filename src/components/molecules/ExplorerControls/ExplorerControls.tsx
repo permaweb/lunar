@@ -4,7 +4,10 @@ import { ReactSVG } from 'react-svg';
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { ASSETS } from 'helpers/config';
+import type { PinTarget } from 'helpers/pinnedTabs';
+import { normalizePin, PINNED_TABS_LIMIT } from 'helpers/pinnedTabs';
 import { useLanguageProvider } from 'providers/LanguageProvider';
+import { usePinnedTabsProvider } from 'providers/PinnedTabsProvider';
 
 import * as S from './styles';
 
@@ -19,7 +22,11 @@ export default function ExplorerControls(props: {
 	placeholder?: string;
 	actions?: React.ReactNode;
 	info?: React.ReactNode;
+	pinTarget?: PinTarget;
 }) {
+	const pins = usePinnedTabsProvider();
+	const pin = normalizePin(props.pinTarget);
+	const isPinned = !!pin && pins.tabs.some((tab) => tab.id === pin.id);
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 	const [copied, setCopied] = React.useState<'id' | 'url' | null>(null);
@@ -61,6 +68,22 @@ export default function ExplorerControls(props: {
 						sm
 					/>
 				</S.SearchInputWrapper>
+				<Button
+					type={'alt1'}
+					icon={ASSETS.pin}
+					onPress={() => pin && pins.toggle(pin)}
+					disabled={!pin || (!isPinned && pins.tabs.length >= PINNED_TABS_LIMIT)}
+					pressed={isPinned}
+					iconTone={isPinned ? 'yellow' : undefined}
+					iconFilled={isPinned}
+					height={32.5}
+					width={32.5}
+					iconSize={14.5}
+					noMinWidth
+					tooltip={isPinned ? language.unpinTab : language.pinTab}
+					stopPropagation
+					preventDefault
+				/>
 				<Button
 					type={'alt1'}
 					icon={ASSETS.copy}

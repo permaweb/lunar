@@ -1,11 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { AddressChunk, AddressSnapshot, getAddressChunk, getLatestAddressSnapshot } from 'api/addresses';
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
-import { ASSETS, TOKEN_DENOMINATIONS } from 'helpers/config';
+import { ASSETS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getArPrice } from 'helpers/prices';
 import { formatCount, formatUnits } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -65,6 +66,8 @@ function formatArBalance(balance: string) {
 
 export default function AddressList(props: {
 	header?: string;
+	count?: number;
+	actions?: React.ReactNode;
 	source?: {
 		addresses: string[];
 		columns: [
@@ -74,10 +77,11 @@ export default function AddressList(props: {
 		];
 		loading: boolean;
 		onRefresh: () => void;
-		pagination?: React.ReactNode;
+		pagination?: (showCounter: boolean) => React.ReactNode;
 		emptyMessage?: string;
 	};
 }) {
+	const navigate = useNavigate();
 	const hasSource = props.source !== undefined;
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -326,6 +330,7 @@ export default function AddressList(props: {
 					<p>
 						{props.header ??
 							(data ? language.addressesAtBlock(formatCount(data.blockHeight.toString())) : language.addresses)}
+						{props.count !== undefined && <S.Count>({props.count.toLocaleString()})</S.Count>}
 					</p>
 					{isLoading && (
 						<div className={'loader'}>
@@ -334,6 +339,7 @@ export default function AddressList(props: {
 					)}
 				</S.HeaderMain>
 				<S.HeaderActions>
+					{props.actions}
 					<Button
 						type={'alt3'}
 						label={language.refresh}
@@ -343,7 +349,7 @@ export default function AddressList(props: {
 						iconLeftAlign
 					/>
 					<S.Divider />
-					{props.source ? props.source.pagination : getPaginator()}
+					{props.source ? props.source.pagination?.(false) : getPaginator()}
 				</S.HeaderActions>
 			</S.Header>
 
@@ -365,7 +371,21 @@ export default function AddressList(props: {
 					</S.TableHeader>
 					<S.TableBody role={'rowgroup'}>
 						{visibleAddresses.map((address) => (
-							<S.TableRow key={address.address} role={'row'}>
+							<S.TableRow
+								key={address.address}
+								role={'row'}
+								tabIndex={0}
+								aria-label={`${language.inspect} ${address.address}`}
+								onClick={(event) => {
+									if (!(event.target as Element).closest('a, button')) navigate(`${URLS.explorer}${address.address}`);
+								}}
+								onKeyDown={(event) => {
+									if (event.target === event.currentTarget && event.key === 'Enter') {
+										event.preventDefault();
+										navigate(`${URLS.explorer}${address.address}`);
+									}
+								}}
+							>
 								<S.AddressColumn role={'cell'} title={address.address}>
 									<TxAddress address={address.address} tooltipPosition={'right'} />
 								</S.AddressColumn>
@@ -398,7 +418,7 @@ export default function AddressList(props: {
 					</S.TableBody>
 				</S.Table>
 			) : props.source ? (
-				<S.UpdateWrapper>
+				<S.UpdateWrapper role={isLoading ? 'status' : undefined}>
 					<p>{props.source.emptyMessage ?? language.loading}</p>
 				</S.UpdateWrapper>
 			) : (
@@ -412,7 +432,7 @@ export default function AddressList(props: {
 			)}
 
 			<S.Footer $borderTop={visibleAddresses.length <= 0}>
-				{props.source ? props.source.pagination : getPaginator({ showCounter: true })}
+				{props.source ? props.source.pagination?.(true) : getPaginator({ showCounter: true })}
 			</S.Footer>
 		</S.Container>
 	);

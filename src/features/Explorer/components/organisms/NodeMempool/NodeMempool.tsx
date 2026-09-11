@@ -2,19 +2,29 @@ import React from 'react';
 
 import { arweaveNodeApi } from 'api/arweaveNode';
 
-import { Button } from 'components/atoms/Button';
-import { ExplorerLink } from 'components/atoms/TxAddress';
+import { Modal } from 'components/atoms/Modal';
 import { TransactionList } from 'components/molecules/TransactionList';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { useNodeResource } from '../../../hooks/useNodeResource';
 import { useNodeTransactions } from '../../../hooks/useNodeTransactions';
 import type { MempoolSnapshot } from '../../../model/node';
-import { NODE_PAGE_SIZE, observeMempool } from '../../../model/node';
+import { NODE_PAGE_SIZE, observeMempool, toNodeTransactionEdge } from '../../../model/node';
+import { NodePagination } from '../../molecules/NodePagination';
+import { NodeTransactionChanges } from '../../molecules/NodeTransactionChanges';
 
 import * as S from './styles';
 
-export default function NodeMempool(props: { node: string; isActive: boolean; refreshRevision: number }) {
+const EMPTY_IDS: string[] = [];
+
+export default function NodeMempool(props: {
+	node: string;
+	isActive: boolean;
+	isResolving: boolean;
+	refreshRevision: number;
+	showInfo: boolean;
+	onCloseInfo: () => void;
+}) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 	const previous = React.useRef<MempoolSnapshot | null>(null);
@@ -42,91 +52,69 @@ export default function NodeMempool(props: { node: string; isActive: boolean; re
 	}
 	return (
 		<S.Section>
-			<S.Note>{language.nodeMempoolDescription}</S.Note>
 			{'error' in resource.state && (
 				<S.Error role={'alert'}>
 					{language.nodeErrors[resource.state.error]} {resource.data && language.nodeStale}
 				</S.Error>
 			)}
-			{resource.isLoading && <S.Note role={'status'}>{language.nodeMempoolLoading}</S.Note>}
-			{!resource.data && (
-				<Button type={'alt3'} label={language.refresh} onPress={resource.refresh} disabled={resource.isLoading} />
+			<TransactionList
+				mode={'recent'}
+				header={language.nodePendingTransactions}
+				count={resource.data?.ids.length}
+				source={{
+					loading: props.isResolving || resource.isLoading || details.isLoading,
+					loadingMessage: language.nodeMempoolLoading,
+					onRefresh: handleRefresh,
+					timeLabel: language.nodeFirstObserved,
+					pendingIds: visibleIds.filter((id) => !detailsById.get(id)?.transaction && !detailsById.get(id)?.error),
+					timestamps: resource.data?.firstSeen,
+					edges: visibleIds.map((id) => toNodeTransactionEdge(id, detailsById.get(id)?.transaction ?? undefined)),
+					emptyMessage: language.nodeMempoolEmpty,
+					pagination: (showCounter) => (
+						<NodePagination
+							page={currentPage}
+							totalPages={totalPages}
+							showCounter={showCounter}
+							onPageChange={setPage}
+						/>
+					),
+				}}
+			/>
+			{visibleIds.some((id) => detailsById.get(id)?.error) && (
+				<S.Error role={'status'}>{language.nodeTransactionDetailsError}</S.Error>
 			)}
-			{resource.data && (
-				<>
-					<S.Note>
-						{language.nodeLastObserved(new Date(resource.data.checkedAt).toLocaleString())} ·{' '}
-						{resource.data.isBaseline
-							? language.nodeMempoolBaseline
-							: language.nodeMempoolChanges(resource.data.added.length, resource.data.removed.length)}
-					</S.Note>
-					<TransactionList
-						mode={'recent'}
-						header={`${language.nodePendingTransactions} (${resource.data.ids.length.toLocaleString()})`}
-						source={{
-							loading: resource.isLoading || details.isLoading,
-							onRefresh: handleRefresh,
-							timeLabel: language.nodeFirstObserved,
-							pendingIds: visibleIds.filter((id) => !detailsById.get(id)?.transaction && !detailsById.get(id)?.error),
-							timestamps: resource.data.firstSeen,
-							edges: visibleIds.map((id) => {
-								const tx = detailsById.get(id)?.transaction;
-								return {
-									cursor: id,
-									node: {
-										id,
-										tags: tx?.tags ?? [],
-										owner: tx?.owner ? { address: tx.owner } : undefined,
-										recipient: tx?.recipient ?? undefined,
-										quantity: tx?.denomination === 1 ? { winston: tx.quantity } : undefined,
-										fee: tx?.denomination === 1 ? { winston: tx.fee } : undefined,
-										data: tx ? { size: tx.dataSize, type: tx.contentType ?? '' } : undefined,
-									},
-								};
-							}),
-							pagination: (
-								<>
-									<Button
-										type={'alt3'}
-										label={language.previous}
-										disabled={currentPage === 0}
-										onPress={() => setPage(currentPage - 1)}
-									/>
-									<S.Note>{language.nodesPage(currentPage + 1, totalPages)}</S.Note>
-									<Button
-										type={'alt3'}
-										label={language.next}
-										disabled={currentPage >= totalPages - 1}
-										onPress={() => setPage(currentPage + 1)}
-									/>
-								</>
-							),
-						}}
-					/>
-					{visibleIds.some((id) => detailsById.get(id)?.error) && (
-						<S.Error role={'status'}>{language.nodeTransactionDetailsError}</S.Error>
-					)}
-					{!resource.data.ids.length && <S.Note>{language.nodeMempoolEmpty}</S.Note>}
 
-					{!resource.data.isBaseline && (
-						<S.Changes>
-							{[
-								[language.nodeAdded, resource.data.added],
-								[language.nodeRemoved, resource.data.removed],
-							].map(([label, values]: [string, string[]]) => (
-								<div key={label}>
-									<h4>
-										{label} ({values.length.toLocaleString()})
-									</h4>
-									{values.slice(0, NODE_PAGE_SIZE).map((id) => (
-										<ExplorerLink key={id} value={id} />
-									))}
-									{values.length > NODE_PAGE_SIZE && <S.Note>{language.nodeChangesLimit(NODE_PAGE_SIZE)}</S.Note>}
-								</div>
-							))}
-						</S.Changes>
-					)}
-				</>
+			<S.Changes>
+				<NodeTransactionChanges
+					title={language.nodeAdded}
+					ids={resource.data?.added ?? EMPTY_IDS}
+					loading={resource.isLoading}
+					isBaseline={resource.data?.isBaseline ?? true}
+				/>
+				<NodeTransactionChanges
+					title={language.nodeRemoved}
+					ids={resource.data?.removed ?? EMPTY_IDS}
+					loading={resource.isLoading}
+					isBaseline={resource.data?.isBaseline ?? true}
+				/>
+			</S.Changes>
+			{props.showInfo && props.isActive && (
+				<Modal type={'panel'} width={515} header={language.nodeMempoolInfo} onClose={props.onCloseInfo}>
+					<S.PanelContent>
+						<S.Note>{language.nodeMempoolDescription}</S.Note>
+						{resource.data && (
+							<>
+								{' '}
+								<S.Note>
+									{language.nodeLastObserved(new Date(resource.data.checkedAt).toLocaleString())} ·{' '}
+									{resource.data.isBaseline
+										? language.nodeMempoolBaseline
+										: language.nodeMempoolChanges(resource.data.added.length, resource.data.removed.length)}
+								</S.Note>
+							</>
+						)}
+					</S.PanelContent>
+				</Modal>
 			)}
 		</S.Section>
 	);

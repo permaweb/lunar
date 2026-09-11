@@ -138,3 +138,12 @@ export const UpdateWrapperType = styled(UpdateWrapper)`
 		fill: ${(props) => props.theme.colors.font.light2};
 	}
 `;
+
+export const SeparatedActions = styled.div`
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 15px;
+	padding: 0 0 0 15px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+`;

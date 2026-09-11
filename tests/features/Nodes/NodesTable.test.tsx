@@ -131,7 +131,7 @@ describe('Nodes table and map', () => {
 			expect(nodesApi.getInfo).not.toHaveBeenCalled();
 			expect(container.textContent).not.toContain('Public peers reported by');
 			const link = container.querySelector('tbody a');
-			expect(link?.getAttribute('href')).toBe('#/explorer/arweave-node/http%3A%2F%2F8.8.8.1%3A1984');
+			expect(link?.getAttribute('href')).toBe('#/explorer/http%3A%2F%2F8.8.8.1%3A1984');
 			expect(link?.getAttribute('target')).toBeNull();
 			expect(link?.tabIndex).toBe(0);
 			expect(fetchMock).not.toHaveBeenCalled();

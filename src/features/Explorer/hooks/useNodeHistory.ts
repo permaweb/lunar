@@ -42,11 +42,17 @@ export function useNodeHistory(
 		const count = isOlder ? Math.min(NODE_HISTORY_BATCH, NODE_HISTORY_LIMIT - saved.current.length) : NODE_PAGE_SIZE;
 		if (count <= 0) return;
 		setState(saved.current.length ? { status: 'refreshing', data: saved.current } : { status: 'loading' });
+		const baseline = saved.current;
+		function handleProgress(blocks: NodeBlock[]) {
+			if (controller.signal.aborted) return;
+			saved.current = isOlder ? [...baseline, ...blocks] : mergeNodeHistory(baseline, blocks);
+			setState({ status: 'refreshing', data: saved.current });
+		}
 		void (async () => {
 			try {
-				const blocks = await arweaveNodeApi.getBlocks(node, anchor, count, controller.signal);
+				const blocks = await arweaveNodeApi.getBlocks(node, anchor, count, controller.signal, handleProgress);
 				if (controller.signal.aborted) return;
-				saved.current = isOlder ? [...saved.current, ...blocks] : mergeNodeHistory(saved.current, blocks);
+				saved.current = isOlder ? [...baseline, ...blocks] : mergeNodeHistory(baseline, blocks);
 				previousTip.current = info.hash;
 				completedRequest.current = request.revision;
 				setState({ status: 'success', data: saved.current });

@@ -1,3 +1,6 @@
 export const NODES_PAGE_SIZE = 50;
 export const INITIAL_REACHABLE_NODES = 10;
 export const INITIAL_CHECK_TIMEOUT_MS = 60_000;
+export const FORK_CHECK_CONCURRENCY = 4;
+export const FORK_CHECK_TIMEOUT_MS = 60_000;
+export const FORK_TIP_SOURCE_ATTEMPTS = 3;

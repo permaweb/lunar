@@ -1,15 +1,14 @@
 import styled from 'styled-components';
 
-export { Actions, ButtonGroup, Error, Note, Section } from '../ArweaveNode/styles';
+import { STYLING } from 'helpers/config';
+
+export { Actions, ButtonGroup, Divider, Error, Note, PageCount, PanelContent, Section } from '../ArweaveNode/styles';
 
 export const Changes = styled.div`
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 20px;
-	> div {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		min-width: 0;
+	@media (max-width: ${STYLING.cutoffs.tablet}) {
+		grid-template-columns: minmax(0, 1fr);
 	}
 `;

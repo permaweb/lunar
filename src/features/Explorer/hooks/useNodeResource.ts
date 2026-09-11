@@ -4,7 +4,7 @@ import type { ResourceState } from '../model/node';
 import { NODE_REFRESH_MS, nodeError } from '../model/node';
 
 export function useNodeResource<T>(
-	read: (signal: AbortSignal) => Promise<T>,
+	read: (signal: AbortSignal, onProgress: (data: T) => void) => Promise<T>,
 	isActive: boolean,
 	shouldPoll = false
 ): {
@@ -28,7 +28,11 @@ export function useNodeResource<T>(
 			running = true;
 			setState(latest.current === null ? { status: 'loading' } : { status: 'refreshing', data: latest.current });
 			try {
-				const data = await read(controller.signal);
+				const data = await read(controller.signal, (partial) => {
+					if (controller.signal.aborted) return;
+					latest.current = partial;
+					setState({ status: 'refreshing', data: partial });
+				});
 				if (!controller.signal.aborted) {
 					latest.current = data;
 					setState({ status: 'success', data });

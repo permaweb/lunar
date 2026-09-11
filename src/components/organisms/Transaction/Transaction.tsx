@@ -31,8 +31,10 @@ import { MessageResult } from 'components/molecules/MessageResult';
 import { OverviewStyles as O } from 'components/molecules/Overview';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
+import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
+import type { PinTarget } from 'helpers/pinnedTabs';
 import { searchTxById } from 'helpers/search';
 import { GQLNodeResponseType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
@@ -273,6 +275,7 @@ function formatStatusEta(confirmations: number | null) {
 }
 
 function Transaction(props: {
+	pinTarget?: PinTarget;
 	txId: string;
 	type: TransactionType | null;
 	active: boolean;
@@ -450,6 +453,11 @@ function Transaction(props: {
 	}, [props.active, hasFetched, inputTxId, props.type]);
 
 	async function handleSubmit() {
+		const node = normalizeArweaveNode(inputTxId);
+		if (node) {
+			navigate(getArweaveNodeRoute(node));
+			return;
+		}
 		if (inputTxId && isValidExplorerInput(inputTxId)) {
 			setLoadingTx(true);
 			setRefreshKey((prev) => prev + 1);
@@ -2213,9 +2221,10 @@ function Transaction(props: {
 		<>
 			<C.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
 				<ExplorerControls
+					pinTarget={props.pinTarget}
 					value={inputTxId}
 					onValueChange={setInputTxId}
-					valid={isValidExplorerInput(inputTxId)}
+					valid={isValidExplorerInput(inputTxId) || normalizeArweaveNode(inputTxId) !== null}
 					loading={loadingTx}
 					onSubmit={handleSubmit}
 					isFullscreen={isFullscreen}
@@ -2223,7 +2232,7 @@ function Transaction(props: {
 					actions={
 						<>
 							{hasBlockNavigation && (
-								<S.BlockNavigationWrapper>
+								<C.SeparatedActions>
 									{previousBlockHeight !== null && (
 										<Button
 											type={'primary'}
@@ -2251,7 +2260,7 @@ function Transaction(props: {
 											preventDefault
 										/>
 									)}
-								</S.BlockNavigationWrapper>
+								</C.SeparatedActions>
 							)}
 						</>
 					}

@@ -15,6 +15,7 @@ export default function NodeRow(props: {
 	peer: ArweavePeer;
 	infoEnabled: boolean;
 	isChecking: boolean;
+	infoSource?: string;
 	observation: NodeObservation | undefined;
 	onObservation: (data: NodeObservation) => void;
 }) {
@@ -42,7 +43,12 @@ export default function NodeRow(props: {
 				<ExplorerLink type={'arweave-node'} value={props.peer.address} label={props.peer.address} />
 			</td>
 			<td>
-				<S.Status title={props.infoEnabled || props.isChecking ? language.nodesInfoSource : language.nodesInfoPaused}>
+				<S.Status
+					title={
+						props.infoSource ??
+						(props.infoEnabled || props.isChecking ? language.nodesInfoSource : language.nodesInfoPaused)
+					}
+				>
 					<S.StatusDot $status={observation?.status ?? 'idle'} aria-hidden={'true'} />
 					{status}
 				</S.Status>
@@ -50,7 +56,7 @@ export default function NodeRow(props: {
 			<td>{info?.height.toLocaleString() ?? '—'}</td>
 			<td>{info ? `${info.version} / ${info.release}` : '—'}</td>
 			<td>{info?.peers.toLocaleString() ?? '—'}</td>
-			<td title={language.nodesInfoSource}>
+			<td title={props.infoSource ?? language.nodesInfoSource}>
 				{observation?.status === 'reachable' ? language.nodeLatency(observation.latencyMs.toLocaleString()) : '—'}
 			</td>
 			<td>{observation ? new Date(observation.checkedAt).toLocaleTimeString() : '—'}</td>

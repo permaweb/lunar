@@ -203,8 +203,8 @@ function TransactionRow(props: {
 	const tags = transaction.tags ?? [];
 	const timestamp = props.observedAt ?? (transaction.block?.timestamp ? transaction.block.timestamp * 1000 : null);
 	const transferTarget = transaction.recipient ?? getTagValue(tags, 'Target');
-	const pendingHydration = props.pending || (needsHydration && !hydratedTransaction.loaded);
-	const failedHydration = needsHydration && hydratedTransaction.loaded && !hydratedTransaction.data;
+	const pendingHydration = props.pending || (!props.disableHydration && needsHydration && !hydratedTransaction.loaded);
+	const failedHydration = needsHydration && !pendingHydration && !hydratedTransaction.data;
 	const bundlerLabel = getBundlerLabel(transaction.owner?.address, tags);
 
 	React.useEffect(() => {
@@ -338,14 +338,18 @@ export default function TransactionList(props: {
 	blockId?: string;
 	bundleId?: string;
 	header?: string;
+	count?: number;
 	onTotalCountChange?: (count: number | null) => void;
 	pageSize?: number;
 	preview?: boolean;
 	source?: {
 		edges: GQLEdge<TransactionNode>[];
 		loading: boolean;
+		loadingMessage?: string;
+		emptyMessage?: string;
+		actions?: React.ReactNode;
 		onRefresh: () => void;
-		pagination?: React.ReactNode;
+		pagination?: (showCounter: boolean) => React.ReactNode;
 		timeLabel?: string;
 		pendingIds?: string[];
 		timestamps?: Record<string, number>;
@@ -823,8 +827,8 @@ export default function TransactionList(props: {
 	}
 
 	function getMessage() {
-		let message = language.transactionsNotFound;
-		if (loading) message = language.transactionsLoading;
+		let message = props.source?.emptyMessage ?? language.transactionsNotFound;
+		if (loading) message = props.source?.loadingMessage ?? language.transactionsLoading;
 		if (error) message = error;
 
 		return (
@@ -883,7 +887,10 @@ export default function TransactionList(props: {
 			<S.Container ref={tableContainerRef} $preview={props.preview}>
 				<S.Header>
 					<S.HeaderMain>
-						<p>{props.header ?? language.transactions}</p>
+						<p>
+							{props.header ?? language.transactions}
+							{props.count !== undefined && <S.Count>({props.count.toLocaleString()})</S.Count>}
+						</p>
 						{loading && (
 							<div className={'loader'}>
 								<Loader xSm relative />
@@ -892,6 +899,7 @@ export default function TransactionList(props: {
 					</S.HeaderMain>
 					{props.source && (
 						<S.HeaderActions>
+							{props.source.actions}
 							<Button
 								type={'alt3'}
 								label={language.refresh}
@@ -900,7 +908,7 @@ export default function TransactionList(props: {
 								onPress={props.source.onRefresh}
 								disabled={loading}
 							/>
-							{props.source.pagination}
+							{props.source.pagination?.(false)}
 						</S.HeaderActions>
 					)}
 					{!props.preview && !props.source && (
@@ -984,7 +992,7 @@ export default function TransactionList(props: {
 					getMessage()
 				)}
 				{!props.preview && (!props.source || props.source.pagination) && (
-					<S.FooterWrapper>{props.source ? props.source.pagination : getPaginator(true)}</S.FooterWrapper>
+					<S.FooterWrapper>{props.source ? props.source.pagination?.(true) : getPaginator(true)}</S.FooterWrapper>
 				)}
 			</S.Container>
 			{!props.preview && !props.source && showFilters && (

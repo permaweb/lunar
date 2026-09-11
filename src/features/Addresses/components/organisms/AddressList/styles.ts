@@ -32,6 +32,9 @@ export const HeaderMain = styled.div`
 	gap: 20px;
 
 	p {
+		display: flex;
+		align-items: center;
+		gap: 12px;
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -110,6 +113,7 @@ export const TableBody = styled.div`
 `;
 
 export const TableRow = styled.div`
+	cursor: pointer;
 	height: 40px;
 	position: relative;
 	display: grid;
@@ -133,7 +137,8 @@ export const TableRow = styled.div`
 		text-overflow: ellipsis;
 	}
 
-	&:hover {
+	&:hover,
+	&:focus-visible {
 		background: ${(props) => props.theme.colors.container.primary.active};
 		border-color: ${(props) => props.theme.colors.border.alt4};
 		box-shadow: inset 0 1px 0 ${(props) => props.theme.colors.border.alt4};
@@ -217,4 +222,9 @@ export const Footer = styled.div<{ $borderTop: boolean }>`
 	border-top: 1px solid ${(props) => (props.$borderTop ? props.theme.colors.border.primary : 'transparent')};
 	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
 	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};
+`;
+
+export const Count = styled.span`
+	font-size: ${(props) => props.theme.typography.size.small};
+	color: ${(props) => props.theme.colors.font.alt1};
 `;

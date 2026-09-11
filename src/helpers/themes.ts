@@ -357,12 +357,12 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 		},
 		button: {
 			primary: {
-				background: currentTheme.neutral2,
-				border: currentTheme.neutral3,
+				background: currentTheme.neutral3,
+				border: currentTheme.neutral4,
 				color: currentTheme.neutralA1,
 				active: {
-					background: currentTheme.neutral3,
-					border: currentTheme.neutral4,
+					background: currentTheme.neutral4,
+					border: currentTheme.neutral6,
 					color: currentTheme.neutralA1,
 				},
 				disabled: {

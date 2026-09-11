@@ -3,7 +3,17 @@ import JSONbig from 'json-bigint';
 import { normalizeArweaveNode } from 'helpers/arweaveNode';
 import { checkValidAddress } from 'helpers/utils';
 
-import { blockHash, integer, parseBlock, parseInfo, parsePending, parseTransaction, record } from './parsers';
+import { readAncestors } from './ancestors';
+import {
+	blockHash,
+	integer,
+	parseBlock,
+	parseBlockTransactionIds,
+	parseInfo,
+	parsePending,
+	parseTransaction,
+	record,
+} from './parsers';
 import type { ArweaveNodeApi, NodeBlock } from './types';
 import { ArweaveNodeError } from './types';
 
@@ -11,10 +21,13 @@ const RELAY_URL = 'https://arweave.net/~relay@1.0/call';
 const REQUEST_TIMEOUT_MS = 20_000;
 const MAX_RESPONSE_BYTES = 8_000_000;
 const CONCURRENCY = 4;
+const BLOCK_TRANSACTION_CACHE_LIMIT = 16;
+const TRANSACTION_ID_CACHE_LIMIT = 100_000;
 const JSON_PARSER = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
 
 /** One bounded queue per explorer, including visible wallet and mempool metadata. */
 export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
+	const blockTransactions = new Map<string, string[]>();
 	let running = 0;
 	const waiting: (() => void)[] = [];
 	async function request(node: string, path: string, signal: AbortSignal): Promise<string> {
@@ -93,20 +106,48 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 			throw new ArweaveNodeError('invalid-response');
 		}
 	}
-	async function block(node: string, hash: string, signal: AbortSignal): Promise<NodeBlock> {
-		const result = parseBlock(await json(node, `/block/hash/${blockHash(hash)}`, signal));
+	async function readBlock(node: string, hash: string, signal: AbortSignal) {
+		const raw = record(await json(node, `/block/hash/${blockHash(hash)}`, signal));
+		const result = parseBlock(raw);
 		if (result.hash !== hash) throw new ArweaveNodeError('invalid-response');
-		return result;
+		const key = `${normalizeArweaveNode(node)}/${hash}`;
+		blockTransactions.delete(key);
+		const ids = parseBlockTransactionIds(raw.txs);
+		blockTransactions.set(key, ids);
+		while (
+			blockTransactions.size > BLOCK_TRANSACTION_CACHE_LIMIT ||
+			Array.from(blockTransactions.values()).reduce((total, ids) => total + ids.length, 0) > TRANSACTION_ID_CACHE_LIMIT
+		)
+			blockTransactions.delete(blockTransactions.keys().next().value);
+		return { block: result, ids };
+	}
+	async function block(node: string, hash: string, signal: AbortSignal): Promise<NodeBlock> {
+		return (await readBlock(node, hash, signal)).block;
 	}
 	return {
 		getInfo: async (node, signal) => parseInfo(await json(node, '/info', signal)),
+		getAncestors: (node, anchor, heights, signal) =>
+			readAncestors(anchor, heights, signal, (path) => json(node, path, signal)),
 		getPending: async (node, signal) => parsePending(await json(node, '/tx/pending', signal)),
 		getBalance: async (node, address, signal) => {
 			if (!checkValidAddress(address)) throw new ArweaveNodeError('invalid-input');
 			return integer((await request(node, `/wallet/${address}/balance`, signal)).trim());
 		},
-		getTransaction: async (node, id, signal) => {
+		getBlockTransactionIds: async (node, hash, signal) => {
+			const origin = normalizeArweaveNode(node);
+			if (!origin) throw new ArweaveNodeError('invalid-input');
+			blockHash(hash);
+			if (signal.aborted) throw new ArweaveNodeError('cancelled');
+			const key = `${origin}/${hash}`;
+			const ids = blockTransactions.get(key);
+			if (!ids) return [...(await readBlock(origin, hash, signal)).ids];
+			blockTransactions.delete(key);
+			blockTransactions.set(key, ids);
+			return [...ids];
+		},
+		getTransaction: async (node, id, signal, state = 'pending') => {
 			if (!checkValidAddress(id)) throw new ArweaveNodeError('invalid-input');
+			if (state === 'confirmed') return parseTransaction(await json(node, `/tx/${id}`, signal), id);
 			let value: unknown;
 			try {
 				value = await json(node, `/unconfirmed_tx/${id}`, signal);
@@ -116,7 +157,7 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 			}
 			return parseTransaction(value, id);
 		},
-		getBlocks: async (node, anchor, requested, signal) => {
+		getBlocks: async (node, anchor, requested, signal, onProgress) => {
 			if (
 				!Number.isSafeInteger(anchor.height) ||
 				anchor.height < 0 ||
@@ -138,28 +179,60 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 				if (!(error instanceof ArweaveNodeError) || ![404, 405, 501].includes(error.status)) throw error;
 			}
 			const blocks: NodeBlock[] = [];
-			if (hashes) {
-				// Queue-sized batches also bound the number of pending promises.
-				for (let i = 0; i < hashes.length; i += CONCURRENCY)
-					blocks.push(
-						...(await Promise.all(hashes.slice(i, i + CONCURRENCY).map((hash) => block(node, hash, signal))))
-					);
-			} else {
-				let hash = anchor.hash;
-				for (let i = 0; i < count; i++) {
-					const next = await block(node, hash, signal);
-					blocks.push(next);
-					hash = next.previous;
-				}
-			}
-			if (
-				blocks.some(
-					(entry, index) =>
-						entry.height !== anchor.height - index || (index > 0 && blocks[index - 1].previous !== entry.hash)
+			const controller = new AbortController();
+			const cancel = () => controller.abort();
+			signal.addEventListener('abort', cancel, { once: true });
+			if (signal.aborted) cancel();
+			function append(next: NodeBlock) {
+				if (controller.signal.aborted) throw new ArweaveNodeError('cancelled');
+				if (
+					next.height !== anchor.height - blocks.length ||
+					(blocks.length > 0 && blocks[blocks.length - 1].previous !== next.hash)
 				)
-			)
-				throw new ArweaveNodeError('chain-changed');
-			return blocks;
+					throw new ArweaveNodeError('chain-changed');
+				blocks.push(next);
+			}
+			try {
+				if (hashes) {
+					const ready = new Map<number, NodeBlock>();
+					let nextIndex = 0;
+					async function worker() {
+						try {
+							while (nextIndex < count && !controller.signal.aborted) {
+								const index = nextIndex++;
+								const next = await block(node, hashes[index], controller.signal);
+								if (controller.signal.aborted) return;
+								ready.set(index, next);
+								const previousLength = blocks.length;
+								// Publish only the contiguous, validated chain from the requested tip.
+								while (ready.has(blocks.length)) {
+									const nextBlock = ready.get(blocks.length)!;
+									ready.delete(blocks.length);
+									append(nextBlock);
+								}
+								if (blocks.length !== previousLength) onProgress?.([...blocks]);
+							}
+						} catch (error) {
+							controller.abort();
+							throw error;
+						}
+					}
+					await Promise.all(Array.from({ length: Math.min(CONCURRENCY, count) }, worker));
+				} else {
+					let hash = anchor.hash;
+					for (let i = 0; i < count; i++) {
+						const next = await block(node, hash, controller.signal);
+						append(next);
+						onProgress?.([...blocks]);
+						hash = next.previous;
+					}
+				}
+				if (controller.signal.aborted) throw new ArweaveNodeError('cancelled');
+				return blocks;
+			} finally {
+				controller.abort();
+				signal.removeEventListener('abort', cancel);
+			}
 		},
 	};
 }

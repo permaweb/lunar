@@ -2,8 +2,7 @@ import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { ASSETS } from 'helpers/config';
-import { getTxEndpoint } from 'helpers/endpoints';
-import { checkValidAddress } from 'helpers/utils';
+import { getProfileImageUrl } from 'helpers/profile';
 
 import * as S from './styles';
 import { IProps } from './types';
@@ -11,13 +10,15 @@ import { IProps } from './types';
 export default function Avatar(props: IProps) {
 	const [hasError, setHasError] = React.useState(false);
 
-	const hasImage = props.owner && props.owner.thumbnail && checkValidAddress(props.owner.thumbnail);
+	const imageUrl = getProfileImageUrl(props.owner?.thumbnail);
+	const hasImage = !!imageUrl && !hasError;
+	React.useEffect(() => setHasError(false), [imageUrl]);
 
 	const thumbnail = React.useMemo(() => {
-		if (!hasError && props.owner && props.owner.thumbnail && checkValidAddress(props.owner.thumbnail)) {
-			return <img src={getTxEndpoint(props.owner.thumbnail)} onError={() => setHasError(true)} />;
+		if (!hasError && imageUrl) {
+			return <img src={imageUrl} alt={''} onError={() => setHasError(true)} />;
 		} else return <ReactSVG src={ASSETS.user} />;
-	}, [props.owner, hasError]);
+	}, [imageUrl, hasError]);
 
 	return (
 		<S.Wrapper

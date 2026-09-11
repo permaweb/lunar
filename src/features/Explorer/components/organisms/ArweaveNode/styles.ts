@@ -21,11 +21,29 @@ export const ButtonGroup = styled.div`
 `;
 export const Note = styled.p`
 	color: ${(props) => props.theme.colors.font.alt1};
-	font-size: ${(props) => props.theme.typography.size.small};
+	font-size: ${(props) => props.theme.typography.size.xSmall};
 	line-height: 1.6;
 `;
 export const Error = styled.p`
 	color: ${(props) => props.theme.colors.warning.primary};
-	font-size: ${(props) => props.theme.typography.size.small};
+	font-size: ${(props) => props.theme.typography.size.xSmall};
 	line-height: 1.6;
+`;
+
+export const PageCount = styled.span`
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	color: ${(props) => props.theme.colors.font.alt1};
+`;
+export const PanelContent = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 0 20px 20px;
+`;
+export const Divider = styled.div`
+	height: 20px;
+	width: 1px;
+	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
 `;

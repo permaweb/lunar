@@ -10,9 +10,10 @@ function useCloseHandler(ref: any, callback: () => void) {
 				callback();
 			}
 		}
-		document.addEventListener('mousedown', (e) => handleAction(e as any, callback));
+		const handleMouseDown = (event: MouseEvent) => handleAction(event as any, callback);
+		document.addEventListener('mousedown', handleMouseDown);
 		return () => {
-			document.removeEventListener('mousedown', (e) => handleAction(e as any, callback));
+			document.removeEventListener('mousedown', handleMouseDown);
 		};
 	}, [ref, callback]);
 }

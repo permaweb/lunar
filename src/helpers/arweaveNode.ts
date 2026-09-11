@@ -5,6 +5,8 @@ export function normalizeArweaveNode(value: string): string | null {
 	try {
 		const input = value.trim();
 		if (!input || input.length > 2048) return null;
+		// Bare transaction IDs and block heights must stay in the transaction explorer.
+		if (!input.includes('://') && !/[.:]/.test(input) && input !== 'localhost') return null;
 		const url = new URL(input.includes('://') ? input : `http://${input}`);
 		if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash)
 			return null;
@@ -16,18 +18,19 @@ export function normalizeArweaveNode(value: string): string | null {
 }
 
 export function getArweaveNodeRoute(node: string, tab = ''): string {
-	return `${URLS.explorer}arweave-node/${encodeURIComponent(normalizeArweaveNode(node) ?? node)}${
-		tab ? `/${tab}` : ''
-	}`;
+	return `${URLS.explorer}${encodeURIComponent(normalizeArweaveNode(node) ?? node)}${tab ? `/${tab}` : ''}`;
 }
 
 export function readArweaveNodeRoute(path: string): { node: string; subPath: string } | null {
-	const prefix = `${URLS.explorer}arweave-node/`;
+	const prefix = URLS.explorer;
 	if (!path.startsWith(prefix)) return null;
-	const [encoded, ...rest] = path.slice(prefix.length).split('/');
+	// Accept previously shared links, but always generate the untyped canonical route.
+	const remainder = path.slice(prefix.length).replace(/^arweave-node\//, '');
+	const [encoded, ...rest] = remainder.split('/');
 	try {
-		return { node: decodeURIComponent(encoded), subPath: rest.length ? `/${rest.join('/')}` : '' };
+		const node = normalizeArweaveNode(decodeURIComponent(encoded));
+		return node ? { node, subPath: rest.length ? `/${rest.join('/')}` : '' } : null;
 	} catch {
-		return { node: encoded, subPath: '' };
+		return null;
 	}
 }

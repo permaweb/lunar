@@ -37,7 +37,7 @@ export const Content = styled.div`
 `;
 
 export const SearchWrapper = styled.div`
-	width: 450px;
+	width: 100%;
 	max-width: 100%;
 	position: relative;
 `;
@@ -315,7 +315,7 @@ export const MWrapper = styled.div`
 `;
 
 export const MSearchPanelContent = styled.div`
-	padding: 15px;
+	padding: 15px 20px;
 `;
 
 export const MNavWrapper = styled.div`

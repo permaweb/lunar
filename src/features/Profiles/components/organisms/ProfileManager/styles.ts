@@ -5,6 +5,15 @@ import { STYLING } from 'helpers/config';
 
 export const Wrapper = styled.div``;
 
+export const Status = styled.div`
+	width: 100%;
+	font-size: ${(props) => props.theme.typography.size.xSmall};
+	color: ${(props) => props.theme.colors.font.alt1};
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+`;
+
 export const Header = styled.div`
 	display: flex;
 	justify-content: space-between;

@@ -21,7 +21,7 @@ const Docs = getLazyImport('Docs');
 const NotFound = getLazyImport('NotFound');
 
 import { Loader } from 'components/atoms/Loader';
-import { ProfileManagerOverlay } from 'components/organisms/ProfileManagerOverlay';
+import { ProfileManagerOverlay } from 'features/Profiles';
 import { ASSETS, DOM, LINKS, URLS } from 'helpers/config';
 import { stripUrlProtocol } from 'helpers/utils';
 import { Navigation } from 'navigation/Navigation';
@@ -265,11 +265,10 @@ export default function App() {
 						{getRoute(URLS.blocks, <Blocks />)}
 						{getRoute(URLS.addresses, <Addresses />)}
 						{getRoute(URLS.nodes, <Nodes />)}
+						{getRoute(URLS.nodesByFork, <Nodes />)}
 						{getRoute(URLS.transactions, <Transactions />)}
 						{getRoute(URLS.explorer, <Explorer />)}
-						{getRoute(`${URLS.explorer}arweave-node/:node/*`, <Explorer />)}
-						{getRoute(`${URLS.explorer}:txid`, <Explorer />)}
-						{getRoute(`${URLS.explorer}:txid/:active`, <Explorer />)}
+						{getRoute(`${URLS.explorer}:txid/*`, <Explorer />)}
 						{getRoute(URLS.aos, <Console />)}
 						{getRoute(`${URLS.aos}:txid`, <Console />)}
 						{getRoute(URLS.graphql, <GraphQL />)}
