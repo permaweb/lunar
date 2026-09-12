@@ -246,6 +246,8 @@ export const DropIndicator = styled.div<{ side: 'left' | 'right' }>`
 `;
 
 export const NewTab = styled(TabAction)`
+	line-height: inherit;
+	letter-spacing: inherit;
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
 
 	svg {

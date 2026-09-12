@@ -4,6 +4,7 @@ import { ReactSVG } from 'react-svg';
 import { ViewWrapper } from 'app/styles';
 import { Button } from 'components/atoms/Button';
 import { Modal } from 'components/atoms/Modal';
+import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { ViewTitle } from 'components/molecules/ViewTitle';
 import { ASSETS } from 'helpers/config';
 import { BaseTabType } from 'helpers/types';
@@ -436,7 +437,13 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						</React.Fragment>
 					);
 				})}
-				<S.NewTab active={false} onClick={() => handleAddTab()} disabled={false}>
+				<S.NewTab
+					as={PrimitiveButton}
+					active={false}
+					onClick={() => handleAddTab()}
+					title={props.languageLabels.newTabTooltip}
+					disabled={false}
+				>
 					<ReactSVG src={ASSETS.add} />
 					{props.languageLabels.newTab}
 				</S.NewTab>
@@ -462,9 +469,11 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 					<ViewTitle
 						header={props.header}
 						actions={[
+							...(props.headerActions ?? []),
 							<Button
 								type={'primary'}
 								label={props.languageLabels.newTab}
+								tooltip={props.languageLabels.newTabTooltip}
 								onPress={() => handleAddTab()}
 								icon={ASSETS.add}
 								iconLeftAlign
@@ -472,6 +481,8 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 							<Button
 								type={'primary'}
 								label={props.languageLabels.clearTabs}
+								tooltip={props.languageLabels.clearTabsTooltip}
+								tooltipPosition={'bottom-right'}
 								onPress={() => setShowClearConfirmation(true)}
 								icon={ASSETS.delete}
 								iconLeftAlign
@@ -508,7 +519,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 				</ViewWrapper>
 			</S.Wrapper>
 			{showClearConfirmation && (
-				<Modal header={props.languageLabels.clearTabs} onClose={() => setShowClearConfirmation(false)}>
+				<Modal header={props.languageLabels.clearTabsTooltip} onClose={() => setShowClearConfirmation(false)}>
 					<S.ModalWrapper>
 						<S.ModalBodyWrapper>
 							<p>{props.languageLabels.tabsDeleteConfirmationInfo}</p>

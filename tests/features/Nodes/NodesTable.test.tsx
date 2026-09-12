@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import axe from 'axe-core';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -59,7 +60,9 @@ describe('Nodes table and map', () => {
 			await React.act(async () =>
 				root.render(
 					<ThemeProvider theme={theme(darkTheme)}>
-						<NodesTable />
+						<MemoryRouter>
+							<NodesTable />
+						</MemoryRouter>
 					</ThemeProvider>
 				)
 			);
@@ -113,7 +116,9 @@ describe('Nodes table and map', () => {
 			await React.act(async () =>
 				root.render(
 					<ThemeProvider theme={theme(darkTheme)}>
-						<NodesTable />
+						<MemoryRouter>
+							<NodesTable />
+						</MemoryRouter>
 					</ThemeProvider>
 				)
 			);
@@ -126,9 +131,9 @@ describe('Nodes table and map', () => {
 			expect(nodesApi.getInfo).not.toHaveBeenCalled();
 			expect(container.textContent).not.toContain('Public peers reported by');
 			const link = container.querySelector('tbody a');
-			expect(link?.getAttribute('href')).toBe('http://8.8.8.1:1984/');
-			expect(link?.getAttribute('target')).toBe('_blank');
-			expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+			expect(link?.getAttribute('href')).toBe('#/explorer/http%3A%2F%2F8.8.8.1%3A1984');
+			expect(link?.getAttribute('target')).toBeNull();
+			expect(link?.tabIndex).toBe(0);
 			expect(fetchMock).not.toHaveBeenCalled();
 			expect(nodesApi.getCountries).not.toHaveBeenCalled();
 			const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });

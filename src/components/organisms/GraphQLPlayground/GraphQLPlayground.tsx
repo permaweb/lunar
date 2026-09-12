@@ -811,7 +811,7 @@ export default function GraphQLPlayground(props: {
 						height={32.5}
 						width={32.5}
 						noMinWidth
-						iconSize={14.5}
+						iconSize={12.5}
 						tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
 						stopPropagation
 						preventDefault

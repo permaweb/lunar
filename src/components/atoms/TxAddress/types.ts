@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type ExplorerLinkType = 'address' | 'transaction' | 'block';
+export type ExplorerLinkType = 'address' | 'transaction' | 'block' | 'arweave-node';
 
 export interface ExplorerLinkProps {
 	value: string | number | null | undefined;

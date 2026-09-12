@@ -105,8 +105,8 @@ export const BodyWrapper = styled.div<{ $preview?: boolean }>`
 		border-bottom-right-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
 	}
 
-	> *:first-child:hover {
-		box-shadow: inset 0 1px 0 ${(props) => props.theme.colors.border.alt4};
+	> *:first-child::after {
+		top: ${(props) => (props.$preview ? '0' : '-1px')};
 	}
 
 	.block-list-element {
@@ -158,6 +158,7 @@ export const ElementWrapper = styled.div<{ $preview?: boolean }>`
 		right: 0;
 		bottom: 0;
 		border-top: 1px solid ${(props) => props.theme.colors.border.alt4};
+		pointer-events: none;
 		transition: all 100ms;
 	}
 `;

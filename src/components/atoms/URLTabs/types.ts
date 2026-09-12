@@ -5,7 +5,8 @@ type URLViewType = {
 	disabled: boolean;
 	url: any;
 	icon: string;
-	view: React.ComponentType;
+	view?: React.ComponentType;
+	content?: React.ReactNode;
 };
 
 export interface ITProps {

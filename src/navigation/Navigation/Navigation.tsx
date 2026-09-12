@@ -5,11 +5,13 @@ import { ReactSVG } from 'react-svg';
 import { debounce } from 'lodash';
 import { useTheme } from 'styled-components';
 
+import { arweaveNodeApi, ArweaveNodeError } from 'api/arweaveNode';
 import { getBlock } from 'api/blocks';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
+import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
 import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
@@ -33,7 +35,13 @@ function checkValidBlockHeight(id: string | null): boolean {
 }
 
 function isValidSearchInput(value: string): boolean {
-	return checkValidAddress(value) || checkValidBlockHeight(value) || checkValidBlockId(value);
+	const input = value.trim();
+	return (
+		normalizeArweaveNode(input) !== null ||
+		checkValidAddress(input) ||
+		checkValidBlockHeight(input) ||
+		checkValidBlockId(input)
+	);
 }
 
 export default function Navigation(props: { open: boolean; toggle: () => void }) {
@@ -49,7 +57,10 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const [inputTxId, setInputTxId] = React.useState<string>('');
 	const [txOutputOpen, setTxOutputOpen] = React.useState<boolean>(false);
 	const [loadingTx, setLoadingTx] = React.useState<boolean>(false);
-	const [txResponse, setTxResponse] = React.useState<any | null>(null);
+	const [txResponse, setTxResponse] = React.useState<{
+		node: { id: string; tags: { name: string; value: string }[] };
+	} | null>(null);
+	const [searchError, setSearchError] = React.useState<string | null>(null);
 	const [panelOpen, setPanelOpen] = React.useState<boolean>(false);
 	const [prices, setPrices] = React.useState<{ ao: number | null; ar: number | null }>({
 		ao: null,
@@ -167,55 +178,68 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	}, []);
 
 	React.useEffect(() => {
-		(async function () {
-			if (inputTxId && isValidSearchInput(inputTxId)) {
-				setTxOutputOpen(true);
-				setLoadingTx(true);
-				try {
-					// Handle block searches
-					if (checkValidBlockHeight(inputTxId) || checkValidBlockId(inputTxId)) {
-						const block = await getBlock(
-							checkValidBlockHeight(inputTxId) ? { height: Number(inputTxId) } : { id: inputTxId }
-						);
-
-						if (block) {
-							// Create a response that matches the expected structure
-							setTxResponse({
-								node: {
-									id: inputTxId,
-									tags: [
-										{ name: 'Type', value: 'Block' },
-										{ name: 'Name', value: `${language.block || 'Block'} ${formatCount(block.height.toString())}` },
-									],
-								},
-							});
-						} else {
-							setTxResponse(null);
-						}
-					}
-					// Handle transaction/process/message searches
-					else {
-						const response = await searchTxById({
-							txId: inputTxId,
-							getGQLData: permawebProvider.legacyApi.getGQLData,
-							readProcess: permawebProvider.legacyApi.readProcess,
-							store: store,
-							dispatch: dispatch,
-						});
-
-						setTxResponse(response ?? { node: { id: inputTxId, tags: [] } });
-					}
-				} catch (e: any) {
-					console.error(e);
-					setTxResponse(null);
+		const input = inputTxId.trim();
+		setTxResponse(null);
+		setSearchError(null);
+		if (!searchOpen || !input || !isValidSearchInput(input)) {
+			setTxOutputOpen(false);
+			setLoadingTx(false);
+			return;
+		}
+		const controller = new AbortController();
+		setTxOutputOpen(true);
+		setLoadingTx(true);
+		const timer = setTimeout(async () => {
+			try {
+				let result: typeof txResponse = null;
+				const node = normalizeArweaveNode(input);
+				if (node) {
+					await arweaveNodeApi.getInfo(node, controller.signal);
+					result = {
+						node: {
+							id: node,
+							tags: [
+								{ name: 'Type', value: 'arweave-node' },
+								{ name: 'Name', value: node },
+							],
+						},
+					};
+				} else if (checkValidBlockHeight(input) || checkValidBlockId(input)) {
+					const block = await getBlock(checkValidBlockHeight(input) ? { height: Number(input) } : { id: input });
+					if (block)
+						result = {
+							node: {
+								id: input,
+								tags: [
+									{ name: 'Type', value: 'Block' },
+									{ name: 'Name', value: `${language.block} ${formatCount(block.height.toString())}` },
+								],
+							},
+						};
+				} else if (permawebProvider.legacyApi) {
+					result = (await searchTxById({
+						txId: input,
+						getGQLData: permawebProvider.legacyApi.getGQLData,
+						readProcess: permawebProvider.legacyApi.readProcess,
+						store,
+						dispatch,
+					})) ?? { node: { id: input, tags: [] } };
 				}
-				setLoadingTx(false);
-			} else {
-				setTxResponse(null);
-				setTxOutputOpen(false);
+				if (!controller.signal.aborted) setTxResponse(result);
+			} catch (error) {
+				if (!controller.signal.aborted)
+					setSearchError(
+						error instanceof ArweaveNodeError ? language.nodeErrors[error.code] : language.errorFetchingData
+					);
+			} finally {
+				if (!controller.signal.aborted) setLoadingTx(false);
 			}
-		})();
-	}, [inputTxId, language.block, permawebProvider.legacyApi?.getGQLData, dispatch]);
+		}, 250);
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
+	}, [searchOpen, inputTxId, language, permawebProvider.legacyApi, dispatch]);
 
 	const searchOutput = React.useMemo(() => {
 		if (loadingTx) {
@@ -233,7 +257,11 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 			return (
 				<S.SearchResult>
 					<Link
-						to={`${URLS.explorer}${txResponse.node.id}`}
+						to={
+							type === 'arweave-node'
+								? getArweaveNodeRoute(txResponse.node.id)
+								: `${URLS.explorer}${txResponse.node.id}`
+						}
 						onClick={() => {
 							setTxResponse(null);
 							setInputTxId('');
@@ -254,13 +282,13 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		if (isValidSearchInput(inputTxId)) {
 			return (
 				<S.SearchOutputPlaceholder>
-					<p>{language.txNotFound}</p>
+					<p>{searchError ?? language.txNotFound}</p>
 				</S.SearchOutputPlaceholder>
 			);
 		}
 
 		return null;
-	}, [loadingTx, txResponse, inputTxId, language.txNotFound]);
+	}, [loadingTx, txResponse, inputTxId, language, searchError]);
 
 	function getSearch(autoFocus: boolean = false) {
 		return (
@@ -273,7 +301,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						onFocus={() => setTxOutputOpen(true)}
 						placeholder={language.explorerSearchInput}
 						invalid={{ status: inputTxId ? !isValidSearchInput(inputTxId) : false, message: null }}
-						disabled={loadingTx}
+						disabled={false}
 						autoFocus={autoFocus}
 						hideErrorMessage
 						sm

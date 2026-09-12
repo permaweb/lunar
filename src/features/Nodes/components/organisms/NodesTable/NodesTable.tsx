@@ -7,7 +7,7 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { useNodesList } from '../../../hooks/useNodesList';
 import { getNodePages } from '../../../model/pages';
-import { NodeRow } from '../../molecules/NodeRow';
+import { NodeTable } from '../../molecules/NodeTable';
 
 import * as S from './styles';
 
@@ -27,16 +27,6 @@ export default function NodesTable() {
 	const rows = pagination.rows(currentPage);
 	const loading = state.status === 'loading' || state.status === 'checking' || state.status === 'refreshing';
 
-	if (FLAGS.SHOW_NODES_LOADER && (state.status === 'loading' || state.status === 'checking')) {
-		return (
-			<S.InitialLoading role={'status'} aria-live={'polite'}>
-				<S.InitialSpinner>
-					<Loader sm relative />
-				</S.InitialSpinner>
-				<span>{language.nodesLoading}</span>
-			</S.InitialLoading>
-		);
-	}
 	function getPaginator(showCounter = false) {
 		return (
 			<>
@@ -98,49 +88,32 @@ export default function NodesTable() {
 				<S.Message role={'status'}>{language.nodesChecksInterrupted}</S.Message>
 			)}
 			{showMap ? (
-				<React.Suspense fallback={<S.Message role={'status'}>{language.loading}</S.Message>}>
+				<React.Suspense fallback={<S.Message role={'status'}>{`${language.loading}...`}</S.Message>}>
 					<NodesMap peers={peers} />
 				</React.Suspense>
 			) : rows.length ? (
-				<S.TableScroll tabIndex={0} role={'region'} aria-label={language.arweaveNodes}>
-					<S.Table aria-label={language.arweaveNodes}>
-						<thead>
-							<tr>
-								{[
-									language.nodeEndpoint,
-									language.status,
-									language.height,
-									language.nodeVersionRelease,
-									language.nodePeers,
-									language.nodeResponseTime,
-									language.nodeLastChecked,
-								].map((label) => (
-									<th scope={'col'} key={label}>
-										{label}
-									</th>
-								))}
-							</tr>
-						</thead>
-						<tbody>
-							{rows.map((peer) => (
-								<NodeRow
-									key={`${'revision' in state ? state.revision : 0}:${peer.address}`}
-									peer={peer}
-									infoEnabled={'infoEnabled' in state && state.infoEnabled}
-									isChecking={'checkingPeers' in state && state.checkingPeers.includes(peer.address)}
-									observation={'observations' in state ? state.observations[peer.address] : undefined}
-									onObservation={list.onObservation}
-								/>
-							))}
-						</tbody>
-					</S.Table>
-				</S.TableScroll>
+				<NodeTable
+					sections={[{ id: 'nodes', peers: rows }]}
+					observations={'observations' in state ? state.observations : {}}
+					checkingPeers={'checkingPeers' in state ? state.checkingPeers : []}
+					infoEnabled={'infoEnabled' in state && state.infoEnabled}
+					revision={'revision' in state ? state.revision : 0}
+					onObservation={list.onObservation}
+				/>
 			) : (
-				state.status !== 'error' && (
+				state.status !== 'error' &&
+				(loading && FLAGS.SHOW_NODES_LOADER ? (
+					<S.InitialLoading role={'status'} aria-live={'polite'}>
+						<S.InitialSpinner>
+							<Loader sm relative />
+						</S.InitialSpinner>
+						<span>{language.nodesLoading}</span>
+					</S.InitialLoading>
+				) : (
 					<S.Message role={'status'}>
-						{loading ? language.loading : peers.length ? language.nodesNoReachable : language.nodesEmpty}
+						{loading ? `${language.loading}...` : peers.length ? language.nodesNoReachable : language.nodesEmpty}
 					</S.Message>
-				)
+				))
 			)}
 			{!showMap && <S.Footer>{getPaginator(true)}</S.Footer>}
 		</S.Container>

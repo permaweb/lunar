@@ -8,7 +8,7 @@ export default function ExternalLink(props: { href: string; label: string; title
 	return (
 		<S.Link href={props.href} target={'_blank'} rel={'noopener noreferrer'} title={props.title}>
 			<span>{props.label}</span>
-			<Icon src={ASSETS.newTab} size={12.5} />
+			<Icon src={ASSETS.newTab} size={14} />
 		</S.Link>
 	);
 }

@@ -96,9 +96,9 @@ export const Wrapper = styled.div<{ disabled: boolean }>`
 	}
 
 	svg {
-		height: 12.5px;
-		width: 12.5px;
-		margin: 7.5px 0 0 0;
+		height: 14px;
+		width: 14px;
+		margin: 5.5px 0 0 0;
 		color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
 		fill: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
 	}

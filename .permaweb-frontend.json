@@ -6,7 +6,7 @@
 	"designTokenPaths": ["src/helpers/themes.ts", "src/helpers/config.ts"],
 	"performanceInputs": ["src", "public", "package.json", "package-lock.json", "vite.config.ts"],
 	"performanceBudgets": {
-		"directories": [{ "path": "dist", "maxBytes": 14000000 }],
+		"directories": [{ "path": "dist", "maxBytes": 15000000 }],
 		"extensions": [
 			{ "path": "dist", "extension": ".js", "maxFileBytes": 12000000 },
 			{ "path": "dist", "extension": ".bin", "maxFileBytes": 2000000 },

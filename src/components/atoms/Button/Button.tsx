@@ -93,6 +93,8 @@ export default function Button(props: IProps) {
 						leftAlign={props.iconLeftAlign}
 						noLabel={!showLabel}
 						iconSize={props.iconSize}
+						$iconTone={props.iconTone}
+						$iconFilled={props.iconFilled}
 					>
 						<ReactSVG src={props.icon} />
 					</StyledIcon>
@@ -107,6 +109,8 @@ export default function Button(props: IProps) {
 						leftAlign={props.iconLeftAlign || false}
 						noLabel={!showLabel}
 						iconSize={props.iconSize}
+						$iconTone={props.iconTone}
+						$iconFilled={props.iconFilled}
 					>
 						<ReactSVG src={props.icon} />
 					</StyledIcon>
@@ -127,6 +131,7 @@ export default function Button(props: IProps) {
 		return (
 			<StyledButton
 				aria-label={iconOnly ? props.tooltip : undefined}
+				aria-pressed={props.pressed}
 				tabIndex={props.noFocus || props.disabled ? -1 : 0}
 				type={props.formSubmit ? 'submit' : 'button'}
 				onClick={handlePress}

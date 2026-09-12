@@ -12,6 +12,9 @@ export interface IProps {
 	icon?: string;
 	iconLeftAlign?: boolean;
 	iconSize?: number;
+	iconTone?: 'yellow';
+	iconFilled?: boolean;
+	pressed?: boolean;
 	formSubmit?: boolean;
 	noFocus?: boolean;
 	useMaxWidth?: boolean;

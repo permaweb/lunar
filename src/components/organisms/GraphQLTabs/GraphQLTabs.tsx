@@ -166,8 +166,10 @@ export default function GraphQLTabs() {
 				/>
 			)}
 			languageLabels={{
-				newTab: language.newTab,
-				clearTabs: language.clearTabs,
+				newTab: language.new,
+				newTabTooltip: language.createNewTab,
+				clearTabs: language.clear,
+				clearTabsTooltip: language.clearAllTabs,
 				cancel: language.cancel,
 				tabsDeleteConfirmationInfo: language.tabsDeleteConfirmationInfo,
 			}}

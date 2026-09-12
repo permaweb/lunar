@@ -1,6 +1,8 @@
-import styled, { DefaultTheme, keyframes } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
+import { ExplorerControlStyles } from 'components/molecules/ExplorerControls';
+import { OverviewStyles } from 'components/molecules/Overview';
 import { transition1 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
@@ -26,50 +28,6 @@ const tooltipFadeInBelow = keyframes`
 		opacity: 1;
 		transform: translateY(0);
 	}
-`;
-
-export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
-	width: 100%;
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	gap: 25px;
-	position: relative;
-
-	&:fullscreen {
-		background: ${(props) => props.theme.colors.container.primary.background};
-		padding: 25px;
-		overflow: auto;
-	}
-`;
-
-export const HeaderWrapper = styled.form`
-	width: 100%;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 20px;
-
-	@media (max-width: ${STYLING.cutoffs.initial}) {
-		flex-direction: column;
-		align-items: flex-start;
-	}
-`;
-
-export const HeaderActionsWrapper = styled.div`
-	display: flex;
-	align-items: flex-start;
-	flex-wrap: wrap;
-	gap: 20px;
-`;
-
-export const BodyWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
-	gap: 25px;
 `;
 
 export const ColumnFlexWrapper = styled.div`
@@ -122,177 +80,6 @@ export const ReadWrapper = styled.div<{ fullWidth: boolean }>`
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
-	}
-`;
-
-export const MessageInfo = styled.div`
-	width: 100%;
-`;
-
-export const MessageInfoHeader = styled.div`
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	flex-wrap: wrap;
-	gap: 15px;
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
-	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
-	padding: 12.5px 15px;
-
-	p {
-		display: flex;
-		align-items: center;
-		gap: 7.5px;
-
-		font-size: ${(props) => props.theme.typography.size.lg};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
-
-		span {
-			font-size: ${(props) => props.theme.typography.size.xxSmall};
-			font-family: ${(props) => props.theme.typography.family.primary};
-			font-weight: ${(props) => props.theme.typography.weight.bold};
-			color: ${(props) => props.theme.colors.font.alt1};
-		}
-	}
-
-	> div {
-		padding: 0 !important;
-		border-right: none !important;
-	}
-`;
-
-function getDesktopLastRowBorderStyles(props: {
-	$desktopItemCount?: number;
-	$hideDesktopLastRowBorder?: boolean;
-	theme: DefaultTheme;
-}) {
-	if (props.$desktopItemCount) {
-		const lastRowStart = props.$desktopItemCount - ((props.$desktopItemCount - 1) % 3);
-		const alignIncompleteLastItem =
-			props.$desktopItemCount % 3 !== 0
-				? `
-					> *:last-child {
-						justify-content: flex-start;
-						text-align: left;
-					}
-				`
-				: '';
-
-		return `
-			> * {
-				border-bottom: 1px solid ${props.theme.colors.border.primary};
-			}
-
-			> *:nth-child(n + ${lastRowStart}) {
-				border-bottom: none;
-			}
-
-			${alignIncompleteLastItem}
-		`;
-	}
-
-	if (!props.$hideDesktopLastRowBorder) return '';
-
-	return `
-		> *:nth-last-child(-n + 3) {
-			border-bottom: none;
-		}
-	`;
-}
-
-export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDesktopLastRowBorder?: boolean }>`
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-
-	> *:last-child,
-	> *:nth-child(3n) {
-		justify-content: flex-end;
-		text-align: right;
-		border-right: none;
-	}
-
-	> *:first-child,
-	> *:nth-child(2),
-	> *:nth-child(3),
-	> *:nth-child(4),
-	> *:nth-child(5),
-	> *:nth-child(6) {
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-	}
-
-	> *:nth-child(3n + 2) {
-		padding: 10px 15px;
-	}
-
-	@media (min-width: ${STYLING.cutoffs.desktop}) {
-		${getDesktopLastRowBorderStyles}
-	}
-
-	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		grid-template-columns: repeat(1, 1fr);
-
-		> * {
-			justify-content: flex-start;
-			text-align: left;
-			border-right: none;
-			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-		}
-
-		> *:last-child {
-			border-bottom: none;
-		}
-	}
-`;
-
-export const TxOverviewValue = styled.div`
-	display: flex;
-	align-items: center;
-	gap: 7.5px;
-
-	p {
-		line-height: 1.35;
-	}
-
-	small {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.alt1};
-		line-height: 1.35;
-	}
-`;
-
-export const MessageInfoLine = styled.div`
-	min-height: 47.5px;
-	display: flex;
-	align-items: center;
-	gap: 7.5px;
-	padding: 10px 15px;
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-
-	span {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.alt1};
-	}
-
-	p {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
-	}
-
-	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		flex-direction: column;
-		align-items: flex-start;
-		border-right: none;
-		padding: 15px;
 	}
 `;
 
@@ -377,7 +164,7 @@ export const AddressLabel = styled.small`
 	white-space: nowrap;
 `;
 
-export const MessageInfoID = styled(MessageInfoLine)`
+export const MessageInfoID = styled(OverviewStyles.MessageInfoLine)`
 	min-height: 35px;
 	align-items: center !important;
 
@@ -400,7 +187,7 @@ export const TransferInfo = styled.div`
 	padding: 12.5px 15px 17.5px 15px;
 `;
 
-export const TransferInfoHeader = styled(MessageInfoHeader)`
+export const TransferInfoHeader = styled(OverviewStyles.MessageInfoHeader)`
 	padding: 0 0 12.5px 0;
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
@@ -431,7 +218,7 @@ export const TransferInfoBody = styled.div`
 
 export const TransferInfoID = styled(MessageInfoID)``;
 
-export const TransferInfoLine = styled(MessageInfoLine)`
+export const TransferInfoLine = styled(OverviewStyles.MessageInfoLine)`
 	min-height: 22.5px;
 	max-height: 45px;
 	padding: 0;
@@ -792,52 +579,6 @@ export const SectionFullUpdateWrapper = styled.div`
 	padding: 0 15px 15px 15px;
 `;
 
-export const SearchWrapper = styled.div`
-	height: 38.5px;
-	max-width: 100%;
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 15px;
-	position: relative;
-	padding: 0 0 0 0.5px;
-
-	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		height: auto;
-	}
-`;
-
-export const SearchInputWrapper = styled.div`
-	width: 510px;
-	max-width: 100%;
-	position: relative;
-
-	input {
-		max-width: 100%;
-		padding: 10px 10px 10px 42.5px !important;
-	}
-
-	svg {
-		height: 15px;
-		width: 15px;
-		color: ${(props) => props.theme.colors.font.alt1};
-		fill: ${(props) => props.theme.colors.font.alt1};
-		position: absolute;
-		z-index: 1;
-		top: 11.5px;
-		left: 14.5px;
-	}
-`;
-
-export const BlockNavigationWrapper = styled.div`
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 15px;
-	padding: 0 0 0 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-`;
-
 export const InputActions = styled.div`
 	width: 100%;
 	display: flex;
@@ -846,63 +587,7 @@ export const InputActions = styled.div`
 	margin: 15px 0 0 0;
 `;
 
-export const TxInfoWrapper = styled.div`
-	display: flex;
-	align-items: center;
-	gap: 15px;
-	flex-wrap: wrap;
-`;
-
-export const UpdateWrapper = styled.div`
-	min-height: 30px;
-	width: fit-content;
-	padding: 5.5px 15px 4.5px 15px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 6.5px;
-	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
-	border-radius: ${STYLING.dimensions.radius.alt2};
-
-	span {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.light1};
-		text-align: center;
-	}
-
-	p {
-		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.light1};
-		text-align: center;
-	}
-`;
-
-export const UpdateWrapperType = styled(UpdateWrapper)`
-	padding: 5.5px 15px 4.5px 13.5px;
-	gap: 9.5px;
-
-	div {
-		height: 12px;
-		width: 12px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	svg {
-		height: 12px;
-		width: 12px;
-		color: ${(props) => props.theme.colors.font.light2};
-		fill: ${(props) => props.theme.colors.font.light2};
-	}
-`;
-
-export const BalanceWrapper = styled(UpdateWrapper)<{ isNumber: boolean }>`
+export const BalanceWrapper = styled(ExplorerControlStyles.UpdateWrapper)<{ isNumber: boolean }>`
 	p {
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
@@ -948,6 +633,7 @@ export const Refresh = styled.div`
 	button {
 		background: transparent !important;
 		border: none !important;
+		padding: 2.5px 0 0 0 !important;
 
 		&:hover {
 			opacity: 0.75 !important;
@@ -1159,8 +845,8 @@ export const PlaceholderIcon = styled.div`
 	border-radius: 50%;
 
 	svg {
-		height: 85px;
-		width: 85px;
+		height: 75px;
+		width: 75px;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
 		fill: ${(props) => props.theme.colors.icon.primary.fill};
 		margin: 7.5px 0 0 0;
