@@ -4,6 +4,7 @@ import { normalizeArweaveNode } from 'helpers/arweaveNode';
 import { checkValidAddress } from 'helpers/utils';
 
 import { readAncestors } from './ancestors';
+import { readForkHistory } from './forkHistory';
 import {
 	blockHash,
 	integer,
@@ -14,6 +15,7 @@ import {
 	parseTransaction,
 	record,
 } from './parsers';
+import { readNodeCache, writeNodeCache } from './storage';
 import type { ArweaveNodeApi, NodeBlock } from './types';
 import { ArweaveNodeError } from './types';
 
@@ -30,7 +32,12 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 	const blockTransactions = new Map<string, string[]>();
 	let running = 0;
 	const waiting: (() => void)[] = [];
-	async function request(node: string, path: string, signal: AbortSignal): Promise<string> {
+	async function request(
+		node: string,
+		path: string,
+		signal: AbortSignal,
+		timeout = REQUEST_TIMEOUT_MS
+	): Promise<string> {
 		const origin = normalizeArweaveNode(node);
 		if (!origin) throw new ArweaveNodeError('invalid-input');
 		if (signal.aborted) throw new ArweaveNodeError('cancelled');
@@ -54,12 +61,15 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 		const controller = new AbortController();
 		const cancel = () => controller.abort();
 		signal.addEventListener('abort', cancel, { once: true });
-		const timer = setTimeout(cancel, REQUEST_TIMEOUT_MS);
+		const timer = setTimeout(cancel, timeout);
 		try {
 			if (signal.aborted) throw new ArweaveNodeError('cancelled');
-			const url = new URL(relayUrl);
-			url.searchParams.set('relay-path', new URL(path, origin).href);
-			url.searchParams.set('relay-method', 'GET');
+			const target = new URL(path, origin);
+			const url = target.protocol === 'https:' ? target : new URL(relayUrl);
+			if (target.protocol === 'http:') {
+				url.searchParams.set('relay-path', target.href);
+				url.searchParams.set('relay-method', 'GET');
+			}
 			const response = await fetch(url.href, { signal: controller.signal, credentials: 'omit', cache: 'no-store' });
 			if (!response.ok)
 				throw new ArweaveNodeError(
@@ -98,8 +108,8 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 			waiting.shift()?.();
 		}
 	}
-	async function json(node: string, path: string, signal: AbortSignal): Promise<unknown> {
-		const body = await request(node, path, signal);
+	async function json(node: string, path: string, signal: AbortSignal, timeout?: number): Promise<unknown> {
+		const body = await request(node, path, signal, timeout);
 		try {
 			return JSON_PARSER.parse(body);
 		} catch {
@@ -107,12 +117,28 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 		}
 	}
 	async function readBlock(node: string, hash: string, signal: AbortSignal) {
-		const raw = record(await json(node, `/block/hash/${blockHash(hash)}`, signal));
+		blockHash(hash);
+		const cached = await readNodeCache('block', node, hash);
+		let raw: Record<string, unknown> | null = null;
+		if (cached) {
+			try {
+				const candidate = record(cached);
+				if (parseBlock(candidate).hash === hash) {
+					parseBlockTransactionIds(candidate.txs);
+					raw = candidate;
+				}
+			} catch {
+				/* Invalid cached records are fetched again. */
+			}
+		}
+		if (signal.aborted) throw new ArweaveNodeError('cancelled');
+		if (!raw) raw = record(await json(node, `/block/hash/${hash}`, signal));
 		const result = parseBlock(raw);
 		if (result.hash !== hash) throw new ArweaveNodeError('invalid-response');
 		const key = `${normalizeArweaveNode(node)}/${hash}`;
 		blockTransactions.delete(key);
 		const ids = parseBlockTransactionIds(raw.txs);
+		if (!signal.aborted && !cached) void writeNodeCache('block', node, raw, hash);
 		blockTransactions.set(key, ids);
 		while (
 			blockTransactions.size > BLOCK_TRANSACTION_CACHE_LIMIT ||
@@ -124,7 +150,16 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 	async function block(node: string, hash: string, signal: AbortSignal): Promise<NodeBlock> {
 		return (await readBlock(node, hash, signal)).block;
 	}
-	return {
+	const api: ArweaveNodeApi = {
+		getForkHistory: (node, signal, onProgress) =>
+			readForkHistory(node, signal, api, (historySignal) => json(node, '/recent', historySignal, 60_000), onProgress),
+		getBlock: async (node, id, signal) => {
+			if (typeof id === 'string') return block(node, id, signal);
+			if (!Number.isSafeInteger(id) || id < 0) throw new ArweaveNodeError('invalid-input');
+			const result = parseBlock(await json(node, `/block/height/${id}`, signal));
+			if (result.height !== id) throw new ArweaveNodeError('invalid-response');
+			return result;
+		},
 		getInfo: async (node, signal) => parseInfo(await json(node, '/info', signal)),
 		getAncestors: (node, anchor, heights, signal) =>
 			readAncestors(anchor, heights, signal, (path) => json(node, path, signal)),
@@ -132,6 +167,15 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 		getBalance: async (node, address, signal) => {
 			if (!checkValidAddress(address)) throw new ArweaveNodeError('invalid-input');
 			return integer((await request(node, `/wallet/${address}/balance`, signal)).trim());
+		},
+		getPendingRewards: async (node, address, signal) => {
+			if (!checkValidAddress(address)) throw new ArweaveNodeError('invalid-input');
+			try {
+				return integer((await request(node, `/wallet/${address}/reserved_rewards_total`, signal)).trim());
+			} catch (error) {
+				if (error instanceof ArweaveNodeError && [404, 405, 501].includes(error.status)) return null;
+				throw error;
+			}
 		},
 		getBlockTransactionIds: async (node, hash, signal) => {
 			const origin = normalizeArweaveNode(node);
@@ -147,7 +191,21 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 		},
 		getTransaction: async (node, id, signal, state = 'pending') => {
 			if (!checkValidAddress(id)) throw new ArweaveNodeError('invalid-input');
-			if (state === 'confirmed') return parseTransaction(await json(node, `/tx/${id}`, signal), id);
+			const cached = await readNodeCache('transaction', node, `${state}/${id}`);
+			if (signal.aborted) throw new ArweaveNodeError('cancelled');
+			if (cached) {
+				try {
+					return await parseTransaction(cached, id);
+				} catch {
+					/* Fetch invalid cached contents again. */
+				}
+			}
+			if (state === 'confirmed') {
+				const raw = await json(node, `/tx/${id}`, signal);
+				const result = await parseTransaction(raw, id);
+				if (!signal.aborted) void writeNodeCache('transaction', node, raw, `${state}/${id}`);
+				return result;
+			}
 			let value: unknown;
 			try {
 				value = await json(node, `/unconfirmed_tx/${id}`, signal);
@@ -155,7 +213,9 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 				if (!(error instanceof ArweaveNodeError) || error.code !== 'not-found') throw error;
 				value = await json(node, `/tx/${id}`, signal);
 			}
-			return parseTransaction(value, id);
+			const result = await parseTransaction(value, id);
+			if (!signal.aborted) void writeNodeCache('transaction', node, value, `${state}/${id}`);
+			return result;
 		},
 		getBlocks: async (node, anchor, requested, signal, onProgress) => {
 			if (
@@ -235,4 +295,5 @@ export function createArweaveNodeApi(relayUrl = RELAY_URL): ArweaveNodeApi {
 			}
 		},
 	};
+	return api;
 }

@@ -11,6 +11,9 @@ export const Link = styled.a`
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	text-decoration: none;
 	white-space: nowrap;
+	&& > span {
+		color: inherit;
+	}
 	&:hover {
 		color: ${(props) => props.theme.colors.link.active};
 		> span {

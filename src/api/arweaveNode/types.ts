@@ -1,3 +1,5 @@
+import type { NodeForkHistory } from './forkHistory';
+
 export type NodeErrorCode =
 	| 'cancelled'
 	| 'timeout'
@@ -53,6 +55,12 @@ export type NodeTransaction = {
 };
 export type NodeAnchor = { height: number; hash: string };
 export type ArweaveNodeApi = {
+	getForkHistory: (
+		node: string,
+		signal: AbortSignal,
+		onProgress?: (history: NodeForkHistory) => void
+	) => Promise<NodeForkHistory>;
+	getBlock: (node: string, id: string | number, signal: AbortSignal) => Promise<NodeBlock>;
 	getInfo: (node: string, signal: AbortSignal) => Promise<NodeInfo>;
 	getAncestors: (node: string, anchor: NodeAnchor, heights: number[], signal: AbortSignal) => Promise<NodeAnchor[]>;
 	getBlocks: (
@@ -71,4 +79,5 @@ export type ArweaveNodeApi = {
 		state?: 'pending' | 'confirmed'
 	) => Promise<NodeTransaction>;
 	getBalance: (node: string, address: string, signal: AbortSignal) => Promise<string>;
+	getPendingRewards: (node: string, address: string, signal: AbortSignal) => Promise<string | null>;
 };

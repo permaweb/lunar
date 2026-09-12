@@ -78,7 +78,7 @@ export default function ExplorerControls(props: {
 					iconFilled={isPinned}
 					height={32.5}
 					width={32.5}
-					iconSize={14.5}
+					iconSize={12.5}
 					noMinWidth
 					tooltip={isPinned ? language.unpinTab : language.pinTab}
 					stopPropagation
@@ -86,27 +86,27 @@ export default function ExplorerControls(props: {
 				/>
 				<Button
 					type={'alt1'}
-					icon={ASSETS.copy}
+					icon={copied === 'id' ? ASSETS.checkmark : ASSETS.copy}
 					onPress={() => handleCopy('id')}
 					disabled={!props.value}
 					height={32.5}
 					width={32.5}
-					iconSize={14.5}
+					iconSize={12.5}
 					noMinWidth
-					tooltip={copied === 'id' ? language.copied : language.copyId}
+					tooltip={copied === 'id' ? `${language.copied}!` : language.copyId}
 					stopPropagation
 					preventDefault
 				/>
 				<Button
 					type={'alt1'}
-					icon={ASSETS.link}
+					icon={copied === 'url' ? ASSETS.checkmark : ASSETS.link}
 					onPress={() => handleCopy('url')}
 					disabled={!props.value}
 					height={32.5}
 					width={32.5}
-					iconSize={14.5}
+					iconSize={12.5}
 					noMinWidth
-					tooltip={copied === 'url' ? language.copied : language.copyFullUrl}
+					tooltip={copied === 'url' ? `${language.copied}!` : language.copyFullUrl}
 					stopPropagation
 					preventDefault
 				/>
@@ -116,7 +116,7 @@ export default function ExplorerControls(props: {
 					onPress={props.onFullscreen}
 					height={32.5}
 					width={32.5}
-					iconSize={14.5}
+					iconSize={12.5}
 					noMinWidth
 					tooltip={props.isFullscreen ? language.exitFullScreen : language.enterFullScreen}
 					stopPropagation
@@ -129,7 +129,7 @@ export default function ExplorerControls(props: {
 					disabled={props.loading || !props.valid}
 					height={32.5}
 					width={32.5}
-					iconSize={14.5}
+					iconSize={12.5}
 					noMinWidth
 					tooltip={language.refresh}
 					stopPropagation

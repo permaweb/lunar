@@ -83,11 +83,11 @@ export const Table = styled.div`
 	background: ${(props) => props.theme.colors.container.primary.background};
 `;
 
-export const TableHeader = styled.div`
+export const TableHeader = styled.div<{ $columns: number }>`
 	height: 40px;
-	min-width: 960px;
+	min-width: ${(props) => Math.max(960, props.$columns * 180)}px;
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-template-columns: repeat(${(props) => props.$columns}, minmax(0, 1fr));
 	align-items: center;
 	gap: 15px;
 	padding: 0 15px;
@@ -103,21 +103,17 @@ export const TableHeader = styled.div`
 	}
 `;
 
-export const TableBody = styled.div`
+export const TableBody = styled.div<{ $columns: number }>`
 	width: 100%;
-	min-width: 960px;
-
-	> *:last-child {
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-	}
+	min-width: ${(props) => Math.max(960, props.$columns * 180)}px;
 `;
 
-export const TableRow = styled.div`
+export const TableRow = styled.div<{ $columns: number; $expanded?: boolean }>`
 	cursor: pointer;
 	height: 40px;
 	position: relative;
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-template-columns: repeat(${(props) => props.$columns}, minmax(0, 1fr));
 	align-items: center;
 	gap: 15px;
 	padding: 0 15px;
@@ -126,6 +122,14 @@ export const TableRow = styled.div`
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	background: ${(props) => props.theme.colors.container.primary.background};
 	transition: all 75ms;
+	${(props) =>
+		props.$expanded &&
+		`
+		background: ${props.theme.colors.container.alt1.background};
+		border-left-color: ${props.theme.colors.border.alt4};
+		border-right-color: ${props.theme.colors.border.alt4};
+		box-shadow: inset 0 1px 0 ${props.theme.colors.border.alt4};
+	`}
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -143,6 +147,19 @@ export const TableRow = styled.div`
 		border-color: ${(props) => props.theme.colors.border.alt4};
 		box-shadow: inset 0 1px 0 ${(props) => props.theme.colors.border.alt4};
 	}
+`;
+
+export const DetailsRow = styled.div`
+	border-left: 1px solid ${(props) => props.theme.colors.border.alt4};
+	border-right: 1px solid ${(props) => props.theme.colors.border.alt4};
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.alt4};
+	background: ${(props) => props.theme.colors.container.alt1.background};
+`;
+
+export const DetailsCell = styled.div`
+	min-width: 0;
+	padding: 5px;
+	background: ${(props) => props.theme.colors.container.alt2.background};
 `;
 
 export const AddressColumn = styled.div`
@@ -227,4 +244,13 @@ export const Footer = styled.div<{ $borderTop: boolean }>`
 export const Count = styled.span`
 	font-size: ${(props) => props.theme.typography.size.small};
 	color: ${(props) => props.theme.colors.font.alt1};
+`;
+
+export const SourceColumn = styled.div`
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	&:last-child {
+		justify-content: flex-end;
+	}
 `;

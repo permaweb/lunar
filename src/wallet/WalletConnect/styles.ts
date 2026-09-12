@@ -262,9 +262,9 @@ export const DBodyWrapper = styled.ul`
 		padding: 0 7.5px;
 
 		svg {
-			height: 14px;
-			width: 14px;
-			margin: 5.5px 9.5px 0 0;
+			height: 12px;
+			width: 12px;
+			margin: 5.5px 12px 0 0;
 			color: ${(props) => props.theme.colors.font.alt2};
 			fill: ${(props) => props.theme.colors.font.alt2};
 		}

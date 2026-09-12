@@ -2,18 +2,28 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import {
-	formatNodeAmount,
-	formatNodeRewardTotal,
 	getIndexedMiners,
 	getNodeTransactionPage,
 	mergeNodeHistory,
 	observeMempool,
-	sumMiningRewards,
 } from '../../../src/features/Explorer/model/node';
 import { getArweaveNodeRoute, normalizeArweaveNode, readArweaveNodeRoute } from '../../../src/helpers/arweaveNode';
+import { formatNodeAmount, formatNodeRewardTotal, sumMiningRewards } from '../../../src/helpers/nodeMining';
 import { hash, nodeBlock } from '../../fixtures/arweaveNode';
 
 describe('node explorer models', () => {
+	it('groups exact rewards and blocks by miner without counting duplicate observations', () => {
+		const one = { ...nodeBlock(10), reward: '900719925474099312345678' };
+		const two = { ...nodeBlock(9), reward: '1' };
+		const miners = getIndexedMiners([two, one, one, { ...nodeBlock(8, 'b'.repeat(43)), reward: null }]);
+		expect(miners[0]).toMatchObject({
+			count: 2,
+			blocks: [one, two],
+			last: one,
+			rewards: { incomplete: false, amounts: [{ denomination: 1, value: '900719925474099312345679' }] },
+		});
+		expect(miners[1].rewards).toEqual({ incomplete: true, amounts: [] });
+	});
 	it('rounds reward totals to two decimal places without losing large integer precision', () => {
 		expect(formatNodeRewardTotal('0')).toBe('0.00 AR');
 		expect(formatNodeRewardTotal('1234567890123')).toBe('1.23 AR');

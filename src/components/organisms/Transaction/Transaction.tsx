@@ -31,6 +31,7 @@ import { MessageResult } from 'components/molecules/MessageResult';
 import { OverviewStyles as O } from 'components/molecules/Overview';
 import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TransactionList } from 'components/molecules/TransactionList';
+import { useWalletMining, WalletMiningInfo, WalletMiningTabs } from 'features/Mining';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
@@ -188,6 +189,25 @@ const TxResponseContext = React.createContext<{
 	type: null,
 	refreshKey: 0,
 });
+
+function WalletTransactions(props: { onMessageOpen: (id: string) => void }) {
+	const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
+	const provider = useLanguageProvider();
+	const language = provider.object[provider.current];
+	if (!checkValidAddress(inputTxId)) return null;
+	return (
+		<MessageList
+			key={refreshKey}
+			header={language.transactions}
+			txId={inputTxId}
+			variant={MessageVariantEnum.Legacynet}
+			type={'wallet'}
+			recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
+			parentId={inputTxId}
+			onMessageOpen={props.onMessageOpen}
+		/>
+	);
+}
 
 function checkValidBlockId(id: string | null): boolean {
 	if (!id) return false;
@@ -427,6 +447,12 @@ function Transaction(props: {
 
 		return getTransactionTypeFromTags(txResponse.node?.tags);
 	}, [txResponse, props.type]);
+	const mining = useWalletMining(
+		inputTxId,
+		resolvedType === 'wallet' && !!txResponse && props.active !== false && checkValidAddress(inputTxId),
+		refreshKey
+	);
+	const isMiner = resolvedType === 'wallet' && mining.isMiner;
 
 	React.useEffect(() => {
 		setBundleTransactionCount(null);
@@ -745,7 +771,7 @@ function Transaction(props: {
 							height={20}
 							width={20}
 							noMinWidth
-							iconSize={12.5}
+							iconSize={11}
 							disabled={loadingBalance}
 							tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
 							tooltipPosition={'bottom-right'}
@@ -1940,22 +1966,7 @@ function Transaction(props: {
 								</S.ColumnFlexWrapper>
 							);
 						case 'wallet':
-							return (
-								<>
-									{checkValidAddress(inputTxId) && (
-										<MessageList
-											key={refreshKey}
-											header={language.transactions}
-											txId={inputTxId}
-											variant={MessageVariantEnum.Legacynet}
-											type={resolvedType}
-											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
-											parentId={inputTxId}
-											onMessageOpen={(id: string) => props.onMessageOpen(id)}
-										/>
-									)}
-								</>
-							);
+							return <WalletTransactions onMessageOpen={props.onMessageOpen} />;
 						default:
 							return (
 								<S.ColumnFlexWrapper>
@@ -2080,6 +2091,7 @@ function Transaction(props: {
 		return tabs;
 	}, [
 		props.type,
+		props.active,
 		resolvedType,
 		inputTxId,
 		arProvider.walletAddress,
@@ -2123,13 +2135,23 @@ function Transaction(props: {
 		);
 	}, [txResponse, inputTxId, resolvedType]);
 
-	const transactionTabs = React.useMemo(() => {
+	const transactionTabs = (() => {
 		if (!TABS) return null;
+		if (isMiner)
+			return (
+				<WalletMiningTabs
+					key={inputTxId}
+					address={inputTxId}
+					mining={mining}
+					isActive={props.active !== false}
+					transactions={<WalletTransactions onMessageOpen={props.onMessageOpen} />}
+				/>
+			);
 		const currentHashPath = currentHash.split('?')[0];
 		const matchingTab = TABS.find((tab) => tab.url === currentHashPath);
 		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
 		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy isParentActive={props.active} />;
-	}, [TABS, currentHash, props.tabKey, props.active]); // Keep URLTabs from recreating
+	})();
 
 	function getTransaction() {
 		const showPlaceholder = !inputTxId || !txResponse;
@@ -2231,6 +2253,15 @@ function Transaction(props: {
 					onFullscreen={toggleFullscreen}
 					actions={
 						<>
+							{isMiner && (
+								<C.SeparatedActions>
+									<WalletMiningInfo
+										key={inputTxId}
+										updatedAt={mining.history?.savedAt}
+										isActive={props.active !== false}
+									/>
+								</C.SeparatedActions>
+							)}
 							{hasBlockNavigation && (
 								<C.SeparatedActions>
 									{previousBlockHeight !== null && (
@@ -2272,6 +2303,13 @@ function Transaction(props: {
 										<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
 										<span>{capitalize(resolvedType)}</span>
 									</C.UpdateWrapperType>
+									{isMiner && (
+										<C.UpdateWrapperType>
+											<ReactSVG src={ASSETS.pickaxe} />
+											<span>{language.walletMiner}</span>
+										</C.UpdateWrapperType>
+									)}
+
 									{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
 										<>
 											<C.UpdateWrapper>

@@ -3,14 +3,16 @@ import styled, { DefaultTheme } from 'styled-components';
 import { STYLING } from 'helpers/config';
 
 function getDesktopLastRowBorderStyles(props: {
+	$columns?: 2 | 3;
 	$desktopItemCount?: number;
 	$hideDesktopLastRowBorder?: boolean;
 	theme: DefaultTheme;
 }) {
+	const columns = props.$columns ?? 3;
 	if (props.$desktopItemCount) {
-		const lastRowStart = props.$desktopItemCount - ((props.$desktopItemCount - 1) % 3);
+		const lastRowStart = props.$desktopItemCount - ((props.$desktopItemCount - 1) % columns);
 		const alignIncompleteLastItem =
-			props.$desktopItemCount % 3 !== 0
+			props.$desktopItemCount % columns !== 0
 				? `
 					> *:last-child {
 						justify-content: flex-start;
@@ -35,7 +37,7 @@ function getDesktopLastRowBorderStyles(props: {
 	if (!props.$hideDesktopLastRowBorder) return '';
 
 	return `
-		> *:nth-last-child(-n + 3) {
+		> *:nth-last-child(-n + ${columns}) {
 			border-bottom: none;
 		}
 	`;
@@ -81,12 +83,16 @@ export const MessageInfoHeader = styled.div`
 	}
 `;
 
-export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDesktopLastRowBorder?: boolean }>`
+export const MessageInfoBody = styled.div<{
+	$desktopItemCount?: number;
+	$hideDesktopLastRowBorder?: boolean;
+	$columns?: 2 | 3;
+}>`
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(${(props) => props.$columns ?? 3}, 1fr);
 
 	> *:last-child,
-	> *:nth-child(3n) {
+	> *:nth-child(${(props) => props.$columns ?? 3}n) {
 		justify-content: flex-end;
 		text-align: right;
 		border-right: none;
@@ -101,7 +107,7 @@ export const MessageInfoBody = styled.div<{ $desktopItemCount?: number; $hideDes
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 
-	> *:nth-child(3n + 2) {
+	> *:nth-child(${(props) => props.$columns ?? 3}n + 2) {
 		padding: 10px 15px;
 	}
 

@@ -31,6 +31,8 @@ export const DEFAULT_GATEWAYS = {
 	arweave: 'https://arweave.net/graphql',
 };
 
+export const ARWEAVE_COMMIT_URL = 'https://github.com/ArweaveTeam/arweave/commit/';
+
 export const PROCESSES = {
 	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
 	pi: '4hXj_E-5fAKmo4E8KjgQvuDJKAFk9P2grhycVmISDLs',
@@ -107,6 +109,7 @@ export const ASSETS = {
 	permawebOs: getAssetEndpoint('permawebos.svg'),
 	pending: getAssetEndpoint('pending.svg'),
 	pi: getAssetEndpoint('pi.svg'),
+	pickaxe: getAssetEndpoint('pickaxe.svg'),
 	pin: getAssetEndpoint('pin.svg'),
 	plus: getAssetEndpoint('plus.svg'),
 	plusMinus: getAssetEndpoint('plusMinus.svg'),
@@ -256,6 +259,8 @@ function createURLs() {
 		nodesByFork: `${nodes}by-fork`,
 		transactions: transactions,
 		explorer: explorer,
+		explorerMining: (id: string) => `${explorer}${id}/mining`,
+		explorerTransactions: (id: string) => `${explorer}${id}/transactions`,
 		explorerInfo: (id: string) => `${explorer}${id}/info`,
 		explorerMessages: (id: string) => `${explorer}${id}/messages`,
 		explorerRead: (id: string) => `${explorer}${id}/read`,

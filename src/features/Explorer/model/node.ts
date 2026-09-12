@@ -1,9 +1,11 @@
-import type { NodeBlock, NodeErrorCode, NodeTransaction } from 'api/arweaveNode';
+import type { MempoolSnapshot, NodeBlock, NodeErrorCode, NodeTransaction } from 'api/arweaveNode';
+export type { MempoolSnapshot } from 'api/arweaveNode';
 import { ArweaveNodeError } from 'api/arweaveNode';
 import type { GQLEdge, TransactionNode } from 'api/blocks';
 
+import { sumMiningRewards } from 'helpers/nodeMining';
+
 export const NODE_PAGE_SIZE = 25;
-export const NODE_HISTORY_BATCH = 100;
 export const NODE_HISTORY_LIMIT = 5000;
 export const NODE_REFRESH_MS = 60_000;
 
@@ -15,26 +17,6 @@ export type ResourceState<T> =
 
 export function nodeError(error: unknown): NodeErrorCode {
 	return error instanceof ArweaveNodeError ? error.code : 'unavailable';
-}
-
-export function formatNodeAmount(value: string | null, denomination = 1): string {
-	if (value === null) return '—';
-	if (denomination > 1) return `${BigInt(value).toLocaleString()} Winston (${denomination})`;
-	const amount = BigInt(value);
-	const whole = (amount / 1_000_000_000_000n).toLocaleString();
-	const fraction = (amount % 1_000_000_000_000n).toString().padStart(12, '0').replace(/0+$/, '');
-	const separator = new Intl.NumberFormat().formatToParts(1.1).find((part) => part.type === 'decimal')?.value ?? '.';
-	return `${whole}${fraction ? separator + fraction : ''} AR`;
-}
-
-export function formatNodeRewardTotal(value: string, denomination = 1): string {
-	if (denomination > 1) return formatNodeAmount(value, denomination);
-	// Round in Winston before formatting so large totals never lose integer precision.
-	const hundredths = (BigInt(value) + 5_000_000_000n) / 10_000_000_000n;
-	const whole = (hundredths / 100n).toLocaleString();
-	const fraction = (hundredths % 100n).toString().padStart(2, '0');
-	const separator = new Intl.NumberFormat().formatToParts(1.1).find((part) => part.type === 'decimal')?.value ?? '.';
-	return `${whole}${separator}${fraction} AR`;
 }
 
 export function formatNodeBytes(value: string | null): string {
@@ -61,37 +43,26 @@ export function mergeNodeHistory(previous: NodeBlock[], recent: NodeBlock[]): No
 	return [...recent, ...(continuation < 0 ? [] : previous.slice(continuation))].slice(0, NODE_HISTORY_LIMIT);
 }
 
-export function getIndexedMiners(blocks: NodeBlock[]): { address: string; count: number; last: NodeBlock }[] {
-	const miners = new Map<string, { address: string; count: number; last: NodeBlock }>();
-	for (const block of blocks) {
-		if (!block.miner) continue;
-		const miner = miners.get(block.miner);
-		if (miner) {
-			miner.count++;
-			if (block.height > miner.last.height) miner.last = block;
-		} else miners.set(block.miner, { address: block.miner, count: 1, last: block });
-	}
-	return [...miners.values()].sort(
-		(a, b) => b.count - a.count || b.last.height - a.last.height || a.address.localeCompare(b.address)
-	);
-}
-
-export function sumMiningRewards(blocks: NodeBlock[]) {
-	const totals = new Map<number, bigint>();
+export function getIndexedMiners(blocks: NodeBlock[]) {
+	const miners = new Map<string, { address: string; blocks: NodeBlock[]; last: NodeBlock }>();
 	const seen = new Set<string>();
-	let incomplete = false;
 	for (const block of blocks) {
 		if (!block.miner || seen.has(block.hash)) continue;
 		seen.add(block.hash);
-		if (block.reward === null) incomplete = true;
-		else totals.set(block.denomination, (totals.get(block.denomination) ?? 0n) + BigInt(block.reward));
+		const miner = miners.get(block.miner);
+		if (miner) {
+			miner.blocks.push(block);
+			if (block.height > miner.last.height) miner.last = block;
+		} else miners.set(block.miner, { address: block.miner, blocks: [block], last: block });
 	}
-	return {
-		incomplete,
-		amounts: [...totals]
-			.sort(([a], [b]) => a - b)
-			.map(([denomination, total]) => ({ denomination, value: total.toString() })),
-	};
+	return [...miners.values()]
+		.map((miner) => ({
+			...miner,
+			blocks: miner.blocks.sort((a, b) => b.height - a.height),
+			count: miner.blocks.length,
+			rewards: sumMiningRewards(miner.blocks),
+		}))
+		.sort((a, b) => b.count - a.count || b.last.height - a.last.height || a.address.localeCompare(b.address));
 }
 
 /** Page by transaction counts so indexing never retains every transaction ID. */
@@ -132,14 +103,6 @@ export function toNodeTransactionEdge(id: string, tx?: NodeTransaction, block?: 
 	};
 }
 
-export type MempoolSnapshot = {
-	ids: string[];
-	firstSeen: Record<string, number>;
-	checkedAt: number;
-	added: string[];
-	removed: string[];
-	isBaseline: boolean;
-};
 export function observeMempool(previous: MempoolSnapshot | null, ids: string[], checkedAt: number): MempoolSnapshot {
 	const old = new Set(previous?.ids ?? []);
 	const next = new Set(ids);

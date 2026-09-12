@@ -2,19 +2,19 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
-import { arweaveNodeApi } from 'api/arweaveNode';
+import { arweaveNodeApi, readNodeInfo, writeNodeCache } from 'api/arweaveNode';
 
 import { Button } from 'components/atoms/Button';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { ExplorerControls, ExplorerControlStyles as C } from 'components/molecules/ExplorerControls';
 import { getArweaveNodeRoute, normalizeArweaveNode, readArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS } from 'helpers/config';
+import { formatNodeRewardTotal, sumMiningRewards } from 'helpers/nodeMining';
 import type { PinTarget } from 'helpers/pinnedTabs';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { useNodeHistory } from '../../../hooks/useNodeHistory';
 import { useNodeResource } from '../../../hooks/useNodeResource';
-import { formatNodeRewardTotal, sumMiningRewards } from '../../../model/node';
 import { NodeMempool } from '../NodeMempool';
 import { NodeMiners } from '../NodeMiners';
 import { NodeOverview } from '../NodeOverview';
@@ -64,7 +64,17 @@ export default function ArweaveNode(props: {
 			? 'transactions'
 			: 'overview';
 	});
-	const readInfo = React.useCallback((signal: AbortSignal) => arweaveNodeApi.getInfo(props.node, signal), [props.node]);
+	const readInfo = React.useCallback(
+		async (signal: AbortSignal, onProgress: (info: import('api/arweaveNode').NodeInfo) => void) => {
+			const cached = await readNodeInfo(props.node);
+			if (signal.aborted) return cached;
+			if (cached) onProgress(cached);
+			const fresh = await arweaveNodeApi.getInfo(props.node, signal);
+			if (!signal.aborted) void writeNodeCache('info', props.node, fresh);
+			return fresh;
+		},
+		[props.node]
+	);
 	const info = useNodeResource(readInfo, props.isActive && isValid, true);
 	const isResolved = info.data !== null;
 	React.useEffect(() => {
@@ -79,16 +89,16 @@ export default function ArweaveNode(props: {
 		: rewards.incomplete
 		? '—'
 		: formatNodeRewardTotal('0');
+	function handleRefresh() {
+		setRefreshRevision((value) => value + 1);
+		info.refresh();
+	}
 
 	function handleSubmit() {
 		const next = normalizeArweaveNode(input);
 		if (!next) return;
 		if (next !== props.node) navigate(getArweaveNodeRoute(next));
-		else {
-			setRefreshRevision((value) => value + 1);
-			info.refresh();
-			history.refresh();
-		}
+		else handleRefresh();
 	}
 	React.useEffect(() => {
 		setShowInfo(false);
@@ -114,7 +124,7 @@ export default function ArweaveNode(props: {
 			icon: ASSETS.overview,
 			disabled: !isResolved,
 			url: getArweaveNodeRoute(props.node),
-			content: <NodeOverview info={info} history={history} />,
+			content: <NodeOverview info={info} history={history} onRefresh={handleRefresh} />,
 		},
 		{
 			label: language.transactions,
@@ -123,10 +133,11 @@ export default function ArweaveNode(props: {
 			url: getArweaveNodeRoute(props.node, 'transactions'),
 			content: (
 				<NodeTransactions
+					onRefresh={handleRefresh}
 					node={props.node}
 					history={history}
 					isActive={props.isActive && selected === 'transactions' && isResolved}
-					isResolving={!isResolved && info.isLoading}
+					isResolving={info.isLoading}
 					refreshRevision={refreshRevision}
 					showInfo={showInfo}
 					onCloseInfo={handleCloseInfo}
@@ -140,6 +151,8 @@ export default function ArweaveNode(props: {
 			url: getArweaveNodeRoute(props.node, 'mempool'),
 			content: (
 				<NodeMempool
+					key={`${props.node}/${info.data?.network}`}
+					network={info.data?.network ?? ''}
 					isResolving={!isResolved && info.isLoading}
 					showInfo={showInfo}
 					onCloseInfo={handleCloseInfo}
@@ -156,7 +169,8 @@ export default function ArweaveNode(props: {
 			url: getArweaveNodeRoute(props.node, 'miners'),
 			content: (
 				<NodeMiners
-					isResolving={!isResolved && info.isLoading}
+					onRefresh={handleRefresh}
+					isResolving={info.isLoading}
 					showInfo={showInfo}
 					onCloseInfo={handleCloseInfo}
 					refreshRevision={refreshRevision}

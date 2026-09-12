@@ -8,7 +8,6 @@ import type { useNodeHistory } from '../../../hooks/useNodeHistory';
 import { useNodeTransactionIds } from '../../../hooks/useNodeTransactionIds';
 import { useNodeTransactions } from '../../../hooks/useNodeTransactions';
 import { getNodeTransactionPage, toNodeTransactionEdge } from '../../../model/node';
-import { NodeContinueIndexing } from '../../molecules/NodeContinueIndexing';
 import { NodePagination } from '../../molecules/NodePagination';
 
 import * as S from './styles';
@@ -21,6 +20,7 @@ export default function NodeTransactions(props: {
 	refreshRevision: number;
 	showInfo: boolean;
 	onCloseInfo: () => void;
+	onRefresh: () => void;
 }) {
 	const provider = useLanguageProvider();
 	const language = provider.object[provider.current];
@@ -37,7 +37,13 @@ export default function NodeTransactions(props: {
 	const blocksByHash = new Map(pagination.segments.map(({ block }) => [block.hash, block]));
 	function handleRefresh() {
 		setRevision((value) => value + 1);
-		props.history.refresh();
+		props.onRefresh();
+	}
+	function handlePageChange(next: number) {
+		if (next >= pagination.totalPages && (props.history.isLoading || props.isResolving)) return;
+		setPage(next);
+		if (next > pagination.currentPage && props.history.canLoadOlder && !props.history.isLoading && !props.isResolving)
+			props.history.loadOlder();
 	}
 	return (
 		<S.Section>
@@ -50,12 +56,6 @@ export default function NodeTransactions(props: {
 					loadingMessage: language.nodeTransactionsLoading,
 					emptyMessage: language.nodeTransactionsEmpty,
 					onRefresh: handleRefresh,
-					actions: (
-						<NodeContinueIndexing
-							disabled={props.history.isLoading || !props.history.canLoadOlder}
-							onPress={props.history.loadOlder}
-						/>
-					),
 					edges:
 						ids.data?.entries.map(({ id, blockHash }) =>
 							toNodeTransactionEdge(id, detailsById.get(id)?.transaction ?? undefined, blocksByHash.get(blockHash))
@@ -66,7 +66,9 @@ export default function NodeTransactions(props: {
 							page={pagination.currentPage}
 							totalPages={pagination.totalPages}
 							showCounter={showCounter}
-							onPageChange={setPage}
+							hasMore={props.history.canLoadOlder}
+							loading={props.history.isLoading || props.isResolving}
+							onPageChange={handlePageChange}
 						/>
 					),
 				}}

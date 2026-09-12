@@ -70,11 +70,8 @@ export default function AddressList(props: {
 	actions?: React.ReactNode;
 	source?: {
 		addresses: string[];
-		columns: [
-			{ label: string; render: (address: string) => React.ReactNode },
-			{ label: string; render: (address: string) => React.ReactNode },
-			{ label: string; render: (address: string) => React.ReactNode }
-		];
+		columns: { label: string; render: (address: string) => React.ReactNode }[];
+		renderRowDetails?: (address: string) => React.ReactNode;
 		loading: boolean;
 		onRefresh: () => void;
 		pagination?: (showCounter: boolean) => React.ReactNode;
@@ -355,71 +352,93 @@ export default function AddressList(props: {
 
 			{visibleAddresses.length > 0 ? (
 				<S.Table role={'table'} aria-label={props.header ?? language.addresses}>
-					<S.TableHeader role={'row'}>
+					<S.TableHeader role={'row'} $columns={(props.source?.columns.length ?? 3) + 1}>
 						<S.AddressColumn role={'columnheader'}>
 							<p>{language.walletAddress}</p>
 						</S.AddressColumn>
-						<S.BalanceColumn role={'columnheader'}>
-							<p>{props.source?.columns[0].label ?? language.balance}</p>
-						</S.BalanceColumn>
-						<S.ValueColumn role={'columnheader'}>
-							<p>{props.source?.columns[1].label ?? language.value}</p>
-						</S.ValueColumn>
-						<S.LastTransactionColumn role={'columnheader'}>
-							<p>{props.source?.columns[2].label ?? language.lastTransaction}</p>
-						</S.LastTransactionColumn>
-					</S.TableHeader>
-					<S.TableBody role={'rowgroup'}>
-						{visibleAddresses.map((address) => (
-							<S.TableRow
-								key={address.address}
-								role={'row'}
-								tabIndex={0}
-								aria-label={`${language.inspect} ${address.address}`}
-								onClick={(event) => {
-									if (!(event.target as Element).closest('a, button')) navigate(`${URLS.explorer}${address.address}`);
-								}}
-								onKeyDown={(event) => {
-									if (event.target === event.currentTarget && event.key === 'Enter') {
-										event.preventDefault();
-										navigate(`${URLS.explorer}${address.address}`);
-									}
-								}}
-							>
-								<S.AddressColumn role={'cell'} title={address.address}>
-									<TxAddress address={address.address} tooltipPosition={'right'} />
-								</S.AddressColumn>
-								<S.BalanceColumn
-									role={'cell'}
-									title={address.balance === undefined ? undefined : `${address.balance} winston`}
-								>
-									{props.source ? (
-										props.source.columns[0].render(address.address)
-									) : (
-										<p>{address.balance === undefined ? '—' : formatArBalance(address.balance)}</p>
-									)}
+						{props.source ? (
+							props.source.columns.map((column) => (
+								<S.SourceColumn role={'columnheader'} key={column.label}>
+									<p>{column.label}</p>
+								</S.SourceColumn>
+							))
+						) : (
+							<>
+								<S.BalanceColumn role={'columnheader'}>
+									<p>{language.balance}</p>
 								</S.BalanceColumn>
-								<S.ValueColumn role={'cell'}>
-									{props.source ? (
-										props.source.columns[1].render(address.address)
-									) : (
-										<p>{address.balance === undefined ? '—' : formatArUsdValue(address.balance, arUsdPrice)}</p>
-									)}
+								<S.ValueColumn role={'columnheader'}>
+									<p>{language.value}</p>
 								</S.ValueColumn>
-								<S.LastTransactionColumn role={'cell'} title={address.lastTransaction ?? undefined}>
-									{props.source ? (
-										props.source.columns[2].render(address.address)
-									) : (
-										<ExplorerLink value={address.lastTransaction} type={'transaction'} tooltipPosition={'left'} />
-									)}
+								<S.LastTransactionColumn role={'columnheader'}>
+									<p>{language.lastTransaction}</p>
 								</S.LastTransactionColumn>
-							</S.TableRow>
-						))}
+							</>
+						)}
+					</S.TableHeader>
+					<S.TableBody role={'rowgroup'} $columns={(props.source?.columns.length ?? 3) + 1}>
+						{visibleAddresses.map((address) => {
+							const details = props.source?.renderRowDetails?.(address.address);
+							return (
+								<React.Fragment key={address.address}>
+									<S.TableRow
+										$expanded={!!details}
+										$columns={(props.source?.columns.length ?? 3) + 1}
+										role={'row'}
+										tabIndex={0}
+										aria-label={`${language.inspect} ${address.address}`}
+										onClick={(event) => {
+											if (!(event.target as Element).closest('a, button'))
+												navigate(`${URLS.explorer}${address.address}`);
+										}}
+										onKeyDown={(event) => {
+											if (event.target === event.currentTarget && event.key === 'Enter') {
+												event.preventDefault();
+												navigate(`${URLS.explorer}${address.address}`);
+											}
+										}}
+									>
+										<S.AddressColumn role={'cell'} title={address.address}>
+											<TxAddress address={address.address} tooltipPosition={'right'} />
+										</S.AddressColumn>
+										{props.source ? (
+											props.source.columns.map((column) => (
+												<S.SourceColumn role={'cell'} key={column.label}>
+													{column.render(address.address)}
+												</S.SourceColumn>
+											))
+										) : (
+											<>
+												<S.BalanceColumn
+													role={'cell'}
+													title={address.balance === undefined ? undefined : `${address.balance} winston`}
+												>
+													<p>{address.balance === undefined ? '—' : formatArBalance(address.balance)}</p>
+												</S.BalanceColumn>
+												<S.ValueColumn role={'cell'}>
+													<p>{address.balance === undefined ? '—' : formatArUsdValue(address.balance, arUsdPrice)}</p>
+												</S.ValueColumn>
+												<S.LastTransactionColumn role={'cell'} title={address.lastTransaction ?? undefined}>
+													<ExplorerLink value={address.lastTransaction} type={'transaction'} tooltipPosition={'left'} />
+												</S.LastTransactionColumn>
+											</>
+										)}
+									</S.TableRow>
+									{details && (
+										<S.DetailsRow role={'row'}>
+											<S.DetailsCell role={'cell'} aria-colspan={(props.source?.columns.length ?? 3) + 1}>
+												{details}
+											</S.DetailsCell>
+										</S.DetailsRow>
+									)}
+								</React.Fragment>
+							);
+						})}
 					</S.TableBody>
 				</S.Table>
 			) : props.source ? (
 				<S.UpdateWrapper role={isLoading ? 'status' : undefined}>
-					<p>{props.source.emptyMessage ?? language.loading}</p>
+					<p>{props.source.emptyMessage ?? `${language.loading}...`}</p>
 				</S.UpdateWrapper>
 			) : (
 				getMessage()

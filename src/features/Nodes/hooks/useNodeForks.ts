@@ -47,7 +47,12 @@ async function checkInParallel<T>(
 	}
 }
 
-export function useNodeForks(): { state: ForkState; refresh: () => void; continueChecks: () => void } {
+export function useNodeForks(): {
+	state: ForkState;
+	refresh: () => void;
+	continueChecks: () => void;
+	pause: () => void;
+} {
 	const request = React.useRef<AbortController | null>(null);
 	const [state, setState] = React.useState<ForkState>({ status: 'loading' });
 	const load = React.useCallback(async (refresh = false, previous?: Snapshot) => {
@@ -159,6 +164,14 @@ export function useNodeForks(): { state: ForkState; refresh: () => void; continu
 	}, [load]);
 	return {
 		state,
+		pause: () => {
+			request.current?.abort();
+			setState((current) =>
+				'data' in current && ['tips', 'ancestry', 'refreshing'].includes(current.status)
+					? { status: 'ready', data: { ...current.data, checkingPeers: [] } }
+					: current
+			);
+		},
 		refresh: () => {
 			void load(true);
 		},

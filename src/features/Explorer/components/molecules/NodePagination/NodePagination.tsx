@@ -9,6 +9,8 @@ export default function NodePagination(props: {
 	page: number;
 	totalPages: number;
 	showCounter: boolean;
+	hasMore?: boolean;
+	loading?: boolean;
 	onPageChange: (page: number) => void;
 }): React.ReactElement {
 	const provider = useLanguageProvider();
@@ -21,11 +23,15 @@ export default function NodePagination(props: {
 				disabled={props.page === 0}
 				onPress={() => props.onPageChange(props.page - 1)}
 			/>
-			{props.showCounter && <S.PageCount>{language.nodesPage(props.page + 1, props.totalPages)}</S.PageCount>}
+			{props.showCounter && (
+				<S.PageCount>
+					{props.hasMore ? language.nodePage(props.page + 1) : language.nodesPage(props.page + 1, props.totalPages)}
+				</S.PageCount>
+			)}
 			<Button
 				type={'alt3'}
 				label={language.next}
-				disabled={props.page >= props.totalPages - 1}
+				disabled={(props.loading || !props.hasMore) && props.page >= props.totalPages - 1}
 				onPress={() => props.onPageChange(props.page + 1)}
 			/>
 		</>

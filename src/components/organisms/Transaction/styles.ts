@@ -633,6 +633,7 @@ export const Refresh = styled.div`
 	button {
 		background: transparent !important;
 		border: none !important;
+		padding: 2.5px 0 0 0 !important;
 
 		&:hover {
 			opacity: 0.75 !important;

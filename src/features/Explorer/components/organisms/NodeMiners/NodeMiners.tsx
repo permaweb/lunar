@@ -2,16 +2,19 @@ import React from 'react';
 
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
+import { Icon } from 'components/atoms/Icon';
 import { Modal } from 'components/atoms/Modal';
 import { ExplorerLink } from 'components/atoms/TxAddress';
 import { AddressList } from 'features/Addresses';
 import { ASSETS } from 'helpers/config';
+import { formatNodeRewardTotal } from 'helpers/nodeMining';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import type { useNodeHistory } from '../../../hooks/useNodeHistory';
 import { getIndexedMiners, NODE_HISTORY_LIMIT, NODE_PAGE_SIZE } from '../../../model/node';
 import { NodeBalance } from '../../molecules/NodeBalance';
-import { NodeContinueIndexing } from '../../molecules/NodeContinueIndexing';
+import { NodeBlockList } from '../../molecules/NodeBlockList';
+import { NodeMiningCoverage } from '../../molecules/NodeMiningCoverage';
 import { NodePagination } from '../../molecules/NodePagination';
 
 import * as S from './styles';
@@ -24,20 +27,38 @@ export default function NodeMiners(props: {
 	refreshRevision: number;
 	showInfo: boolean;
 	onCloseInfo: () => void;
+	onRefresh: () => void;
 }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
+	const minerBlocksId = React.useId();
 	const [query, setQuery] = React.useState('');
 	const [draftQuery, setDraftQuery] = React.useState('');
 	const [showFilters, setShowFilters] = React.useState(false);
 	const [page, setPage] = React.useState(0);
-	const [balanceRevision, setBalanceRevision] = React.useState(0);
+	const [expandedMiners, setExpandedMiners] = React.useState<Set<string>>(() => new Set());
 	const miners = React.useMemo(() => getIndexedMiners(props.history.blocks), [props.history.blocks]);
+	const minersByAddress = new Map(miners.map((miner) => [miner.address, miner]));
 	const matches = React.useMemo(() => miners.filter((miner) => miner.address.includes(query.trim())), [miners, query]);
 	const totalPages = Math.max(1, Math.ceil(matches.length / NODE_PAGE_SIZE));
 	const currentPage = Math.min(page, totalPages - 1);
+	function handlePageChange(next: number) {
+		if (next >= totalPages && (props.history.isLoading || props.isResolving)) return;
+		setPage(next);
+		if (next > currentPage && props.history.canLoadOlder && !props.history.isLoading && !props.isResolving)
+			props.history.loadOlder();
+	}
+	function handleToggleMiner(address: string) {
+		setExpandedMiners((previous) => {
+			const next = new Set(previous);
+			if (next.has(address)) next.delete(address);
+			else next.add(address);
+			return next;
+		});
+	}
 	return (
 		<S.Section>
+			<NodeMiningCoverage blocks={props.history.blocks} />
 			{'error' in props.history.state && (
 				<S.Actions>
 					<S.Error role={'alert'}>
@@ -46,7 +67,7 @@ export default function NodeMiners(props: {
 					<Button
 						type={'primary'}
 						label={language.nodeRetry}
-						onPress={props.history.refresh}
+						onPress={props.onRefresh}
 						disabled={props.history.isLoading}
 					/>
 				</S.Actions>
@@ -57,10 +78,6 @@ export default function NodeMiners(props: {
 				count={matches.length}
 				actions={
 					<>
-						<NodeContinueIndexing
-							disabled={props.history.isLoading || !props.history.canLoadOlder}
-							onPress={props.history.loadOlder}
-						/>
 						<Button
 							type={'alt3'}
 							label={language.filter}
@@ -76,11 +93,26 @@ export default function NodeMiners(props: {
 					</>
 				}
 				source={{
+					renderRowDetails: (address) =>
+						expandedMiners.has(address) ? (
+							<S.MinerBlocks
+								id={`${minerBlocksId}-${address}`}
+								role={'region'}
+								aria-label={language.nodeViewMinerBlocks(address)}
+							>
+								<NodeBlockList
+									embedded
+									blocks={minersByAddress.get(address)?.blocks ?? []}
+									isLoading={props.isResolving || props.history.isLoading}
+									onRefresh={props.onRefresh}
+								/>
+							</S.MinerBlocks>
+						) : null,
 					addresses: matches
 						.slice(currentPage * NODE_PAGE_SIZE, (currentPage + 1) * NODE_PAGE_SIZE)
 						.map((miner) => miner.address),
 					loading: props.isResolving || props.history.isLoading,
-					onRefresh: () => setBalanceRevision((value) => value + 1),
+					onRefresh: props.onRefresh,
 					emptyMessage:
 						props.isResolving || props.history.isLoading
 							? language.nodeBlocksLoading
@@ -96,18 +128,61 @@ export default function NodeMiners(props: {
 									address={address}
 									node={props.node}
 									isActive={props.isActive}
-									balanceRevision={balanceRevision + props.refreshRevision}
+									balanceRevision={props.refreshRevision}
 								/>
 							),
 						},
 						{
+							label: language.nodePendingRewards,
+							render: (address) => (
+								<NodeBalance
+									key={address}
+									address={address}
+									node={props.node}
+									kind={'pending-rewards'}
+									isActive={props.isActive}
+									balanceRevision={props.refreshRevision}
+								/>
+							),
+						},
+						{
+							label: language.nodeSummedRewards,
+							render: (address) => {
+								const rewards = minersByAddress.get(address)?.rewards;
+								return (
+									<p title={language.nodeRewardsDescription}>
+										{rewards?.amounts.length
+											? rewards.amounts
+													.map(({ value, denomination }) => formatNodeRewardTotal(value, denomination))
+													.join(' + ')
+											: '—'}
+										{rewards?.incomplete ? ` (${language.nodeRewardsPartial})` : ''}
+									</p>
+								);
+							},
+						},
+						{
 							label: language.nodeBlocksMined,
-							render: (address) => <p>{miners.find((miner) => miner.address === address)?.count.toLocaleString()}</p>,
+							render: (address) => (
+								<S.BlockCount
+									aria-label={
+										expandedMiners.has(address)
+											? language.nodeHideMinerBlocks(address)
+											: language.nodeViewMinerBlocks(address)
+									}
+									aria-expanded={expandedMiners.has(address)}
+									aria-controls={expandedMiners.has(address) ? `${minerBlocksId}-${address}` : undefined}
+									onClick={() => handleToggleMiner(address)}
+								>
+									{minersByAddress.get(address)?.count.toLocaleString()}
+									<Icon src={ASSETS.arrow} size={15} />
+								</S.BlockCount>
+							),
 						},
 						{
 							label: language.nodeLastBlock,
 							render: (address) => {
-								const block = miners.find((miner) => miner.address === address)?.last;
+								const block = minersByAddress.get(address)?.last;
 								return block ? (
 									<span title={new Date(block.timestamp * 1000).toLocaleString()}>
 										<ExplorerLink value={block.hash} label={block.height.toLocaleString()} type={'block'} />
@@ -123,7 +198,9 @@ export default function NodeMiners(props: {
 							page={currentPage}
 							totalPages={totalPages}
 							showCounter={showCounter}
-							onPageChange={setPage}
+							hasMore={props.history.canLoadOlder}
+							loading={props.history.isLoading || props.isResolving}
+							onPageChange={handlePageChange}
 						/>
 					),
 				}}
@@ -134,6 +211,7 @@ export default function NodeMiners(props: {
 						{' '}
 						<S.Note>{language.nodeMiningDescription}</S.Note>
 						<S.Note>{language.nodeRewardsDescription}</S.Note>
+						<S.Note>{language.nodePendingRewardsDescription}</S.Note>
 						{!!props.history.blocks.length && (
 							<S.Note>
 								{language.nodeMiningCoverage(

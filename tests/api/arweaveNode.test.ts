@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { parseBlock, parseInfo, parsePending, parseTransaction } from '../../src/api/arweaveNode/parsers';
 import { createArweaveNodeApi } from '../../src/api/arweaveNode/relayAdapter';
-import { hash, MINER_ADDRESS, NODE_URL, rawBlock } from '../fixtures/arweaveNode';
+import { hash, MINER_ADDRESS, NODE_INFO, NODE_URL, rawBlock } from '../fixtures/arweaveNode';
 
 afterEach(() => {
 	vi.unstubAllGlobals();
@@ -10,13 +10,104 @@ afterEach(() => {
 });
 const signal = () => new AbortController().signal;
 function mockFetch(read: (path: string) => Response | Promise<Response>) {
-	const mock = vi.fn((url: string) => read(new URL(new URL(url).searchParams.get('relay-path')).pathname));
+	const mock = vi.fn((url: string) => read(new URL(new URL(url).searchParams.get('relay-path') ?? url).pathname));
 	vi.stubGlobal('fetch', mock);
 	return mock;
 }
 const json = (value: unknown) => new Response(JSON.stringify(value));
 
-describe('Arweave node relay', () => {
+describe('Arweave node requests', () => {
+	it.each(['https://arweave.net', 'https://secure.node:8443'])(
+		'calls HTTPS node %s directly for discovery and live metadata',
+		async (node) => {
+			const fetch = mockFetch((path) =>
+				path === '/info'
+					? json({
+							version: 5,
+							release: 100,
+							network: 'arweave.N.1',
+							height: 100,
+							current: hash(100),
+							peers: 200,
+					  })
+					: path === '/tx/pending'
+					? json([MINER_ADDRESS])
+					: new Response('900719925474099312345678')
+			);
+			const api = createArweaveNodeApi();
+			expect(await api.getInfo(`${node}/`, signal())).toMatchObject({
+				network: NODE_INFO.network,
+				hash: NODE_INFO.hash,
+			});
+			expect(await api.getPending(node, signal())).toEqual([MINER_ADDRESS]);
+			expect(await api.getBalance(node, MINER_ADDRESS, signal())).toBe('900719925474099312345678');
+			expect(await api.getPendingRewards(node, MINER_ADDRESS, signal())).toBe('900719925474099312345678');
+			expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+				`${node}/info`,
+				`${node}/tx/pending`,
+				`${node}/wallet/${MINER_ADDRESS}/balance`,
+				`${node}/wallet/${MINER_ADDRESS}/reserved_rewards_total`,
+			]);
+			expect(fetch).toHaveBeenCalledWith(
+				`${node}/info`,
+				expect.objectContaining({ credentials: 'omit', cache: 'no-store', signal: expect.any(AbortSignal) })
+			);
+		}
+	);
+	it('uses direct HTTPS requests throughout block indexing and pending transaction fallback', async () => {
+		const node = 'https://arweave.net';
+		const id = 'b'.repeat(43);
+		const fetch = mockFetch((path) => {
+			if (path.startsWith('/block_index')) return json([hash(100), hash(99)]);
+			if (path.startsWith('/block/hash/')) return json(rawBlock(Number(path.split('/').pop().replace(/^a+/, ''))));
+			if (path.startsWith('/unconfirmed_tx/')) return new Response('', { status: 404 });
+			return json({ id, quantity: '0', reward: '9007199254740993', data_size: '10', tags: [] });
+		});
+		const api = createArweaveNodeApi();
+		expect((await api.getBlocks(node, NODE_INFO, 2, signal())).map((block) => block.height)).toEqual([100, 99]);
+		expect(await api.getTransaction(node, id, signal())).toMatchObject({ id, fee: '9007199254740993' });
+		expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+			`${node}/block_index/99/100`,
+			`${node}/block/hash/${hash(100)}`,
+			`${node}/block/hash/${hash(99)}`,
+			`${node}/unconfirmed_tx/${id}`,
+			`${node}/tx/${id}`,
+		]);
+	});
+	it('reports HTTPS network failures without retrying through the relay', async () => {
+		const fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+		vi.stubGlobal('fetch', fetch);
+		await expect(createArweaveNodeApi().getInfo('https://arweave.net', signal())).rejects.toMatchObject({
+			code: 'unavailable',
+		});
+		expect(fetch).toHaveBeenCalledOnce();
+		expect(fetch.mock.calls[0][0]).toBe('https://arweave.net/info');
+	});
+	it('reads exact pending mining rewards and distinguishes unsupported endpoints from zero or failed reads', async () => {
+		const fetch = mockFetch(() => new Response('900719925474099312345678'));
+		const api = createArweaveNodeApi();
+		expect(await api.getPendingRewards(NODE_URL, MINER_ADDRESS, signal())).toBe('900719925474099312345678');
+		expect(new URL(fetch.mock.calls[0][0]).searchParams.get('relay-path')).toBe(
+			`${NODE_URL}/wallet/${MINER_ADDRESS}/reserved_rewards_total`
+		);
+		for (const status of [404, 405, 501]) {
+			mockFetch(() => new Response('', { status }));
+			expect(await api.getPendingRewards(NODE_URL, MINER_ADDRESS, signal())).toBeNull();
+		}
+		mockFetch(() => new Response('0'));
+		expect(await api.getPendingRewards(NODE_URL, MINER_ADDRESS, signal())).toBe('0');
+		mockFetch(() => new Response('NaN'));
+		await expect(api.getPendingRewards(NODE_URL, MINER_ADDRESS, signal())).rejects.toMatchObject({
+			code: 'invalid-response',
+		});
+		mockFetch(() => new Response('', { status: 429 }));
+		await expect(api.getPendingRewards(NODE_URL, MINER_ADDRESS, signal())).rejects.toMatchObject({
+			code: 'rate-limited',
+		});
+		await expect(api.getPendingRewards(NODE_URL, 'bad-address', signal())).rejects.toMatchObject({
+			code: 'invalid-input',
+		});
+	});
 	it('reads confirmed metadata directly from the selected node transaction endpoint', async () => {
 		const id = 'b'.repeat(43);
 		const fetch = mockFetch(() => json({ id, quantity: '0', reward: '9007199254740993', data_size: '10', tags: [] }));
@@ -220,25 +311,28 @@ describe('Arweave node relay', () => {
 		expect(() => parseInfo({ height: 1 })).toThrow();
 		expect(() => parseBlock({ ...rawBlock(1), reward: Number.MAX_SAFE_INTEGER + 1 })).toThrow();
 	});
-	it('normalizes cancellation and timeouts and cancels queued requests', async () => {
-		vi.useFakeTimers();
-		const fetch = vi.fn(
-			(_url, options) =>
-				new Promise((_resolve, reject) =>
-					options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
-				)
-		);
-		vi.stubGlobal('fetch', fetch);
-		const api = createArweaveNodeApi();
-		const cancelled = new AbortController();
-		const promises = Array.from({ length: 4 }, () => api.getInfo(NODE_URL, signal()).catch((error) => error));
-		const queued = api.getInfo(NODE_URL, cancelled.signal).catch((error) => error);
-		cancelled.abort();
-		expect(await queued).toMatchObject({ code: 'cancelled' });
-		await vi.advanceTimersByTimeAsync(20_001);
-		expect(await Promise.all(promises)).toEqual(Array(4).fill(expect.objectContaining({ code: 'timeout' })));
-		expect(fetch).toHaveBeenCalledTimes(4);
-	});
+	it.each([NODE_URL, 'https://arweave.net'])(
+		'normalizes cancellation, timeouts and queued cancellation for %s',
+		async (node) => {
+			vi.useFakeTimers();
+			const fetch = vi.fn(
+				(_url, options) =>
+					new Promise((_resolve, reject) =>
+						options.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+					)
+			);
+			vi.stubGlobal('fetch', fetch);
+			const api = createArweaveNodeApi();
+			const cancelled = new AbortController();
+			const promises = Array.from({ length: 4 }, () => api.getInfo(node, signal()).catch((error) => error));
+			const queued = api.getInfo(node, cancelled.signal).catch((error) => error);
+			cancelled.abort();
+			expect(await queued).toMatchObject({ code: 'cancelled' });
+			await vi.advanceTimersByTimeAsync(20_001);
+			expect(await Promise.all(promises)).toEqual(Array(4).fill(expect.objectContaining({ code: 'timeout' })));
+			expect(fetch).toHaveBeenCalledTimes(4);
+		}
+	);
 	it('rejects non-node input before making a request', async () => {
 		const fetch = mockFetch(() => json([]));
 		await expect(createArweaveNodeApi().getPending('javascript:alert(1)', signal())).rejects.toMatchObject({

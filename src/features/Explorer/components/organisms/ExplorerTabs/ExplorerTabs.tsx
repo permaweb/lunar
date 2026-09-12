@@ -488,7 +488,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			setTransactions(updatedTransactions);
 			setActiveTabIndex(newActiveIndex);
 			const nextTab = updatedTransactions[newActiveIndex];
-			navigateIfNeeded(nextTab ? getRouteForTab(nextTab) : URLS[props.type]);
+			navigateIfNeeded(nextTab ? nextTab.lastRoute || getRouteForTab(nextTab) : URLS[props.type]);
 		} else {
 			setTransactions([{ id: '', label: '', type: null, tabKey: `tab-${Date.now()}-${Math.random()}` }]);
 			setActiveTabIndex(0);

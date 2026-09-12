@@ -143,7 +143,8 @@ const WalletBalanceSection = React.memo(
 						height={20}
 						width={20}
 						noMinWidth
-						iconSize={12.5}
+						iconSize={11}
+						padding={'2.5px 0 0 0'}
 						disabled={loadingBalance}
 						tooltip={loadingBalance ? `${loading}...` : refresh}
 						tooltipPosition={'bottom-right'}

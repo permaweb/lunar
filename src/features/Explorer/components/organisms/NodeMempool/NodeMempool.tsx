@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { arweaveNodeApi } from 'api/arweaveNode';
+import { arweaveNodeApi, readNodeMempool, saveNodeMempool } from 'api/arweaveNode';
 
 import { Modal } from 'components/atoms/Modal';
 import { TransactionList } from 'components/molecules/TransactionList';
@@ -19,6 +19,7 @@ const EMPTY_IDS: string[] = [];
 
 export default function NodeMempool(props: {
 	node: string;
+	network: string;
 	isActive: boolean;
 	isResolving: boolean;
 	refreshRevision: number;
@@ -30,13 +31,24 @@ export default function NodeMempool(props: {
 	const previous = React.useRef<MempoolSnapshot | null>(null);
 	const [page, setPage] = React.useState(0);
 	const read = React.useCallback(
-		async (signal: AbortSignal) => {
+		async (signal: AbortSignal, onProgress: (snapshot: MempoolSnapshot) => void) => {
+			if (!previous.current) {
+				const cached = await readNodeMempool(props.node, props.network);
+				if (signal.aborted) return cached;
+				if (cached) {
+					previous.current = cached;
+					onProgress(cached);
+				}
+			}
 			const ids = await arweaveNodeApi.getPending(props.node, signal);
 			const next = observeMempool(previous.current, ids, Date.now());
-			if (!signal.aborted) previous.current = next;
+			if (!signal.aborted) {
+				previous.current = next;
+				void saveNodeMempool(props.node, next, props.network);
+			}
 			return next;
 		},
-		[props.node, props.refreshRevision]
+		[props.node, props.network, props.refreshRevision]
 	);
 	const resource = useNodeResource(read, props.isActive, true);
 	const totalPages = Math.max(1, Math.ceil((resource.data?.ids.length ?? 0) / NODE_PAGE_SIZE));

@@ -2,21 +2,23 @@ import React from 'react';
 
 import type { NodeInfo } from 'api/arweaveNode';
 
+import { ExternalLink } from 'components/atoms/ExternalLink';
 import { ExplorerLink } from 'components/atoms/TxAddress';
-import { BlockList } from 'components/molecules/BlockList';
 import { Overview } from 'components/molecules/Overview';
+import { ARWEAVE_COMMIT_URL } from 'helpers/config';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import type { useNodeHistory } from '../../../hooks/useNodeHistory';
 import type { useNodeResource } from '../../../hooks/useNodeResource';
-import { formatNodeBytes, NODE_PAGE_SIZE } from '../../../model/node';
-import { NodePagination } from '../../molecules/NodePagination';
+import { formatNodeBytes } from '../../../model/node';
+import { NodeBlockList } from '../../molecules/NodeBlockList';
 
 import * as S from './styles';
 
 export default function NodeOverview(props: {
 	info: ReturnType<typeof useNodeResource<NodeInfo>>;
 	history: ReturnType<typeof useNodeHistory>;
+	onRefresh: () => void;
 }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -25,7 +27,21 @@ export default function NodeOverview(props: {
 		? [
 				[language.network, info.network],
 				[language.height, info.height.toLocaleString()],
-				[language.nodeVersion, `${info.version} / ${info.release}`],
+				[
+					language.nodeReleaseCommit,
+					<>
+						<p>{`${info.release} /`}</p>
+						{info.gitHash ? (
+							<ExternalLink
+								href={`${ARWEAVE_COMMIT_URL}${encodeURIComponent(info.gitHash)}`}
+								label={info.gitHash.slice(0, 7)}
+								title={info.gitHash}
+							/>
+						) : (
+							<p>—</p>
+						)}
+					</>,
+				],
 				[language.nodePeers, info.peers.toLocaleString()],
 				[language.nodeQueue, info.queueLength?.toLocaleString() ?? '—'],
 				[language.nodeStateLatency, info.latency === null ? '—' : `${info.latency.toLocaleString()} ms`],
@@ -39,7 +55,7 @@ export default function NodeOverview(props: {
 		: [
 				language.network,
 				language.height,
-				language.nodeVersion,
+				language.nodeReleaseCommit,
 				language.nodePeers,
 				language.nodeQueue,
 				language.nodeStateLatency,
@@ -53,34 +69,12 @@ export default function NodeOverview(props: {
 			{'error' in props.history.state && (
 				<S.Error role={'alert'}>{language.nodeErrors[props.history.state.error]}</S.Error>
 			)}
-			<BlockList
-				header={language.nodeRecentBlocks}
-				source={{
-					loading: (!info && props.info.isLoading) || props.history.isLoading,
-					loadingMessage: !info ? language.nodeLoading : language.nodeBlocksLoading,
-					onRefresh: props.history.refresh,
-					pagination: (showCounter) => (
-						<NodePagination page={0} totalPages={1} showCounter={showCounter} onPageChange={() => {}} />
-					),
-					edges: props.history.blocks.slice(0, NODE_PAGE_SIZE).map((block) => ({
-						cursor: block.hash,
-						node: {
-							id: block.hash,
-							height: block.height,
-							timestamp: block.timestamp,
-							previous: block.previous,
-							transactionCount: block.transactions,
-							metadata: {
-								indep_hash: block.hash,
-								previous_block: block.previous,
-								timestamp: block.timestamp,
-								reward_addr: block.miner,
-								block_size: block.dataSize,
-								reward: block.reward,
-							},
-						},
-					})),
-				}}
+			<NodeBlockList
+				blocks={props.history.blocks}
+				isLoading={props.info.isLoading || props.history.isLoading}
+				canLoadOlder={props.history.canLoadOlder}
+				onLoadOlder={props.history.loadOlder}
+				onRefresh={props.onRefresh}
 			/>
 		</S.Section>
 	);

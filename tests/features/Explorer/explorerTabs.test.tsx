@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
+import { ExplorerLink } from '../../../src/components/atoms/TxAddress';
 import { ExplorerTabs } from '../../../src/features/Explorer';
 import { getArweaveNodeRoute } from '../../../src/helpers/arweaveNode';
 import { DOM } from '../../../src/helpers/config';
@@ -16,6 +17,8 @@ import { PinnedTabsProvider, usePinnedTabsProvider } from '../../../src/provider
 import { NODE_URL } from '../../fixtures/arweaveNode';
 
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden={'true'} /> }));
+vi.mock('store', () => ({ store: { getState: () => ({}) } }));
+vi.mock('store/transactions/reducer', () => ({ selectTransaction: () => null }));
 vi.mock('components/organisms/AOS', () => ({ AOS: () => null }));
 vi.mock('components/organisms/Transaction', () => ({
 	Transaction: (props) => {
@@ -23,7 +26,11 @@ vi.mock('components/organisms/Transaction', () => ({
 			pinTarget = props.pinTarget;
 			resolveTransaction = props.onTxChange;
 		}
-		return <div data-transaction={props.txId} />;
+		return (
+			<div data-transaction={props.txId}>
+				<ExplorerLink value={linkedId} label={'Inspect linked transaction'} />
+			</div>
+		);
 	},
 }));
 vi.mock('../../../src/features/Explorer/components/organisms/ArweaveNode', () => ({
@@ -32,13 +39,19 @@ vi.mock('../../../src/features/Explorer/components/organisms/ArweaveNode', () =>
 			resolveNode = () => props.onResolved(props.node);
 			pinTarget = props.pinTarget;
 		}
-		return <div data-node={props.node} />;
+		return (
+			<div data-node={props.node}>
+				<ExplorerLink value={linkedId} label={'Inspect linked transaction'} />
+			</div>
+		);
 	},
 }));
 
 let root: ReturnType<typeof createRoot>;
+const linkedId = 'c'.repeat(43);
 let container: HTMLElement;
 let currentPath = '';
+let currentRoute = '';
 let navigate: ReturnType<typeof useNavigate>;
 let resolveNode: () => void;
 let resolveTransaction: (transaction: GQLNodeResponseType) => void;
@@ -46,7 +59,9 @@ let pinTarget: PinTarget;
 let togglePin: ReturnType<typeof usePinnedTabsProvider>['toggle'];
 function Harness() {
 	navigate = useNavigate();
-	currentPath = useLocation().pathname;
+	const location = useLocation();
+	currentPath = location.pathname;
+	currentRoute = location.pathname + location.search;
 	togglePin = usePinnedTabsProvider().toggle;
 	return <ExplorerTabs type={'explorer'} />;
 }
@@ -254,6 +269,43 @@ it('continues to open existing transaction routes', async () => {
 	await render('/explorer/' + id);
 	expect(tabs()).toMatchObject([{ id, type: 'transaction' }]);
 	expect(container.querySelector('[data-transaction]')?.getAttribute('data-transaction')).toBe(id);
+});
+
+it.each([
+	getArweaveNodeRoute(NODE_URL, 'miners'),
+	getArweaveNodeRoute(NODE_URL, 'mempool'),
+	`/explorer/${'a'.repeat(43)}/messages?cursor=saved`,
+])('keeps the saved subtab when returning from an ExplorerLink opened from %s', async (route) => {
+	await render(route);
+	const sourceKey = tabs()[0].tabKey;
+	const sourcePane = container.querySelector(`[data-tab-key="${sourceKey}"]`);
+	await React.act(async () => sourcePane.querySelector<HTMLAnchorElement>(`a[href="#/explorer/${linkedId}"]`).click());
+	expect(tabs()).toHaveLength(2);
+	expect(currentRoute).toBe(`/explorer/${linkedId}`);
+	expect(tabs()[0].lastRoute).toBe(route);
+	await React.act(async () => container.querySelector<HTMLElement>('[data-tab-index="0"]').click());
+	expect(currentRoute).toBe(route);
+	await React.act(async () => container.querySelector<HTMLElement>('[data-tab-index="1"]').click());
+	await React.act(async () => navigate(-1));
+	expect(currentRoute).toBe(route);
+	await React.act(async () => container.querySelector<HTMLElement>('[data-tab-index="1"]').click());
+	await React.act(async () =>
+		container.querySelector<HTMLButtonElement>('[data-tab-index="1"] .delete-icon button').click()
+	);
+	expect(currentRoute).toBe(route);
+	expect(tabs()).toMatchObject([{ tabKey: sourceKey, lastRoute: route }]);
+});
+
+it('preserves the active subtab when another tab is closed', async () => {
+	const id = 'a'.repeat(43);
+	await render(`/explorer/${id}`);
+	const route = getArweaveNodeRoute(NODE_URL, 'transactions');
+	await React.act(async () => navigate(route));
+	await React.act(async () =>
+		container.querySelector<HTMLButtonElement>('[data-tab-index="0"] .delete-icon button').click()
+	);
+	expect(currentRoute).toBe(route);
+	expect(tabs()).toMatchObject([{ id: NODE_URL, lastRoute: route }]);
 });
 
 it('opens a node deep link even when saved tabs contain corrupt JSON', async () => {

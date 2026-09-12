@@ -206,6 +206,7 @@ function BlockRow(props: {
 
 export default function BlockList(props: {
 	header?: string;
+	embedded?: boolean;
 	pageSize?: number;
 	preview?: boolean;
 	source?: {
@@ -637,83 +638,85 @@ export default function BlockList(props: {
 	return (
 		<>
 			<S.Container ref={tableContainerRef} $preview={props.preview}>
-				<S.Header>
-					<S.HeaderMain>
-						<p>{props.header ?? language.blocks}</p>
-						{loading && (
-							<div className={'loader'}>
-								<Loader xSm relative />
-							</div>
+				{!props.embedded && (
+					<S.Header>
+						<S.HeaderMain>
+							<p>{props.header ?? language.blocks}</p>
+							{loading && (
+								<div className={'loader'}>
+									<Loader xSm relative />
+								</div>
+							)}
+						</S.HeaderMain>
+						{props.source && (
+							<S.HeaderActions>
+								<Button
+									type={'alt3'}
+									label={language.refresh}
+									icon={ASSETS.refresh}
+									iconLeftAlign
+									onPress={props.source.onRefresh}
+									disabled={loading}
+								/>
+								{props.source.pagination?.(false)}
+							</S.HeaderActions>
 						)}
-					</S.HeaderMain>
-					{props.source && (
-						<S.HeaderActions>
-							<Button
-								type={'alt3'}
-								label={language.refresh}
-								icon={ASSETS.refresh}
-								iconLeftAlign
-								onPress={props.source.onRefresh}
-								disabled={loading}
-							/>
-							{props.source.pagination?.(false)}
-						</S.HeaderActions>
-					)}
-					{!props.preview && !props.source && (
-						<S.HeaderActions className={'scroll-wrapper-hidden'}>
-							{activeRange.minHeight !== null && (
+						{!props.preview && !props.source && (
+							<S.HeaderActions className={'scroll-wrapper-hidden'}>
+								{activeRange.minHeight !== null && (
+									<Button
+										type={'alt3'}
+										label={`${language.minHeight} (${formatCount(activeRange.minHeight.toString())})`}
+										onPress={handleClearMinHeight}
+										active={true}
+										disabled={loading}
+										icon={ASSETS.close}
+									/>
+								)}
+								{activeRange.maxHeight !== null && (
+									<Button
+										type={'alt3'}
+										label={`${language.maxHeight} (${formatCount(activeRange.maxHeight.toString())})`}
+										onPress={handleClearMaxHeight}
+										active={true}
+										disabled={loading}
+										icon={ASSETS.close}
+									/>
+								)}
+								<FilterS.FilterWrapper>
+									<Button
+										type={'alt3'}
+										label={language.filter}
+										onPress={() => setShowFilters((prev) => !prev)}
+										active={showFilters}
+										disabled={loading}
+										icon={ASSETS.filter}
+										iconLeftAlign
+									/>
+								</FilterS.FilterWrapper>
+								<S.Divider />
 								<Button
 									type={'alt3'}
-									label={`${language.minHeight} (${formatCount(activeRange.minHeight.toString())})`}
-									onPress={handleClearMinHeight}
-									active={true}
+									label={language.refresh}
+									onPress={handleRefresh}
 									disabled={loading}
-									icon={ASSETS.close}
-								/>
-							)}
-							{activeRange.maxHeight !== null && (
-								<Button
-									type={'alt3'}
-									label={`${language.maxHeight} (${formatCount(activeRange.maxHeight.toString())})`}
-									onPress={handleClearMaxHeight}
-									active={true}
-									disabled={loading}
-									icon={ASSETS.close}
-								/>
-							)}
-							<FilterS.FilterWrapper>
-								<Button
-									type={'alt3'}
-									label={language.filter}
-									onPress={() => setShowFilters((prev) => !prev)}
-									active={showFilters}
-									disabled={loading}
-									icon={ASSETS.filter}
+									icon={ASSETS.refresh}
 									iconLeftAlign
 								/>
-							</FilterS.FilterWrapper>
-							<S.Divider />
-							<Button
-								type={'alt3'}
-								label={language.refresh}
-								onPress={handleRefresh}
-								disabled={loading}
-								icon={ASSETS.refresh}
-								iconLeftAlign
-							/>
-							<Button
-								type={'alt3'}
-								label={language.download}
-								onPress={handleExport}
-								disabled={loading || blocks.length <= 0}
-								icon={ASSETS.save}
-								iconLeftAlign
-							/>
-							<S.Divider />
-							{getPaginator(false)}
-						</S.HeaderActions>
-					)}
-				</S.Header>
+								<Button
+									type={'alt3'}
+									label={language.download}
+									onPress={handleExport}
+									disabled={loading || blocks.length <= 0}
+									icon={ASSETS.save}
+									iconLeftAlign
+								/>
+								<S.Divider />
+								{getPaginator(false)}
+							</S.HeaderActions>
+						)}
+					</S.Header>
+				)}
 				{blocks.length > 0 ? (
 					<S.Wrapper $preview={props.preview}>
 						<S.HeaderWrapper className={'fade-in'} $preview={props.preview}>
@@ -758,7 +761,7 @@ export default function BlockList(props: {
 				) : (
 					getMessage()
 				)}
-				{!props.preview && (!props.source || props.source.pagination) && (
+				{!props.embedded && !props.preview && (!props.source || props.source.pagination) && (
 					<S.FooterWrapper>{props.source ? props.source.pagination?.(true) : getPaginator(true)}</S.FooterWrapper>
 				)}
 			</S.Container>

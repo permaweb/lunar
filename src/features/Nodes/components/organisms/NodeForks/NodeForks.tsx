@@ -11,6 +11,7 @@ import { NODES_PAGE_SIZE } from '../../../model/config';
 import type { ForkGroup } from '../../../model/forks';
 import { getForkPage, groupNodesByFork } from '../../../model/forks';
 import { NodeTable } from '../../molecules/NodeTable';
+import { ForkHistory } from '../ForkHistory';
 
 import * as S from './styles';
 
@@ -19,7 +20,11 @@ const ignoreObservation = () => {};
 export default function NodeForks() {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
-	const { state, refresh, continueChecks } = useNodeForks();
+	const { state, refresh, continueChecks, pause } = useNodeForks();
+	const [showHistory, setShowHistory] = React.useState(false);
+	const resumeChecks = React.useRef(false);
+	const [historyRevision, setHistoryRevision] = React.useState(0);
+	const [historyLoading, setHistoryLoading] = React.useState(false);
 	const [page, setPage] = React.useState(1);
 	const data = 'data' in state ? state.data : null;
 	const groups = React.useMemo(
@@ -107,35 +112,68 @@ export default function NodeForks() {
 					<S.Count>({data ? data.peers.length.toLocaleString() : `${language.loading}...`})</S.Count>
 				</S.Heading>
 				<S.Actions>
-					{hasUnchecked && !isLoading && (
+					{!showHistory && hasUnchecked && !isLoading && (
 						<Button type={'alt3'} label={language.nodesContinueChecks} onPress={continueChecks} />
 					)}
+					<Button
+						type={'alt3'}
+						label={showHistory ? language.nodesShowTable : language.nodeShowForkHistory}
+						disabled={!Object.keys(data?.infos ?? {}).length}
+						onPress={() => {
+							if (!showHistory) {
+								resumeChecks.current = isLoading;
+								pause();
+								setHistoryLoading(true);
+							} else if (resumeChecks.current || hasUnchecked) continueChecks();
+							setShowHistory((value) => !value);
+						}}
+					/>
 					<Button
 						type={'alt3'}
 						label={language.refresh}
 						icon={ASSETS.refresh}
 						iconLeftAlign
-						disabled={isLoading}
-						onPress={refresh}
+						disabled={showHistory ? historyLoading : isLoading}
+						onPress={showHistory ? () => setHistoryRevision((value) => value + 1) : refresh}
 					/>
-					<S.Divider />
-					{renderPaginator()}
+					{!showHistory && (
+						<>
+							<S.Divider />
+							{renderPaginator()}
+						</>
+					)}
 				</S.Actions>
 			</S.Header>
-			<NodeTable
-				sections={getForkPage(groups, currentPage, NODES_PAGE_SIZE).map((group) => ({
-					id: group.id,
-					peers: group.peers,
-					heading: renderHeading(groups.find((entry) => entry.id === group.id)!),
-				}))}
-				observations={data?.observations ?? {}}
-				checkingPeers={data?.checkingPeers ?? []}
-				infoEnabled={false}
-				infoSource={language.nodesRelayInfoSource}
-				statusMessage={statusMessage}
-				onObservation={ignoreObservation}
-			/>
-			<S.Footer>{renderPaginator(true)}</S.Footer>
+			{!showHistory && (
+				<>
+					<NodeTable
+						sections={getForkPage(groups, currentPage, NODES_PAGE_SIZE).map((group) => ({
+							id: group.id,
+							peers: group.peers,
+							heading: renderHeading(groups.find((entry) => entry.id === group.id)!),
+						}))}
+						observations={data?.observations ?? {}}
+						checkingPeers={data?.checkingPeers ?? []}
+						infoEnabled={false}
+						infoSource={language.nodesRelayInfoSource}
+						statusMessage={statusMessage}
+						onObservation={ignoreObservation}
+					/>
+					<S.Footer>{renderPaginator(true)}</S.Footer>
+				</>
+			)}
+			{showHistory && (
+				<ForkHistory
+					nodes={Object.keys(data?.infos ?? {}).sort(
+						(a, b) =>
+							data.infos[b].release - data.infos[a].release ||
+							data.infos[b].height - data.infos[a].height ||
+							a.localeCompare(b)
+					)}
+					refreshRevision={historyRevision}
+					onLoadingChange={setHistoryLoading}
+				/>
+			)}
 		</S.Container>
 	);
 }

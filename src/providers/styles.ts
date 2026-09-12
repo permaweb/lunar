@@ -24,12 +24,13 @@ export const WalletListItem = styled(PrimitiveButton)`
 	padding: 15px;
 	span {
 		color: ${(props) => props.theme.colors.font.primary};
-		font-size: ${(props) => props.theme.typography.size.small};
+		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-weight: ${(props) => props.theme.typography.weight.medium};
 		font-family: ${(props) => props.theme.typography.family.primary};
 	}
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
+		border: 1px solid ${(props) => props.theme.colors.border.alt1};
 	}
 `;
 
