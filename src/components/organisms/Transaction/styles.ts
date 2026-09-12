@@ -845,8 +845,8 @@ export const PlaceholderIcon = styled.div`
 	border-radius: 50%;
 
 	svg {
-		height: 85px;
-		width: 85px;
+		height: 75px;
+		width: 75px;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
 		fill: ${(props) => props.theme.colors.icon.primary.fill};
 		margin: 7.5px 0 0 0;
