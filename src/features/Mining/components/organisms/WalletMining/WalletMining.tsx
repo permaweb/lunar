@@ -32,7 +32,7 @@ export default function WalletMining(props: { address: string; mining: WalletMin
 				action={
 					mining.options.length > 1 && (
 						<S.Source>
-							<span>{language.walletMiningSource}</span>
+							<span>{`${language.walletMiningSource}:`}</span>
 							<Select
 								variant={'plain'}
 								options={mining.options}

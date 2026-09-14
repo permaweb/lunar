@@ -77,8 +77,8 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 	}
 
 	svg {
-		height: 15px;
-		width: 15px;
+		height: 17px;
+		width: 17px;
 		margin: 5px 0 0 0;
 		transform: rotate(0deg);
 		color: ${(props) =>
@@ -103,8 +103,8 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 		}
 
 		svg {
-			height: 13.5px;
-			width: 13.5px;
+			height: 15px;
+			width: 15px;
 			margin: 1px 0 0 0;
 		}
 
@@ -149,7 +149,7 @@ export const Option = styled.li<{ active: boolean }>`
 	background: ${(props) =>
 		props.active ? props.theme.colors.container.alt9.background : props.theme.colors.container.alt8.background};
 	border: 1px solid transparent;
-	padding: 0 15px;
+	padding: 0 9px 0 15px;
 	transition: all 100ms;
 	&:hover {
 		color: ${(props) => props.theme.colors.font.light1};
@@ -178,13 +178,13 @@ export const RemoveOption = styled.button`
 	transition: all 100ms;
 
 	div {
-		height: 12px;
-		width: 12px;
+		height: 14px;
+		width: 14px;
 	}
 
 	svg {
-		height: 12px;
-		width: 12px;
+		height: 14px;
+		width: 14px;
 		color: currentColor;
 	}
 

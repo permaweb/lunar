@@ -12,7 +12,7 @@ export const Source = styled.div`
 	gap: 10px;
 
 	> span {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.alt1};
@@ -26,10 +26,12 @@ export const Source = styled.div`
 	}
 `;
 export const Note = styled.p`
-	font-size: ${(props) => props.theme.typography.size.small};
+	font-size: ${(props) => props.theme.typography.size.xSmall};
 	color: ${(props) => props.theme.colors.font.alt1};
+	display: block;
+	margin: 0 0 15px 0;
 `;
 export const PageCount = styled.span`
-	font-size: ${(props) => props.theme.typography.size.small};
+	font-size: ${(props) => props.theme.typography.size.xSmall};
 	color: ${(props) => props.theme.colors.font.alt1};
 `;

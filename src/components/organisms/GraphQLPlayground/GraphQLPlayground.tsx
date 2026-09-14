@@ -824,6 +824,7 @@ export default function GraphQLPlayground(props: {
 						height={32.5}
 						width={32.5}
 						iconSize={14.5}
+						padding={'3.5px 0 0 0'}
 						tooltip={language.queryVariables}
 					/>
 					<Button
