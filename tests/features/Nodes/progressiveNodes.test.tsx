@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
@@ -49,7 +50,9 @@ async function render() {
 	await React.act(async () =>
 		root.render(
 			<ThemeProvider theme={theme(darkTheme)}>
-				<NodesTable />
+				<MemoryRouter>
+					<NodesTable />
+				</MemoryRouter>
 			</ThemeProvider>
 		)
 	);
@@ -110,24 +113,21 @@ it.each([true, false])(
 		await render();
 		expect(container.textContent).not.toContain('No nodes found');
 		expect(container.textContent.includes('Loading nodes, this may take some time...')).toBe(showLoader);
+		const header = container.querySelector('h2');
+		expect(header).not.toBeNull();
+		expect(container.textContent).toContain('Page (1 of 1)');
 		await React.act(async () => resolvePeers(peers));
-		if (showLoader) {
-			expect(container.textContent).toBe('Loading nodes, this may take some time...');
-			expect(container.querySelector('table')).toBeNull();
-		} else {
-			expect(container.textContent).not.toContain('Loading nodes');
-			expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
-			expect(container.textContent.match(/Checking\.\.\./g)).toHaveLength(8);
-			expect(container.textContent.match(/Not checked/g)).toHaveLength(42);
-		}
+		expect(container.querySelector('h2')).toBe(header);
+		expect(container.textContent).not.toContain('Loading nodes');
+		expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
+		expect(container.textContent.match(/Checking\.\.\./g)).toHaveLength(8);
+		expect(container.textContent.match(/Not checked/g)).toHaveLength(42);
 		expect(pending).toHaveLength(8);
 		for (let index = 0; index < 12; index++) {
-			if (!showLoader) {
-				const checkingRow = [...container.querySelectorAll('tbody tr')].find(
-					(row) => row.querySelector('a')?.textContent === pending[index].peer
-				);
-				expect(checkingRow?.textContent).toContain('Checking...');
-			}
+			const checkingRow = [...container.querySelectorAll('tbody tr')].find(
+				(row) => row.querySelector('a')?.getAttribute('title') === pending[index].peer
+			);
+			expect(checkingRow?.textContent).toContain('Checking...');
 			await React.act(async () =>
 				pending[index].resolve(
 					index < 2
@@ -135,11 +135,8 @@ it.each([true, false])(
 						: reachable(pending[index].peer)
 				)
 			);
-			if (index < 11 && showLoader) expect(container.querySelector('table')).toBeNull();
-			if (!showLoader) {
-				expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
-				expect(container.textContent).not.toContain('Unavailable');
-			}
+			expect(container.querySelectorAll('tbody tr')).toHaveLength(50);
+			expect(container.textContent).not.toContain('Unavailable');
 		}
 		expect(maximum).toBe(8);
 		expect(container.textContent).not.toContain('Loading nodes');
@@ -175,7 +172,7 @@ it.each([true, false])(
 it('paints cached reachable rows immediately without repeating initial probes', async () => {
 	vi.mocked(nodesApi.getCachedInfo).mockReturnValue(peers.slice(20, 30).map((peer) => reachable(peer.address)));
 	await render();
-	expect(container.querySelector('tbody a')?.textContent).toBe(peers[20].address);
+	expect(container.querySelector('tbody a')?.getAttribute('title')).toBe(peers[20].address);
 	expect(container.textContent.match(/Reachable/g)).toHaveLength(10);
 	expect(nodesApi.getInfo).not.toHaveBeenCalled();
 	expect(container.textContent).not.toContain('Checking');

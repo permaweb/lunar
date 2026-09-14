@@ -1,33 +1,11 @@
 import styled from 'styled-components';
 
+import { BlockListStyles } from 'components/molecules/BlockList';
 import { STYLING } from 'helpers/config';
 
-export const Container = styled.div<{ $preview?: boolean }>`
-	scroll-margin-top: 80px;
-	height: ${(props) => (props.$preview ? '100%' : 'auto')};
-	display: flex;
-	flex-direction: column;
-`;
+export const Container = BlockListStyles.Container;
 
-export const Header = styled.div`
-	padding: 15px;
-	margin: 0;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 40px;
-	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-top-right-radius: ${STYLING.dimensions.radius.alt1};
-	border-top-left-radius: ${STYLING.dimensions.radius.alt1};
-
-	@media (max-width: ${STYLING.cutoffs.tablet}) {
-		align-items: flex-start;
-		flex-direction: column;
-		gap: 15px;
-	}
-`;
+export const Header = BlockListStyles.Header;
 
 export const HeaderMain = styled.div`
 	display: flex;
@@ -35,6 +13,9 @@ export const HeaderMain = styled.div`
 	gap: 20px;
 
 	p {
+		display: flex;
+		align-items: center;
+		gap: 12px;
 		font-size: ${(props) => props.theme.typography.size.lg};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -49,51 +30,13 @@ export const HeaderMain = styled.div`
 	}
 `;
 
-export const HeaderActions = styled.div`
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 12.5px;
-`;
+export const HeaderActions = BlockListStyles.HeaderActions;
 
-export const Divider = styled.div`
-	height: 20px;
-	width: 1px;
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+export const Divider = BlockListStyles.Divider;
 
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		display: none;
-	}
-`;
+export const Wrapper = BlockListStyles.Wrapper;
 
-export const Wrapper = styled.div<{ $preview?: boolean }>`
-	width: 100%;
-	flex: ${(props) => (props.$preview ? '1' : 'initial')};
-	overflow: auto;
-	background: ${(props) => props.theme.colors.container.primary.background};
-`;
-
-export const HeaderWrapper = styled.div<{ $preview?: boolean }>`
-	height: 40px;
-	min-width: 100%;
-	width: fit-content;
-	display: ${(props) => (props.$preview ? 'grid' : 'flex')};
-	grid-template-columns: ${(props) => (props.$preview ? 'repeat(4, minmax(0, 1fr))' : 'none')};
-	align-items: center;
-	justify-content: space-between;
-	gap: 15px;
-	padding: 0 15px;
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	background: ${(props) => props.theme.colors.container.alt1.background};
-
-	div,
-	p {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.alt1};
-	}
-`;
+export const HeaderWrapper = BlockListStyles.HeaderWrapper;
 
 export const BodyWrapper = styled.div<{ $preview?: boolean }>`
 	width: 100%;
@@ -105,8 +48,8 @@ export const BodyWrapper = styled.div<{ $preview?: boolean }>`
 		border-bottom-right-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
 	}
 
-	> *:first-child:hover {
-		box-shadow: inset 0 1px 0 ${(props) => props.theme.colors.border.alt4};
+	> *:first-child::after {
+		top: ${(props) => (props.$preview ? '0' : '-1px')};
 	}
 
 	.transaction-list-element {
@@ -116,56 +59,18 @@ export const BodyWrapper = styled.div<{ $preview?: boolean }>`
 	}
 `;
 
-export const ElementWrapper = styled.div<{ $preview?: boolean }>`
-	height: 40px;
-	min-width: 100%;
-	width: fit-content;
-	position: relative;
-	display: ${(props) => (props.$preview ? 'grid' : 'flex')};
-	grid-template-columns: ${(props) => (props.$preview ? 'repeat(4, minmax(0, 1fr))' : 'none')};
-	align-items: center;
-	justify-content: space-between;
-	gap: 15px;
-	padding: 0 15px;
-	cursor: pointer;
-	transition: all 75ms;
-	background: ${(props) => props.theme.colors.container.primary.background};
-
-	p {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	&:hover {
+export const ElementWrapper = styled(BlockListStyles.ElementWrapper)`
+	&:focus-visible {
 		background: ${(props) => props.theme.colors.container.primary.active};
 		border-left: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
 		border-right: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
-	}
-
-	&:hover::after {
-		content: '';
-		position: absolute;
-		height: 1px;
-		width: calc(100% + 2px);
-		top: -1px;
-		left: -1px;
-		right: 0;
-		bottom: 0;
-		border-top: 1px solid ${(props) => props.theme.colors.border.alt4};
-		transition: all 100ms;
+		outline: 1px solid ${(props) => props.theme.colors.border.alt4};
+		outline-offset: -1px;
 	}
 `;
 
-export const ElementItem = styled.div`
-	display: flex;
-	align-items: center;
-`;
+export const ElementItem = BlockListStyles.ElementItem;
 
 export const ID = styled(ElementItem)<{ $preview?: boolean }>`
 	min-width: ${(props) => (props.$preview ? '0' : '200px')};
@@ -242,15 +147,7 @@ export const Size = styled(ElementItem)<{ $preview?: boolean }>`
 	}
 `;
 
-export const Time = styled(ElementItem)<{ $preview?: boolean }>`
-	min-width: ${(props) => (props.$preview ? '0' : '185px')};
-	width: ${(props) => (props.$preview ? 'auto' : '185px')};
-	justify-content: flex-end;
-
-	p {
-		text-align: right;
-	}
-`;
+export const Time = BlockListStyles.Time;
 
 export const LinkLabel = styled.div`
 	max-width: 100%;
@@ -258,7 +155,8 @@ export const LinkLabel = styled.div`
 	a,
 	button {
 		max-width: 100%;
-		display: block;
+		display: inline-flex;
+		align-items: center;
 	}
 
 	p {
@@ -296,70 +194,17 @@ export const AddressLabel = styled.small`
 	white-space: nowrap;
 `;
 
-export const FooterWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	justify-content: space-between;
-	gap: 15px;
-	padding: 15px;
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
-	border-bottom-left-radius: ${STYLING.dimensions.radius.alt1};
-	border-bottom-right-radius: ${STYLING.dimensions.radius.alt1};
-`;
+export const FooterWrapper = BlockListStyles.FooterWrapper;
 
-export const PageCounter = styled.div`
-	display: flex;
-	align-items: center;
-	gap: 7.5px;
+export const PageCounter = BlockListStyles.PageCounter;
 
-	p,
-	label,
-	input {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.alt1};
-	}
-`;
+export const DPageCounter = BlockListStyles.DPageCounter;
 
-export const DPageCounter = styled(PageCounter)`
-	display: flex;
+export const MPageCounter = BlockListStyles.MPageCounter;
 
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		display: none;
-	}
-`;
+export const UpdateWrapper = BlockListStyles.UpdateWrapper;
 
-export const MPageCounter = styled(PageCounter)`
-	display: none;
-
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		display: flex;
-	}
-`;
-
-export const UpdateWrapper = styled.div<{ $preview?: boolean }>`
-	height: ${(props) => (props.$preview ? '40px' : 'auto')};
-	padding: ${(props) => (props.$preview ? '0 15px' : '0 15px 15px 15px')};
-	display: ${(props) => (props.$preview ? 'flex' : 'block')};
-	align-items: center;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
-	border-bottom-left-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
-	border-bottom-right-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
-	background: ${(props) => props.theme.colors.container.primary.background};
-
-	p {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
-		text-transform: ${(props) => (props.$preview ? 'none' : 'uppercase')};
-	}
+export const Count = styled.span`
+	font-size: ${(props) => props.theme.typography.size.small};
+	color: ${(props) => props.theme.colors.font.alt1};
 `;

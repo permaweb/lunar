@@ -8,6 +8,13 @@
 - Keep `.permaweb-frontend.json` accurate, run the bundled architecture validator after frontend changes, and do not mark the repository compliant while mapped violations remain.
 - During adoption, execute behavior-preserving migration slices instead of grandfathering existing violations. Preserve unrelated changes and keep product redesign out of structural migrations.
 
+## Agent entry points
+
+- The skill is vendor-neutral and lives only at `.agents/skills/permaweb-frontend-code-style/`. Make every edit there.
+- **Claude Code** discovers it via `.claude/skills/permaweb-frontend-code-style`, a symlink into `.agents/`, and loads this file through `CLAUDE.md`. Recreate the link with `ln -sfn ../../.agents/skills/permaweb-frontend-code-style .claude/skills/permaweb-frontend-code-style`.
+- **OpenAI/Codex** discovers it via `.agents/skills/permaweb-frontend-code-style/agents/openai.yaml` and loads this file directly.
+- Per-vendor presentation metadata lives in `.agents/skills/permaweb-frontend-code-style/agents/`; keep `claude.yaml` and `openai.yaml` in step when the skill's name or prompt changes.
+
 ## Verification
 
 - Run the architecture validator, TypeScript compiler, and relevant focused tests after frontend changes.

@@ -118,7 +118,7 @@ export interface BaseTabType {
 export type TransactionTabType = {
 	id: string;
 	label: string;
-	type: TransactionType | null;
+	type: TransactionType | 'arweave-node' | null;
 	lastRoute?: string;
 	tabKey?: string;
 };

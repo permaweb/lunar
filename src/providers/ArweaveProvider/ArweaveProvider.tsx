@@ -52,16 +52,13 @@ function WalletList(props: { onConnect: (walletType: WalletEnum) => Promise<void
 		<S.WalletListContainer>
 			{AR_WALLETS.map((wallet: any, index: number) => (
 				<S.WalletListItem key={index} onClick={() => props.onConnect(wallet.type)} className={'border-wrapper-primary'}>
-					<S.WalletLogo>
-						<img src={wallet.logo} alt={''} />
-					</S.WalletLogo>
 					<span>{wallet.label}</span>
 				</S.WalletListItem>
 			))}
 			<S.WalletLink>
 				<span>
 					Don't have an Arweave Wallet? You can create one{' '}
-					<a href={LINKS.wander} target={'_blank'}>
+					<a href={LINKS.permawebos} target={'_blank'}>
 						here.
 					</a>
 				</span>

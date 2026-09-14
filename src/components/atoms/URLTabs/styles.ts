@@ -36,12 +36,16 @@ export const Tab = styled.div<{ active: boolean }>`
 	justify-content: center;
 	align-items: center;
 	position: relative;
-	flex: 1;
+	/* flex: 1; */
 
 	button {
 		border-radius: ${STYLING.dimensions.radius.primary} !important;
 		box-shadow: none !important;
-		flex: 1;
+
+		span {
+			font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
+		}
+		/* flex: 1; */
 	}
 `;
 
@@ -50,12 +54,12 @@ export const EndWrapper = styled.div`
 	justify-content: center;
 	align-items: center;
 	gap: 15px;
-	flex: 1;
+	/* flex: 1; */
 
 	button {
 		min-width: 160px;
 		border-radius: ${STYLING.dimensions.radius.primary} !important;
-		flex: 1;
+		/* flex: 1; */
 	}
 `;
 

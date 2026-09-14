@@ -13,7 +13,7 @@ export default function Select(props: IProps) {
 
 	return props.options && props.activeOption ? (
 		<CloseHandler active={active} disabled={!active || props.disabled} callback={() => setActive(false)}>
-			<S.Wrapper>
+			<S.Wrapper $plain={props.variant === 'plain'}>
 				{props.label && (
 					<S.Label disabled={props.disabled}>
 						<span>{props.label}</span>
@@ -21,6 +21,7 @@ export default function Select(props: IProps) {
 				)}
 				<S.Dropdown
 					active={active}
+					$plain={props.variant === 'plain'}
 					disabled={props.disabled}
 					onClick={(e) => {
 						e.preventDefault();
@@ -32,7 +33,7 @@ export default function Select(props: IProps) {
 					<ReactSVG src={ASSETS.arrow} />
 				</S.Dropdown>
 				{active && (
-					<S.Options>
+					<S.Options $top={props.top} $plain={props.variant === 'plain'}>
 						{props.options.map((option: SelectOptionType, index: number) => {
 							return (
 								<S.Option

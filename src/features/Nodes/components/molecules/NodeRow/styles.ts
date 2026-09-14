@@ -3,14 +3,16 @@ import styled from 'styled-components';
 export const Row = styled.tr`
 	height: 40px;
 	background: ${(props) => props.theme.colors.container.primary.background};
-	transition: background 75ms;
-	&:hover {
-		background: ${(props) => props.theme.colors.container.primary.active};
+	cursor: pointer;
+	&:hover,
+	&:focus-within {
+		background: ${(props) => props.theme.colors.container.alt1.background};
 	}
 `;
 export const Status = styled.span`
 	display: inline-flex;
 	align-items: center;
+	vertical-align: middle;
 	gap: 7.5px;
 	color: ${(props) => props.theme.colors.font.primary};
 	font-weight: ${(props) => props.theme.typography.weight.medium};

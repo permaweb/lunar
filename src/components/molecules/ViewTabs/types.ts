@@ -5,6 +5,7 @@ import { BaseTabType } from 'helpers/types';
 export interface TabsContainerProps<T extends BaseTabType> {
 	type: string;
 	header: string;
+	headerActions?: React.ReactNode[];
 	defaultTab: Omit<T, 'tabKey'>;
 	tabs: T[];
 	activeTabIndex: number;
@@ -23,7 +24,9 @@ export interface TabsContainerProps<T extends BaseTabType> {
 	onMount?: (tabsRef: React.RefObject<HTMLDivElement>) => void;
 	languageLabels: {
 		newTab: string;
+		newTabTooltip: string;
 		clearTabs: string;
+		clearTabsTooltip: string;
 		cancel: string;
 		tabsDeleteConfirmationInfo: string;
 	};

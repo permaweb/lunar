@@ -3,7 +3,7 @@ import { connect, createSigner } from '@permaweb/aoconnect';
 import PermawebLibs from '@permaweb/libs';
 
 import { DEFAULT_AO_NODE, DEFAULT_GATEWAYS, DEFAULT_LEGACY_CU_URL } from 'helpers/config';
-import { DefaultGQLResponseType, GQLNodeResponseType, ProfileType } from 'helpers/types';
+import { DefaultGQLResponseType, GQLNodeResponseType } from 'helpers/types';
 
 interface AoClient {
 	dryrun(args: Record<string, unknown>): Promise<any>;
@@ -15,18 +15,11 @@ interface AoClient {
 export interface PermawebApi {
 	ao: AoClient;
 	createProcess(args: Record<string, unknown>): Promise<string>;
-	createProfile(data: Record<string, unknown>, onStatus?: (status: unknown) => void): Promise<string>;
 	getGQLData(args: Record<string, unknown>): Promise<DefaultGQLResponseType>;
-	getProfileByWalletAddress(address: string): Promise<ProfileType | null>;
 	mapFromProcessCase(messages: any[]): GQLNodeResponseType[] & { edges?: GQLNodeResponseType[] };
 	readProcess(args: Record<string, unknown>): Promise<any>;
 	readState(args: Record<string, unknown>): Promise<any>;
 	sendMessage(args: Record<string, unknown>): Promise<string>;
-	updateProfile(
-		data: Record<string, unknown>,
-		profileId: string,
-		onStatus?: (status: unknown) => void
-	): Promise<string>;
 }
 
 export interface PermawebApis {
@@ -83,13 +76,10 @@ function createApi(library: any, ao: any, signer: ReturnType<typeof createSigner
 			results: (args) => ao.results(args),
 		},
 		createProcess: (args) => library.createProcess(args),
-		createProfile: (data, onStatus) => library.createProfile(data, onStatus),
 		getGQLData: (args) => library.getGQLData(args),
-		getProfileByWalletAddress: (address) => library.getProfileByWalletAddress(address),
 		mapFromProcessCase: (messages) => library.mapFromProcessCase(messages),
 		readProcess: (args) => library.readProcess(args),
 		readState: (args) => library.readState(args),
 		sendMessage: (args) => library.sendMessage(args),
-		updateProfile: (data, profileId, onStatus) => library.updateProfile(data, profileId, onStatus),
 	};
 }

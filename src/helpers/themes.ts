@@ -357,12 +357,12 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 		},
 		button: {
 			primary: {
-				background: currentTheme.neutral2,
-				border: currentTheme.neutral3,
+				background: currentTheme.neutral3,
+				border: currentTheme.neutral4,
 				color: currentTheme.neutralA1,
 				active: {
-					background: currentTheme.neutral3,
-					border: currentTheme.neutral4,
+					background: currentTheme.neutral4,
+					border: currentTheme.neutral6,
 					color: currentTheme.neutralA1,
 				},
 				disabled: {
@@ -475,12 +475,16 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 		form: {
 			background: currentTheme.neutral1,
 			border: currentTheme.neutral3,
+			active: {
+				background: currentTheme.neutral2,
+				border: currentTheme.neutral4,
+			},
 			invalid: {
 				outline: currentTheme.negative1,
 				shadow: currentTheme.shadow1,
 			},
 			valid: {
-				outline: currentTheme.primary1,
+				outline: currentTheme.neutral4,
 				shadow: currentTheme.shadow1,
 			},
 			disabled: {

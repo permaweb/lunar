@@ -8,6 +8,7 @@ import { Avatar } from 'components/atoms/Avatar';
 import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { Modal } from 'components/atoms/Modal';
+import { PinnedTabsPanel } from 'features/Pins';
 import { ASSETS, PROCESSES, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import {
 	darkTheme,
@@ -22,7 +23,7 @@ import {
 import { checkValidAddress, formatAddress, formatCount, isNumeric } from 'helpers/utils';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
-import { usePermawebProvider } from 'providers/PermawebProvider';
+import { useProfileProvider } from 'providers/ProfileProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
 import { CloseHandler } from 'wrappers/CloseHandler';
 
@@ -142,7 +143,8 @@ const WalletBalanceSection = React.memo(
 						height={20}
 						width={20}
 						noMinWidth
-						iconSize={12.5}
+						iconSize={11}
+						padding={'2.5px 0 0 0'}
 						disabled={loadingBalance}
 						tooltip={loadingBalance ? `${loading}...` : refresh}
 						tooltipPosition={'bottom-right'}
@@ -168,7 +170,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 	const navigate = useNavigate();
 
 	const arProvider = useArweaveProvider();
-	const permawebProvider = usePermawebProvider();
+	const profileProvider = useProfileProvider();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -177,14 +179,23 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 	const [showWallet, setShowWallet] = React.useState<boolean>(false);
 	const [showWalletDropdown, setShowWalletDropdown] = React.useState<boolean>(false);
 	const [showThemeSelector, setShowThemeSelector] = React.useState<boolean>(false);
+	const [showPins, setShowPins] = React.useState(false);
+	const walletButton = React.useRef<HTMLButtonElement>(null);
+	const wasPanelOpen = React.useRef(false);
+	const panelOpen = showPins || profileProvider.showProfileManager;
+	React.useEffect(() => {
+		if (wasPanelOpen.current && !panelOpen) walletButton.current?.focus();
+		wasPanelOpen.current = panelOpen;
+	}, [panelOpen]);
 	const [copied, setCopied] = React.useState<boolean>(false);
 
 	const [label, setLabel] = React.useState<string | null>(null);
 
 	React.useEffect(() => {
-		setTimeout(() => {
+		const timer = setTimeout(() => {
 			setShowWallet(true);
 		}, 200);
+		return () => clearTimeout(timer);
 	}, [arProvider.walletAddress]);
 
 	React.useEffect(() => {
@@ -192,8 +203,8 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 			setLabel(`${language.fetching}...`);
 		} else {
 			if (arProvider.walletAddress) {
-				if (permawebProvider.profile && permawebProvider.profile.username) {
-					setLabel(permawebProvider.profile.username);
+				if (profileProvider.profile && profileProvider.profile.username) {
+					setLabel(profileProvider.profile.username);
 				} else {
 					setLabel(formatAddress(arProvider.walletAddress, false));
 				}
@@ -201,7 +212,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 				setLabel(language.connect);
 			}
 		}
-	}, [showWallet, arProvider.walletAddress, permawebProvider.profile]);
+	}, [showWallet, arProvider.walletAddress, profileProvider.profile]);
 
 	const copyAddress = React.useCallback(async (address: string) => {
 		if (address) {
@@ -300,12 +311,13 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 			>
 				<S.Wrapper>
 					<S.PWrapper
+						ref={walletButton}
 						type={'button'}
 						aria-label={arProvider.walletAddress ? language.profileMenu : language.connectWallet}
 						onClick={handlePress}
 					>
 						<Avatar
-							owner={permawebProvider.profile}
+							owner={profileProvider.profile}
 							isConnected={!!arProvider.walletAddress}
 							dimensions={{ wrapper: 35, icon: 15.5 }}
 							callback={null}
@@ -316,7 +328,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 							<S.DHeaderWrapper>
 								<S.DHeaderFlex>
 									<Avatar
-										owner={permawebProvider.profile}
+										owner={profileProvider.profile}
 										isConnected={!!arProvider.walletAddress}
 										dimensions={{ wrapper: 32.5, icon: 19.5 }}
 										callback={null}
@@ -348,6 +360,19 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 								/>
 							</S.DBalanceWrapper>
 							<S.DBodyWrapper>
+								<li>
+									<S.MenuAction
+										onClick={() => {
+											setShowWalletDropdown(false);
+											setShowPins(true);
+										}}
+									>
+										<ReactSVG src={ASSETS.pin} />
+										{language.pinned}
+									</S.MenuAction>
+								</li>
+							</S.DBodyWrapper>
+							<S.DBodyWrapper>
 								<li onClick={() => copyAddress(arProvider.walletAddress)}>
 									<ReactSVG src={ASSETS.copy} />
 									{copied ? `${language.copied}!` : language.walletAddress}
@@ -361,9 +386,16 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									<ReactSVG src={ASSETS.wallet} />
 									{language.openInExplorer}
 								</li>
-								<li onClick={() => permawebProvider.setShowProfileManager(true)}>
-									<ReactSVG src={ASSETS.write} />
-									{language.profile}
+								<li>
+									<S.MenuAction
+										onClick={() => {
+											setShowWalletDropdown(false);
+											profileProvider.setShowProfileManager(true);
+										}}
+									>
+										<ReactSVG src={ASSETS.write} />
+										{language.profile}
+									</S.MenuAction>
 								</li>
 								<li onClick={() => setShowNodeSettings(true)}>
 									<ReactSVG src={ASSETS.settings} />
@@ -384,6 +416,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 					)}
 				</S.Wrapper>
 			</CloseHandler>
+			{showPins && <PinnedTabsPanel onClose={() => setShowPins(false)} />}
 			{showThemeSelector && (
 				<Modal
 					type="panel"

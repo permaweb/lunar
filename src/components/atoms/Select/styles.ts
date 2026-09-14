@@ -2,11 +2,11 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div`
+export const Wrapper = styled.div<{ $plain?: boolean }>`
 	height: fit-content;
 	width: 100%;
 	position: relative;
-	width: 315px;
+	width: ${(props) => (props.$plain ? 'fit-content' : '315px')};
 	max-width: 90vw;
 `;
 
@@ -21,7 +21,7 @@ export const Label = styled.div<{ disabled: boolean }>`
 	}
 `;
 
-export const Dropdown = styled.button<{ active: boolean }>`
+export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 	height: ${STYLING.dimensions.form.small};
 	width: 100%;
 	text-align: left;
@@ -77,19 +77,57 @@ export const Dropdown = styled.button<{ active: boolean }>`
 	}
 
 	svg {
-		height: 15px;
-		width: 15px;
+		height: 17px;
+		width: 17px;
 		margin: 5px 0 0 0;
 		transform: rotate(0deg);
 		color: ${(props) =>
 			props.active ? props.theme.colors.font.light1 : props.theme.colors.button.primary.color} !important;
 	}
+
+	/* Chromeless trigger for headers: the label alone carries the control, so only its color reacts. */
+	${(props) =>
+		props.$plain &&
+		`
+		height: fit-content;
+		width: fit-content;
+		gap: 5px;
+		padding: 0;
+		justify-content: flex-start;
+		background: transparent !important;
+		border: none !important;
+
+		span,
+		svg {
+			color: ${props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1} !important;
+		}
+
+		svg {
+			height: 15px;
+			width: 15px;
+			margin: 1px 0 0 0;
+		}
+
+		&:hover,
+		&:focus {
+			background: transparent !important;
+			border: none !important;
+
+			span,
+			svg {
+				color: ${props.theme.colors.font.primary} !important;
+			}
+		}
+	`}
 `;
 
-export const Options = styled.ul`
-	width: 100%;
+export const Options = styled.ul<{ $top?: number; $plain?: boolean }>`
+	width: ${(props) => (props.$plain ? 'max-content' : '100%')};
+	min-width: 100%;
+	max-width: 90vw;
 	position: absolute;
-	top: 42.5px;
+	${(props) => props.$plain && 'right: 0;'}
+	top: ${(props) => (props.$top ? `${props.$top.toString()}px` : props.$plain ? '27.5px' : '42.5px')};
 	z-index: 4;
 	overflow: hidden;
 	background: ${(props) => props.theme.colors.container.alt8.background};
@@ -111,7 +149,7 @@ export const Option = styled.li<{ active: boolean }>`
 	background: ${(props) =>
 		props.active ? props.theme.colors.container.alt9.background : props.theme.colors.container.alt8.background};
 	border: 1px solid transparent;
-	padding: 0 15px;
+	padding: 0 9px 0 15px;
 	transition: all 100ms;
 	&:hover {
 		color: ${(props) => props.theme.colors.font.light1};
@@ -140,13 +178,13 @@ export const RemoveOption = styled.button`
 	transition: all 100ms;
 
 	div {
-		height: 12px;
-		width: 12px;
+		height: 14px;
+		width: 14px;
 	}
 
 	svg {
-		height: 12px;
-		width: 12px;
+		height: 14px;
+		width: 14px;
 		color: currentColor;
 	}
 

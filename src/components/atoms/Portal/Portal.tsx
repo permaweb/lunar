@@ -8,7 +8,6 @@ export default function Portal(props: IProps) {
 	React.useEffect(() => {
 		setDOM(true);
 	}, []);
-	return DOM && document.getElementById(props.node)
-		? ReactDOM.createPortal(props.children, document.getElementById(props.node)!)
-		: null;
+	const container = props.container ?? document.getElementById(props.node);
+	return DOM && container ? ReactDOM.createPortal(props.children, container) : null;
 }

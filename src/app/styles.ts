@@ -55,6 +55,21 @@ export const GlobalStyle = createGlobalStyle`
     vertical-align: baseline;
   }
 
+  th, td {
+    vertical-align: middle;
+  }
+
+  tbody > tr {
+    transition: background 75ms;
+
+    &:hover {
+      background: ${(props) => props.theme.colors.container.primary.active};
+      /* Keep the row border inside scroll containers without changing cell geometry. */
+      outline: 1px solid ${(props) => props.theme.colors.border.alt4};
+      outline-offset: -1px;
+    }
+  }
+
   article, aside, details, figcaption, figure,
   footer, header, hgroup, menu, nav, section {
     display: block;

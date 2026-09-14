@@ -864,6 +864,7 @@ function AOS(props: {
 										width={25}
 										noMinWidth
 										iconSize={12}
+										padding={'3.5px 0 0 0'}
 										disabled={!hasConnected}
 										tooltip={editorMode ? language.closeEditor : language.openEditor}
 										tooltipPosition={'top-left'}
@@ -877,7 +878,8 @@ function AOS(props: {
 										height={25}
 										width={25}
 										noMinWidth
-										iconSize={12}
+										iconSize={10}
+										padding={'2.5px 0 0 0'}
 										tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 										tooltipPosition={'top-left'}
 										stopPropagation
@@ -892,7 +894,7 @@ function AOS(props: {
 										height={25}
 										width={25}
 										noMinWidth
-										iconSize={12}
+										iconSize={14}
 										disabled={!hasConnected || loadingMessage || !inputValue}
 										tooltip={language.run}
 										tooltipPosition={'top-right'}

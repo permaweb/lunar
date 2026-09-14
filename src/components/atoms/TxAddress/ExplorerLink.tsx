@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
+import { getArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
 import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -23,7 +24,9 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 	const value = props.value !== null && props.value !== undefined ? props.value.toString() : '';
 	const cached =
-		props.label === undefined && props.type !== 'block' ? selectTransaction(store.getState(), value) : null;
+		props.label === undefined && props.type !== 'block' && props.type !== 'arweave-node'
+			? selectTransaction(store.getState(), value)
+			: null;
 	const cachedName = cached ? getTagValue(cached.node?.tags, 'Name') : null;
 	const truncatedName =
 		cachedName && props.nameMaxLength && cachedName.length > props.nameMaxLength
@@ -31,7 +34,8 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 			: cachedName;
 
 	// Check if the current value is already in the URL (already on this explorer tab)
-	const isCurrentTab = location.pathname.includes(`${URLS.explorer}${value}`);
+	const route = props.type === 'arweave-node' ? getArweaveNodeRoute(value) : `${URLS.explorer}${value}`;
+	const isCurrentTab = location.pathname === route || location.pathname.startsWith(`${route}/`);
 
 	const copyValue = React.useCallback(
 		async (e: any) => {
@@ -81,6 +85,7 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 	const handleClick = React.useCallback(
 		(e: any) => {
+			e.preventDefault();
 			e.stopPropagation();
 			if (value && !copied) {
 				// If already on current tab, only allow copy
@@ -90,11 +95,11 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 					copyValue(e);
 				} else {
 					if (props.onPress) props.onPress();
-					navigate(`${URLS.explorer}${value}`);
+					navigate(route);
 				}
 			}
 		},
-		[value, copied, copyValue, navigate, props.onPress, isCurrentTab]
+		[value, copied, copyValue, navigate, props.onPress, isCurrentTab, route]
 	);
 
 	function getLabel() {
@@ -115,6 +120,9 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 	return (
 		<S.Wrapper
+			as={'a'}
+			href={`#${route}`}
+			title={value}
 			disabled={copied}
 			onClick={handleClick}
 			onMouseEnter={handleMouseModifierState}

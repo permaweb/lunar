@@ -85,15 +85,21 @@ export const Input = styled.input<{
 		opacity: 0.75;
 	}
 
+	&:hover {
+		outline: 0;
+		background: ${(props) => props.theme.colors.form.active.background};
+		border: 1px solid
+			${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.active.border)};
+		transition: border 100ms ease-in-out;
+	}
 	&:focus {
 		outline: 0;
+		background: ${(props) => props.theme.colors.form.active.background};
 		border: 1px solid
-			${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.valid.outline)};
-		outline: 0.5px solid
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.valid.outline)};
 		box-shadow: 1px 1px 5.5px
 			${(props) => (props.invalid ? props.theme.colors.form.invalid.shadow : props.theme.colors.form.valid.shadow)};
-		transition: box-shadow, border, outline 325ms ease-in-out;
+		transition: border 100ms ease-in-out;
 	}
 	&:disabled {
 		background: ${(props) => props.theme.colors.form.disabled.background};

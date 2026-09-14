@@ -4,6 +4,19 @@ import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { open, transition3 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
+export const MenuAction = styled(PrimitiveButton)`
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+`;
+
 export const Wrapper = styled.div`
 	height: 100%;
 	display: flex;
@@ -249,9 +262,9 @@ export const DBodyWrapper = styled.ul`
 		padding: 0 7.5px;
 
 		svg {
-			height: 14px;
-			width: 14px;
-			margin: 5.5px 9.5px 0 0;
+			height: 12px;
+			width: 12px;
+			margin: 5.5px 12px 0 0;
 			color: ${(props) => props.theme.colors.font.alt2};
 			fill: ${(props) => props.theme.colors.font.alt2};
 		}

@@ -43,8 +43,8 @@ function contrastRatio(first: string, second: string) {
 }
 
 describe('theme palettes', () => {
-	it('anchors Dark Default to a neutral #161616 base', () => {
-		expect(darkTheme.neutral1).toBe('#161616');
+	it('anchors Dark Default to a neutral #151515 base', () => {
+		expect(darkTheme.neutral1).toBe('#151515');
 	});
 
 	it.each(palettes)('%s keeps its secondary surface close to its base', (_name, palette) => {
