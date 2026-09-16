@@ -472,8 +472,6 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 						actions={[
 							<ActionMenu
 								ariaLabel={props.languageLabels.tabActions}
-								label={'Tab Options'}
-								icon={ASSETS.ellipsisVertical}
 								items={[
 									...(props.headerActions ?? []),
 									{

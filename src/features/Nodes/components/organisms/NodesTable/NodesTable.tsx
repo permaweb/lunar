@@ -88,7 +88,7 @@ export default function NodesTable() {
 				<S.Message role={'status'}>{language.nodesChecksInterrupted}</S.Message>
 			)}
 			{showMap ? (
-				<React.Suspense fallback={<S.Message role={'status'}>{`${language.loading}...`}</S.Message>}>
+				<React.Suspense fallback={<S.MessageAlt role={'status'}>{`${language.loading}...`}</S.MessageAlt>}>
 					<NodesMap peers={peers} />
 				</React.Suspense>
 			) : rows.length ? (

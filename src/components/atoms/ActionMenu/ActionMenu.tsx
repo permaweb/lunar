@@ -97,19 +97,16 @@ export default function ActionMenu(props: {
 
 	return (
 		<S.Wrapper ref={wrapperRef}>
-			{props.label ? (
-				<Button
-					{...triggerProps}
-					type="primary"
-					label={props.label}
-					icon={props.icon ?? ASSETS.ellipsisVertical}
-					onPress={handleToggle}
-				/>
-			) : (
-				<S.Trigger {...triggerProps} type="button" onClick={handleToggle}>
-					<ReactSVG src={props.icon ?? ASSETS.ellipsisVertical} aria-hidden="true" />
-				</S.Trigger>
-			)}
+			<Button
+				{...triggerProps}
+				type="primary"
+				label={props.label ?? undefined}
+				icon={props.icon ?? ASSETS.ellipsisHorizontal}
+				onPress={handleToggle}
+				height={32}
+				width={props.label ? undefined : 32.5}
+				iconSize={16}
+			/>
 			{isOpen && (
 				<S.Menu
 					ref={menuRef}

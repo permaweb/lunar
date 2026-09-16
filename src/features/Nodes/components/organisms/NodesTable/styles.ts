@@ -64,9 +64,12 @@ export const Divider = styled.div`
 	}
 `;
 export const Message = styled.p`
-	padding: 30px 15px;
+	padding: 0 15px 15px 15px;
 	color: ${(props) => props.theme.colors.font.alt1};
 	font-size: ${(props) => props.theme.typography.size.small};
+`;
+export const MessageAlt = styled(Message)`
+	background: ${(props) => props.theme.colors.container.alt1.background};
 `;
 export const Footer = styled.div`
 	display: flex;

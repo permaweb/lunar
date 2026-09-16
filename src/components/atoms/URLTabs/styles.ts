@@ -26,7 +26,7 @@ export const Tabs = styled.div`
 	width: 100%;
 	display: flex;
 	align-items: center;
-	gap: 20px;
+	gap: 15px;
 	/* border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	padding: 0 0 5px 0; */
 `;
