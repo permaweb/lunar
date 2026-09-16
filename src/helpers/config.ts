@@ -8,6 +8,12 @@ export const DEFAULT_AO_NODE = {
 	scheduler: 'n_XZJhUnmldNFo4dhajoPZWhBXuJk-OcQr5JQ49c4Zo',
 };
 
+export const DEFAULT_AO_PEERS = ['https://alpha.neo.zephyrdev.xyz', 'https://charlie.neo2.zephyrdev.xyz'];
+export const AO_READ_TIMEOUT_MS = 4_000;
+// Computing state and resolving large linked values can take longer than scheduler reads.
+export const AO_STATE_READ_TIMEOUT_MS = 30_000;
+export const AO_EXTENSION_RETRY_MS = 60_000;
+
 export const DEFAULT_SCHEDULER_URL = 'https://schedule.forward.computer';
 export const DEFAULT_LEGACY_SCHEDULER_URL = 'https://su-router.ao-testnet.xyz';
 export const DEFAULT_LEGACY_AUTHORITY = 'fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY';
@@ -27,7 +33,6 @@ export const LEGACY_AUTHORITIES: { address: string; minHeight: number | null; ma
 
 export const DEFAULT_GATEWAYS = {
 	legacy: 'ao-search-gateway.goldsky.com',
-	fallback: 'https://cache.forward.computer/~query@1.0/graphql',
 	arweave: 'https://arweave.net/graphql',
 };
 

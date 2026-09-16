@@ -644,10 +644,6 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 				id: [args.txId],
 			},
 			{
-				gateway: DEFAULT_GATEWAYS.fallback,
-				id: [args.txId],
-			},
-			{
 				gateway: DEFAULT_GATEWAYS.arweave,
 				id: [args.txId],
 			},

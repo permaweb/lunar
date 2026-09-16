@@ -7,6 +7,7 @@ Apply the structural rules in this reference across the complete frontend unless
 - Formatting and imports
 - Architecture and files
 - Feature ownership and reuse
+- Reuse existing components
 - Dependency direction and public APIs
 - Mandatory navigation ownership
 - Required repository migration
@@ -134,6 +135,15 @@ src/features/<Feature>/
 - Allow relative imports inside one feature. Never deep-import another feature or reach into its component, hook, or model folders.
 - Avoid a root `src/features/index.ts` mega barrel. Import each feature from its own public boundary.
 - Keep domain models independent of React when possible so they remain testable and reusable.
+
+## Reuse existing components
+
+- Before creating UI, inspect existing components and their callers for the same purpose, including lists, tables, forms, dialogs, and pagination—not only atoms.
+- Reuse the existing component when it can support the requested behavior. A new backend, protocol, or data source alone is not a reason to create a parallel UI.
+- Adapt data at the API or feature boundary. If necessary, extend the existing component with a small typed source, controlled-state, or composition contract while preserving its defaults and current callers.
+- Share the actual rendering and interaction code. Copying an existing component's markup or styles into a new component does not count as reuse.
+- Create a separate component when the behavior or semantics materially differ and extending the existing one would make its contract unclear. Keep reusable portions shared and explain the concrete reason for the separation.
+- When replacing a duplicate, remove its unused rendering and styles, and verify both the new caller and the existing behavior.
 
 ## Dependency direction and public APIs
 

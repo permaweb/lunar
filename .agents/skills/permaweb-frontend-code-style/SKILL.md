@@ -41,6 +41,7 @@ Delete temporary migration maps and compatibility exports after adoption. Retain
 - Read repository instructions and inspect package, TypeScript, formatter, lint, test, build, deployment, and architecture configuration.
 - Run the architecture validator and inspect the target plus adjacent examples.
 - Inventory feature ownership, shared primitives, navigation, public barrels, dependency directions, API adapters, state models, runtime validation, design tokens, performance budgets, and tests.
+- Search for existing components that serve the requested UI before creating a new one; follow the component reuse guidance in the frontend conventions.
 - Preserve unrelated user changes.
 
 ### 2. Plan

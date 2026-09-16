@@ -69,6 +69,11 @@ export const HeaderMain = styled.div`
 	}
 `;
 
+export const HeaderCount = styled.span`
+	font-size: ${(props) => props.theme.typography.size.small};
+	color: ${(props) => props.theme.colors.font.alt1};
+`;
+
 export const HeaderActions = styled.div`
 	display: flex;
 	align-items: center;

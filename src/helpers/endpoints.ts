@@ -1,9 +1,7 @@
-import { DEFAULT_AO_NODE, PROCESSES } from './config';
 import { checkValidAddress } from './utils';
 
 export const legacyCuEndpoint = 'https://cu.ao-testnet.xyz';
 export const arweaveEndpoint = 'https://arweave.net';
-export const metricsProcessEndpoint = `${DEFAULT_AO_NODE.url}/${PROCESSES.metrics}~process@1.0/compute/metrics?require-codec=application/json&accept-bundle=true`;
 export const metricsS3Endpoint = 'https://metrics.s3.us-west-1.amazonaws.com/metrics.json';
 
 function trimTrailingSlash(url: string) {
@@ -28,10 +26,6 @@ export function getRendererEndpoint(renderWith: string, tx: string) {
 	} else {
 		return `https://${renderWith}.arweave.dev/?tx=${tx}`;
 	}
-}
-
-export function getMetricsEndpoint() {
-	return metricsProcessEndpoint;
 }
 
 export function getMetricsFallbackEndpoint() {

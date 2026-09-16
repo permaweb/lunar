@@ -70,7 +70,7 @@ export const DeleteAction = styled.div`
 `;
 
 export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
-	font-size: ${(props) => props.theme.typography.size.xSmall};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	font-family: ${(props) => props.theme.typography.family.primary};
 	color: ${(props) =>

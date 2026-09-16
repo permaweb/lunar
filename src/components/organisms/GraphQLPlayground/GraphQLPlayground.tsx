@@ -792,7 +792,7 @@ export default function GraphQLPlayground(props: {
 						/>
 					</S.InputFormWrapper>
 					<Button
-						type={'alt1'}
+						type={'primary'}
 						icon={ASSETS.save}
 						onPress={saveCustomGateway}
 						disabled={!getGatewayStorageValue(inputGateway) || gateways.includes(getGatewayStorageValue(inputGateway))}
@@ -805,19 +805,7 @@ export default function GraphQLPlayground(props: {
 						preventDefault
 					/>
 					<Button
-						type={'alt1'}
-						icon={ASSETS.fullscreen}
-						onPress={toggleFullscreen}
-						height={32.5}
-						width={32.5}
-						noMinWidth
-						iconSize={12.5}
-						tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
-						stopPropagation
-						preventDefault
-					/>
-					<Button
-						type={'alt1'}
+						type={'primary'}
 						onPress={() => setShowVariables((prev) => !prev)}
 						active={showVariables}
 						icon={showVariables ? ASSETS.close : ASSETS.code}
@@ -828,7 +816,7 @@ export default function GraphQLPlayground(props: {
 						tooltip={language.queryVariables}
 					/>
 					<Button
-						type={'alt1'}
+						type={'primary'}
 						onPress={() => setShowDocs(true)}
 						active={showDocs}
 						icon={ASSETS.docs}
@@ -836,6 +824,18 @@ export default function GraphQLPlayground(props: {
 						width={32.5}
 						iconSize={14.5}
 						tooltip={language.docs}
+					/>
+					<Button
+						type={'primary'}
+						icon={ASSETS.fullscreen}
+						onPress={toggleFullscreen}
+						height={32.5}
+						width={32.5}
+						noMinWidth
+						iconSize={12.5}
+						tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
+						stopPropagation
+						preventDefault
 					/>
 				</S.InputWrapper>
 				<S.ActionsWrapper>

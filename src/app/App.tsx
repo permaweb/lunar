@@ -23,7 +23,6 @@ const NotFound = getLazyImport('NotFound');
 import { Loader } from 'components/atoms/Loader';
 import { ProfileManagerOverlay } from 'features/Profiles';
 import { ASSETS, DOM, LINKS, URLS } from 'helpers/config';
-import { stripUrlProtocol } from 'helpers/utils';
 import { Navigation } from 'navigation/Navigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
@@ -282,14 +281,12 @@ export default function App() {
 							type={'button'}
 							onClick={() => setShowNodeSettings(true)}
 							$isLifted={false}
-							aria-label={`${language.aoMainnet} ${language.node}: ${stripUrlProtocol(activeNode.url)}. ${
-								isNodeStatusLoading ? `${language.loading}...` : isNodeOnline ? language.online : language.offline
-							}`}
-							title={language.changeConnection}
+							aria-label={language.openNetworkSettings}
+							title={language.openNetworkSettings}
 						>
 							<S.NodeStatusIndicator $isOnline={isNodeOnline} $isLoading={isNodeStatusLoading} />
 							<S.NodeStatusText>
-								<p>{stripUrlProtocol(activeNode.url)}</p>
+								<p>{language.openNetworkSettings}</p>
 							</S.NodeStatusText>
 						</S.NodeStatusButton>
 					)}

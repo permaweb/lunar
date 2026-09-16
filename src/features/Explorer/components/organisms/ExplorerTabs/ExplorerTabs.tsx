@@ -22,6 +22,7 @@ import { usePinnedTabsProvider } from 'providers/PinnedTabsProvider';
 import type { ExplorerTab as ExplorerTabType } from '../../../model/tabs';
 import { parseExplorerTabs } from '../../../model/tabs';
 import { ArweaveNode } from '../ArweaveNode';
+import { ProcessMessages } from '../ProcessMessages';
 
 function checkValidBlockId(id: string | null) {
 	if (!id) return false;
@@ -582,6 +583,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				onMessageOpen={handleAddTab}
 				tabKey={tab.tabKey}
 				onLoadingChange={onLoadingChange}
+				processMessagesView={ProcessMessages}
 			/>
 		) : (
 			<AOS key={tab.tabKey} processId={tab.id} active={isActive} onTxChange={onTxChange} tabKey={tab.tabKey} />

@@ -30,10 +30,12 @@ function Tab(props: ITProps) {
 				label={props.label}
 				onPress={handlePress}
 				active={props.active}
+				disabled={props.disabled}
 				icon={props.icon}
 				iconLeftAlign
 				height={35}
 			/>
+			{/* <S.ActiveIndicator $active={props.active} aria-hidden={'true'} /> */}
 		</S.Tab>
 	);
 }

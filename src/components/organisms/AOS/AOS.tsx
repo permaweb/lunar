@@ -317,6 +317,7 @@ function AOS(props: {
 					const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
 
 					const deps = resolvePermawebApi({
+						forAos: true,
 						variant: variant,
 						permawebProvider: permawebProvider,
 					});
@@ -461,7 +462,7 @@ function AOS(props: {
 			const name = processName.trim();
 
 			try {
-				const processId = await permawebProvider.mainnetApi.createProcess({
+				const processId = await permawebProvider.aosApi.createProcess({
 					tags: [{ name: 'Name', value: name }],
 				});
 
@@ -522,11 +523,13 @@ function AOS(props: {
 				const variant = getTagValue(txResponse.node.tags, TAGS.keys.variant) as MessageVariantEnum;
 
 				const deps = resolvePermawebApi({
+					forAos: true,
 					variant: variant,
 					permawebProvider: permawebProvider,
 				});
 
 				const libs = resolvePermawebApi({
+					forAos: true,
 					variant: variant,
 					permawebProvider: permawebProvider,
 				});

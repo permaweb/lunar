@@ -835,21 +835,19 @@ export const Placeholder = styled.div`
 `;
 
 export const PlaceholderIcon = styled.div`
-	height: 150px;
-	width: 150px;
+	height: 125px;
+	width: 125px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	background: ${(props) => props.theme.colors.container.alt1.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-radius: 50%;
+	border-radius: 50% !important;
 
 	svg {
-		height: 75px;
-		width: 75px;
+		height: 55px;
+		width: 55px;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
 		fill: ${(props) => props.theme.colors.icon.primary.fill};
-		margin: 7.5px 0 0 0;
+		margin: 8.5px 0 0 0;
 	}
 `;
 

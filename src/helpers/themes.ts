@@ -362,7 +362,7 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 				color: currentTheme.neutralA1,
 				active: {
 					background: currentTheme.neutral4,
-					border: currentTheme.neutral6,
+					border: currentTheme.neutral5,
 					color: currentTheme.neutralA1,
 				},
 				disabled: {

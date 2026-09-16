@@ -1,12 +1,14 @@
 import React from 'react';
 
 import { requestRemote } from 'api/http';
+import type { PeerApi } from 'api/permaweb';
 
 import { Icon } from 'components/atoms/Icon';
 import { MetricChart } from 'components/molecules/MetricChart';
-import { ASSETS } from 'helpers/config';
-import { getMetricsEndpoint, getMetricsFallbackEndpoint } from 'helpers/endpoints';
+import { ASSETS, PROCESSES } from 'helpers/config';
+import { getMetricsFallbackEndpoint } from 'helpers/endpoints';
 import { MetricDataPoint, NetworkMetricsSnapshot } from 'helpers/types';
+import { usePermawebProvider } from 'providers/PermawebProvider';
 
 import * as S from './styles';
 
@@ -26,7 +28,7 @@ const METRICS_CACHE_KEY = 'lunar-network-metrics';
 const METRICS_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 const METRICS_SOURCES = [
-	{ label: 'AO process', url: getMetricsEndpoint() },
+	{ label: 'AO process', url: null },
 	{ label: 'S3 fallback', url: getMetricsFallbackEndpoint() },
 ];
 
@@ -109,7 +111,16 @@ function writeMetricsCache(snapshot: NetworkMetricsSnapshot) {
 	}
 }
 
-async function fetchMetricsFromSource(source: (typeof METRICS_SOURCES)[number]) {
+async function fetchMetricsFromSource(source: (typeof METRICS_SOURCES)[number], mainnetApi: PeerApi) {
+	if (!source.url) {
+		const data = await mainnetApi.readState({
+			processId: PROCESSES.metrics,
+			hydrate: false,
+			path: 'metrics',
+			appendPath: true,
+		});
+		return normalizeMetricsSnapshot(data, source.label);
+	}
 	const response = await requestRemote(source.url, { headers: { Accept: 'application/json' } });
 
 	if (!response.ok) {
@@ -119,12 +130,12 @@ async function fetchMetricsFromSource(source: (typeof METRICS_SOURCES)[number]) 
 	return normalizeMetricsSnapshot(await response.json(), source.label);
 }
 
-async function requestMetrics() {
+async function requestMetrics(mainnetApi: PeerApi) {
 	const errors: string[] = [];
 
 	for (const source of METRICS_SOURCES) {
 		try {
-			return await fetchMetricsFromSource(source);
+			return await fetchMetricsFromSource(source, mainnetApi);
 		} catch (error) {
 			errors.push(`${source.label}: ${error instanceof Error ? error.message : String(error)}`);
 		}
@@ -133,12 +144,12 @@ async function requestMetrics() {
 	throw new Error(`Metrics request failed (${errors.join('; ')})`);
 }
 
-function fetchMetrics() {
+function fetchMetrics(mainnetApi: PeerApi) {
 	const cachedSnapshot = readMetricsCache();
 	if (cachedSnapshot) return Promise.resolve(cachedSnapshot);
 
 	if (!metricsRequest) {
-		metricsRequest = requestMetrics()
+		metricsRequest = requestMetrics(mainnetApi)
 			.then((snapshot) => {
 				writeMetricsCache(snapshot);
 				metricsRequest = null;
@@ -156,6 +167,7 @@ function fetchMetrics() {
 }
 
 function useMetrics() {
+	const { mainnetApi } = usePermawebProvider();
 	const [snapshot, setSnapshot] = React.useState<NetworkMetricsSnapshot | null>(() => readMetricsCache());
 	const [error, setError] = React.useState<string | null>(() => metricsError);
 
@@ -169,7 +181,8 @@ function useMetrics() {
 			return;
 		}
 
-		fetchMetrics()
+		if (!mainnetApi) return;
+		fetchMetrics(mainnetApi)
 			.then((data) => {
 				if (!cancelled) {
 					setError(null);
@@ -183,7 +196,7 @@ function useMetrics() {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [mainnetApi]);
 
 	return { error, snapshot };
 }
@@ -297,7 +310,7 @@ export function MetricTotals() {
 		return (
 			<S.TotalsWrapper>
 				{Array.from({ length: 4 }).map((_, index) => (
-					<S.TotalPlaceholder key={index} />
+					<S.TotalPlaceholder className={'border-wrapper-alt4'} key={index} />
 				))}
 			</S.TotalsWrapper>
 		);

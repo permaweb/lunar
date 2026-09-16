@@ -197,7 +197,7 @@ export default function ArweaveNode(props: {
 					isValid && (
 						<C.SeparatedActions>
 							<Button
-								type={'alt1'}
+								type={'primary'}
 								icon={ASSETS.newTab}
 								tooltip={language.nodeVisit}
 								height={32.5}
@@ -210,7 +210,7 @@ export default function ArweaveNode(props: {
 							/>
 							{selected !== 'overview' && (
 								<Button
-									type={'alt1'}
+									type={'primary'}
 									icon={ASSETS.info}
 									tooltip={language.nodeTabInfo}
 									height={32.5}

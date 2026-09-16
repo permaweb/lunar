@@ -24,7 +24,7 @@ export interface PermawebApi {
 
 export interface PermawebApis {
 	legacyApi: PermawebApi;
-	mainnetApi: PermawebApi;
+	aosApi: PermawebApi;
 }
 
 export function createPermawebApis(args: {
@@ -63,9 +63,15 @@ export function createPermawebApis(args: {
 
 	return {
 		legacyApi: createApi(legacyLibrary, legacyDependencies.ao, signer),
-		mainnetApi: createApi(mainnetLibrary, mainnetDependencies.ao, signer),
+		aosApi: createApi(mainnetLibrary, mainnetDependencies.ao, signer),
 	};
 }
+
+export type { ArweaveScheduleMessage, ArweaveSchedulePage, ArweaveSchedulePageArgs } from './arweaveSchedule';
+export { ARWEAVE_SCHEDULE_PAGE_SIZE } from './arweaveSchedule';
+export type { PeerApi } from './peerApi';
+export { createPeerApi } from './peerApi';
+export type { ProcessStateProgress } from './processState';
 
 function createApi(library: any, ao: any, signer: ReturnType<typeof createSigner> | null): PermawebApi {
 	return {
