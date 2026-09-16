@@ -43,12 +43,12 @@ export const BodyWrapper = styled.div<{ $preview?: boolean }>`
 	overflow: ${(props) => (props.$preview ? 'hidden' : 'visible')};
 
 	> *:last-child {
-		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary} !important;
+		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 		border-bottom-left-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
 		border-bottom-right-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
 	}
 
-	> *:first-child::after {
+	> *:first-child:hover::after {
 		top: ${(props) => (props.$preview ? '0' : '-1px')};
 	}
 

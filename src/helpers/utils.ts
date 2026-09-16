@@ -61,8 +61,18 @@ export function getTagValue(list: { [key: string]: any }[], name: string): strin
 	return null;
 }
 
+export function getAoVariantFromTags(tags: TagType[] | undefined): MessageVariantEnum | undefined {
+	const variant = getTagValue(tags, 'Variant');
+	if (variant === MessageVariantEnum.Mainnet || variant === MessageVariantEnum.Legacynet) return variant;
+
+	// Native HyperBEAM processes can declare their device without a Variant tag.
+	if (!variant && getTagValue(tags, 'Device') === 'process@1.0') return MessageVariantEnum.Mainnet;
+	return undefined;
+}
+
 export function getTransactionTypeFromTags(tags: TagType[] | undefined): TransactionType {
-	const type = getTagValue(tags, 'Type')?.toLowerCase();
+	const type =
+		getTagValue(tags, 'Type')?.toLowerCase() ?? (getTagValue(tags, 'Device') === 'process@1.0' ? 'process' : undefined);
 
 	switch (type) {
 		case 'process':
@@ -321,12 +331,12 @@ export function removeCommitments(obj: any): any {
 	return obj;
 }
 
-export function resolvePermawebApi(args: { variant: MessageVariantEnum; permawebProvider: any }) {
+export function resolvePermawebApi(args: { variant: MessageVariantEnum; permawebProvider: any; forAos?: boolean }) {
 	switch (args.variant) {
 		case MessageVariantEnum.Legacynet:
 			return args.permawebProvider.legacyApi;
 		case MessageVariantEnum.Mainnet:
-			return args.permawebProvider.mainnetApi;
+			return args.forAos ? args.permawebProvider.aosApi : args.permawebProvider.mainnetApi;
 		default:
 			return args.permawebProvider.legacyApi;
 	}

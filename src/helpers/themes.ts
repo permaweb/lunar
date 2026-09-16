@@ -362,7 +362,7 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 				color: currentTheme.neutralA1,
 				active: {
 					background: currentTheme.neutral4,
-					border: currentTheme.neutral6,
+					border: currentTheme.neutral5,
 					color: currentTheme.neutralA1,
 				},
 				disabled: {
@@ -473,11 +473,11 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 			dark2: currentTheme.dark2,
 		},
 		form: {
-			background: currentTheme.neutral1,
+			background: currentTheme.neutral2,
 			border: currentTheme.neutral3,
 			active: {
-				background: currentTheme.neutral2,
-				border: currentTheme.neutral4,
+				background: currentTheme.neutral3,
+				border: currentTheme.neutral5,
 			},
 			invalid: {
 				outline: currentTheme.negative1,

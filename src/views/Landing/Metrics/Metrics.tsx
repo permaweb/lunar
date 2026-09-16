@@ -4,8 +4,8 @@ import { requestRemote } from 'api/http';
 
 import { Icon } from 'components/atoms/Icon';
 import { MetricChart } from 'components/molecules/MetricChart';
-import { ASSETS } from 'helpers/config';
-import { getMetricsEndpoint, getMetricsFallbackEndpoint } from 'helpers/endpoints';
+import { ASSETS, PROCESSES } from 'helpers/config';
+import { getMetricsProcessEndpoint } from 'helpers/endpoints';
 import { MetricDataPoint, NetworkMetricsSnapshot } from 'helpers/types';
 
 import * as S from './styles';
@@ -25,10 +25,7 @@ type MetricsCache = {
 const METRICS_CACHE_KEY = 'lunar-network-metrics';
 const METRICS_CACHE_TTL = 24 * 60 * 60 * 1000;
 
-const METRICS_SOURCES = [
-	{ label: 'AO process', url: getMetricsEndpoint() },
-	{ label: 'S3 fallback', url: getMetricsFallbackEndpoint() },
-];
+const METRICS_SOURCES = [{ label: 'AO process', url: getMetricsProcessEndpoint(PROCESSES.metrics) }];
 
 function normalizeMetricsSnapshot(payload: any, sourceLabel: string): NetworkMetricsSnapshot {
 	const generatedAt = payload?.generatedAt ?? payload?.generatedat;
@@ -297,7 +294,7 @@ export function MetricTotals() {
 		return (
 			<S.TotalsWrapper>
 				{Array.from({ length: 4 }).map((_, index) => (
-					<S.TotalPlaceholder key={index} />
+					<S.TotalPlaceholder className={'border-wrapper-alt4'} key={index} />
 				))}
 			</S.TotalsWrapper>
 		);

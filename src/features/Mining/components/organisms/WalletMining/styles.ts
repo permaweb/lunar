@@ -29,7 +29,9 @@ export const Note = styled.p`
 	font-size: ${(props) => props.theme.typography.size.xSmall};
 	color: ${(props) => props.theme.colors.font.alt1};
 	display: block;
-	margin: 0 0 15px 0;
+`;
+export const Refresh = styled.div`
+	margin: 15px 0 0 0;
 `;
 export const PageCount = styled.span`
 	font-size: ${(props) => props.theme.typography.size.xSmall};

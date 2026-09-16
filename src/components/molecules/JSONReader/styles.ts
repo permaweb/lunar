@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const Wrapper = styled.div<{ noWrapper?: boolean; fixedHeight?: number }>`
+export const Wrapper = styled.div<{ noWrapper?: boolean; fixedHeight?: number; $maxHeight?: number }>`
 	padding: ${(props) => (props.noWrapper ? '0' : `15px`)};
 	font-family: ${(props) => props.theme.typography.family.alt2};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -9,6 +9,13 @@ export const Wrapper = styled.div<{ noWrapper?: boolean; fixedHeight?: number }>
 	position: relative;
 	min-width: 0;
 	${(props) => props.fixedHeight && `height: ${props.fixedHeight}px;`}
+	${(props) =>
+		props.$maxHeight &&
+		`
+			max-height: ${props.$maxHeight}px;
+			display: flex;
+			flex-direction: column;
+		`}
 
 	ul {
 		margin: 0 0 0 1.5px !important;
@@ -21,6 +28,7 @@ export const JSONWrapper = styled.div`
 
 export const Header = styled.div`
 	height: 32.5px;
+	flex-shrink: 0;
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
@@ -58,6 +66,7 @@ export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight?: 
 	line-height: 1.6;
 	color: ${(props) => props.theme.colors.editor.primary};
 	min-width: 0;
+	min-height: 0;
 	overflow-x: auto;
 	overflow-y: auto;
 `;

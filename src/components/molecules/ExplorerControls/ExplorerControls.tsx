@@ -69,7 +69,7 @@ export default function ExplorerControls(props: {
 					/>
 				</S.SearchInputWrapper>
 				<Button
-					type={'alt1'}
+					type={'primary'}
 					icon={ASSETS.pin}
 					onPress={() => pin && pins.toggle(pin)}
 					disabled={!pin || (!isPinned && pins.tabs.length >= PINNED_TABS_LIMIT)}
@@ -85,7 +85,7 @@ export default function ExplorerControls(props: {
 					preventDefault
 				/>
 				<Button
-					type={'alt1'}
+					type={'primary'}
 					icon={copied === 'id' ? ASSETS.checkmark : ASSETS.copy}
 					onPress={() => handleCopy('id')}
 					disabled={!props.value}
@@ -98,7 +98,7 @@ export default function ExplorerControls(props: {
 					preventDefault
 				/>
 				<Button
-					type={'alt1'}
+					type={'primary'}
 					icon={copied === 'url' ? ASSETS.checkmark : ASSETS.link}
 					onPress={() => handleCopy('url')}
 					disabled={!props.value}
@@ -111,19 +111,7 @@ export default function ExplorerControls(props: {
 					preventDefault
 				/>
 				<Button
-					type={'alt1'}
-					icon={ASSETS.fullscreen}
-					onPress={props.onFullscreen}
-					height={32.5}
-					width={32.5}
-					iconSize={12.5}
-					noMinWidth
-					tooltip={props.isFullscreen ? language.exitFullScreen : language.enterFullScreen}
-					stopPropagation
-					preventDefault
-				/>
-				<Button
-					type={'alt1'}
+					type={'primary'}
 					icon={ASSETS.refresh}
 					onPress={props.onSubmit}
 					disabled={props.loading || !props.valid}
@@ -132,6 +120,18 @@ export default function ExplorerControls(props: {
 					iconSize={12.5}
 					noMinWidth
 					tooltip={language.refresh}
+					stopPropagation
+					preventDefault
+				/>
+				<Button
+					type={'primary'}
+					icon={ASSETS.fullscreen}
+					onPress={props.onFullscreen}
+					height={32.5}
+					width={32.5}
+					iconSize={12.5}
+					noMinWidth
+					tooltip={props.isFullscreen ? language.exitFullScreen : language.enterFullScreen}
 					stopPropagation
 					preventDefault
 				/>

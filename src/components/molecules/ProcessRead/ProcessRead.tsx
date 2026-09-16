@@ -1,12 +1,13 @@
 import React from 'react';
 import JSONbig from 'json-bigint';
 
-import { requestRemote } from 'api/http';
+import { AoReadError } from 'api/aoNetwork';
+import type { ProcessStateLoadOptions, ProcessStateResult } from 'api/permaweb';
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { getLegacyResultsEndpoint, legacyCuEndpoint } from 'helpers/endpoints';
+import { legacyCuEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatMs, removeCommitments, stripUrlProtocol } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -19,7 +20,7 @@ import * as S from './styles';
 
 export default function ProcessRead(props: {
 	processId: string;
-	variant: MessageVariantEnum;
+	variant: MessageVariantEnum | undefined;
 	autoRun: boolean;
 	hideOutput?: boolean;
 }) {
@@ -37,47 +38,23 @@ export default function ProcessRead(props: {
 	const [startTime, setStartTime] = React.useState(null);
 	const [roundtripTime, setRoundtripTime] = React.useState(null);
 	const [elapsed, setElapsed] = React.useState(0);
-	const [isFetching, setIsFetching] = React.useState(false);
+	const [readState, setReadState] = React.useState<
+		| { status: 'idle' }
+		| { status: 'loading'; data: unknown; progress?: { completed: number; total: number }; loadMore?: () => void }
+		| { status: 'success'; data: unknown; loadMore?: () => void }
+		| { status: 'error'; data: unknown; partial: boolean; loadMore?: () => void }
+	>({ status: 'idle' });
+	const isFetching = readState.status === 'loading';
+	const currentOutput = 'data' in readState ? readState.data : null;
 	const [toggleRead, setToggleRead] = React.useState(false);
-	const [currentOutput, setCurrentOutput] = React.useState<any>(null);
 	const [readLog, setReadLog] = React.useState([]);
 	const [errorLog, setErrorLog] = React.useState([]);
-
-	const isInitialMount = React.useRef(true);
-
-	React.useEffect(() => {
-		(async function () {
-			setCuLocation(null);
-			setCurrentOutput(null);
-			setReadLog([]);
-			setErrorLog([]);
-			switch (props.variant) {
-				case MessageVariantEnum.Legacynet:
-					try {
-						const response = await requestRemote(getLegacyResultsEndpoint(props.processId, legacyComputeNode), {
-							method: 'GET',
-						});
-
-						const cu = new URL(response.url);
-						setCuLocation(cu.host);
-					} catch (e: any) {
-						console.error(e);
-						setCuLocation(legacyComputeNode);
-					}
-					break;
-				case MessageVariantEnum.Mainnet:
-					const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
-					setCuLocation(activeNode?.url || null);
-					break;
-			}
-		})();
-	}, [props.processId, props.variant, settingsProvider.settings.nodes, legacyComputeNode]);
 
 	const safelyParseNestedJSON = (input) => {
 		if (typeof input === 'string') {
 			try {
 				const parsed = JSONbig({ storeAsString: true }).parse(input);
-				return safelyParseNestedJSON(parsed);
+				return parsed === input ? input : safelyParseNestedJSON(parsed);
 			} catch (e) {
 				return input;
 			}
@@ -89,110 +66,161 @@ export default function ProcessRead(props: {
 		return input;
 	};
 
-	const fetchData = async () => {
-		if (props.processId && checkValidAddress(props.processId)) {
-			let frameId: any;
-			try {
-				setIsFetching(true);
-				const start = Date.now();
-				setStartTime(start);
-
-				const tick = () => {
-					setElapsed(Date.now() - start);
-					frameId = requestAnimationFrame(tick);
-				};
-
-				tick();
-
-				let response;
-				let node;
-				switch (props.variant) {
-					case MessageVariantEnum.Legacynet:
-						node = cuLocation ?? legacyComputeNode;
-						response = await permawebProvider.legacyApi.readProcess({
-							processId: props.processId,
-							action: 'Info',
-						});
-						break;
-					case MessageVariantEnum.Mainnet:
-						const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
-						node = activeNode.url;
-						response = await permawebProvider.mainnetApi.readState({ processId: props.processId });
-						break;
-				}
-
-				let parsedResponse;
-				try {
-					parsedResponse = typeof response === 'string' ? JSONbig({ storeAsString: true }).parse(response) : response;
-					parsedResponse = safelyParseNestedJSON(parsedResponse);
-				} catch (e) {
-					// If JSON parsing fails, treat it as a plain string response
-					parsedResponse = response;
-				}
-				let finalResponse = removeCommitments(parsedResponse);
-
-				// Merge with cached transaction if available
-				const cachedTx = selectTransaction(store.getState(), props.processId);
-				if (cachedTx) {
-					finalResponse = { ...cachedTx, ...finalResponse };
-
-					// Write the merged response back to cache
-					store.dispatch(addTransaction(props.processId, finalResponse));
-				}
-
-				setCurrentOutput(removeCommitments(parsedResponse));
-
-				const roundTrip = Date.now() - start;
-				setRoundtripTime(roundTrip);
-				cancelAnimationFrame(frameId);
-				setIsFetching(false);
-
-				setReadLog((prevLog) => [
-					...prevLog,
-					{ startTime: start, roundtripTime: roundTrip, node: stripUrlProtocol(node ?? '') },
-				]);
-			} catch (e) {
-				console.error(e);
-				cancelAnimationFrame(frameId);
-				setIsFetching(false);
-				setErrorLog((prevLog) => [...prevLog, { time: Date.now(), message: e.message || 'Unknown error' }]);
-				setCurrentOutput({ Error: e.message ?? 'No Data' });
-			}
-		}
-	};
+	// Restored tabs can render before their process metadata identifies the network.
+	const readApi =
+		props.variant === MessageVariantEnum.Mainnet
+			? permawebProvider.mainnetApi
+			: props.variant === MessageVariantEnum.Legacynet
+			? permawebProvider.legacyApi
+			: null;
+	const [hasRun, setHasRun] = React.useState(props.autoRun);
 
 	React.useEffect(() => {
-		if (isInitialMount.current) {
-			isInitialMount.current = false;
-			if (props.autoRun) {
-				fetchData();
-			}
-			return;
-		}
-		if (!isFetching) {
-			fetchData();
-		}
-	}, [toggleRead]);
-
-	React.useEffect(() => {
-		// Reset logs when process/variant changes
 		setReadLog([]);
 		setErrorLog([]);
-		setCurrentOutput(null);
-	}, [props.processId, props.variant]);
+	}, [props.processId, props.variant, readApi, legacyComputeNode]);
+
+	React.useEffect(() => {
+		const controller = new AbortController();
+		let frameId: number;
+		setCuLocation(props.variant === MessageVariantEnum.Legacynet ? legacyComputeNode : null);
+		setReadState({ status: 'idle' });
+		if (!readApi || !checkValidAddress(props.processId) || (!props.autoRun && !hasRun)) return;
+
+		let partialOutput: unknown = null;
+		let isRunning = false;
+		const runRead = async (continuation?: ProcessStateResult['loadMore']) => {
+			if (controller.signal.aborted || isRunning) return;
+			isRunning = true;
+			const loadMore = continuation ? () => void runRead(continuation) : undefined;
+			const start = Date.now();
+			setReadState({ status: 'loading', data: partialOutput, loadMore });
+			setStartTime(start);
+			const tick = () => {
+				setElapsed(Date.now() - start);
+				frameId = requestAnimationFrame(tick);
+			};
+			tick();
+			try {
+				let response: unknown;
+				let next: ProcessStateResult['loadMore'];
+				let node = legacyComputeNode;
+				if (props.variant === MessageVariantEnum.Mainnet) {
+					const readOptions: ProcessStateLoadOptions = {
+						signal: controller.signal,
+						onProgress: (progress) => {
+							if (controller.signal.aborted) return;
+							partialOutput = removeCommitments(safelyParseNestedJSON(progress.data));
+							setCuLocation(progress.provider);
+							setReadState({
+								status: 'loading',
+								data: partialOutput,
+								loadMore,
+								progress: { completed: progress.completedLinks, total: progress.totalLinks },
+							});
+						},
+					};
+					const result = await (continuation
+						? continuation(readOptions)
+						: permawebProvider.mainnetApi.readStateWithSource({
+								processId: props.processId,
+								hydrate: true,
+								...readOptions,
+						  }));
+					response = result.data;
+					node = result.provider;
+					next = result.loadMore;
+				} else {
+					response = await permawebProvider.legacyApi.readProcess({ processId: props.processId, action: 'Info' });
+				}
+				if (controller.signal.aborted) return;
+				const parsedResponse = safelyParseNestedJSON(response);
+				const output = removeCommitments(parsedResponse);
+				partialOutput = output;
+				// Transaction metadata is shared across networks; do not persist peer-specific state there.
+				if (props.variant === MessageVariantEnum.Legacynet) {
+					const cachedTx = selectTransaction(store.getState(), props.processId);
+					if (cachedTx) store.dispatch(addTransaction(props.processId, { ...cachedTx, ...output }));
+				}
+				setCuLocation(node);
+				setReadState({ status: 'success', data: output, loadMore: next ? () => void runRead(next) : undefined });
+				const roundTrip = Date.now() - start;
+				setRoundtripTime(roundTrip);
+				setReadLog((previous) => [
+					...previous,
+					{ startTime: start, roundtripTime: roundTrip, node: stripUrlProtocol(node) },
+				]);
+			} catch (error) {
+				if (controller.signal.aborted) return;
+				const message =
+					error instanceof AoReadError
+						? error.code === 'timeout'
+							? language.aoReadTimeout
+							: error.code === 'invalid-response'
+							? language.aoReadInvalid
+							: language.aoReadUnavailable
+						: error instanceof Error
+						? error.message
+						: language.aoReadUnavailable;
+				setErrorLog((previous) => [...previous, { time: Date.now(), message }]);
+				setReadState({
+					status: 'error',
+					data: partialOutput ?? { Error: message },
+					partial: partialOutput !== null,
+					loadMore,
+				});
+			} finally {
+				isRunning = false;
+				cancelAnimationFrame(frameId);
+			}
+		};
+		void runRead();
+		return () => {
+			controller.abort();
+			cancelAnimationFrame(frameId);
+		};
+	}, [props.processId, props.variant, props.autoRun, hasRun, readApi, legacyComputeNode, toggleRead]);
+
+	function handleLoadMore() {
+		if (readState.status !== 'idle' && !isFetching) readState.loadMore?.();
+	}
 
 	return (
 		<S.Wrapper>
+			{!props.hideOutput && (
+				<S.OutputWrapper>
+					<JSONReader
+						data={
+							currentOutput ??
+							(isFetching ? { Status: `${language.loading}...` } : { Result: 'Current state can not be resolved' })
+						}
+						header={language.currentState}
+						maxHeight={600}
+						preserveViewState
+						footer={
+							readState.status !== 'idle' && readState.loadMore ? (
+								<S.LoadMore>
+									<span role="status">{isFetching ? language.loadingLinkedState : language.moreStateAvailable}</span>
+									<Button type="alt3" label={language.loadMoreData} onPress={handleLoadMore} disabled={isFetching} />
+								</S.LoadMore>
+							) : undefined
+						}
+					/>
+				</S.OutputWrapper>
+			)}
 			<S.SectionWrapper className={'border-wrapper-alt3'}>
 				<S.Header>
 					<S.HeaderMain>
-						<p>{`${cuLocation ?? '-'}`}</p>
+						<p>{`${language.readFrom}: ${cuLocation ?? '-'}`}</p>
 					</S.HeaderMain>
 					<Button
 						type={'alt3'}
 						label={isFetching ? `${language.running}...` : language.run}
-						disabled={isFetching}
-						onPress={() => setToggleRead((prev) => !prev)}
+						disabled={isFetching || !readApi}
+						onPress={() => {
+							setHasRun(true);
+							setToggleRead((prev) => !prev);
+						}}
 					/>
 				</S.Header>
 				<S.Body>
@@ -215,6 +243,16 @@ export default function ProcessRead(props: {
 										: `${language.roundtripTime}: ${roundtripTime ? formatMs(roundtripTime) : '-'}`}
 								</span>
 							</S.Line>
+							{readState.status === 'loading' && readState.progress && (
+								<S.Line role="status">
+									<span>{`${language.loadingLinkedState} (${readState.progress.completed}/${readState.progress.total})`}</span>
+								</S.Line>
+							)}
+							{readState.status === 'error' && readState.partial && (
+								<S.Error role="status">
+									<span>{language.aoReadPartial}</span>
+								</S.Error>
+							)}
 						</S.SectionBody>
 					</S.Section>
 					{readLog.length > 0 && (
@@ -233,7 +271,7 @@ export default function ProcessRead(props: {
 											<span>
 												{`(${index + 1}) Roundtrip Time (${formatMs(log.roundtripTime)}), Started at ${new Date(
 													log.startTime
-												).toLocaleTimeString()}`}
+												).toLocaleTimeString()} · ${log.node}`}
 											</span>
 										</S.Line>
 									))
@@ -268,15 +306,6 @@ export default function ProcessRead(props: {
 					</S.LoadingWrapper>
 				)}
 			</S.SectionWrapper>
-			{!props.hideOutput && !isFetching && (
-				<S.OutputWrapper>
-					<JSONReader
-						data={currentOutput ?? { Result: 'No Info Handler Found' }}
-						header={language.info}
-						maxHeight={600}
-					/>
-				</S.OutputWrapper>
-			)}
 		</S.Wrapper>
 	);
 }

@@ -22,6 +22,21 @@ export const SectionWrapperFull = styled(SectionWrapper)`
 
 export const OutputWrapper = styled(SectionWrapperFull)``;
 
+export const LoadMore = styled.div`
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 15px;
+
+	span {
+		color: ${(props) => props.theme.colors.font.alt1};
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+	}
+`;
+
 export const Header = styled.div`
 	width: 100%;
 	display: flex;
@@ -29,7 +44,7 @@ export const Header = styled.div`
 	justify-content: space-between;
 	margin: 0 0 15px 0;
 	p {
-		font-size: ${(props) => props.theme.typography.size.lg};
+		font-size: ${(props) => props.theme.typography.size.base};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};

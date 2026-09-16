@@ -375,16 +375,15 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						</S.PriceWrapper>
 						<S.SearchActionWrapper>
 							<Button
-								type={'alt1'}
+								type={'primary'}
 								icon={ASSETS.search}
 								onPress={() => {
 									setPanelOpen(false);
 									setSearchOpen(true);
 								}}
-								height={36.5}
-								width={36.5}
-								noMinWidth
-								iconSize={14.5}
+								height={32.5}
+								width={32.5}
+								iconSize={14}
 								tooltip={language.search}
 								stopPropagation
 								preventDefault
@@ -392,16 +391,15 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						</S.SearchActionWrapper>
 						<S.MMenuWrapper>
 							<Button
-								type={'alt1'}
+								type={'primary'}
 								icon={ASSETS.menu}
 								onPress={() => {
 									setSearchOpen(false);
 									setPanelOpen(true);
 								}}
-								height={36.5}
-								width={36.5}
-								noMinWidth
-								iconSize={16.5}
+								height={32.5}
+								width={32.5}
+								iconSize={14}
 								stopPropagation
 								preventDefault
 							/>

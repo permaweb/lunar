@@ -2,12 +2,14 @@ import React from 'react';
 import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
+import { getAoReadTransport } from 'api/aoNetwork';
 import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
+import { type AoNetworkSettings, DEFAULT_AO_NETWORK, parseAoPeers, restoreAoNetwork } from 'helpers/aoNetwork';
 import { ASSETS, DEFAULT_AO_NODE, DEFAULT_LEGACY_CU_URL, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
 import {
@@ -67,6 +69,7 @@ interface Settings {
 	showLinkAction: boolean;
 	showNodeStatus: boolean;
 	legacyComputeNode: string;
+	aoNetwork: AoNetworkSettings;
 	nodes: NodeConfig[];
 }
 
@@ -97,6 +100,7 @@ const defaultSettings: Settings = {
 	showLinkAction: false,
 	showNodeStatus: true,
 	legacyComputeNode: DEFAULT_LEGACY_CU_URL,
+	aoNetwork: DEFAULT_AO_NETWORK,
 	nodes: [{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true }],
 };
 
@@ -122,16 +126,22 @@ export function useSettingsProvider(): SettingsContextState {
 
 export default function SettingsProvider(props: SettingsProviderProps) {
 	const loadStoredSettings = (): Settings => {
-		const stored = localStorage.getItem('settings');
+		let parsedSettings: Partial<Settings>;
+		try {
+			const parsed: unknown = JSON.parse(localStorage.getItem('settings') ?? 'null');
+			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) parsedSettings = parsed;
+		} catch {
+			// Malformed saved preferences must not prevent the network settings from opening.
+		}
 		const isDesktop = checkWindowCutoff(parseInt(STYLING.cutoffs.desktop));
 		const preferredTheme = window.matchMedia?.('(prefers-color-scheme: dark)').matches
 			? 'dark-primary'
 			: 'light-primary';
 
 		let settings: Settings;
-		if (stored) {
-			const parsedSettings = JSON.parse(stored);
+		if (parsedSettings) {
 			settings = {
+				...defaultSettings,
 				...parsedSettings,
 				isDesktop,
 				windowSize: { width: window.innerWidth, height: window.innerHeight },
@@ -141,6 +151,7 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 				showLinkAction: parsedSettings.showLinkAction ?? false,
 				showNodeStatus: parsedSettings.showNodeStatus ?? true,
 				legacyComputeNode: parsedSettings.legacyComputeNode ?? DEFAULT_LEGACY_CU_URL,
+				aoNetwork: restoreAoNetwork(parsedSettings.aoNetwork),
 				syncWithSystem: parsedSettings.syncWithSystem ?? true,
 				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
 				preferredDarkTheme: parsedSettings.preferredDarkTheme ?? 'dark-primary',
@@ -162,7 +173,11 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 
 	const { addNotification, removeNotification } = useNotifications();
 
-	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings());
+	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings);
+	const readTransport = React.useMemo(() => getAoReadTransport(settings.aoNetwork), [settings.aoNetwork]);
+	const networkStatus = React.useSyncExternalStore(readTransport.subscribe, readTransport.getStatus);
+	const [peersInput, setPeersInput] = React.useState(settings.aoNetwork.peers.join(', '));
+	const parsedPeers = React.useMemo(() => parseAoPeers(peersInput), [peersInput]);
 	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
 	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
 	const [legacyComputeNodeInput, setLegacyComputeNodeInput] = React.useState<string>(settings.legacyComputeNode);
@@ -407,6 +422,17 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 		updateSettings('showNodeStatus', !settings.showNodeStatus);
 	}
 
+	function handleSavePeers() {
+		if (!parsedPeers) return;
+		updateSettings('aoNetwork', { ...settings.aoNetwork, peers: parsedPeers });
+		setPeersInput(parsedPeers.join(', '));
+	}
+
+	function handleResetPeers() {
+		updateSettings('aoNetwork', { ...settings.aoNetwork, peers: [...DEFAULT_AO_NETWORK.peers] });
+		setPeersInput(DEFAULT_AO_NETWORK.peers.join(', '));
+	}
+
 	function handleLegacyComputeNodeChange(e: React.ChangeEvent<HTMLInputElement>) {
 		setLegacyComputeNodeInput(e.target.value);
 	}
@@ -431,11 +457,89 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 						header={language.en.nodeConfiguration}
 						onClose={() => setShowNodeSettings(false)}
 					>
-						<S.MWrapper className={'modal-wrapper'}>
+						<S.MWrapper>
 							<S.NodeSection>
 								<S.NodeSectionHeader>
-									<p>{`AO Mainnet ${language.en.nodeConfiguration}`}</p>
+									<p>{language.en.aoReadNetwork}</p>
 								</S.NodeSectionHeader>
+								<S.NetworkDescription>{language.en.aoReadNetworkDescription}</S.NetworkDescription>
+								<S.NodeDisplayOption>
+									<Checkbox
+										checked={settings.aoNetwork.preferPermawebOS}
+										onSelect={() =>
+											updateSettings('aoNetwork', {
+												...settings.aoNetwork,
+												preferPermawebOS: !settings.aoNetwork.preferPermawebOS,
+											})
+										}
+										disabled={false}
+									/>
+									<S.NodeDisplayOptionText>
+										<span>{language.en.preferPermawebOS}</span>
+										<p>{language.en.preferPermawebOSDescription}</p>
+									</S.NodeDisplayOptionText>
+								</S.NodeDisplayOption>
+								<S.NodeDisplayOption>
+									<Checkbox
+										checked={settings.aoNetwork.fallbackToPeers}
+										onSelect={() =>
+											updateSettings('aoNetwork', {
+												...settings.aoNetwork,
+												fallbackToPeers: !settings.aoNetwork.fallbackToPeers,
+											})
+										}
+										disabled={!settings.aoNetwork.preferPermawebOS}
+									/>
+									<S.NodeDisplayOptionText>
+										<span>{language.en.fallbackToPeers}</span>
+										<p>{language.en.fallbackToPeersDescription}</p>
+									</S.NodeDisplayOptionText>
+								</S.NodeDisplayOption>
+								<S.NetworkDescription role="status" aria-live="polite">
+									{networkStatus.source === 'fallback'
+										? language.en.peerFallbackActive
+										: networkStatus.source === 'permawebos'
+										? language.en.permawebOSActive
+										: language.en.peersActive}
+								</S.NetworkDescription>
+								{networkStatus.source === 'permawebos' && (
+									<S.NetworkProviders>
+										{(['processPeers', 'schedulePeers', 'linkedStatePeers'] as const).map((role) => (
+											<div key={role}>
+												<strong>{language.en[role]}</strong>
+												<span>{networkStatus[role].join(', ') || language.en.managedByPermawebOS}</span>
+											</div>
+										))}
+									</S.NetworkProviders>
+								)}
+								<FormField
+									label={language.en.aoPeers}
+									value={peersInput}
+									onChange={(event) => setPeersInput(event.target.value)}
+									invalid={{ status: !parsedPeers, message: !parsedPeers ? language.en.invalidAoPeers : null }}
+									disabled={false}
+								/>
+								<S.NetworkDescription>{language.en.aoPeersDescription}</S.NetworkDescription>
+								<S.PeerList>
+									{settings.aoNetwork.peers.map((peer) => (
+										<li key={peer}>{peer}</li>
+									))}
+								</S.PeerList>
+								<S.PeerActions>
+									<Button
+										type="alt3"
+										label={language.en.savePeers}
+										onPress={handleSavePeers}
+										disabled={!parsedPeers || JSON.stringify(parsedPeers) === JSON.stringify(settings.aoNetwork.peers)}
+									/>
+									<Button type="alt3" label={language.en.resetPeers} onPress={handleResetPeers} />
+								</S.PeerActions>
+							</S.NodeSection>
+							<S.NodeSection>
+								<S.NodeSectionHeader>
+									<p>{language.en.aosNode}</p>
+								</S.NodeSectionHeader>
+								<S.NetworkDescription>{language.en.aosNodeDescription}</S.NetworkDescription>
 								<S.NodeList>
 									{settings.nodes.map((node) => (
 										<S.NodeItem key={node.url} active={node.active} onClick={() => handleSetActiveNode(node.url)}>

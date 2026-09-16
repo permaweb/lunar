@@ -6,6 +6,7 @@ import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
 import { requestRemote } from 'api/http';
+import type { PeerApi } from 'api/permaweb';
 
 import { Button } from 'components/atoms/Button';
 import { Calendar } from 'components/atoms/Calendar';
@@ -23,7 +24,6 @@ import {
 	DEFAULT_GATEWAYS,
 	DEFAULT_LEGACY_SCHEDULER_URL,
 	DEFAULT_MESSAGE_TAGS,
-	DEFAULT_SCHEDULER_URL,
 	FLAGS,
 	MINT_ACTIONS,
 	PROCESSES,
@@ -64,6 +64,7 @@ import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
 
 import * as S from './styles';
+import type { MessageListEntry, MessageListSource } from './types';
 
 const NON_MESSAGE_ACTION_FALLBACK_TAGS = [
 	'App-Name',
@@ -307,14 +308,8 @@ async function assertSchedulerResponse(response: Response, context: string) {
 	);
 }
 
-async function fetchSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) {
-	if (variant === MessageVariantEnum.Mainnet) {
-		const response = await requestRemote(`${DEFAULT_SCHEDULER_URL}/${processId}~process@1.0/slot/current`);
-		await assertSchedulerResponse(response, 'Scheduler latest slot request');
-		const value = Number((await response.text()).trim());
-
-		return Number.isFinite(value) ? value : -1;
-	}
+async function fetchSchedulerLatestSlot(processId: string, variant: MessageVariantEnum, mainnetApi: PeerApi) {
+	if (variant === MessageVariantEnum.Mainnet) return mainnetApi.readLatestSlot(processId);
 
 	const response = await requestRemote(`${DEFAULT_LEGACY_SCHEDULER_URL}/${processId}/latest`);
 	await assertSchedulerResponse(response, 'Scheduler latest assignment request');
@@ -326,12 +321,13 @@ async function fetchSchedulerLatestSlot(processId: string, variant: MessageVaria
 	return nonce ?? -1;
 }
 
-function getSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) {
+function getSchedulerLatestSlot(processId: string, variant: MessageVariantEnum, mainnetApi: PeerApi) {
+	if (variant === MessageVariantEnum.Mainnet) return mainnetApi.readLatestSlot(processId);
 	const requestKey = `${variant}:${processId}`;
 	const existingRequest = schedulerLatestSlotRequests.get(requestKey);
 	if (existingRequest) return existingRequest;
 
-	const request = fetchSchedulerLatestSlot(processId, variant);
+	const request = fetchSchedulerLatestSlot(processId, variant, mainnetApi);
 	schedulerLatestSlotRequests.set(requestKey, request);
 
 	const clearRequest = () => {
@@ -345,12 +341,14 @@ function getSchedulerLatestSlot(processId: string, variant: MessageVariantEnum) 
 }
 
 async function fetchSchedulerProcessMessagePage(args: {
+	mainnetApi: PeerApi;
+	signal?: AbortSignal;
 	processId: string;
 	variant: MessageVariantEnum;
 	pageNumber: number;
 	perPage: number;
 }) {
-	const latestSlot = await getSchedulerLatestSlot(args.processId, args.variant);
+	const latestSlot = await getSchedulerLatestSlot(args.processId, args.variant, args.mainnetApi);
 	const count = getSchedulerTotalCount(latestSlot, args.variant);
 	const range = getSchedulerPageRange({
 		latestSlot,
@@ -367,13 +365,22 @@ async function fetchSchedulerProcessMessagePage(args: {
 		};
 	}
 
-	const url =
-		args.variant === MessageVariantEnum.Mainnet
-			? `${DEFAULT_SCHEDULER_URL}/~scheduler@1.0/schedule?target=${args.processId}&accept=application/aos-2&from=${range.from}&to=${range.to}`
-			: `${DEFAULT_LEGACY_SCHEDULER_URL}/${args.processId}?process-id=${args.processId}&from-nonce=${range.from}&to-nonce=${range.to}&limit=${args.perPage}`;
-	const response = await requestRemote(url);
-	await assertSchedulerResponse(response, 'Scheduler message page request');
-	const parsed = await response.json();
+	let parsed: any;
+	if (args.variant === MessageVariantEnum.Mainnet) {
+		parsed = await args.mainnetApi.readSchedule({
+			processId: args.processId,
+			from: range.from,
+			to: range.to,
+			signal: args.signal,
+		});
+	} else {
+		const response = await requestRemote(
+			`${DEFAULT_LEGACY_SCHEDULER_URL}/${args.processId}?process-id=${args.processId}&from-nonce=${range.from}&to-nonce=${range.to}&limit=${args.perPage}`
+		);
+		await assertSchedulerResponse(response, 'Scheduler message page request');
+		parsed = await response.json();
+	}
+
 	if (parsed?.error && !Array.isArray(parsed?.edges)) {
 		throw new Error(`Scheduler message page request failed: ${parsed.error}`);
 	}
@@ -397,7 +404,7 @@ async function fetchSchedulerProcessMessagePage(args: {
 }
 
 function Message(props: {
-	element: GQLNodeResponseType;
+	element: MessageListEntry;
 	type: TransactionType;
 	variant?: MessageVariantEnum;
 	currentFilter: MessageFilterType;
@@ -410,6 +417,7 @@ function Message(props: {
 	childList?: boolean;
 	nestingLevel?: number;
 	showResultMessageLabel?: boolean;
+	canReadResults?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 	const navigate = useNavigate();
@@ -431,7 +439,7 @@ function Message(props: {
 	const isAoResultMessage = Boolean(props.showResultMessageLabel && props.variant);
 	const isAoMessage = hasAoMessageTags || isAoResultMessage;
 	const shouldUseMessageActionFallback = !isMessageElement(props.element.node?.tags, isAoResultMessage);
-	const canFetchAoResult = isAoMessage && !!props.element.node.recipient;
+	const canFetchAoResult = props.canReadResults !== false && isAoMessage && !!props.element.node.recipient;
 	const isSpamMessage = Boolean(
 		!props.showFilteredMessages &&
 			isLegacyMessageSpam({
@@ -496,6 +504,10 @@ function Message(props: {
 	React.useEffect(() => {
 		(async function () {
 			if (!data && showViewData) {
+				if (props.element.display?.input !== undefined) {
+					setData(props.element.display.input || language.noData);
+					return;
+				}
 				try {
 					const messageFetch = await requestRemote(getTxEndpoint(props.element.node.id));
 					const rawMessage = await messageFetch.text();
@@ -527,7 +539,7 @@ function Message(props: {
 				}
 			}
 		})();
-	}, [data, showViewData]);
+	}, [data, showViewData, props.element.display?.input, language.noData]);
 
 	const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
 	const filteredTags =
@@ -546,6 +558,7 @@ function Message(props: {
 	}
 
 	function getActionLabel() {
+		if (props.element.display?.actionLabel !== undefined) return props.element.display.actionLabel;
 		if (isNativeArTransfer(props.element.node)) return DEFAULT_ACTIONS.transfer.name;
 
 		const action = getTagValue(props.element.node.tags, 'Action');
@@ -789,6 +802,9 @@ function Message(props: {
 							/>
 						</S.OverlayInfoLine>
 						<S.OverlayInfoLine>{getAction(false)}</S.OverlayInfoLine>
+						{props.element.display?.details?.map((detail) => (
+							<OverlayLine key={detail.name} label={detail.name} value={detail.value} />
+						))}
 						{showViewData && (
 							<S.OverlayTagsWrapper>
 								<S.OverlayTagsHeader>
@@ -848,6 +864,7 @@ function Message(props: {
 	}
 
 	function getTransactionTypeLabel() {
+		if (props.element.display?.typeLabel) return props.element.display.typeLabel;
 		if (isSpamMessage) return language.markedAsSpam;
 		if (!isAoMessage) return language.transaction;
 
@@ -912,11 +929,13 @@ function Message(props: {
 					/>
 				</S.Output>
 				<S.Time>
-					<p>
-						{props.element.node?.block?.timestamp
-							? getRelativeDate(props.element.node.block.timestamp * 1000)
-							: 'Processing'}
-					</p>
+					{props.element.display?.time ?? (
+						<p>
+							{props.element.node?.block?.timestamp
+								? getRelativeDate(props.element.node.block.timestamp * 1000)
+								: 'Processing'}
+						</p>
+					)}
 				</S.Time>
 				<S.Results open={open}>{canFetchAoResult ? <ReactSVG src={ASSETS.arrow} /> : <p>None</p>}</S.Results>
 			</S.ElementWrapper>
@@ -1073,6 +1092,7 @@ function shouldSyncMessageQueryParams(args: {
 
 export default function MessageList(props: {
 	header?: string;
+	headerCount?: number | null;
 	txId?: string;
 	variant: MessageVariantEnum;
 	type?: TransactionType;
@@ -1091,6 +1111,7 @@ export default function MessageList(props: {
 	showFilteredMessages?: boolean;
 	hydrateAoTransferNotices?: boolean;
 	showResultMessageLabel?: boolean;
+	source?: MessageListSource;
 }) {
 	const location = useLocation();
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -1100,15 +1121,18 @@ export default function MessageList(props: {
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
+	const hasSource = props.source !== undefined;
 
 	const tableContainerRef = React.useRef(null);
-	const syncQueryParams = shouldSyncMessageQueryParams({
-		pathname: location.pathname,
-		txId: props.txId,
-		type: props.type,
-		childList: props.childList,
-		result: props.result,
-	});
+	const syncQueryParams =
+		!hasSource &&
+		shouldSyncMessageQueryParams({
+			pathname: location.pathname,
+			txId: props.txId,
+			type: props.type,
+			childList: props.childList,
+			result: props.result,
+		});
 	const routeSearch = React.useMemo(
 		() => getRouteSearch(location.search, searchParams),
 		[location.search, searchParams]
@@ -1122,10 +1146,10 @@ export default function MessageList(props: {
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
 	const filterStorageKey = React.useMemo(() => {
-		if (props.childList || props.result) return null;
+		if (hasSource || props.childList || props.result) return null;
 
 		return STORAGE.messageFilter(props.txId || 'global');
-	}, [props.txId, props.childList, props.result]);
+	}, [hasSource, props.txId, props.childList, props.result]);
 
 	const loadedFilterState = React.useMemo(() => {
 		if (filterStorageKey) {
@@ -1206,8 +1230,10 @@ export default function MessageList(props: {
 	const [customAction, setCustomAction] = React.useState<string>('');
 	const [toggleFilterChange, setToggleFilterChange] = React.useState<boolean>(false);
 
-	const [currentData, setCurrentData] = React.useState<any[] | null>(null);
-	const [loadingMessages, setLoadingMessages] = React.useState<boolean>(false);
+	const [loadedData, setCurrentData] = React.useState<any[] | null>(null);
+	const [internalLoading, setLoadingMessages] = React.useState<boolean>(false);
+	const currentData = props.source?.edges ?? loadedData;
+	const loadingMessages = props.source?.loading ?? internalLoading;
 	const [schedulerFallbackActive, setSchedulerFallbackActive] = React.useState<boolean>(false);
 
 	const [incomingCount, setIncomingCount] = React.useState<number | null>(null);
@@ -1217,7 +1243,8 @@ export default function MessageList(props: {
 	const [pageCursor, setPageCursor] = React.useState<string | null>(queryFilterState?.after ?? null);
 	const [cursorHistory, setCursorHistory] = React.useState<(string | null)[]>([]);
 	const [nextCursor, setNextCursor] = React.useState<string | null>(null);
-	const [pageNumber, setPageNumber] = React.useState(queryFilterState?.page ?? 1);
+	const [internalPageNumber, setPageNumber] = React.useState(queryFilterState?.page ?? 1);
+	const pageNumber = props.source ? props.source.page + 1 : internalPageNumber;
 	const [pageInput, setPageInput] = React.useState<string>((queryFilterState?.page ?? 1).toString());
 	const [perPage, setPerPage] = React.useState<string>(
 		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
@@ -1257,10 +1284,11 @@ export default function MessageList(props: {
 	);
 
 	const parsedPerPage = React.useMemo(() => {
+		if (props.source) return props.source.pageSize;
 		const parsed = Number(perPage);
 
 		return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-	}, [perPage]);
+	}, [perPage, props.source?.pageSize]);
 	const parsedPerPageInput = React.useMemo(() => {
 		const parsed = Number(perPageInput);
 
@@ -1278,7 +1306,9 @@ export default function MessageList(props: {
 			appliedEndDate
 	);
 	const hasAppliedFilters = Boolean(hasAppliedMessageFilters || usingCustomPerPage);
-	const isProcessRoot = Boolean(props.type === 'process' && props.txId && !props.childList && !props.result);
+	const isProcessRoot = Boolean(
+		!hasSource && props.type === 'process' && props.txId && !props.childList && !props.result
+	);
 	const isProcessIncomingRoot = Boolean(isProcessRoot && currentFilter === 'incoming');
 	const schedulerCandidateForCurrentFilters = Boolean(isProcessIncomingRoot && !hasAppliedMessageFilters);
 	const schedulerPageSizeValidationCandidate = Boolean(isProcessRoot && !hasAppliedMessageFilters);
@@ -1836,6 +1866,7 @@ export default function MessageList(props: {
 	]);
 
 	React.useEffect(() => {
+		if (hasSource) return;
 		let cancelled = false;
 
 		(async function () {
@@ -1899,7 +1930,7 @@ export default function MessageList(props: {
 
 					const [nextIncomingCount, gqlResponseOutgoing] = await Promise.all([
 						useSchedulerForIncomingCount
-							? getSchedulerLatestSlot(props.txId, props.variant)
+							? getSchedulerLatestSlot(props.txId, props.variant, permawebProvider.mainnetApi)
 									.then((latestSlot) => getSchedulerTotalCount(latestSlot, props.variant))
 									.catch((e) => {
 										console.warn('Scheduler count request failed', e);
@@ -1938,9 +1969,13 @@ export default function MessageList(props: {
 		props.variant,
 		toggleFilterChange,
 		useSchedulerForIncomingCount,
+		permawebProvider.mainnetApi,
+		hasSource,
 	]);
 
 	React.useEffect(() => {
+		if (hasSource) return;
+		const controller = new AbortController();
 		(async function () {
 			let tags = getAppliedActionTags();
 
@@ -1963,11 +1998,14 @@ export default function MessageList(props: {
 				try {
 					const schedulerPerPage = Math.min(parsedPerPage, SCHEDULER_PAGE_SIZE_LIMIT);
 					const schedulerResponse = await fetchSchedulerProcessMessagePage({
+						mainnetApi: permawebProvider.mainnetApi,
+						signal: controller.signal,
 						processId: props.txId,
 						variant: props.variant,
 						pageNumber,
 						perPage: schedulerPerPage,
 					});
+					if (controller.signal.aborted) return;
 
 					setCurrentData(schedulerResponse.data);
 					setIncomingCount(schedulerResponse.count);
@@ -1975,6 +2013,7 @@ export default function MessageList(props: {
 					setLoadingMessages(false);
 					return;
 				} catch (e: any) {
+					if (controller.signal.aborted) return;
 					console.warn('Scheduler request failed, falling back to GQL', e);
 					setSchedulerFallbackActive(true);
 					if (pageNumber > 1 && !pageCursor) {
@@ -2168,6 +2207,7 @@ export default function MessageList(props: {
 			}
 			setLoadingMessages(false);
 		})();
+		return () => controller.abort();
 	}, [
 		props.txId,
 		props.type,
@@ -2190,9 +2230,11 @@ export default function MessageList(props: {
 		pageCursor,
 		pageNumber,
 		permawebProvider.legacyApi,
+		permawebProvider.mainnetApi,
 		schedulerCandidateForCurrentFilters,
 		hasSchedulerVariant,
 		useSchedulerForProcessMessages,
+		hasSource,
 	]);
 
 	const scrollToTop = () => {
@@ -2204,6 +2246,11 @@ export default function MessageList(props: {
 	};
 
 	function handleNext() {
+		if (props.source) {
+			props.source.onPageChange(props.source.page + 1);
+			scrollToTop();
+			return;
+		}
 		if (useSchedulerForProcessMessages) {
 			if (nextCursor) {
 				setPageNumber((prevPage) => prevPage + 1);
@@ -2223,6 +2270,11 @@ export default function MessageList(props: {
 	}
 
 	function handlePrevious() {
+		if (props.source) {
+			props.source.onPageChange(props.source.page - 1);
+			scrollToTop();
+			return;
+		}
 		if (useSchedulerForProcessMessages) {
 			if (pageNumber > 1) {
 				setPageNumber((prevPage) => Math.max(prevPage - 1, 1));
@@ -2268,6 +2320,7 @@ export default function MessageList(props: {
 	}
 
 	function getActiveTotalCount() {
+		if (props.source) return props.source.totalCount;
 		if (props.result || props.childList) return null;
 		if (props.txId) return currentFilter === 'incoming' ? incomingCount : outgoingCount;
 
@@ -2296,6 +2349,11 @@ export default function MessageList(props: {
 		const targetPage = totalPages ? Math.min(parsedPage, totalPages) : parsedPage;
 		setPageInput(targetPage.toString());
 		if (targetPage === pageNumber) return;
+		if (props.source) {
+			props.source.onPageChange(targetPage - 1);
+			scrollToTop();
+			return;
+		}
 
 		if (useSchedulerForProcessMessages) {
 			setCursorHistory([]);
@@ -2456,6 +2514,18 @@ export default function MessageList(props: {
 	}
 
 	function getMessage() {
+		if (props.source) {
+			if (props.source.error) return null;
+			return (
+				<S.UpdateWrapper role={'status'}>
+					<p>
+						{loadingMessages
+							? props.source.loadingMessage ?? language.associatedMessagesLoading
+							: props.source.emptyMessage ?? language.associatedMessagesNotFound}
+					</p>
+				</S.UpdateWrapper>
+			);
+		}
 		const isTransactionView = props.type === 'wallet';
 		let message: string = isTransactionView ? language.transactionsNotFound : language.associatedMessagesInfo;
 		if (loadingMessages || props.willHaveResult) {
@@ -2489,7 +2559,10 @@ export default function MessageList(props: {
 
 	function getPaginator(showPages: boolean) {
 		const paginationControlsDisabled = !canUsePaginationControls();
-		const previousDisabled = useSchedulerForProcessMessages ? pageNumber <= 1 : cursorHistory.length === 0;
+		const previousDisabled = hasSource || useSchedulerForProcessMessages ? pageNumber <= 1 : cursorHistory.length === 0;
+		const nextDisabled = props.source
+			? pageNumber * props.source.pageSize >= (props.source.totalCount ?? 0)
+			: !nextCursor;
 
 		return (
 			<>
@@ -2507,7 +2580,7 @@ export default function MessageList(props: {
 							totalPages={getTotalPages()}
 							disabled={loadingMessages}
 							pageDisabled={paginationControlsDisabled}
-							perPageDisabled={paginationControlsDisabled}
+							perPageDisabled={hasSource || paginationControlsDisabled}
 							perPageSubmitDisabled={invalidPerPage}
 							onPageInputChange={setPageInput}
 							onPageSubmit={handlePageSubmit}
@@ -2517,7 +2590,7 @@ export default function MessageList(props: {
 					</S.DPageCounter>
 				)}
 				{showPages && !FLAGS.CONTROL_PAGINATION && <S.DPageCounter>{getPages()}</S.DPageCounter>}
-				<Button type={'alt3'} label={language.next} onPress={handleNext} disabled={!nextCursor || loadingMessages} />
+				<Button type={'alt3'} label={language.next} onPress={handleNext} disabled={nextDisabled || loadingMessages} />
 				{showPages && FLAGS.CONTROL_PAGINATION && (
 					<S.MPageCounter>
 						<PaginationControls
@@ -2526,7 +2599,7 @@ export default function MessageList(props: {
 							totalPages={getTotalPages()}
 							disabled={loadingMessages}
 							pageDisabled={paginationControlsDisabled}
-							perPageDisabled={paginationControlsDisabled}
+							perPageDisabled={hasSource || paginationControlsDisabled}
 							perPageSubmitDisabled={invalidPerPage}
 							onPageInputChange={setPageInput}
 							onPageSubmit={handlePageSubmit}
@@ -2546,18 +2619,50 @@ export default function MessageList(props: {
 
 	return (
 		<>
-			<S.Container ref={tableContainerRef}>
+			<S.Container ref={tableContainerRef} aria-busy={loadingMessages}>
 				{!props.childList && (
 					<S.Header>
 						<S.HeaderMain>
-							<p>{props.header ?? (props.type === 'wallet' ? language.transactions : language.messages)}</p>
+							<p>
+								{props.header ?? (props.type === 'wallet' ? language.transactions : language.messages)}
+								{props.headerCount != null && (
+									<>
+										{' '}
+										<S.HeaderCount>({props.headerCount.toLocaleString()})</S.HeaderCount>
+									</>
+								)}
+							</p>
 							{loadingMessages && (
 								<div className={'loader'}>
 									<Loader xSm relative />
 								</div>
 							)}
 						</S.HeaderMain>
-						{!props.result && (
+						{props.source && (
+							<S.HeaderActions className={'scroll-wrapper-hidden'}>
+								<Button
+									type={'alt3'}
+									label={language.refresh}
+									icon={ASSETS.refresh}
+									iconLeftAlign
+									onPress={props.source.onRefresh}
+									disabled={loadingMessages}
+								/>
+								{canExport && (
+									<Button
+										type={'alt3'}
+										label={language.download}
+										icon={ASSETS.save}
+										iconLeftAlign
+										onPress={handleExport}
+										disabled={loadingMessages || !currentData?.length}
+									/>
+								)}
+								<S.Divider />
+								{getPaginator(false)}
+							</S.HeaderActions>
+						)}
+						{!hasSource && !props.result && (
 							<S.HeaderActions className={'scroll-wrapper-hidden'}>
 								{props.type && props.type !== 'message' && (
 									<>
@@ -2756,6 +2861,14 @@ export default function MessageList(props: {
 						)}
 					</S.Header>
 				)}
+				{props.source?.error && (
+					<S.UpdateWrapper role={'alert'}>
+						<p>{props.source.error}</p>
+						<S.UpdateAction>
+							<Button type={'alt3'} label={language.retry} onPress={props.source.onRetry} />
+						</S.UpdateAction>
+					</S.UpdateWrapper>
+				)}
 				{currentData?.length > 0 ? (
 					<S.Wrapper childList={props.childList}>
 						{!props.childList && (
@@ -2783,7 +2896,7 @@ export default function MessageList(props: {
 									<p>{language.output}</p>
 								</S.Output>
 								<S.Time>
-									<p>{language.time}</p>
+									<p>{props.source?.timeLabel ?? language.time}</p>
 								</S.Time>
 
 								<S.Results>
@@ -2815,6 +2928,7 @@ export default function MessageList(props: {
 										childList={props.childList}
 										nestingLevel={props.nestingLevel}
 										showResultMessageLabel={props.showResultMessageLabel}
+										canReadResults={props.source?.canReadResults}
 									/>
 								);
 							})}
@@ -2825,7 +2939,7 @@ export default function MessageList(props: {
 				)}
 				{!props.childList && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
 			</S.Container>
-			{!props.childList && showFilters && (
+			{!hasSource && !props.childList && showFilters && (
 				<Modal
 					type="panel"
 					width={515}

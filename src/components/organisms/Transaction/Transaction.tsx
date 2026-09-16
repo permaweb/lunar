@@ -46,6 +46,7 @@ import {
 	formatCount,
 	formatDate,
 	formatUnits,
+	getAoVariantFromTags,
 	getByteSizeDisplay,
 	getRelativeDate,
 	getTagValue,
@@ -68,6 +69,7 @@ import { ProcessEditor } from '../ProcessEditor';
 import { ProcessSource } from '../ProcessSource';
 
 import * as S from './styles';
+import type { ProcessMessagesViewProps } from './types';
 
 const TX_FINALITY_CONFIRMATIONS = 15;
 const ARWEAVE_BLOCK_TIME_SECONDS = 120;
@@ -303,6 +305,7 @@ function Transaction(props: {
 	onMessageOpen: (id: string) => void;
 	tabKey?: string; // Stable key from TransactionTabs to maintain component identity
 	onLoadingChange?: (loading: boolean) => void;
+	processMessagesView: React.ComponentType<ProcessMessagesViewProps>;
 }) {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
@@ -586,7 +589,7 @@ function Transaction(props: {
 					if (isMessage) {
 						void (async () => {
 							try {
-								let variant = getTagValue(responseData.node.tags, 'Variant') as MessageVariantEnum;
+								let variant = getAoVariantFromTags(responseData.node.tags);
 								const recipient = responseData.node?.recipient ?? getTagValue(responseData.node?.tags, 'Target');
 
 								if (recipient && checkValidAddress(recipient)) {
@@ -598,7 +601,7 @@ function Transaction(props: {
 
 										if (processLookup.data?.length > 0) {
 											const node = processLookup.data[0].node;
-											const processVariant = getTagValue(node.tags, 'Variant') as MessageVariantEnum;
+											const processVariant = getAoVariantFromTags(node.tags);
 
 											if (processVariant) variant = processVariant;
 										}
@@ -1571,7 +1574,7 @@ function Transaction(props: {
 		}, [props.fixedHeight, txResponse]);
 
 		return (
-			<S.Section className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
+			<S.TagsSection className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
 				<S.SectionHeader>
 					<p>{language.tags}</p>
 					<span>({txResponse ? displayTags.length : '-'})</span>
@@ -1607,7 +1610,7 @@ function Transaction(props: {
 						</S.OverviewLine>
 					)}
 				</S.OverviewWrapper>
-			</S.Section>
+			</S.TagsSection>
 		);
 	};
 
@@ -1864,9 +1867,7 @@ function Transaction(props: {
 				view: () => {
 					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
 
-					const variant = txResponse
-						? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
-						: undefined;
+					const variant = getAoVariantFromTags(txResponse?.node?.tags);
 					const hydrateAoTransferNotices = shouldHydrateAoTransferNotices({
 						action: getTagValue(txResponse?.node?.tags, 'Action'),
 						variant: variant,
@@ -1917,12 +1918,7 @@ function Transaction(props: {
 											<S.ReadWrapper fullWidth={!showTags}>
 												{resolvedType === 'process' && (
 													<>
-														<ProcessRead
-															key={refreshKey}
-															processId={inputTxId}
-															variant={getTagValue(txResponse?.node?.tags, 'Variant') as MessageVariantEnum}
-															autoRun={true}
-														/>
+														<ProcessRead key={refreshKey} processId={inputTxId} variant={variant} autoRun={true} />
 													</>
 												)}
 												{resolvedType === 'message' && (
@@ -1996,23 +1992,16 @@ function Transaction(props: {
 					view: () => {
 						const { txResponse, refreshKey } = React.useContext(TxResponseContext);
 
-						const variant = txResponse
-							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
-							: undefined;
-
 						return (
 							<S.MessagesWrapper>
 								<S.MessagesSection>
 									{checkValidAddress(inputTxId) && (
-										<MessageList
+										<props.processMessagesView
 											key={refreshKey}
-											txId={inputTxId}
-											variant={variant}
-											type={resolvedType}
-											recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
-											parentId={inputTxId}
-											authority={getTagValue(txResponse?.node?.tags, 'Authority')}
-											onMessageOpen={(id: string) => props.onMessageOpen(id)}
+											processId={inputTxId}
+											transaction={txResponse}
+											isActive={props.active}
+											onMessageOpen={props.onMessageOpen}
 										/>
 									)}
 								</S.MessagesSection>
@@ -2028,9 +2017,7 @@ function Transaction(props: {
 					view: () => {
 						const { txResponse } = React.useContext(TxResponseContext);
 
-						const variant = txResponse
-							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
-							: undefined;
+						const variant = getAoVariantFromTags(txResponse?.node?.tags);
 						return <ProcessEditor processId={inputTxId} variant={variant} type={'read'} isFullscreen={isFullscreen} />;
 					},
 				},
@@ -2042,9 +2029,7 @@ function Transaction(props: {
 					view: () => {
 						const { txResponse } = React.useContext(TxResponseContext);
 
-						const variant = txResponse
-							? (getTagValue(txResponse?.node?.tags, TAGS.keys.variant) as MessageVariantEnum)
-							: undefined;
+						const variant = getAoVariantFromTags(txResponse?.node?.tags);
 						return <ProcessEditor processId={inputTxId} variant={variant} type={'write'} isFullscreen={isFullscreen} />;
 					},
 				},
@@ -2092,6 +2077,8 @@ function Transaction(props: {
 	}, [
 		props.type,
 		props.active,
+		props.processMessagesView,
+		props.onMessageOpen,
 		resolvedType,
 		inputTxId,
 		arProvider.walletAddress,
@@ -2109,6 +2096,9 @@ function Transaction(props: {
 
 	const balanceSections = React.useMemo(() => {
 		if (resolvedType !== 'wallet' && resolvedType !== 'process') return null;
+		// AO balances use a legacy token dry-run. Do not issue one while opening a mainnet process.
+		if (resolvedType === 'process' && getAoVariantFromTags(txResponse?.node?.tags) !== MessageVariantEnum.Legacynet)
+			return null;
 		const shouldFetch = !!txResponse;
 		const useNaOnError = false;
 		return (
@@ -2167,7 +2157,7 @@ function Transaction(props: {
 			<>
 				{showPlaceholder && (
 					<S.Placeholder>
-						<S.PlaceholderIcon>
+						<S.PlaceholderIcon className={'border-wrapper-alt4'}>
 							<ReactSVG src={placeholderIcon} />
 						</S.PlaceholderIcon>
 						<S.PlaceholderDescription>
@@ -2317,7 +2307,7 @@ function Transaction(props: {
 											</C.UpdateWrapper>
 										</>
 									)}
-									{txResponse?.node?.block?.timestamp && (
+									{!!txResponse?.node?.block?.timestamp && (
 										<>
 											<C.UpdateWrapper>
 												<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>

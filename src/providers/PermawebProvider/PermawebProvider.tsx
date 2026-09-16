@@ -1,18 +1,20 @@
 import React from 'react';
 
-import { createPermawebApis, PermawebApi } from 'api/permaweb';
+import { createPeerApi, createPermawebApis, type PeerApi, type PermawebApi } from 'api/permaweb';
 
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
 
 interface PermawebContextState {
 	legacyApi: PermawebApi | null;
-	mainnetApi: PermawebApi | null;
+	mainnetApi: PeerApi | null;
+	aosApi: PermawebApi | null;
 }
 
 const DEFAULT_CONTEXT = {
 	legacyApi: null,
 	mainnetApi: null,
+	aosApi: null,
 };
 
 const PermawebContext = React.createContext<PermawebContextState>(DEFAULT_CONTEXT);
@@ -25,7 +27,11 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 	const arProvider = useArweaveProvider();
 	const settingsProvider = useSettingsProvider();
 	const [legacyApi, setLegacyApi] = React.useState<PermawebApi | null>(null);
-	const [mainnetApi, setMainnetApi] = React.useState<PermawebApi | null>(null);
+	const [aosApi, setAosApi] = React.useState<PermawebApi | null>(null);
+	const mainnetApi = React.useMemo(
+		() => createPeerApi(settingsProvider.settings.aoNetwork, arProvider.wallet),
+		[settingsProvider.settings.aoNetwork, arProvider.wallet]
+	);
 
 	React.useEffect(() => {
 		try {
@@ -37,7 +43,7 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 			});
 
 			setLegacyApi(apis.legacyApi);
-			setMainnetApi(apis.mainnetApi);
+			setAosApi(apis.aosApi);
 		} catch (error) {
 			console.error('Error in PermawebProvider initialization:', error);
 		}
@@ -48,6 +54,7 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 			value={{
 				legacyApi,
 				mainnetApi,
+				aosApi,
 			}}
 		>
 			{props.children}

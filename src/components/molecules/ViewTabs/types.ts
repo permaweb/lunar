@@ -1,11 +1,12 @@
 import React from 'react';
 
+import type { ActionMenuItem } from 'components/atoms/ActionMenu';
 import { BaseTabType } from 'helpers/types';
 
 export interface TabsContainerProps<T extends BaseTabType> {
 	type: string;
 	header: string;
-	headerActions?: React.ReactNode[];
+	headerActions?: ActionMenuItem[];
 	defaultTab: Omit<T, 'tabKey'>;
 	tabs: T[];
 	activeTabIndex: number;
@@ -23,6 +24,7 @@ export interface TabsContainerProps<T extends BaseTabType> {
 	onRenameTab?: (index: number, label: string) => void;
 	onMount?: (tabsRef: React.RefObject<HTMLDivElement>) => void;
 	languageLabels: {
+		tabActions: string;
 		newTab: string;
 		newTabTooltip: string;
 		clearTabs: string;

@@ -6,7 +6,7 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 import * as S from './styles';
 import { IProps } from './types';
 
-export default function Button(props: IProps) {
+const Button = React.forwardRef<HTMLButtonElement, IProps>(function Button(props, ref) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider?.object?.[languageProvider.current] || { loading: 'Loading' };
 	const warning = props.warning || props.type === 'warning';
@@ -130,8 +130,14 @@ export default function Button(props: IProps) {
 
 		return (
 			<StyledButton
-				aria-label={iconOnly ? props.tooltip : undefined}
+				ref={ref}
+				id={props.id}
+				aria-label={props['aria-label'] ?? (iconOnly ? props.tooltip : undefined)}
+				aria-haspopup={props['aria-haspopup']}
+				aria-expanded={props['aria-expanded']}
+				aria-controls={props['aria-controls']}
 				aria-pressed={props.pressed}
+				onKeyDown={props.onKeyDown}
 				tabIndex={props.noFocus || props.disabled ? -1 : 0}
 				type={props.formSubmit ? 'submit' : 'button'}
 				onClick={handlePress}
@@ -169,4 +175,6 @@ export default function Button(props: IProps) {
 	}
 
 	return getButton();
-}
+});
+
+export default Button;

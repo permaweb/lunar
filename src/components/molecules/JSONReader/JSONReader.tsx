@@ -74,9 +74,9 @@ export default function _JSONTree(props: {
 	noWrapper?: boolean;
 	noFullScreen?: boolean;
 	filename?: string;
+	preserveViewState?: boolean;
+	footer?: React.ReactNode;
 }) {
-	const navigate = useNavigate();
-
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
@@ -172,7 +172,7 @@ export default function _JSONTree(props: {
 			try {
 				// Use json-bigint to parse, which preserves large numbers as strings
 				const parsed = JSONbig({ storeAsString: true }).parse(strippedInput);
-				return parseJSON(parsed);
+				return parsed === strippedInput ? strippedInput : parseJSON(parsed);
 			} catch (e) {
 				return strippedInput;
 			}
@@ -184,10 +184,124 @@ export default function _JSONTree(props: {
 		return input;
 	};
 
-	const CustomJSONViewer = React.forwardRef<
+	const jsonViewerRef = React.useRef<{
+		collapseAll: () => void;
+		expandAll: () => void;
+		getCollapsedState: () => { isFullyCollapsed: boolean };
+	}>(null);
+
+	const handleToggleCollapse = React.useCallback(() => {
+		const state = jsonViewerRef.current?.getCollapsedState();
+		if (state?.isFullyCollapsed) {
+			jsonViewerRef.current?.expandAll();
+		} else {
+			jsonViewerRef.current?.collapseAll();
+		}
+	}, []);
+
+	return (
+		<S.Wrapper
+			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}`}
+			noWrapper={props.noWrapper && !fullScreenMode}
+			fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
+			$maxHeight={!fullScreenMode ? props.maxHeight : undefined}
+			ref={readerRef}
+		>
+			<S.Header>
+				<p>{props.header ?? language.output}</p>
+
+				<S.ActionsWrapper>
+					<Button
+						type={'primary'}
+						icon={ASSETS.plusMinus}
+						onPress={handleToggleCollapse}
+						disabled={!data}
+						height={25}
+						width={25}
+						noMinWidth
+						iconSize={11}
+						padding={`2px 0 0 0`}
+						tooltip={language.collapseExpandAll}
+						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
+					/>
+					{!props.noFullScreen && (
+						<Button
+							type={'primary'}
+							icon={ASSETS.fullscreen}
+							onPress={toggleFullscreen}
+							height={25}
+							width={25}
+							noMinWidth
+							iconSize={11}
+							padding={`3px 0 0 0`}
+							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+							tooltipPosition={'bottom-right'}
+							stopPropagation
+							preventDefault
+						/>
+					)}
+					<Button
+						type={'primary'}
+						icon={ASSETS.save}
+						onPress={downloadData}
+						disabled={!data}
+						height={25}
+						width={25}
+						noMinWidth
+						iconSize={11}
+						padding={`2.5px 0 0 0`}
+						tooltip={language.downloadJSON ?? 'Download JSON'}
+						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
+					/>
+					<Button
+						type={'primary'}
+						icon={ASSETS.copy}
+						onPress={copyData}
+						disabled={!data}
+						height={25}
+						width={25}
+						noMinWidth
+						iconSize={11}
+						padding={`3px 0 0 0`}
+						tooltip={copied ? `${language.copied}!` : language.copyJSON}
+						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
+					/>
+				</S.ActionsWrapper>
+			</S.Header>
+
+			{data ? (
+				<CustomJSONViewer
+					data={data}
+					ref={jsonViewerRef}
+					fullScreenMode={fullScreenMode}
+					maxHeight={props.maxHeight}
+					fixedHeight={props.fixedHeight}
+					preserveViewState={props.preserveViewState}
+				/>
+			) : (
+				<S.Placeholder>
+					<p>{props.placeholder ?? language.noDataToDisplay}</p>
+				</S.Placeholder>
+			)}
+			{props.footer}
+		</S.Wrapper>
+	);
+}
+
+const CustomJSONViewer = React.memo(
+	React.forwardRef<
 		{ collapseAll: () => void; expandAll: () => void; getCollapsedState: () => { isFullyCollapsed: boolean } },
-		{ data: any }
-	>(({ data }, ref) => {
+		{ data: any; fullScreenMode: boolean; maxHeight?: number; fixedHeight?: number; preserveViewState?: boolean }
+	>((props, ref) => {
+		const navigate = useNavigate();
+		const languageProvider = useLanguageProvider();
+		const language = languageProvider.object[languageProvider.current];
 		const [copiedValue, setCopiedValue] = React.useState<string | null>(null);
 		const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
 		const [allPaths, setAllPaths] = React.useState<Set<string>>(new Set());
@@ -223,9 +337,9 @@ export default function _JSONTree(props: {
 					}
 				}
 			};
-			findLargeStructures(data);
+			findLargeStructures(props.data);
 			return limits;
-		}, [data]);
+		}, [props.data]);
 
 		const [renderLimits, setRenderLimits] = React.useState<Map<string, number>>(initialRenderLimits);
 
@@ -473,7 +587,7 @@ export default function _JSONTree(props: {
 				const isCollapsed = collapsed.has(path);
 
 				// Apply render limit to any large arrays
-				const currentLimit = renderLimits.get(path);
+				const currentLimit = renderLimits.get(path) ?? initialRenderLimits.get(path);
 				const shouldLimitRender = currentLimit !== undefined && value.length > currentLimit;
 				const itemsToRender = shouldLimitRender ? value.slice(0, currentLimit) : value;
 
@@ -553,7 +667,7 @@ export default function _JSONTree(props: {
 				const isCollapsed = collapsed.has(path);
 
 				// Apply render limit to any large objects
-				const currentLimit = renderLimits.get(path);
+				const currentLimit = renderLimits.get(path) ?? initialRenderLimits.get(path);
 				const shouldLimitRender = currentLimit !== undefined && entries.length > currentLimit;
 				const entriesToRender = shouldLimitRender ? entries.slice(0, currentLimit) : entries;
 
@@ -698,14 +812,18 @@ export default function _JSONTree(props: {
 		};
 
 		React.useEffect(() => {
-			// Only recollect if data actually changed (deep comparison would be expensive, so use ref check)
-			if (dataRef.current === data) {
+			// Only recollect if props.data actually changed (deep comparison would be expensive, so use ref check)
+			if (dataRef.current === props.data) {
 				return;
 			}
-			dataRef.current = data;
+			dataRef.current = props.data;
 
-			// Sync render limits when data changes
-			setRenderLimits(initialRenderLimits);
+			// Sync render limits when props.data changes
+			setRenderLimits((previous) =>
+				props.preserveViewState
+					? new Map(Array.from(initialRenderLimits, ([path, limit]) => [path, previous.get(path) ?? limit]))
+					: initialRenderLimits
+			);
 
 			const paths = new Set<string>();
 			const pathsToAutoCollapse = new Set<string>();
@@ -793,7 +911,7 @@ export default function _JSONTree(props: {
 				}
 			};
 
-			collectAllPaths(data);
+			collectAllPaths(props.data);
 
 			// Check if this is first load or if paths actually changed
 			const isFirstLoad = allPathsRef.current.size === 0;
@@ -801,124 +919,35 @@ export default function _JSONTree(props: {
 				!isFirstLoad &&
 				(paths.size !== allPathsRef.current.size || Array.from(paths).some((p) => !allPathsRef.current.has(p)));
 
+			const previousPaths = allPathsRef.current;
 			allPathsRef.current = paths;
 			setAllPaths(paths);
 
 			// Apply auto-collapse on first load, or reset on structure change
-			if (isFirstLoad && pathsToAutoCollapse.size > 0) {
+			if (props.preserveViewState && !isFirstLoad) {
+				setCollapsed(
+					(previous) =>
+						new Set([
+							...Array.from(previous).filter((path) => paths.has(path)),
+							...Array.from(pathsToAutoCollapse).filter((path) => !previousPaths.has(path)),
+						])
+				);
+			} else if (isFirstLoad && pathsToAutoCollapse.size > 0) {
 				setCollapsed(pathsToAutoCollapse);
 			} else if (pathsChanged) {
 				setCollapsed(new Set());
 			}
-		}, [data]);
+		}, [props.data]);
 
 		return (
 			<S.JSONViewerRoot
-				fullScreenMode={fullScreenMode}
-				maxHeight={!fullScreenMode ? props.maxHeight : undefined}
-				fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
+				fullScreenMode={props.fullScreenMode}
+				maxHeight={!props.fullScreenMode ? props.maxHeight : undefined}
+				fixedHeight={!props.fullScreenMode ? props.fixedHeight : undefined}
 				className={'scroll-wrapper'}
 			>
-				{renderValue(data, undefined, true)}
+				{renderValue(props.data, undefined, true)}
 			</S.JSONViewerRoot>
 		);
-	});
-
-	const jsonViewerRef = React.useRef<{
-		collapseAll: () => void;
-		expandAll: () => void;
-		getCollapsedState: () => { isFullyCollapsed: boolean };
-	}>(null);
-
-	const handleToggleCollapse = React.useCallback(() => {
-		const state = jsonViewerRef.current?.getCollapsedState();
-		if (state?.isFullyCollapsed) {
-			jsonViewerRef.current?.expandAll();
-		} else {
-			jsonViewerRef.current?.collapseAll();
-		}
-	}, []);
-
-	return (
-		<S.Wrapper
-			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}`}
-			noWrapper={props.noWrapper && !fullScreenMode}
-			fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
-			ref={readerRef}
-		>
-			<S.Header>
-				<p>{props.header ?? language.output}</p>
-
-				<S.ActionsWrapper>
-					<Button
-						type={'alt1'}
-						icon={ASSETS.plusMinus}
-						onPress={handleToggleCollapse}
-						disabled={!data}
-						height={25}
-						width={25}
-						noMinWidth
-						iconSize={12.5}
-						tooltip={language.collapseExpandAll}
-						tooltipPosition={'bottom-right'}
-						stopPropagation
-						preventDefault
-					/>
-					{!props.noFullScreen && (
-						<Button
-							type={'alt1'}
-							icon={ASSETS.fullscreen}
-							onPress={toggleFullscreen}
-							height={25}
-							width={25}
-							noMinWidth
-							iconSize={12.5}
-							padding={`3.95px 0 0 0`}
-							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
-							tooltipPosition={'bottom-right'}
-							stopPropagation
-							preventDefault
-						/>
-					)}
-					<Button
-						type={'alt1'}
-						icon={ASSETS.save}
-						onPress={downloadData}
-						disabled={!data}
-						height={25}
-						width={25}
-						noMinWidth
-						iconSize={12.5}
-						padding={`3.5px 0 0 0`}
-						tooltip={language.downloadJSON ?? 'Download JSON'}
-						tooltipPosition={'bottom-right'}
-						stopPropagation
-						preventDefault
-					/>
-					<Button
-						type={'alt1'}
-						icon={ASSETS.copy}
-						onPress={copyData}
-						disabled={!data}
-						height={25}
-						width={25}
-						noMinWidth
-						iconSize={12.5}
-						tooltip={copied ? `${language.copied}!` : language.copyJSON}
-						tooltipPosition={'bottom-right'}
-						stopPropagation
-						preventDefault
-					/>
-				</S.ActionsWrapper>
-			</S.Header>
-
-			{data ? (
-				<CustomJSONViewer key="json-viewer" data={data} ref={jsonViewerRef} />
-			) : (
-				<S.Placeholder>
-					<p>{props.placeholder ?? language.noDataToDisplay}</p>
-				</S.Placeholder>
-			)}
-		</S.Wrapper>
-	);
-}
+	})
+);

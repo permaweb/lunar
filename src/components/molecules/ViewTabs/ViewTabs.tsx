@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { ViewWrapper } from 'app/styles';
+import { ActionMenu } from 'components/atoms/ActionMenu';
 import { Button } from 'components/atoms/Button';
 import { Modal } from 'components/atoms/Modal';
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
@@ -469,23 +470,25 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 					<ViewTitle
 						header={props.header}
 						actions={[
-							...(props.headerActions ?? []),
-							<Button
-								type={'primary'}
-								label={props.languageLabels.newTab}
-								tooltip={props.languageLabels.newTabTooltip}
-								onPress={() => handleAddTab()}
-								icon={ASSETS.add}
-								iconLeftAlign
-							/>,
-							<Button
-								type={'primary'}
-								label={props.languageLabels.clearTabs}
-								tooltip={props.languageLabels.clearTabsTooltip}
-								tooltipPosition={'bottom-right'}
-								onPress={() => setShowClearConfirmation(true)}
-								icon={ASSETS.delete}
-								iconLeftAlign
+							<ActionMenu
+								ariaLabel={props.languageLabels.tabActions}
+								label={'Tab Options'}
+								icon={ASSETS.ellipsisVertical}
+								items={[
+									...(props.headerActions ?? []),
+									{
+										id: 'new',
+										label: props.languageLabels.newTab,
+										icon: ASSETS.add,
+										onSelect: () => handleAddTab(),
+									},
+									{
+										id: 'clear',
+										label: props.languageLabels.clearTabs,
+										icon: ASSETS.delete,
+										onSelect: () => setShowClearConfirmation(true),
+									},
+								]}
 							/>,
 						]}
 					/>

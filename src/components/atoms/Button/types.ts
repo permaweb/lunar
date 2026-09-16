@@ -2,7 +2,11 @@ import React from 'react';
 
 import { ButtonType } from 'helpers/types';
 
-export interface IProps {
+export interface IProps
+	extends Pick<
+		React.ButtonHTMLAttributes<HTMLButtonElement>,
+		'id' | 'aria-label' | 'aria-haspopup' | 'aria-expanded' | 'aria-controls' | 'onKeyDown'
+	> {
 	type: ButtonType;
 	label?: string | number | React.ReactNode;
 	onPress: (e: React.MouseEvent) => void;

@@ -14,11 +14,11 @@ export default function WalletBlock() {
 
 	return (
 		<S.Wrapper>
-			<S.Icon>
+			<S.Icon className={'border-wrapper-alt4'}>
 				<ReactSVG src={ASSETS.wallet} />
 			</S.Icon>
 			<p>{language.connectToContinue}</p>
-			<Button type={'alt1'} label={language.connect} onPress={() => arProvider.setWalletModalVisible(true)} />
+			<Button type={'primary'} label={language.connect} onPress={() => arProvider.setWalletModalVisible(true)} />
 		</S.Wrapper>
 	);
 }

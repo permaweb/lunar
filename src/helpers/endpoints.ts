@@ -1,10 +1,8 @@
-import { DEFAULT_AO_NODE, PROCESSES } from './config';
 import { checkValidAddress } from './utils';
 
 export const legacyCuEndpoint = 'https://cu.ao-testnet.xyz';
 export const arweaveEndpoint = 'https://arweave.net';
-export const metricsProcessEndpoint = `${DEFAULT_AO_NODE.url}/${PROCESSES.metrics}~process@1.0/compute/metrics?require-codec=application/json&accept-bundle=true`;
-export const metricsS3Endpoint = 'https://metrics.s3.us-west-1.amazonaws.com/metrics.json';
+export const metricsPeerEndpoint = 'https://app-1.forward.computer';
 
 function trimTrailingSlash(url: string) {
 	return url.replace(/\/+$/, '');
@@ -30,12 +28,10 @@ export function getRendererEndpoint(renderWith: string, tx: string) {
 	}
 }
 
-export function getMetricsEndpoint() {
-	return metricsProcessEndpoint;
-}
-
-export function getMetricsFallbackEndpoint() {
-	return metricsS3Endpoint;
+export function getMetricsProcessEndpoint(processId: string) {
+	if (!checkValidAddress(processId)) throw new Error('Invalid metrics process id');
+	// The snapshot lives under the process state's `metrics` key; computing the root returns the AO envelope instead.
+	return `${metricsPeerEndpoint}/${processId}~process@1.0/compute/metrics?require-codec=application/json&accept-bundle=true`;
 }
 
 export function getRoutesEndpoint(routerUrl: string) {
