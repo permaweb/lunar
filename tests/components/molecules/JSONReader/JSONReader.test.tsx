@@ -33,12 +33,12 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-async function render(data: unknown, preserveViewState = true) {
+async function render(data: unknown, preserveViewState = true, footer?: React.ReactNode) {
 	await React.act(async () =>
 		root.render(
 			<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
 				<ThemeProvider theme={theme(darkTheme)}>
-					<JSONReader data={data} preserveViewState={preserveViewState} />
+					<JSONReader data={data} preserveViewState={preserveViewState} footer={footer} />
 				</ThemeProvider>
 			</MemoryRouter>
 		)
@@ -70,6 +70,22 @@ it('preserves loaded rows, collapsed sections, and the scroll container during p
 	expect(container.textContent).not.toContain('pending-order');
 	expect(container.querySelector('.scroll-wrapper')).toBe(scroll);
 	expect(scroll.scrollTop).toBe(120);
+});
+
+it('keeps continuation controls outside the scroll container as state grows', async () => {
+	const onClick = vi.fn();
+	const footer = <button onClick={onClick}>Load more data</button>;
+	await render({ name: 'Deep process' }, true, footer);
+	const button = Array.from(container.querySelectorAll('button')).find(
+		(item) => item.textContent === 'Load more data'
+	)!;
+	expect(container.querySelector('.scroll-wrapper')?.contains(button)).toBe(false);
+	await React.act(async () => button.click());
+	expect(onClick).toHaveBeenCalledTimes(1);
+	await render({ name: 'Deep process', next: { ready: true } }, true, footer);
+	expect(container.contains(button)).toBe(true);
+	await render({ name: 'Deep process', next: { ready: true } });
+	expect(container.textContent).not.toContain('Load more data');
 });
 
 it('limits a newly arrived collection immediately and preserves exact integer strings', async () => {

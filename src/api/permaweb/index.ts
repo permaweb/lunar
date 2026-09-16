@@ -71,7 +71,7 @@ export type { ArweaveScheduleMessage, ArweaveSchedulePage, ArweaveSchedulePageAr
 export { ARWEAVE_SCHEDULE_PAGE_SIZE } from './arweaveSchedule';
 export type { PeerApi } from './peerApi';
 export { createPeerApi } from './peerApi';
-export type { ProcessStateProgress } from './processState';
+export type { ProcessStateLoadOptions, ProcessStateProgress, ProcessStateResult } from './processState';
 
 function createApi(library: any, ao: any, signer: ReturnType<typeof createSigner> | null): PermawebApi {
 	return {

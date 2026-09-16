@@ -115,15 +115,17 @@ export default function WalletMining(props: { address: string; mining: WalletMin
 					}}
 				/>
 			) : (
-				<S.Note>
-					{language.walletMiningNone}{' '}
-					<Button
-						type={'alt3'}
-						label={language.refresh}
-						disabled={mining.rewards.status === 'loading'}
-						onPress={mining.refresh}
-					/>
-				</S.Note>
+				<>
+					<S.Note>{language.walletMiningNone} </S.Note>
+					<S.Refresh>
+						<Button
+							type={'alt3'}
+							label={language.refresh}
+							disabled={mining.rewards.status === 'loading'}
+							onPress={mining.refresh}
+						/>
+					</S.Refresh>
+				</>
 			)}
 		</S.Section>
 	);

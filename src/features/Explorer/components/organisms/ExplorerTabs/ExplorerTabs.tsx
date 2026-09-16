@@ -1,7 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { Button } from 'components/atoms/Button';
 import { ViewTabs } from 'components/molecules/ViewTabs';
 import { AOS } from 'components/organisms/AOS';
 import { Transaction } from 'components/organisms/Transaction';
@@ -602,13 +601,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				type={props.type}
 				header={language[props.type]}
 				headerActions={[
-					<Button
-						type={'primary'}
-						label={language.pinned}
-						icon={ASSETS.pin}
-						iconLeftAlign
-						onPress={() => setShowPins(true)}
-					/>,
+					{
+						id: 'pinned',
+						label: language.pinned,
+						icon: ASSETS.pin,
+						onSelect: () => setShowPins(true),
+					},
 				]}
 				defaultTab={defaultTab}
 				tabs={transactions}
@@ -627,6 +625,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				renderTabLabel={renderTabLabel}
 				renderContent={renderContent}
 				languageLabels={{
+					tabActions: language.tabActions,
 					newTab: language.new,
 					newTabTooltip: language.createNewTab,
 					clearTabs: language.clear,

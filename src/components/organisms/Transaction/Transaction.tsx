@@ -1574,7 +1574,7 @@ function Transaction(props: {
 		}, [props.fixedHeight, txResponse]);
 
 		return (
-			<S.Section className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
+			<S.TagsSection className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
 				<S.SectionHeader>
 					<p>{language.tags}</p>
 					<span>({txResponse ? displayTags.length : '-'})</span>
@@ -1610,7 +1610,7 @@ function Transaction(props: {
 						</S.OverviewLine>
 					)}
 				</S.OverviewWrapper>
-			</S.Section>
+			</S.TagsSection>
 		);
 	};
 
@@ -2307,7 +2307,7 @@ function Transaction(props: {
 											</C.UpdateWrapper>
 										</>
 									)}
-									{txResponse?.node?.block?.timestamp && (
+									{!!txResponse?.node?.block?.timestamp && (
 										<>
 											<C.UpdateWrapper>
 												<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>

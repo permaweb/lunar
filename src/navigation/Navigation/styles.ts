@@ -152,11 +152,11 @@ export const C1Wrapper = styled.div`
 `;
 
 export const LogoWrapper = styled.div`
-	height: 25px;
-	width: 25px;
+	height: 26px;
+	width: 26px;
 	svg {
-		height: 25px;
-		width: 25px;
+		height: 26px;
+		width: 26px;
 		padding: 2.5px 0 0 0;
 		color: ${(props) => props.theme.colors.font.primary};
 		fill: ${(props) => props.theme.colors.font.primary};
@@ -285,19 +285,7 @@ export const PriceItem = styled.div`
 	}
 `;
 
-export const SearchActionWrapper = styled.div`
-	button {
-		background: transparent !important;
-		border-color: transparent !important;
-		padding: 3.5px 0 0 0 !important;
-
-		&:hover,
-		&:focus-visible {
-			background: ${(props) => props.theme.colors.container.alt3.background} !important;
-			border-color: ${(props) => props.theme.colors.border.alt3} !important;
-		}
-	}
-`;
+export const SearchActionWrapper = styled.div``;
 
 export const MMenuWrapper = styled(SearchActionWrapper)`
 	display: none;

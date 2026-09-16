@@ -81,6 +81,8 @@ export const ASSETS = {
 	docs: getAssetEndpoint('docs.svg'),
 	domains: getAssetEndpoint('domains.svg'),
 	drag: getAssetEndpoint('drag.svg'),
+	ellipsisHorizontal: getAssetEndpoint('ellipsisHorizontal.svg'),
+	ellipsisVertical: getAssetEndpoint('ellipsisVertical.svg'),
 	explorer: getAssetEndpoint('explorer.svg'),
 	facebook: getAssetEndpoint('facebook.svg'),
 	filter: getAssetEndpoint('filter.svg'),

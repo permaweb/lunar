@@ -41,26 +41,44 @@ export const Tab = styled.div<{ active: boolean }>`
 	/* flex: 1; */
 
 	button {
-		border-radius: ${STYLING.dimensions.radius.primary} !important;
+		/* border-radius: ${STYLING.dimensions.radius.primary} !important; */
 		box-shadow: none !important;
+		padding: 0 13.5px 0 12.5px !important;
+
 		/* background: transparent !important;
 		border: none !important; */
 		/* padding: 0 !important; */
 
-		/* background: ${(props) => (props.active ? props.theme.colors.button.primary.active.background : 'transparent')};
-		border: 1px solid ${(props) => (props.active ? props.theme.colors.button.primary.active.border : 'transparent')}; */
+		background: ${(props) => (props.active ? props.theme.colors.button.primary.background : 'transparent')};
+		border: 1px solid
+			${(props) => (props.active ? props.theme.colors.button.primary.border : props.theme.colors.border.primary)};
+
+		&:hover {
+			background: ${(props) => props.theme.colors.button.primary.background};
+			border: 1px solid ${(props) => props.theme.colors.button.primary.border};
+		}
+		&:focus {
+			background: ${(props) => props.theme.colors.button.primary.background};
+			border: 1px solid ${(props) => props.theme.colors.button.primary.border};
+		}
 
 		span {
 			font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
 		}
+
+		svg {
+			height: 13.5px !important;
+			width: 13.5px !important;
+		}
+
 		/* flex: 1; */
 	}
 `;
 
 export const ActiveIndicator = styled.div<{ $active: boolean }>`
-	height: 2px;
+	height: 2.25px;
 	width: 100%;
-	border-top: 2px solid ${(props) => props.theme.colors.border.alt5};
+	border-top: 2.25px solid ${(props) => props.theme.colors.border.alt5};
 	position: absolute;
 	bottom: -5px;
 	pointer-events: none;

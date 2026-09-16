@@ -776,3 +776,7 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		line-height: 1;
 	}
 `;
+
+export const UpdateAction = styled.div`
+	margin: 15px 0 0 0;
+`;

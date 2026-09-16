@@ -677,6 +677,25 @@ export const OverviewWrapper = styled.div<{ $fixedHeight?: number; $hasOverflow?
 	}
 `;
 
+export const TagsSection = styled(Section)`
+	max-height: 600px;
+	display: flex;
+	flex-direction: column;
+
+	${SectionHeader} {
+		flex-shrink: 0;
+	}
+
+	${OverviewWrapper} {
+		max-height: none;
+		min-height: 0;
+
+		> * {
+			flex-shrink: 0;
+		}
+	}
+`;
+
 export const OverviewLine = styled.div`
 	display: flex;
 	align-items: center;

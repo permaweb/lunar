@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import axe from 'axe-core';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
@@ -25,16 +26,26 @@ vi.mock('providers/LanguageProvider', () => ({
 		current: 'en',
 		object: {
 			en: {
+				run: 'Run',
+				running: 'Running',
 				loadingLinkedState: 'Loading linked values…',
+				loadMoreData: 'Load more data',
+				moreStateAvailable: 'More state is available to load.',
 				aoReadPartial: 'Showing partial state',
 				aoReadTimeout: 'Read timed out',
 			},
 		},
 	}),
 }));
-vi.mock('components/atoms/Button', () => ({ Button: () => null }));
 vi.mock('components/atoms/Loader', () => ({ Loader: () => null }));
-vi.mock('components/molecules/JSONReader', () => ({ JSONReader: (props) => <pre>{JSON.stringify(props.data)}</pre> }));
+vi.mock('components/molecules/JSONReader', () => ({
+	JSONReader: (props) => (
+		<>
+			<pre>{JSON.stringify(props.data)}</pre>
+			{props.footer}
+		</>
+	),
+}));
 vi.mock('store', () => ({ store: { getState: () => ({}) } }));
 vi.mock('store/transactions/reducer', () => ({ selectTransaction: () => null, addTransaction: vi.fn() }));
 
@@ -212,4 +223,94 @@ it('ignores progress and completion from a previous process after navigation', a
 	expect(container.textContent).toContain('0x1');
 	expect(container.textContent).not.toContain('Stale process');
 	expect(container.textContent).not.toContain('stale.example');
+});
+
+const loadMoreButton = () =>
+	Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Load more data');
+
+it('loads further state only on click, retaining the current data and disabling duplicate clicks', async () => {
+	let finish: (value: unknown) => void;
+	const loadMore = vi.fn(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			})
+	);
+	mocks.readState.mockResolvedValueOnce({
+		data: { name: 'Deep process', 'next+link': 'b'.repeat(43) },
+		provider: 'https://peer.example',
+		loadMore,
+	});
+	await render(MessageVariantEnum.Mainnet);
+	expect(loadMore).not.toHaveBeenCalled();
+	expect(loadMoreButton()?.disabled).toBe(false);
+	expect(container.textContent).toContain('More state is available to load.');
+	expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
+	await React.act(async () => {
+		loadMoreButton().click();
+		loadMoreButton().click();
+	});
+	expect(loadMore).toHaveBeenCalledTimes(1);
+	expect(loadMoreButton()?.disabled).toBe(true);
+	expect(container.querySelector('pre')?.textContent).toContain('Deep process');
+	await React.act(async () =>
+		loadMore.mock.calls[0][0].onProgress({
+			data: { name: 'Deep process', next: { done: true } },
+			provider: 'https://peer.example',
+			completedLinks: 65,
+			totalLinks: 65,
+		})
+	);
+	expect(container.querySelector('pre')?.textContent).toContain('"done":true');
+	await React.act(async () =>
+		finish({ data: { name: 'Deep process', next: { done: true } }, provider: 'https://peer.example' })
+	);
+	expect(loadMoreButton()).toBeUndefined();
+	expect(mocks.readState).toHaveBeenCalledTimes(1);
+	expect(mocks.readProcess).not.toHaveBeenCalled();
+});
+
+it('retains loaded data and offers the same continuation after a failed manual read', async () => {
+	const loadMore = vi
+		.fn()
+		.mockRejectedValueOnce(new AoReadError('timeout'))
+		.mockResolvedValueOnce({ data: { name: 'Recovered process' }, provider: 'https://peer.example' });
+	mocks.readState.mockResolvedValueOnce({ data: { name: 'Deep process' }, provider: 'https://peer.example', loadMore });
+	await render(MessageVariantEnum.Mainnet);
+	await React.act(async () => loadMoreButton().click());
+	expect(container.querySelector('pre')?.textContent).toContain('Deep process');
+	expect(container.textContent).toContain('Read timed out');
+	expect(loadMoreButton()?.disabled).toBe(false);
+	await React.act(async () => loadMoreButton().click());
+	expect(container.querySelector('pre')?.textContent).toContain('Recovered process');
+	expect(loadMoreButton()).toBeUndefined();
+	expect(mocks.readState).toHaveBeenCalledTimes(1);
+});
+
+it('cancels a continuation on navigation and ignores late progress and completion', async () => {
+	let finish: (value: unknown) => void;
+	const loadMore = vi.fn(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			})
+	);
+	mocks.readState.mockResolvedValueOnce({ data: { name: 'Deep process' }, provider: 'https://peer.example', loadMore });
+	await render(MessageVariantEnum.Mainnet);
+	await React.act(async () => loadMoreButton().click());
+	const request = loadMore.mock.calls[0][0];
+	await render(MessageVariantEnum.Mainnet, 'n'.repeat(43));
+	expect(request.signal.aborted).toBe(true);
+	await React.act(async () => {
+		request.onProgress({
+			data: { name: 'Stale state' },
+			provider: 'https://old.example',
+			completedLinks: 65,
+			totalLinks: 65,
+		});
+		finish({ data: { name: 'Stale state' }, provider: 'https://old.example', loadMore });
+	});
+	expect(container.textContent).toContain('0x1');
+	expect(container.textContent).not.toContain('Stale state');
+	expect(loadMoreButton()).toBeUndefined();
 });

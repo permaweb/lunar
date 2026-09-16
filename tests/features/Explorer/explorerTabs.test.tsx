@@ -118,6 +118,7 @@ async function renameTab(label: string) {
 }
 
 async function openPins() {
+	await React.act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Tab actions"]').click());
 	const button = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Pinned');
 	await React.act(async () => button.click());
 	return container.querySelector('[role="dialog"]');
@@ -192,22 +193,23 @@ it('shows compact tab actions and opens saved pins without a connected wallet', 
 		})
 	);
 	await render('/explorer/' + 'a'.repeat(43));
-	const buttons = [...container.querySelectorAll('button')];
-	expect(buttons.slice(0, 3).map((button) => button.textContent)).toEqual(['Pinned', 'New', 'Clear']);
-	expect(buttons[1].parentElement.textContent).toContain('Create a new tab');
-	expect(buttons[2].parentElement.textContent).toContain('Clear all tabs');
+	const menuButton = container.querySelector<HTMLButtonElement>('[aria-label="Tab actions"]');
+	expect(container.querySelector('[role="menu"]')).toBeNull();
 	expect(container.querySelector('[title="Create a new tab"]')?.textContent).toBe('New');
 	await React.act(async () => {
-		buttons[0].focus();
-		buttons[0].click();
+		menuButton.focus();
+		menuButton.click();
 	});
+	const items = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+	expect(items.map((item) => item.textContent)).toEqual(['Pinned', 'New', 'Clear']);
+	await React.act(async () => items[0].click());
 	const panel = container.querySelector('[role="dialog"]');
 	expect(panel.textContent).toContain('Saved address');
 	const pin = [...panel.querySelectorAll('button')].find((button) => button.textContent.includes('Saved address'));
 	await React.act(async () => pin.click());
 	expect(currentPath).toBe(`/explorer/${id}`);
 	expect(container.querySelector('[role="dialog"]')).toBeNull();
-	expect(document.activeElement).toBe(buttons[0]);
+	expect(document.activeElement).toBe(menuButton);
 	expect(tabs()).toHaveLength(2);
 });
 

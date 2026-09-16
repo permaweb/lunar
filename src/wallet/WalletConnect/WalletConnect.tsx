@@ -310,19 +310,20 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 				disabled={!showWalletDropdown}
 			>
 				<S.Wrapper>
-					<S.PWrapper
+					<Button
 						ref={walletButton}
-						type={'button'}
+						type={'primary'}
+						icon={ASSETS.user}
+						onPress={handlePress}
+						height={32.5}
+						width={32.5}
+						iconSize={15}
 						aria-label={arProvider.walletAddress ? language.profileMenu : language.connectWallet}
-						onClick={handlePress}
-					>
-						<Avatar
-							owner={profileProvider.profile}
-							isConnected={!!arProvider.walletAddress}
-							dimensions={{ wrapper: 35, icon: 15.5 }}
-							callback={null}
-						/>
-					</S.PWrapper>
+						aria-haspopup={'menu'}
+						aria-expanded={showWalletDropdown}
+						stopPropagation
+						preventDefault
+					/>
 					{showWalletDropdown && (
 						<S.Dropdown className={'border-wrapper-alt4 fade-in scroll-wrapper-hidden'}>
 							<S.DHeaderWrapper>
@@ -330,7 +331,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									<Avatar
 										owner={profileProvider.profile}
 										isConnected={!!arProvider.walletAddress}
-										dimensions={{ wrapper: 32.5, icon: 19.5 }}
+										dimensions={{ wrapper: 32.5, icon: 18.5 }}
 										callback={null}
 									/>
 									<S.DHeader>
@@ -359,6 +360,7 @@ export default function WalletConnect(_props: { callback?: () => void }) {
 									refresh={language.refresh}
 								/>
 							</S.DBalanceWrapper>
+
 							<S.DBodyWrapper>
 								<li>
 									<S.MenuAction

@@ -66,6 +66,18 @@ it('preserves compute path reads used by network metrics', async () => {
 	);
 });
 
+it('does not return a paused traversal as complete state to data-only callers', async () => {
+	mocks.readHeaders.mockResolvedValue({
+		data: Object.fromEntries(Array.from({ length: 257 }, (_, index) => [`value-${index}+link`, 'b'.repeat(43)])),
+		provider: 'https://peer.example',
+		source: 'fallback',
+	});
+	mocks.readJson.mockResolvedValue({ data: { ready: true } });
+	await expect(createPeerApi(DEFAULT_AO_NETWORK, null).readState({ processId })).rejects.toMatchObject({
+		code: 'invalid-response',
+	});
+});
+
 it('uses the same peer transport for schedules, linked state, results, and unsigned dry runs', async () => {
 	mocks.readJson.mockImplementation(async (_path, _init, parse) => ({
 		data: parse ? parse({ raw: { Output: { data: 'ok' } } }) : { edges: [] },

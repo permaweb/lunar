@@ -2864,7 +2864,9 @@ export default function MessageList(props: {
 				{props.source?.error && (
 					<S.UpdateWrapper role={'alert'}>
 						<p>{props.source.error}</p>
-						<Button type={'alt3'} label={language.retry} onPress={props.source.onRetry} />
+						<S.UpdateAction>
+							<Button type={'alt3'} label={language.retry} onPress={props.source.onRetry} />
+						</S.UpdateAction>
 					</S.UpdateWrapper>
 				)}
 				{currentData?.length > 0 ? (

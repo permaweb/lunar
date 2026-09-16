@@ -75,6 +75,7 @@ export default function _JSONTree(props: {
 	noFullScreen?: boolean;
 	filename?: string;
 	preserveViewState?: boolean;
+	footer?: React.ReactNode;
 }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -203,6 +204,7 @@ export default function _JSONTree(props: {
 			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}`}
 			noWrapper={props.noWrapper && !fullScreenMode}
 			fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
+			$maxHeight={!fullScreenMode ? props.maxHeight : undefined}
 			ref={readerRef}
 		>
 			<S.Header>
@@ -210,14 +212,15 @@ export default function _JSONTree(props: {
 
 				<S.ActionsWrapper>
 					<Button
-						type={'alt1'}
+						type={'primary'}
 						icon={ASSETS.plusMinus}
 						onPress={handleToggleCollapse}
 						disabled={!data}
 						height={25}
 						width={25}
 						noMinWidth
-						iconSize={12.5}
+						iconSize={11}
+						padding={`2px 0 0 0`}
 						tooltip={language.collapseExpandAll}
 						tooltipPosition={'bottom-right'}
 						stopPropagation
@@ -225,14 +228,14 @@ export default function _JSONTree(props: {
 					/>
 					{!props.noFullScreen && (
 						<Button
-							type={'alt1'}
+							type={'primary'}
 							icon={ASSETS.fullscreen}
 							onPress={toggleFullscreen}
 							height={25}
 							width={25}
 							noMinWidth
-							iconSize={12.5}
-							padding={`3.95px 0 0 0`}
+							iconSize={11}
+							padding={`3px 0 0 0`}
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'bottom-right'}
 							stopPropagation
@@ -240,29 +243,30 @@ export default function _JSONTree(props: {
 						/>
 					)}
 					<Button
-						type={'alt1'}
+						type={'primary'}
 						icon={ASSETS.save}
 						onPress={downloadData}
 						disabled={!data}
 						height={25}
 						width={25}
 						noMinWidth
-						iconSize={12.5}
-						padding={`3.5px 0 0 0`}
+						iconSize={11}
+						padding={`2.5px 0 0 0`}
 						tooltip={language.downloadJSON ?? 'Download JSON'}
 						tooltipPosition={'bottom-right'}
 						stopPropagation
 						preventDefault
 					/>
 					<Button
-						type={'alt1'}
+						type={'primary'}
 						icon={ASSETS.copy}
 						onPress={copyData}
 						disabled={!data}
 						height={25}
 						width={25}
 						noMinWidth
-						iconSize={12.5}
+						iconSize={11}
+						padding={`3px 0 0 0`}
 						tooltip={copied ? `${language.copied}!` : language.copyJSON}
 						tooltipPosition={'bottom-right'}
 						stopPropagation
@@ -285,6 +289,7 @@ export default function _JSONTree(props: {
 					<p>{props.placeholder ?? language.noDataToDisplay}</p>
 				</S.Placeholder>
 			)}
+			{props.footer}
 		</S.Wrapper>
 	);
 }

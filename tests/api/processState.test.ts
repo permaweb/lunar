@@ -227,14 +227,129 @@ it('rejects cyclic links instead of leaving the state read pending', async () =>
 	expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
-it('rejects an unbounded link graph before sending linked requests', async () => {
-	const fetcher = vi.fn(async () =>
-		head(Object.fromEntries(Array.from({ length: 300 }, (_, index) => [`field-${index}+link`, balanceId])))
-	);
-	await expect(readProcessState(transportFor(fetcher), statePath, options)).rejects.toMatchObject({
-		code: 'invalid-response',
+const numberedId = (index: number) => String(index).padStart(43, 'x');
+const descend = (value: any, depth: number) => {
+	for (let index = 0; index < depth; index++) value = value.next;
+	return value;
+};
+
+it('pauses at depth 64 and resumes in bounded batches from the same snapshot', async () => {
+	const fetcher = vi.fn(async (path) => {
+		if (path === statePath) return head({ name: 'Deep process', 'next+link': numberedId(0) });
+		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		return json(index === 129 ? { done: true } : { 'next+link': numberedId(index + 1) });
 	});
-	expect(fetcher).toHaveBeenCalledTimes(1);
+	const first = await readProcessState(transportFor(fetcher), statePath, options);
+	expect(fetcher).toHaveBeenCalledTimes(65);
+	expect(descend(first.data, 64)).toEqual({ 'next+link': numberedId(64) });
+	expect(first.loadMore).toBeTypeOf('function');
+	const progress = vi.fn();
+	const second = await first.loadMore({ onProgress: progress });
+	expect(fetcher).toHaveBeenCalledTimes(129);
+	expect(descend(second.data, 128)).toEqual({ 'next+link': numberedId(128) });
+	expect(descend(first.data, 64)).toEqual({ 'next+link': numberedId(64) });
+	expect(progress.mock.lastCall[0]).toMatchObject({ completedLinks: 128, totalLinks: 129 });
+	const third = await second.loadMore();
+	expect(descend(third.data, 130)).toEqual({ done: true });
+	expect(third.loadMore).toBeUndefined();
+	expect(fetcher).toHaveBeenCalledTimes(131);
+	expect(fetcher.mock.calls.filter(([path]) => path === statePath)).toHaveLength(1);
+});
+
+it('limits each batch to 256 links and loads the remaining links only on request', async () => {
+	const fetcher = vi.fn(async (path) =>
+		path === statePath
+			? head(Object.fromEntries(Array.from({ length: 300 }, (_, index) => [`field-${index}+link`, numberedId(index)])))
+			: json({ ready: true })
+	);
+	const first = await readProcessState(transportFor(fetcher), statePath, options);
+	expect(fetcher).toHaveBeenCalledTimes(257);
+	expect(Object.keys(first.data).filter((key) => key.endsWith('+link'))).toHaveLength(44);
+	const second = await first.loadMore();
+	expect(fetcher).toHaveBeenCalledTimes(301);
+	expect(Object.keys(second.data).filter((key) => key.endsWith('+link'))).toHaveLength(0);
+	expect(second.loadMore).toBeUndefined();
+});
+
+it('retains deduplication across manual batches', async () => {
+	const fetcher = vi.fn(async (path) =>
+		path === statePath
+			? head(Object.fromEntries(Array.from({ length: 300 }, (_, index) => [`field-${index}+link`, balanceId])))
+			: json({ holder: '900719925474099312345' })
+	);
+	const first = await readProcessState(transportFor(fetcher), statePath, options);
+	const second = await first.loadMore();
+	expect(fetcher).toHaveBeenCalledTimes(2);
+	expect(second.data['field-299']).toEqual({ holder: '900719925474099312345' });
+});
+
+it('defers links inside deeply nested inline objects and arrays without discarding their values', async () => {
+	let nested: unknown = [{ 'value+link': ordersId, amount: '900719925474099312345' }];
+	for (let index = 0; index < 70; index++) nested = { next: nested };
+	const fetcher = vi.fn(async (path) => {
+		if (path === statePath) return head({ 'next+link': balanceId });
+		return json(path === linkPath(balanceId) ? nested : { done: true });
+	});
+	const first = await readProcessState(transportFor(fetcher), statePath, options);
+	expect(fetcher).toHaveBeenCalledTimes(2);
+	expect(descend(first.data, 71)[0]).toHaveProperty('value+link', ordersId);
+	const second = await first.loadMore();
+	expect(fetcher).toHaveBeenCalledTimes(3);
+	expect(descend(second.data, 71)[0]).toEqual({ value: { done: true }, amount: '900719925474099312345' });
+	expect(second.loadMore).toBeUndefined();
+});
+
+it('keeps cycle detection across manual depth boundaries', async () => {
+	const fetcher = vi.fn(async (path) => {
+		if (path === statePath) return head({ 'next+link': numberedId(0) });
+		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		return json({ 'next+link': numberedId(index === 64 ? 0 : index + 1) });
+	});
+	const first = await readProcessState(transportFor(fetcher), statePath, options);
+	await expect(first.loadMore()).rejects.toMatchObject({ code: 'invalid-response' });
+	expect(fetcher).toHaveBeenCalledTimes(66);
+	expect(descend(first.data, 64)).toEqual({ 'next+link': numberedId(64) });
+});
+
+it('shares concurrent continuation calls and permits retry after a continuation timeout', async () => {
+	vi.useFakeTimers();
+	let shouldStall = true;
+	const fetcher = vi.fn(async (path) => {
+		if (path === statePath) return head({ 'next+link': numberedId(0) });
+		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		if (index < 64) return json({ 'next+link': numberedId(index + 1) });
+		if (shouldStall) return new Promise<Response>(() => {});
+		return json({ done: true });
+	});
+	const first = await readProcessState(transportFor(fetcher), statePath, { timeoutMs: 50 });
+	const progress = vi.fn();
+	const pending = first.loadMore({ onProgress: progress });
+	expect(first.loadMore()).toBe(pending);
+	const failure = expect(pending).rejects.toMatchObject({ code: 'timeout' });
+	await vi.advanceTimersByTimeAsync(51);
+	await failure;
+	expect(progress).toHaveBeenCalledTimes(1);
+	shouldStall = false;
+	const retried = await first.loadMore();
+	expect(descend(retried.data, 65)).toEqual({ done: true });
+	expect(retried.loadMore).toBeUndefined();
+	expect(fetcher).toHaveBeenCalledTimes(67);
+});
+
+it('cancels manual loading when the original process read is disposed', async () => {
+	const controller = new AbortController();
+	const fetcher = vi.fn(async (path) => {
+		if (path === statePath) return head({ 'next+link': numberedId(0) });
+		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		if (index === 64) controller.abort();
+		return json({ 'next+link': numberedId(index + 1) });
+	});
+	const first = await readProcessState(transportFor(fetcher), statePath, { ...options, signal: controller.signal });
+	const progress = vi.fn();
+	await expect(first.loadMore({ onProgress: progress })).rejects.toMatchObject({ code: 'cancelled' });
+	expect(progress).toHaveBeenCalledTimes(1);
+	await expect(first.loadMore()).rejects.toMatchObject({ code: 'cancelled' });
+	expect(fetcher).toHaveBeenCalledTimes(66);
 });
 
 it('bounds the complete traversal, aborting stalled linked reads', async () => {

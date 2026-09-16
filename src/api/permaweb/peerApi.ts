@@ -1,13 +1,13 @@
 import { connect, createSigner } from '@permaweb/aoconnect';
 
-import { AoReadError, type AoReadResult, getAoReadTransport } from 'api/aoNetwork';
+import { AoReadError, getAoReadTransport } from 'api/aoNetwork';
 
 import type { AoNetworkSettings } from 'helpers/aoNetwork';
 import { AO_STATE_READ_TIMEOUT_MS } from 'helpers/config';
 
 import { type ArweaveSchedulePage, type ArweaveSchedulePageArgs, createArweaveScheduleReader } from './arweaveSchedule';
 import type { PermawebApi } from './index';
-import { linkedStatePath, type ProcessStateProgress, readProcessState } from './processState';
+import { linkedStatePath, type ProcessStateProgress, type ProcessStateResult, readProcessState } from './processState';
 
 type StateArgs = {
 	processId: string;
@@ -22,7 +22,7 @@ type JsonRecord = Record<string, unknown>;
 export interface PeerApi {
 	ao: PermawebApi['ao'];
 	readState(args: StateArgs): Promise<unknown>;
-	readStateWithSource(args: StateArgs): Promise<AoReadResult<unknown>>;
+	readStateWithSource(args: StateArgs): Promise<ProcessStateResult>;
 	readLatestSlot(processId: string, signal?: AbortSignal): Promise<number>;
 	readArweaveSchedulePage(args: ArweaveSchedulePageArgs): Promise<ArweaveSchedulePage>;
 	readSchedule(args: { processId: string; from: number; to: number; signal?: AbortSignal }): Promise<unknown>;
@@ -61,7 +61,7 @@ function parseOutput(value: unknown) {
 
 export function createPeerApi(settings: AoNetworkSettings, wallet: unknown): PeerApi {
 	const transport = getAoReadTransport(settings);
-	const readStateWithSource = async (args: StateArgs): Promise<AoReadResult<unknown>> => {
+	const readStateWithSource = async (args: StateArgs): Promise<ProcessStateResult> => {
 		let path = `${processPath(args.processId)}/${args.hydrate === false ? 'compute' : 'now'}`;
 		if (args.path && args.appendPath) path += `/${args.path.split('/').map(encodeURIComponent).join('/')}`;
 		return readProcessState(transport, path, {
@@ -99,7 +99,12 @@ export function createPeerApi(settings: AoNetworkSettings, wallet: unknown): Pee
 	};
 	return {
 		readStateWithSource,
-		readState: async (args) => (await readStateWithSource(args)).data,
+		readState: async (args) => {
+			const result = await readStateWithSource(args);
+			// Data-only consumers cannot display a continuation; do not imply their state is complete.
+			if (result.loadMore) throw new AoReadError('invalid-response');
+			return result.data;
+		},
 		readLatestSlot,
 		readArweaveSchedulePage: createArweaveScheduleReader(transport, readLatestSlot),
 		readSchedule: async (args) => {
