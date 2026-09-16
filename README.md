@@ -1,6 +1,6 @@
 # Lunar
 
-Lunar is a network explorer for [Arweave](https://arweave.org) and [AO](https://ao.arweave.net). In this application you can search blocks, transactions, bundles, data, and wallets
+Lunar is a network explorer for [Arweave](https://arweave.org) and [AO](https://ao.arweave.net). In this application you can search blocks, transactions, bundles, and wallets
 alongside processes, messages, assignments, results, and token transfers.
 
 Lunar is itself a permaweb application. It builds to static assets, runs entirely in the browser against public
