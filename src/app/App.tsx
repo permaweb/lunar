@@ -1,7 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
-import { ReactSVG } from 'react-svg';
 
 import { requestRemote } from 'api/http';
 
@@ -22,7 +21,8 @@ const NotFound = getLazyImport('NotFound');
 
 import { Loader } from 'components/atoms/Loader';
 import { ProfileManagerOverlay } from 'features/Profiles';
-import { ASSETS, DOM, LINKS, URLS } from 'helpers/config';
+import { DOM, URLS } from 'helpers/config';
+import { Footer } from 'navigation/Footer';
 import { Navigation } from 'navigation/Navigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
@@ -225,24 +225,7 @@ export default function App() {
 					<Navigation open={settings.sidebarOpen} toggle={() => updateSettings('sidebarOpen', !settings.sidebarOpen)} />
 					<S.View navigationOpen={settings.sidebarOpen}>{element}</S.View>
 					<S.ViewWrapper>
-						<S.Footer navigationOpen={settings.sidebarOpen}>
-							<p>
-								<S.FooterIcon className={'app-icon'}>
-									<ReactSVG src={ASSETS.logo} wrapper={'span'} />
-								</S.FooterIcon>
-								{language.app} {new Date().getFullYear()}
-							</p>
-							<p>
-								<a href={LINKS.arweave} target={'_blank'}>
-									Arweave
-								</a>
-								&nbsp; / &nbsp;
-								<a href={LINKS.ao} target={'_blank'}>
-									AO
-								</a>{' '}
-								&nbsp; Explorer
-							</p>
-						</S.Footer>
+						<Footer />
 					</S.ViewWrapper>
 				</>
 			);

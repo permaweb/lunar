@@ -36,6 +36,22 @@ export const DEFAULT_GATEWAYS = {
 	arweave: 'https://arweave.net/graphql',
 };
 
+/**
+ * The published release pointer: the `lunar` name token in the permaweb names namespace.
+ * Its process state carries the manifest transaction of the deployed build, which is what
+ * ao.arweave.net shows as the name's target.
+ *
+ * The process is configured here rather than resolved through the namespace manifest, which
+ * is over a megabyte of unrelated names. The adapter verifies the process still carries the
+ * name before trusting its target.
+ */
+export const DEPLOYMENT = {
+	name: 'lunar',
+	process: 'Y_vgOaIPzRfT24c9rWfOeqtddmd4-E2-0Q3v2ZWLBIU',
+	gateway: 'https://arweave.net',
+	readTimeoutMs: 15_000,
+};
+
 export const ARWEAVE_COMMIT_URL = 'https://github.com/ArweaveTeam/arweave/commit/';
 
 export const PROCESSES = {

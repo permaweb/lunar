@@ -1,5 +1,6 @@
 export const language = {
 	en: {
+		appDeployment: 'App Deployment',
 		blockIndex: 'Block Index',
 		arweaveMessagesLoading: 'Loading scheduled messages…',
 		arweaveMessagesEmpty: 'No confirmed messages have been scheduled yet.',
