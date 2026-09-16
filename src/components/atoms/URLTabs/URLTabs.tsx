@@ -35,7 +35,7 @@ function Tab(props: ITProps) {
 				iconLeftAlign
 				height={30}
 			/>
-			<S.ActiveIndicator $active={props.active} aria-hidden={'true'} />
+			{/* <S.ActiveIndicator $active={props.active} aria-hidden={'true'} /> */}
 		</S.Tab>
 	);
 }
