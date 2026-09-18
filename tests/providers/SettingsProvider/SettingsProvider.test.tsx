@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { DEFAULT_AO_NETWORK } from '../../../src/helpers/aoNetwork';
+import { DEFAULT_GRAPHQL_ENDPOINT } from '../../../src/helpers/config';
 import { SettingsProvider, useSettingsProvider } from '../../../src/providers/SettingsProvider';
 
 vi.mock('providers/NotificationProvider', () => ({
@@ -84,4 +85,50 @@ it('recovers from malformed saved settings', async () => {
 	localStorage.setItem('settings', '{broken');
 	await render();
 	expect(current.settings.aoNetwork).toEqual(DEFAULT_AO_NETWORK);
+});
+
+function getButton(label: string) {
+	return Array.from(container.querySelectorAll('button')).find((button) => button.textContent === label);
+}
+
+async function typeInto(input: HTMLInputElement, value: string) {
+	await React.act(async () => {
+		Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	});
+}
+
+it('restores a saved GraphQL endpoint and replaces an invalid one with the default', async () => {
+	localStorage.setItem('settings', JSON.stringify({ graphqlEndpoint: 'https://gateway.example/graphql' }));
+	await render();
+	expect(current.settings.graphqlEndpoint).toBe('https://gateway.example/graphql');
+
+	await React.act(async () => root.unmount());
+	localStorage.setItem('settings', JSON.stringify({ graphqlEndpoint: 'not a url' }));
+	root = createRoot(container);
+	await render();
+	expect(current.settings.graphqlEndpoint).toBe(DEFAULT_GRAPHQL_ENDPOINT);
+});
+
+it('saves, rejects, and resets the GraphQL endpoint from the network settings', async () => {
+	await render();
+	await React.act(async () => current.setShowNodeSettings(true));
+	expect(container.textContent).toContain('GraphQL Endpoint');
+	const input = container.querySelector<HTMLInputElement>('input[aria-label="Endpoint URL"]');
+	expect(input.value).toBe(DEFAULT_GRAPHQL_ENDPOINT);
+	expect(getButton('Save endpoint').disabled).toBe(true);
+	expect(getButton('Reset endpoint').disabled).toBe(true);
+
+	await typeInto(input, 'gateway.example/graphql');
+	expect(container.textContent).toContain('Enter a full HTTP or HTTPS GraphQL URL.');
+	expect(getButton('Save endpoint').disabled).toBe(true);
+
+	await typeInto(input, 'https://gateway.example');
+	await React.act(async () => getButton('Save endpoint').click());
+	expect(current.settings.graphqlEndpoint).toBe('https://gateway.example/graphql');
+	expect(input.value).toBe('https://gateway.example/graphql');
+
+	await React.act(async () => getButton('Reset endpoint').click());
+	expect(current.settings.graphqlEndpoint).toBe(DEFAULT_GRAPHQL_ENDPOINT);
+	expect(input.value).toBe(DEFAULT_GRAPHQL_ENDPOINT);
 });

@@ -21,7 +21,6 @@ import { PaginationControls } from 'components/molecules/PaginationControls';
 import {
 	ASSETS,
 	DEFAULT_ACTIONS,
-	DEFAULT_GATEWAYS,
 	DEFAULT_LEGACY_SCHEDULER_URL,
 	DEFAULT_MESSAGE_TAGS,
 	FLAGS,
@@ -1551,10 +1550,6 @@ export default function MessageList(props: {
 		return queryTags.length > 0 ? { tags: queryTags } : {};
 	}
 
-	function withProcessMessageGateway<T extends Record<string, any>>(args: T): T & { gateway?: string } {
-		return props.type === 'process' ? { ...args, gateway: DEFAULT_GATEWAYS.legacy } : args;
-	}
-
 	function withRequiredMessageTags(tags: { name: string; values: string[] }[]) {
 		const aoTransferFilter = appliedTransferFilter === 'ao-token' || appliedTransferFilter === 'ao-network';
 
@@ -1687,13 +1682,11 @@ export default function MessageList(props: {
 		let count: number | null = null;
 
 		while (rows.length < amount) {
-			const response = await permawebProvider.legacyApi.getGQLData(
-				withProcessMessageGateway({
-					...baseArgs,
-					paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
-					...(cursor ? { cursor } : {}),
-				})
-			);
+			const response = await permawebProvider.legacyApi.getGQLData({
+				...baseArgs,
+				paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
+				...(cursor ? { cursor } : {}),
+			});
 			const pageRows = response?.data ?? [];
 			const matchingRows = pageRows.filter((row: any) => {
 				if (excludeAoMessages && isAoMessageTransaction(row?.node?.tags)) return false;
@@ -1936,10 +1929,8 @@ export default function MessageList(props: {
 										console.warn('Scheduler count request failed', e);
 										return null;
 									})
-							: permawebProvider.legacyApi
-									.getGQLData(withProcessMessageGateway(incomingQueryArgs))
-									.then((response) => response.count),
-						permawebProvider.legacyApi.getGQLData(withProcessMessageGateway(outgoingQueryArgs)),
+							: permawebProvider.legacyApi.getGQLData(incomingQueryArgs).then((response) => response.count),
+						permawebProvider.legacyApi.getGQLData(outgoingQueryArgs),
 					]);
 					if (cancelled) return;
 

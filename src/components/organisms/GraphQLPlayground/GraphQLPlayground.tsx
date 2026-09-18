@@ -9,7 +9,8 @@ import { Modal } from 'components/atoms/Modal';
 import { Select } from 'components/atoms/Select';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS } from 'helpers/config';
+import { ASSETS, DEFAULT_GRAPHQL_ENDPOINT } from 'helpers/config';
+import { getGraphQLGatewayKey } from 'helpers/graphql';
 import { SelectOptionType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -42,7 +43,14 @@ const DEFAULT_QUERY = `query Transactions {
     }
 }`;
 
-const DEFAULT_GATEWAYS = ['ao-search-gateway.goldsky.com', 'arweave-search.goldsky.com', 'arweave.net'];
+// The default gateway is always listed first and cannot be removed.
+const DEFAULT_GATEWAY = getGraphQLGatewayKey(DEFAULT_GRAPHQL_ENDPOINT);
+const DEFAULT_GATEWAYS = [
+	DEFAULT_GATEWAY,
+	'ao-search-gateway.goldsky.com',
+	'arweave-search.goldsky.com',
+	'arweave.net',
+];
 const STORAGE_KEY = 'lunar-gql-gateways';
 const STORAGE_KEY_VARIABLES = (playgroundId: string) => `lunar-gql-variables-${playgroundId}`;
 const STORAGE_KEY_SHOW_VARIABLES = (playgroundId: string) => `lunar-gql-show-variables-${playgroundId}`;
@@ -180,10 +188,6 @@ function trimGraphqlPath(gateway: string) {
 		.replace(/\/graphql$/i, '');
 }
 
-function getGatewayStorageValue(gateway: string) {
-	return trimGraphqlPath(gateway).replace(/^https?:\/\//, '');
-}
-
 function getGatewayInputValue(gateway: string) {
 	return ensureGatewayProtocol(trimGraphqlPath(gateway));
 }
@@ -283,20 +287,22 @@ export default function GraphQLPlayground(props: {
 			const parsed = stored ? JSON.parse(stored) : DEFAULT_GATEWAYS;
 			const gatewayList = Array.isArray(parsed) ? parsed : DEFAULT_GATEWAYS;
 			const normalized = Array.from(
-				new Set(gatewayList.map((gateway: string) => getGatewayStorageValue(gateway)).filter(Boolean))
+				new Set(gatewayList.map((gateway: string) => getGraphQLGatewayKey(gateway)).filter(Boolean))
 			) as string[];
 
-			return normalized.length > 0 ? normalized : DEFAULT_GATEWAYS;
+			return normalized.length > 0
+				? [DEFAULT_GATEWAY, ...normalized.filter((gateway) => gateway !== DEFAULT_GATEWAY)]
+				: DEFAULT_GATEWAYS;
 		} catch {
 			return DEFAULT_GATEWAYS;
 		}
 	});
 	const [selectedGateway, setSelectedGateway] = React.useState<string>(() => {
-		const initial = props.initialGateway ? getGatewayStorageValue(props.initialGateway) : gateways[0];
+		const initial = props.initialGateway ? getGraphQLGatewayKey(props.initialGateway) : gateways[0];
 		return gateways.includes(initial) ? initial : gateways[0];
 	});
 	const [inputGateway, setInputGateway] = React.useState<string>(() => {
-		const initial = props.initialGateway ? getGatewayStorageValue(props.initialGateway) : gateways[0];
+		const initial = props.initialGateway ? getGraphQLGatewayKey(props.initialGateway) : gateways[0];
 		const gateway = gateways.includes(initial) ? initial : gateways[0];
 		return getGatewayInputValue(gateway);
 	});
@@ -413,7 +419,7 @@ export default function GraphQLPlayground(props: {
 	const initialGatewayRef = React.useRef(props.initialGateway);
 	React.useEffect(() => {
 		if (initialGatewayRef.current !== undefined) {
-			const gateway = getGatewayStorageValue(initialGatewayRef.current);
+			const gateway = getGraphQLGatewayKey(initialGatewayRef.current);
 
 			if (gateways.includes(gateway)) {
 				setSelectedGateway(gateway);
@@ -479,7 +485,7 @@ export default function GraphQLPlayground(props: {
 	}, [showDocs, schemaDocsEndpoint, language.errorFetchingData]);
 
 	const saveCustomGateway = React.useCallback(() => {
-		const gateway = getGatewayStorageValue(inputGateway);
+		const gateway = getGraphQLGatewayKey(inputGateway);
 
 		if (gateway && !gateways.includes(gateway)) {
 			const updatedGateways = [...gateways, gateway];
@@ -492,7 +498,7 @@ export default function GraphQLPlayground(props: {
 
 	const removeGateway = React.useCallback(
 		(option: SelectOptionType) => {
-			if (gateways.length <= 1) return;
+			if (option.id === DEFAULT_GATEWAY || gateways.length <= 1) return;
 
 			const updatedGateways = gateways.filter((gateway) => gateway !== option.id);
 			const nextGateway = selectedGateway === option.id ? updatedGateways[0] : selectedGateway;
@@ -795,7 +801,7 @@ export default function GraphQLPlayground(props: {
 						type={'primary'}
 						icon={ASSETS.save}
 						onPress={saveCustomGateway}
-						disabled={!getGatewayStorageValue(inputGateway) || gateways.includes(getGatewayStorageValue(inputGateway))}
+						disabled={!getGraphQLGatewayKey(inputGateway) || gateways.includes(getGraphQLGatewayKey(inputGateway))}
 						height={32.5}
 						width={32.5}
 						noMinWidth
@@ -849,7 +855,7 @@ export default function GraphQLPlayground(props: {
 						options={gatewayOptions}
 						disabled={false}
 						onRemoveOption={removeGateway}
-						isOptionRemovable={() => gateways.length > 1}
+						isOptionRemovable={(option) => option.id !== DEFAULT_GATEWAY && gateways.length > 1}
 						removeOptionLabel={language.remove}
 					/>
 				</S.ActionsWrapper>

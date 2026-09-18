@@ -31,10 +31,8 @@ export const LEGACY_AUTHORITIES: { address: string; minHeight: number | null; ma
 	{ address: '6qOD-VYFZBKwYtrOm1Keh2ETif7SDUPAPx-UEu4qlR4', minHeight: 1953008, maxHeight: null },
 ];
 
-export const DEFAULT_GATEWAYS = {
-	legacy: 'ao-search-gateway.goldsky.com',
-	arweave: 'https://arweave.net/graphql',
-};
+/** The GraphQL endpoint every query outside the GraphQL playground uses until a user configures their own. */
+export const DEFAULT_GRAPHQL_ENDPOINT = 'https://arweave.net/~query@1.0/graphql';
 
 /**
  * The published release pointer: the `lunar` name token in the permaweb names namespace.

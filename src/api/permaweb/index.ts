@@ -2,7 +2,9 @@ import Arweave from 'arweave';
 import { connect, createSigner } from '@permaweb/aoconnect';
 import PermawebLibs from '@permaweb/libs';
 
-import { DEFAULT_AO_NODE, DEFAULT_GATEWAYS, DEFAULT_LEGACY_CU_URL } from 'helpers/config';
+import { getGraphQLEndpoint } from 'api/graphql';
+
+import { DEFAULT_AO_NODE, DEFAULT_LEGACY_CU_URL } from 'helpers/config';
 import { DefaultGQLResponseType, GQLNodeResponseType } from 'helpers/types';
 
 interface AoClient {
@@ -31,6 +33,7 @@ export function createPermawebApis(args: {
 	wallet: unknown;
 	legacyComputeNode?: string;
 	node?: { url: string; authority?: string };
+	graphqlEndpoint?: string;
 }): PermawebApis {
 	const signer = args.wallet ? createSigner(args.wallet as any) : null;
 	const legacyComputeNode = args.legacyComputeNode?.trim() || DEFAULT_LEGACY_CU_URL;
@@ -54,7 +57,7 @@ export function createPermawebApis(args: {
 		arweave: Arweave.init({}),
 		signer,
 		node: { url: nodeUrl, authority: nodeAuthority, scheduler: DEFAULT_AO_NODE.scheduler },
-		gateway: DEFAULT_GATEWAYS.arweave,
+		gateway: args.graphqlEndpoint ?? getGraphQLEndpoint(),
 	};
 	const legacyDependencies = { ao: legacyAo, ...shared };
 	const mainnetDependencies = { ao: connect(mainnetConfiguration), ...shared };

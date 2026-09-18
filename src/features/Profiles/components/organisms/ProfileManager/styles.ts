@@ -103,6 +103,7 @@ export const BInput = styled(PrimitiveButton)<{ hasBanner: boolean }>`
 		color: ${(props) => props.theme.colors.font.alt1};
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-family: ${(props) => props.theme.typography.family.primary};
 	}
 	svg {
 		height: 35px;
@@ -188,6 +189,7 @@ export const AInput = styled(PrimitiveButton)<{ hasAvatar: boolean }>`
 		color: ${(props) => props.theme.colors.font.alt1};
 		font-size: ${(props) => props.theme.typography.size.xxxxSmall};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-family: ${(props) => props.theme.typography.family.primary};
 	}
 	svg {
 		height: 25px;

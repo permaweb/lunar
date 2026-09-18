@@ -36,7 +36,7 @@ export const PeerList = styled.ul`
 	}
 `;
 
-export const PeerActions = styled.div`
+export const SectionActions = styled.div`
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10px;

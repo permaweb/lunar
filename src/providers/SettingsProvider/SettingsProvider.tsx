@@ -3,6 +3,7 @@ import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
 import { getAoReadTransport } from 'api/aoNetwork';
+import { normalizeGraphQLEndpoint } from 'api/graphql';
 import { requestRemote } from 'api/http';
 
 import { Button } from 'components/atoms/Button';
@@ -10,7 +11,7 @@ import { Checkbox } from 'components/atoms/Checkbox';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
 import { type AoNetworkSettings, DEFAULT_AO_NETWORK, parseAoPeers, restoreAoNetwork } from 'helpers/aoNetwork';
-import { ASSETS, DEFAULT_AO_NODE, DEFAULT_LEGACY_CU_URL, STYLING } from 'helpers/config';
+import { ASSETS, DEFAULT_AO_NODE, DEFAULT_GRAPHQL_ENDPOINT, DEFAULT_LEGACY_CU_URL, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
 import {
 	darkTheme,
@@ -69,6 +70,7 @@ interface Settings {
 	showLinkAction: boolean;
 	showNodeStatus: boolean;
 	legacyComputeNode: string;
+	graphqlEndpoint: string;
 	aoNetwork: AoNetworkSettings;
 	nodes: NodeConfig[];
 }
@@ -100,6 +102,7 @@ const defaultSettings: Settings = {
 	showLinkAction: false,
 	showNodeStatus: true,
 	legacyComputeNode: DEFAULT_LEGACY_CU_URL,
+	graphqlEndpoint: DEFAULT_GRAPHQL_ENDPOINT,
 	aoNetwork: DEFAULT_AO_NETWORK,
 	nodes: [{ url: DEFAULT_AO_NODE.url, authority: DEFAULT_AO_NODE.authority, active: true }],
 };
@@ -151,6 +154,7 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 				showLinkAction: parsedSettings.showLinkAction ?? false,
 				showNodeStatus: parsedSettings.showNodeStatus ?? true,
 				legacyComputeNode: parsedSettings.legacyComputeNode ?? DEFAULT_LEGACY_CU_URL,
+				graphqlEndpoint: normalizeGraphQLEndpoint(parsedSettings.graphqlEndpoint) ?? DEFAULT_GRAPHQL_ENDPOINT,
 				aoNetwork: restoreAoNetwork(parsedSettings.aoNetwork),
 				syncWithSystem: parsedSettings.syncWithSystem ?? true,
 				preferredLightTheme: parsedSettings.preferredLightTheme ?? 'light-primary',
@@ -181,6 +185,8 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
 	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
 	const [legacyComputeNodeInput, setLegacyComputeNodeInput] = React.useState<string>(settings.legacyComputeNode);
+	const [graphqlEndpointInput, setGraphqlEndpointInput] = React.useState<string>(settings.graphqlEndpoint);
+	const parsedGraphqlEndpoint = normalizeGraphQLEndpoint(graphqlEndpointInput);
 	const [addingNodeUrl, setAddingNodeUrl] = React.useState<string | null>(null);
 	const pendingNodeUrlsRef = React.useRef<Set<string>>(new Set());
 
@@ -433,6 +439,17 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 		setPeersInput(DEFAULT_AO_NETWORK.peers.join(', '));
 	}
 
+	function handleSaveGraphqlEndpoint() {
+		if (!parsedGraphqlEndpoint) return;
+		updateSettings('graphqlEndpoint', parsedGraphqlEndpoint);
+		setGraphqlEndpointInput(parsedGraphqlEndpoint);
+	}
+
+	function handleResetGraphqlEndpoint() {
+		updateSettings('graphqlEndpoint', DEFAULT_GRAPHQL_ENDPOINT);
+		setGraphqlEndpointInput(DEFAULT_GRAPHQL_ENDPOINT);
+	}
+
 	function handleLegacyComputeNodeChange(e: React.ChangeEvent<HTMLInputElement>) {
 		setLegacyComputeNodeInput(e.target.value);
 	}
@@ -525,7 +542,7 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 										<li key={peer}>{peer}</li>
 									))}
 								</S.PeerList>
-								<S.PeerActions>
+								<S.SectionActions>
 									<Button
 										type="alt3"
 										label={language.en.savePeers}
@@ -533,7 +550,7 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 										disabled={!parsedPeers || JSON.stringify(parsedPeers) === JSON.stringify(settings.aoNetwork.peers)}
 									/>
 									<Button type="alt3" label={language.en.resetPeers} onPress={handleResetPeers} />
-								</S.PeerActions>
+								</S.SectionActions>
 							</S.NodeSection>
 							<S.NodeSection>
 								<S.NodeSectionHeader>
@@ -609,6 +626,37 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 										<p>{language.en.showFixedNodeStatusDescription}</p>
 									</S.NodeDisplayOptionText>
 								</S.NodeDisplayOption>
+							</S.NodeSection>
+							<S.NodeSection>
+								<S.NodeSectionHeader>
+									<p>{language.en.graphqlEndpoint}</p>
+								</S.NodeSectionHeader>
+								<S.NetworkDescription>{language.en.graphqlEndpointDescription}</S.NetworkDescription>
+								<FormField
+									label={language.en.graphqlEndpointUrl}
+									placeholder={DEFAULT_GRAPHQL_ENDPOINT}
+									value={graphqlEndpointInput}
+									onChange={(event) => setGraphqlEndpointInput(event.target.value)}
+									invalid={{
+										status: !parsedGraphqlEndpoint,
+										message: !parsedGraphqlEndpoint ? language.en.invalidGraphqlEndpoint : null,
+									}}
+									disabled={false}
+								/>
+								<S.SectionActions>
+									<Button
+										type="alt3"
+										label={language.en.saveGraphqlEndpoint}
+										onPress={handleSaveGraphqlEndpoint}
+										disabled={!parsedGraphqlEndpoint || parsedGraphqlEndpoint === settings.graphqlEndpoint}
+									/>
+									<Button
+										type="alt3"
+										label={language.en.resetGraphqlEndpoint}
+										onPress={handleResetGraphqlEndpoint}
+										disabled={settings.graphqlEndpoint === DEFAULT_GRAPHQL_ENDPOINT}
+									/>
+								</S.SectionActions>
 							</S.NodeSection>
 						</S.MWrapper>
 					</Modal>
