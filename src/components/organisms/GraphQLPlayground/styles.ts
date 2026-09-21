@@ -66,10 +66,6 @@ export const ActionsWrapper = styled.div`
 	display: flex;
 	gap: 10px;
 	align-items: center;
-
-	button {
-		border-radius: ${STYLING.dimensions.radius.alt2} !important;
-	}
 `;
 
 export const GatewaysLabel = styled.div`

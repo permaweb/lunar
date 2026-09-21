@@ -413,7 +413,7 @@ export const language = {
 		noReadsYet: `No reads yet`,
 		noVariant: `No Variant`,
 		node: `Node`,
-		nodeConfiguration: `Node Configuration`,
+		networkSettings: `Network Settings`,
 		aosNode: `AOS Node`,
 		aosNodeDescription: `Used by the AOS page for process creation, evaluation, and results.`,
 		aoReadNetwork: `AO Read Network`,

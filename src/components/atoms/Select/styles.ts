@@ -25,33 +25,25 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 	height: ${STYLING.dimensions.form.small};
 	width: 100%;
 	text-align: left;
-	padding: 0 12.5px;
+	padding: 0 17.5px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 10px;
 	background: ${(props) =>
 		props.active ? props.theme.colors.button.primary.active.background : props.theme.colors.button.primary.background};
-	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.primary : props.theme.colors.border.primary)};
+	border: 1px solid
+		${(props) =>
+			props.active ? props.theme.colors.button.primary.active.border : props.theme.colors.button.primary.border};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	transition: all 100ms;
-	&:hover {
-		background: ${(props) => props.theme.colors.button.primary.active.background};
-		border: 1px solid ${(props) => props.theme.colors.button.primary.active.border};
-		span {
-			color: ${(props) => props.theme.colors.font.light1} !important;
-		}
-		svg {
-			color: ${(props) => props.theme.colors.font.light1} !important;
-		}
-	}
+	&:hover,
 	&:focus {
 		background: ${(props) => props.theme.colors.button.primary.active.background};
 		border: 1px solid ${(props) => props.theme.colors.button.primary.active.border};
-		span {
-			color: ${(props) => props.theme.colors.font.light1} !important;
-		}
+		span,
 		svg {
-			color: ${(props) => props.theme.colors.font.light1} !important;
+			color: ${(props) => props.theme.colors.button.primary.active.color} !important;
 		}
 	}
 	&:disabled {
@@ -69,20 +61,31 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 		width: fit-content;
 		text-overflow: ellipsis;
 		overflow: hidden;
+		white-space: nowrap;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
+		letter-spacing: 0.5px;
 		color: ${(props) =>
-			props.active ? props.theme.colors.font.light1 : props.theme.colors.button.primary.color} !important;
+			props.active
+				? props.theme.colors.button.primary.active.color
+				: props.theme.colors.button.primary.color} !important;
 	}
 
 	svg {
 		height: 17px;
 		width: 17px;
 		margin: 5px 0 0 0;
-		transform: rotate(0deg);
+		transform: rotate(${(props) => (props.active ? '180deg' : '0deg')});
+		transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 		color: ${(props) =>
-			props.active ? props.theme.colors.font.light1 : props.theme.colors.button.primary.color} !important;
+			props.active
+				? props.theme.colors.button.primary.active.color
+				: props.theme.colors.button.primary.color} !important;
+
+		@media (prefers-reduced-motion: reduce) {
+			transition: none;
+		}
 	}
 
 	/* Chromeless trigger for headers: the label alone carries the control, so only its color reacts. */
@@ -125,35 +128,42 @@ export const Options = styled.ul<{ $top?: number; $plain?: boolean }>`
 	width: ${(props) => (props.$plain ? 'max-content' : '100%')};
 	min-width: 100%;
 	max-width: 90vw;
+	max-height: 248px;
 	position: absolute;
 	${(props) => props.$plain && 'right: 0;'}
-	top: ${(props) => (props.$top ? `${props.$top.toString()}px` : props.$plain ? '27.5px' : '42.5px')};
+	top: ${(props) => (props.$top ? `${props.$top.toString()}px` : 'calc(100% + 5px)')};
 	z-index: 4;
-	overflow: hidden;
-	background: ${(props) => props.theme.colors.container.alt8.background};
-	border-radius: ${STYLING.dimensions.radius.alt2};
-	box-shadow: ${(props) => props.theme.colors.container.alt11.background} 0px 1px 2px 0.5px;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	padding: 4px;
+	overflow-y: auto;
+	list-style: none;
+	background: ${(props) => props.theme.colors.view.background};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-radius: ${STYLING.dimensions.radius.primary};
+	box-shadow: 0 10px 30px ${(props) => props.theme.colors.shadow.primary};
 `;
 
 export const Option = styled.li<{ active: boolean }>`
-	text-align: center;
-	height: calc(${STYLING.dimensions.form.small} + 2px);
+	min-height: 34px;
 	display: flex;
+	flex: none;
 	align-items: center;
 	justify-content: space-between;
 	gap: 10px;
+	padding: 0 4px 0 10px;
+	text-align: left;
 	cursor: pointer;
-	color: ${(props) => (props.active ? props.theme.colors.font.light1 : props.theme.colors.font.light1)};
-	font-size: ${(props) => props.theme.typography.size.xxSmall};
-	font-weight: ${(props) => props.theme.typography.weight.bold};
-	background: ${(props) =>
-		props.active ? props.theme.colors.container.alt9.background : props.theme.colors.container.alt8.background};
-	border: 1px solid transparent;
-	padding: 0 9px 0 15px;
-	transition: all 100ms;
+	color: ${(props) => props.theme.colors.font.primary};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	font-weight: ${(props) => (props.active ? props.theme.typography.weight.bold : props.theme.typography.weight.medium)};
+	background: ${(props) => (props.active ? props.theme.colors.container.primary.active : 'transparent')};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	transition: background 100ms;
+
 	&:hover {
-		color: ${(props) => props.theme.colors.font.light1};
-		background: ${(props) => props.theme.colors.container.alt9.background};
+		background: ${(props) => props.theme.colors.container.primary.active};
 	}
 `;
 
@@ -174,22 +184,23 @@ export const RemoveOption = styled.button`
 	border: none;
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	background: transparent;
-	color: ${(props) => props.theme.colors.font.light1};
+	color: ${(props) => props.theme.colors.font.alt1};
 	transition: all 100ms;
 
 	div {
-		height: 14px;
-		width: 14px;
+		height: 12px;
+		width: 12px;
 	}
 
 	svg {
-		height: 14px;
-		width: 14px;
+		height: 12px;
+		width: 12px;
 		color: currentColor;
 	}
 
 	&:hover {
 		cursor: pointer;
-		background: ${(props) => props.theme.colors.container.alt8.background};
+		color: ${(props) => props.theme.colors.font.primary};
+		background: ${(props) => props.theme.colors.button.primary.active.background};
 	}
 `;

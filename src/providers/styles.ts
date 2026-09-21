@@ -76,27 +76,45 @@ export const NodeSection = styled.div`
 
 export const NodeSectionHeader = styled.div`
 	p {
-		color: ${(props) => props.theme.colors.font.alt1};
+		color: ${(props) => props.theme.colors.font.primary};
 		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
 	}
 `;
 
-export const NodeDisplayOption = styled.label`
+export const NodeDisplayOption = styled.label<{ $active: boolean; $disabled?: boolean }>`
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
 	padding: 10px 12px;
-	background: ${(props) => props.theme.colors.container.primary.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	background: ${(props) =>
+		props.$disabled
+			? props.theme.colors.form.disabled.background
+			: props.$active
+			? props.theme.colors.container.primary.active
+			: props.theme.colors.container.primary.background};
+	border: 1px solid
+		${(props) =>
+			props.$disabled
+				? props.theme.colors.form.disabled.border
+				: props.$active
+				? props.theme.colors.border.alt1
+				: props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
-	cursor: pointer;
+	cursor: ${(props) => (props.$disabled ? 'default' : 'pointer')};
 	transition: all 100ms;
 
 	&:hover {
-		background: ${(props) => props.theme.colors.container.primary.active};
-		border-color: ${(props) => props.theme.colors.border.alt2};
+		background: ${(props) =>
+			props.$disabled ? props.theme.colors.form.disabled.background : props.theme.colors.container.primary.active};
+		border-color: ${(props) =>
+			props.$disabled ? props.theme.colors.form.disabled.border : props.theme.colors.border.alt2};
+	}
+
+	&& span,
+	&& p {
+		${(props) => props.$disabled && `color: ${props.theme.colors.button.primary.disabled.color};`}
 	}
 
 	> div:first-child {
@@ -141,15 +159,15 @@ export const NodeItem = styled.div<{ active: boolean }>`
 	padding: 12px 15px;
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	background: ${(props) =>
-		props.active ? props.theme.colors.container.alt1.background : props.theme.colors.container.primary.background};
-	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt3 : props.theme.colors.border.primary)};
+		props.active ? props.theme.colors.container.primary.active : props.theme.colors.container.primary.background};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt2 : props.theme.colors.border.primary)};
 	transition: all 100ms;
 	cursor: ${(props) => (props.active ? 'default' : 'pointer')};
 	pointer-events: ${(props) => (!props.active ? 'all' : 'none')};
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
-		border: 1px solid ${(props) => props.theme.colors.border.alt2};
+		border: 1px solid ${(props) => props.theme.colors.border.alt1};
 	}
 `;
 
@@ -165,7 +183,7 @@ export const Indicator = styled.div<{ active: boolean }>`
 	width: 12.5px;
 	border-radius: 50%;
 	background: ${(props) => (props.active ? props.theme.colors.indicator.active : 'transparent')};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.indicator.active : props.theme.colors.border.alt1)};
 	transition: all 150ms;
 `;
 
@@ -224,7 +242,7 @@ export const NodeDivider = styled.div`
 	}
 `;
 
-export const NodeAddSection = styled.div`
+export const NodeAddSection = styled.form`
 	display: flex;
 	flex-direction: column;
 	gap: 10px;

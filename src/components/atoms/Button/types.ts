@@ -8,6 +8,8 @@ export interface IProps
 		'id' | 'aria-label' | 'aria-haspopup' | 'aria-expanded' | 'aria-controls' | 'onKeyDown'
 	> {
 	type: ButtonType;
+	/** Renders a primary, alt1, success or warning button at the compact alt3 size. */
+	size?: 'small';
 	label?: string | number | React.ReactNode;
 	onPress: (e: React.MouseEvent) => void;
 	disabled?: boolean;

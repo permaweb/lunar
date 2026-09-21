@@ -6,6 +6,7 @@ export const NetworkDescription = styled.p`
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	color: ${(props) => props.theme.colors.font.alt1};
 	line-height: 1.5;
+	margin: -7.5px 0 0 0;
 `;
 
 export const NetworkProviders = styled.div`

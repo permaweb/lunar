@@ -81,7 +81,6 @@ export default function ForkHistory(props: {
 						activeOption={{ id: node, label: node }}
 						setActiveOption={(option) => setNode(option.id)}
 						disabled={false}
-						top={74.5}
 					/>
 				</S.SelectWrapper>
 			</S.Controls>

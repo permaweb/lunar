@@ -382,9 +382,6 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 				return newSettings;
 			});
 
-			// Close the panel
-			setShowNodeSettings(false);
-
 			// Show notification
 			addNotification(`Switched to ${url}`, 'success');
 		},
@@ -414,6 +411,11 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 		if (url && validateUrl(url) && !addingNodeUrl) {
 			addNode({ url });
 		}
+	}
+
+	function handleAddNodeSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		handleAddNode();
 	}
 
 	function handleRemoveNode(url: string) {
@@ -470,17 +472,52 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 				{showNodeSettings && (
 					<Modal
 						type="panel"
-						width={500}
-						header={language.en.nodeConfiguration}
+						width={520}
+						header={language.en.networkSettings}
 						onClose={() => setShowNodeSettings(false)}
 					>
 						<S.MWrapper>
 							<S.NodeSection>
 								<S.NodeSectionHeader>
+									<p>{language.en.graphqlEndpoint}</p>
+								</S.NodeSectionHeader>
+								<S.NetworkDescription>{language.en.graphqlEndpointDescription}</S.NetworkDescription>
+								<FormField
+									label={language.en.graphqlEndpointUrl}
+									placeholder={DEFAULT_GRAPHQL_ENDPOINT}
+									value={graphqlEndpointInput}
+									onChange={(event) => setGraphqlEndpointInput(event.target.value)}
+									invalid={{
+										status: !parsedGraphqlEndpoint,
+										message: !parsedGraphqlEndpoint ? language.en.invalidGraphqlEndpoint : null,
+									}}
+									disabled={false}
+								/>
+								<S.SectionActions>
+									<Button
+										type="alt1"
+										size="small"
+										label={language.en.saveGraphqlEndpoint}
+										onPress={handleSaveGraphqlEndpoint}
+										disabled={!parsedGraphqlEndpoint || parsedGraphqlEndpoint === settings.graphqlEndpoint}
+									/>
+									<Button
+										type="alt3"
+										label={language.en.resetGraphqlEndpoint}
+										onPress={handleResetGraphqlEndpoint}
+										disabled={settings.graphqlEndpoint === DEFAULT_GRAPHQL_ENDPOINT}
+									/>
+								</S.SectionActions>
+							</S.NodeSection>
+							<S.NodeDivider>
+								<div className={'node-divider'} />
+							</S.NodeDivider>
+							<S.NodeSection>
+								<S.NodeSectionHeader>
 									<p>{language.en.aoReadNetwork}</p>
 								</S.NodeSectionHeader>
 								<S.NetworkDescription>{language.en.aoReadNetworkDescription}</S.NetworkDescription>
-								<S.NodeDisplayOption>
+								<S.NodeDisplayOption $active={settings.aoNetwork.preferPermawebOS}>
 									<Checkbox
 										checked={settings.aoNetwork.preferPermawebOS}
 										onSelect={() =>
@@ -496,7 +533,10 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 										<p>{language.en.preferPermawebOSDescription}</p>
 									</S.NodeDisplayOptionText>
 								</S.NodeDisplayOption>
-								<S.NodeDisplayOption>
+								<S.NodeDisplayOption
+									$active={settings.aoNetwork.fallbackToPeers}
+									$disabled={!settings.aoNetwork.preferPermawebOS}
+								>
 									<Checkbox
 										checked={settings.aoNetwork.fallbackToPeers}
 										onSelect={() =>
@@ -544,7 +584,8 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 								</S.PeerList>
 								<S.SectionActions>
 									<Button
-										type="alt3"
+										type="alt1"
+										size="small"
 										label={language.en.savePeers}
 										onPress={handleSavePeers}
 										disabled={!parsedPeers || JSON.stringify(parsedPeers) === JSON.stringify(settings.aoNetwork.peers)}
@@ -552,6 +593,9 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 									<Button type="alt3" label={language.en.resetPeers} onPress={handleResetPeers} />
 								</S.SectionActions>
 							</S.NodeSection>
+							<S.NodeDivider>
+								<div className={'node-divider'} />
+							</S.NodeDivider>
 							<S.NodeSection>
 								<S.NodeSectionHeader>
 									<p>{language.en.aosNode}</p>
@@ -584,12 +628,7 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 										</S.NodeItem>
 									))}
 								</S.NodeList>
-								<S.NodeDivider>
-									<div className={'node-divider'} />
-									<span>{language.en.addANode}</span>
-									<div className={'node-divider'} />
-								</S.NodeDivider>
-								<S.NodeAddSection>
+								<S.NodeAddSection onSubmit={handleAddNodeSubmit}>
 									<FormField
 										placeholder={'http://localhost:8734'}
 										value={newNodeUrl}
@@ -600,13 +639,19 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 									<Button
 										type={'alt1'}
 										label={language.en.addNode}
-										onPress={handleAddNode}
+										formSubmit
+										onPress={() => {}}
 										disabled={!newNodeUrl || !validateUrl(newNodeUrl) || !!addingNodeUrl}
 										loading={!!addingNodeUrl}
 										height={45}
 										fullWidth
 									/>
 								</S.NodeAddSection>
+							</S.NodeSection>
+							<S.NodeDivider>
+								<div className={'node-divider'} />
+							</S.NodeDivider>
+							<S.NodeSection>
 								<FormField
 									label={'Legacy Compute Node'}
 									placeholder={DEFAULT_LEGACY_CU_URL}
@@ -619,44 +664,26 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 									}}
 									disabled={false}
 								/>
-								<S.NodeDisplayOption>
+							</S.NodeSection>
+							<S.NodeDivider>
+								<div className={'node-divider'} />
+							</S.NodeDivider>
+							<S.NodeSection>
+								<S.NodeDisplayOption $active={settings.showNodeStatus}>
 									<Checkbox checked={settings.showNodeStatus} onSelect={handleToggleNodeStatus} disabled={false} />
 									<S.NodeDisplayOptionText>
 										<span>{language.en.showFixedNodeStatus}</span>
 										<p>{language.en.showFixedNodeStatusDescription}</p>
 									</S.NodeDisplayOptionText>
 								</S.NodeDisplayOption>
-							</S.NodeSection>
-							<S.NodeSection>
-								<S.NodeSectionHeader>
-									<p>{language.en.graphqlEndpoint}</p>
-								</S.NodeSectionHeader>
-								<S.NetworkDescription>{language.en.graphqlEndpointDescription}</S.NetworkDescription>
-								<FormField
-									label={language.en.graphqlEndpointUrl}
-									placeholder={DEFAULT_GRAPHQL_ENDPOINT}
-									value={graphqlEndpointInput}
-									onChange={(event) => setGraphqlEndpointInput(event.target.value)}
-									invalid={{
-										status: !parsedGraphqlEndpoint,
-										message: !parsedGraphqlEndpoint ? language.en.invalidGraphqlEndpoint : null,
-									}}
+								<Button
+									type={'primary'}
+									label={language.en.close}
+									onPress={() => setShowNodeSettings(false)}
 									disabled={false}
+									height={45}
+									fullWidth
 								/>
-								<S.SectionActions>
-									<Button
-										type="alt3"
-										label={language.en.saveGraphqlEndpoint}
-										onPress={handleSaveGraphqlEndpoint}
-										disabled={!parsedGraphqlEndpoint || parsedGraphqlEndpoint === settings.graphqlEndpoint}
-									/>
-									<Button
-										type="alt3"
-										label={language.en.resetGraphqlEndpoint}
-										onPress={handleResetGraphqlEndpoint}
-										disabled={settings.graphqlEndpoint === DEFAULT_GRAPHQL_ENDPOINT}
-									/>
-								</S.SectionActions>
 							</S.NodeSection>
 						</S.MWrapper>
 					</Modal>
