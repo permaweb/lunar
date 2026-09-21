@@ -9,7 +9,7 @@ import { Modal } from 'components/atoms/Modal';
 import { Select } from 'components/atoms/Select';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS, DEFAULT_GRAPHQL_ENDPOINT } from 'helpers/config';
+import { ASSETS, DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT } from 'helpers/config';
 import { getGraphQLGatewayKey } from 'helpers/graphql';
 import { SelectOptionType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -44,7 +44,7 @@ const DEFAULT_QUERY = `query Transactions {
 }`;
 
 // The default gateway is always listed first and cannot be removed.
-const DEFAULT_GATEWAY = getGraphQLGatewayKey(DEFAULT_GRAPHQL_ENDPOINT);
+const DEFAULT_GATEWAY = getGraphQLGatewayKey(DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT);
 const DEFAULT_GATEWAYS = [
 	DEFAULT_GATEWAY,
 	'ao-search-gateway.goldsky.com',

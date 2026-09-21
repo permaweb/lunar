@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { ViewTabs } from 'components/molecules/ViewTabs';
-import { ASSETS, DEFAULT_GRAPHQL_ENDPOINT } from 'helpers/config';
+import { ASSETS, DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT } from 'helpers/config';
 import { getGraphQLGatewayKey } from 'helpers/graphql';
 import { BaseTabType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -13,7 +13,7 @@ type GraphQLTabType = BaseTabType & {
 	gateway?: string;
 };
 
-const DEFAULT_GATEWAY = getGraphQLGatewayKey(DEFAULT_GRAPHQL_ENDPOINT);
+const DEFAULT_GATEWAY = getGraphQLGatewayKey(DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT);
 const DEFAULT_GATEWAY_STORAGE_KEY = 'graphql-default-gateway';
 // The default before this key existed; tabs saved then carry no marker.
 const PREVIOUS_DEFAULT_GATEWAY = 'ao-search-gateway.goldsky.com';

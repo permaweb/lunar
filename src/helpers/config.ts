@@ -32,7 +32,10 @@ export const LEGACY_AUTHORITIES: { address: string; minHeight: number | null; ma
 ];
 
 /** The GraphQL endpoint every query outside the GraphQL playground uses until a user configures their own. */
-export const DEFAULT_GRAPHQL_ENDPOINT = 'https://arweave.net/~query@1.0/graphql';
+export const DEFAULT_GRAPHQL_ENDPOINT = 'https://arweave.net/graphql';
+
+/** The GraphQL playground's default gateway, listed first and selected for new tabs. */
+export const DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT = 'https://arweave.net/~query@1.0/graphql';
 
 /**
  * The published release pointer: the `lunar` name token in the permaweb names namespace.

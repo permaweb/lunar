@@ -149,7 +149,8 @@ Infrastructure values live in `src/helpers/config.ts`:
 - `DEFAULT_AO_NODE` and `DEFAULT_AO_PEERS` — the AO mainnet node and peers used until a user configures their own
   under **Network Settings** in the application
 - `DEFAULT_GRAPHQL_ENDPOINT` — the GraphQL endpoint every query outside the GraphQL page uses until a user sets their
-  own under **Network Settings → GraphQL Endpoint**; it is also the GraphQL page's default gateway
+  own under **Network Settings → GraphQL Endpoint**
+- `DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT` — the GraphQL page's default gateway
 - `PROCESSES` — the AO processes read for token and metrics data
 - `DEPLOYMENT` — the `lunar` name token whose state carries the published deployment transaction shown in the footer
 - `STYLING`, `URLS`, and `LINKS` — layout tokens, routes, and external links

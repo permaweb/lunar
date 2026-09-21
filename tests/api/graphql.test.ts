@@ -8,8 +8,8 @@ afterEach(() => {
 });
 
 describe('GraphQL endpoint', () => {
-	it('defaults to the arweave.net query device', () => {
-		expect(getGraphQLEndpoint()).toBe('https://arweave.net/~query@1.0/graphql');
+	it('defaults to the arweave.net GraphQL gateway', () => {
+		expect(getGraphQLEndpoint()).toBe('https://arweave.net/graphql');
 	});
 
 	it.each([
