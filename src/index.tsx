@@ -5,6 +5,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 
 import { App } from 'app';
 import { GlobalStyle } from 'app/styles';
+import { resetSavedGraphQLGateways } from 'helpers/graphql';
 import { ArweaveProvider } from 'providers/ArweaveProvider';
 import { LanguageProvider } from 'providers/LanguageProvider';
 import { NotificationProvider } from 'providers/NotificationProvider';
@@ -13,6 +14,9 @@ import { PinnedTabsProvider } from 'providers/PinnedTabsProvider';
 import { ProfileProvider } from 'providers/ProfileProvider';
 import { SettingsProvider } from 'providers/SettingsProvider';
 import { persistor, store } from 'store';
+
+// The GraphQL page reads its saved gateways on mount, so a pending reset has to land before the first render.
+resetSavedGraphQLGateways();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 	<Provider store={store}>

@@ -43,14 +43,14 @@ export const Menu = styled.div`
 	width: 220px;
 	max-width: 75vw;
 	max-height: 65vh;
-	padding: 11.5px 10px;
+	padding: 7.5px;
 	overflow-y: auto;
 	overscroll-behavior: none;
 `;
 
 export const Item = styled(PrimitiveButton)`
 	width: 100%;
-	height: 40px;
+	height: 35px;
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -61,7 +61,7 @@ export const Item = styled(PrimitiveButton)`
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	color: ${(props) => props.theme.colors.font.primary};
 	font-family: ${(props) => props.theme.typography.family.primary};
-	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
 	cursor: pointer;
 	transition: background 100ms;

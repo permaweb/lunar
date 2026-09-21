@@ -10,7 +10,7 @@ import { Select } from 'components/atoms/Select';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { ASSETS, DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT } from 'helpers/config';
-import { getGraphQLGatewayKey } from 'helpers/graphql';
+import { getGraphQLGatewayKey, GRAPHQL_GATEWAYS_STORAGE_KEY } from 'helpers/graphql';
 import { SelectOptionType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -45,13 +45,8 @@ const DEFAULT_QUERY = `query Transactions {
 
 // The default gateway is always listed first and cannot be removed.
 const DEFAULT_GATEWAY = getGraphQLGatewayKey(DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT);
-const DEFAULT_GATEWAYS = [
-	DEFAULT_GATEWAY,
-	'ao-search-gateway.goldsky.com',
-	'arweave-search.goldsky.com',
-	'arweave.net',
-];
-const STORAGE_KEY = 'lunar-gql-gateways';
+const DEFAULT_GATEWAYS = [DEFAULT_GATEWAY];
+const STORAGE_KEY = GRAPHQL_GATEWAYS_STORAGE_KEY;
 const STORAGE_KEY_VARIABLES = (playgroundId: string) => `lunar-gql-variables-${playgroundId}`;
 const STORAGE_KEY_SHOW_VARIABLES = (playgroundId: string) => `lunar-gql-show-variables-${playgroundId}`;
 const SCHEMA_CACHE = new Map<string, GQLSchemaDocs>();
