@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
@@ -25,6 +25,26 @@ function getWidth(
 		return getHeight(height);
 	} else return 'fit-content';
 }
+
+// The compact 25px pill used by alt3 and by any full-size type rendered with size="small".
+const smallShape = css`
+	min-height: 25px !important;
+	height: 25px !important;
+	padding: 4.5px 20px !important;
+	border-radius: 20px;
+
+	span {
+		letter-spacing: 0.35px;
+	}
+`;
+
+const smallIcon = css<{ iconSize?: number; noLabel?: boolean; leftAlign: boolean }>`
+	svg {
+		height: ${(props) => `${(props.iconSize ?? (props.noLabel ? 18 : 13.5)).toString()}px`};
+		width: ${(props) => `${(props.iconSize ?? (props.noLabel ? 18 : 13.5)).toString()}px`};
+		margin: ${(props) => (props.noLabel ? '0' : props.leftAlign ? `2.5px 6.5px 0 0` : `2.5px -6.5px 0 6.5px`)};
+	}
+`;
 
 export const Tooltip = styled.div<{ position: string }>`
 	position: absolute;
@@ -127,6 +147,7 @@ export const Primary = styled.button<{
 	success: boolean | undefined;
 	iconOnly: boolean | undefined;
 	padding: string | undefined;
+	$small?: boolean;
 }>`
 	position: relative;
 	background: ${(props) =>
@@ -275,6 +296,8 @@ export const Primary = styled.button<{
 				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color} !important;
 	}
+
+	${(props) => props.$small && smallShape}
 `;
 
 export const IconPrimary = styled.div<{
@@ -287,6 +310,7 @@ export const IconPrimary = styled.div<{
 	success?: boolean;
 	noLabel?: boolean;
 	iconSize?: number;
+	$small?: boolean;
 }>`
 	&& svg {
 		${(props) => props.$iconTone === 'yellow' && `color: ${props.theme.colors.editor.alt7} !important;`}
@@ -316,6 +340,8 @@ export const IconPrimary = styled.div<{
 				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color};
 	}
+
+	${(props) => props.$small && smallIcon}
 `;
 
 export const Alt1 = styled(Primary)`
@@ -552,11 +578,7 @@ export const IconAlt2 = styled(IconAlt1)`
 `;
 
 export const Alt3 = styled(Primary)`
-	min-height: 25px !important;
-	height: 25px !important;
-	padding: 4.5px 20px !important;
-	border-radius: ${STYLING.dimensions.radius.primary};
-	border-radius: 20px;
+	${smallShape}
 
 	background: ${(props) =>
 		props.warning
@@ -576,7 +598,6 @@ export const Alt3 = styled(Primary)`
 		font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 		font-weight: ${(props) => props.theme.typography.weight.bold} !important;
 		font-family: ${(props) => props.theme.typography.family.primary} !important;
-		letter-spacing: 0.35px;
 		color: ${(props) =>
 			props.warning
 				? props.theme.colors.font.light1
@@ -633,10 +654,8 @@ export const Alt3 = styled(Primary)`
 `;
 
 export const IconAlt3 = styled(IconPrimary)`
+	${smallIcon}
 	svg {
-		height: ${(props) => `${(props.iconSize ?? (props.noLabel ? 18 : 13.5)).toString()}px`};
-		width: ${(props) => `${(props.iconSize ?? (props.noLabel ? 18 : 13.5)).toString()}px`};
-		margin: ${(props) => (props.noLabel ? '0' : props.leftAlign ? `2.5px 6.5px 0 0` : `2.5px -6.5px 0 6.5px`)};
 		color: ${(props) =>
 			props.disabled
 				? props.theme.colors.button.primary.disabled.color

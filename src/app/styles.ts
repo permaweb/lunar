@@ -379,8 +379,9 @@ export const NodeStatusButton = styled(PrimitiveButton)<{ $isLifted?: boolean }>
 	text-align: left;
 	transition: bottom 180ms ease, gap 180ms ease, background 100ms, border-color 100ms;
 
+	/* Modals return focus here on close, so only keyboard focus keeps the expanded state. */
 	&:hover,
-	&:focus {
+	&:focus-visible {
 		gap: 12.5px;
 		background: ${(props) => props.theme.colors.contrast.active.background};
 		border-color: ${(props) => props.theme.colors.contrast.active.border};

@@ -1,5 +1,7 @@
 import Arweave from 'arweave';
 
+import { getGraphQLEndpoint } from 'api/graphql';
+
 import { arweaveEndpoint } from 'helpers/endpoints';
 import { normalizeProfileImage } from 'helpers/profile';
 import type { ProfileType } from 'helpers/types';
@@ -83,14 +85,15 @@ export function createProfileApi(
 		});
 		return arweave;
 	}
-	async function request(path: string, signal: AbortSignal, init: RequestInit = {}): Promise<Response> {
+	// `resource` is a path on the gateway or an absolute URL, such as the GraphQL endpoint.
+	async function request(resource: string, signal: AbortSignal, init: RequestInit = {}): Promise<Response> {
 		if (signal.aborted) throw new ProfileError('cancelled');
 		const controller = new AbortController();
 		const handleAbort = () => controller.abort();
 		signal.addEventListener('abort', handleAbort, { once: true });
 		const timeout = setTimeout(handleAbort, TIMEOUT_MS);
 		try {
-			const response = await fetcher(new URL(path, gateway), {
+			const response = await fetcher(new URL(resource, gateway), {
 				...init,
 				signal: controller.signal,
 				credentials: 'omit',
@@ -111,7 +114,7 @@ export function createProfileApi(
 	async function read(address: string, signal: AbortSignal): Promise<ProfileType | null> {
 		if (!checkValidAddress(address)) throw new ProfileError('invalid-input');
 		try {
-			const response = await request('/graphql', signal, {
+			const response = await request(getGraphQLEndpoint(), signal, {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({

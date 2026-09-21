@@ -1,3 +1,5 @@
+import { getGraphQLEndpoint } from 'api/graphql';
+
 import { FLAGS } from 'helpers/config';
 
 export type BlockNode = {
@@ -84,7 +86,6 @@ export type TransactionCountQueryResponse = {
 export type GetBlockArgs = {
 	id?: string;
 	height?: number;
-	gateway?: string;
 };
 
 export type GetBlocksArgs = {
@@ -92,7 +93,6 @@ export type GetBlocksArgs = {
 	after?: string | null;
 	minHeight?: number | null;
 	maxHeight?: number | null;
-	gateway?: string;
 };
 
 export type GetTransactionsArgs = {
@@ -100,7 +100,6 @@ export type GetTransactionsArgs = {
 	after?: string | null;
 	typeFilter?: TransactionTypeFilter | null;
 	includeCount?: boolean;
-	gateway?: string;
 };
 
 export type GetTransactionsByBlockArgs = {
@@ -110,7 +109,6 @@ export type GetTransactionsByBlockArgs = {
 	after?: string | null;
 	bundlesOnly?: boolean;
 	typeFilter?: TransactionTypeFilter | null;
-	gateway?: string;
 };
 
 export type GetTransactionsByBundleArgs = {
@@ -119,12 +117,10 @@ export type GetTransactionsByBundleArgs = {
 	after?: string | null;
 	typeFilter?: TransactionTypeFilter | null;
 	includeCount?: boolean;
-	gateway?: string;
 };
 
 export type GetTransactionByIdArgs = {
 	id: string;
-	gateway?: string;
 };
 
 type GraphQLResponse<T> = {
@@ -132,7 +128,6 @@ type GraphQLResponse<T> = {
 	errors?: { message: string }[];
 };
 
-const DEFAULT_GRAPHQL_ENDPOINT = 'https://arweave.net/graphql';
 const DEFAULT_ARWEAVE_ENDPOINT = 'https://arweave.net';
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
@@ -337,32 +332,6 @@ function getFirst(first: number | undefined) {
 	return Math.max(1, Math.min(first, MAX_PAGE_SIZE));
 }
 
-function getEndpoint(gateway?: string) {
-	if (!gateway) return DEFAULT_GRAPHQL_ENDPOINT;
-
-	const trimmedGateway = gateway.trim();
-	if (trimmedGateway.endsWith('/graphql')) return trimmedGateway;
-
-	const gatewayUrl =
-		trimmedGateway.startsWith('http://') || trimmedGateway.startsWith('https://')
-			? trimmedGateway
-			: `https://${trimmedGateway}`;
-
-	return `${gatewayUrl.replace(/\/$/, '')}/graphql`;
-}
-
-function getArweaveEndpoint(gateway?: string) {
-	if (!gateway) return DEFAULT_ARWEAVE_ENDPOINT;
-
-	const trimmedGateway = gateway.trim();
-	const gatewayUrl =
-		trimmedGateway.startsWith('http://') || trimmedGateway.startsWith('https://')
-			? trimmedGateway
-			: `https://${trimmedGateway}`;
-
-	return gatewayUrl.replace(/\/$/, '').replace(/\/graphql$/, '');
-}
-
 function normalizeCount(value: number | string | undefined): number | undefined {
 	if (value === undefined) return undefined;
 
@@ -408,8 +377,8 @@ export function isBundleTransaction(transaction: TransactionNode) {
 	);
 }
 
-async function queryGraphQL<T>(args: { query: string; variables: Record<string, any>; gateway?: string }): Promise<T> {
-	const response = await fetch(getEndpoint(args.gateway), {
+async function queryGraphQL<T>(args: { query: string; variables: Record<string, any> }): Promise<T> {
+	const response = await fetch(getGraphQLEndpoint(), {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -437,8 +406,8 @@ async function queryGraphQL<T>(args: { query: string; variables: Record<string, 
 	return parsed.data;
 }
 
-async function getBlockHeightById(blockId: string, gateway?: string) {
-	const block = await getBlock({ id: blockId, gateway: gateway });
+async function getBlockHeightById(blockId: string) {
+	const block = await getBlock({ id: blockId });
 
 	return block?.height ?? null;
 }
@@ -502,14 +471,13 @@ function getBundleTransactionIdsFromResponse(value: unknown) {
 }
 
 async function getBundleTransactionIds(args: GetTransactionsByBundleArgs) {
-	const endpoint = getArweaveEndpoint(args.gateway);
-	const cacheKey = `${endpoint}/${args.bundleId}`;
-	const cached = bundleTransactionIdsCache.get(cacheKey);
+	const cached = bundleTransactionIdsCache.get(args.bundleId);
 
 	if (cached) return cached;
 
+	const bundlePath = encodeURIComponent(args.bundleId);
 	const response = await fetch(
-		`${endpoint}/${encodeURIComponent(args.bundleId)}?require-codec=application/json&accept-bundle=false`,
+		`${DEFAULT_ARWEAVE_ENDPOINT}/${bundlePath}?require-codec=application/json&accept-bundle=false`,
 		{
 			headers: {
 				Accept: 'application/json',
@@ -524,7 +492,7 @@ async function getBundleTransactionIds(args: GetTransactionsByBundleArgs) {
 	const parsed = await response.json();
 	const ids = getBundleTransactionIdsFromResponse(parsed);
 
-	bundleTransactionIdsCache.set(cacheKey, ids);
+	bundleTransactionIdsCache.set(args.bundleId, ids);
 
 	return ids;
 }
@@ -540,7 +508,6 @@ export async function getBlocks(args: GetBlocksArgs = {}): Promise<BlocksQueryRe
 			minHeight: args.minHeight ?? null,
 			maxHeight: args.maxHeight ?? null,
 		},
-		gateway: args.gateway,
 	});
 }
 
@@ -551,7 +518,6 @@ export async function getBlock(args: GetBlockArgs): Promise<BlockNode | null> {
 			variables: {
 				id: args.id,
 			},
-			gateway: args.gateway,
 		});
 
 		return response.block;
@@ -564,7 +530,6 @@ export async function getBlock(args: GetBlockArgs): Promise<BlockNode | null> {
 				minHeight: args.height,
 				maxHeight: args.height,
 			},
-			gateway: args.gateway,
 		});
 
 		return response.blocks.edges[0]?.node ?? null;
@@ -597,9 +562,9 @@ export async function getCurrentBlockHeight(): Promise<number | null> {
 }
 
 export async function getTransactionCountByBlock(
-	args: Pick<GetTransactionsByBlockArgs, 'blockHeight' | 'blockId' | 'gateway'>
+	args: Pick<GetTransactionsByBlockArgs, 'blockHeight' | 'blockId'>
 ): Promise<number | null> {
-	const blockHeight = args.blockHeight ?? (args.blockId ? await getBlockHeightById(args.blockId, args.gateway) : null);
+	const blockHeight = args.blockHeight ?? (args.blockId ? await getBlockHeightById(args.blockId) : null);
 
 	if (blockHeight === null) {
 		return null;
@@ -612,7 +577,6 @@ export async function getTransactionCountByBlock(
 			maxBlock: blockHeight,
 			first: 1,
 		},
-		gateway: args.gateway,
 	});
 
 	return normalizeCount(response.transactions.count) ?? null;
@@ -628,7 +592,6 @@ export async function getTransactions(args: GetTransactionsArgs = {}): Promise<T
 			first: getFirst(args.first),
 			after: args.after ?? null,
 		},
-		gateway: args.gateway,
 	});
 
 	return {
@@ -639,7 +602,7 @@ export async function getTransactions(args: GetTransactionsArgs = {}): Promise<T
 export async function getTransactionsByBlock(
 	args: GetTransactionsByBlockArgs = {}
 ): Promise<TransactionsQueryResponse> {
-	const blockHeight = args.blockHeight ?? (args.blockId ? await getBlockHeightById(args.blockId, args.gateway) : null);
+	const blockHeight = args.blockHeight ?? (args.blockId ? await getBlockHeightById(args.blockId) : null);
 
 	if (blockHeight === null) {
 		return {
@@ -665,7 +628,6 @@ export async function getTransactionsByBlock(
 			first: getFirst(args.first),
 			after: args.after ?? null,
 		},
-		gateway: args.gateway,
 	});
 
 	return {
@@ -683,7 +645,6 @@ export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs)
 				first: getFirst(args.first),
 				after: args.after ?? null,
 			},
-			gateway: args.gateway,
 		});
 
 		return {
@@ -718,7 +679,6 @@ export async function getTransactionById(args: GetTransactionByIdArgs): Promise<
 		variables: {
 			ids: [args.id],
 		},
-		gateway: args.gateway,
 	});
 
 	return normalizeTransactionConnection(response.transactions).edges[0]?.node ?? null;

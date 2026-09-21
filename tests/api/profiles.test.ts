@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Arweave from 'arweave';
 import Transaction from 'arweave/web/lib/transaction';
 
+import { setGraphQLEndpoint } from '../../src/api/graphql';
 import { createProfileApi, parseAccountProfile } from '../../src/api/profiles/arweaveAdapter';
+import { DEFAULT_GRAPHQL_ENDPOINT } from '../../src/helpers/config';
 import { getProfileImageUrl } from '../../src/helpers/profile';
 
 const ADDRESS = 'a'.repeat(43);
@@ -20,6 +22,7 @@ const signal = () => new AbortController().signal;
 afterEach(() => {
 	vi.restoreAllMocks();
 	vi.useRealTimers();
+	setGraphQLEndpoint(DEFAULT_GRAPHQL_ENDPOINT);
 });
 function writingApi() {
 	const arweave = Arweave.init({});
@@ -60,10 +63,19 @@ describe('transaction profiles', () => {
 			description: 'Ships code.',
 		});
 		expect(getProfileImageUrl(profile.thumbnail)).toBe(`https://arweave.net/${AVATAR}`);
+		expect(fetcher.mock.calls[0][0].href).toBe(DEFAULT_GRAPHQL_ENDPOINT);
+		expect(fetcher.mock.calls[1][0].href).toBe(`https://arweave.net/${ID}`);
 		const query = JSON.parse(fetcher.mock.calls[0][1].body);
 		expect(query.variables).toEqual({ owners: [ADDRESS] });
 		expect(query.query).toContain('Account-0.3');
 		expect(query.query).toContain('HEIGHT_DESC, first: 1');
+	});
+	it('looks up profiles on the configured GraphQL endpoint', async () => {
+		const fetcher = vi.fn().mockResolvedValue(Response.json({ data: { transactions: { edges: [] } } }));
+		setGraphQLEndpoint('https://gateway.example/~query@1.0/graphql');
+
+		await expect(createProfileApi({ fetch: fetcher }).read(ADDRESS, signal())).resolves.toBeNull();
+		expect(fetcher.mock.calls[0][0].href).toBe('https://gateway.example/~query@1.0/graphql');
 	});
 	it('separates an empty profile from malformed, mismatched, and failed responses', async () => {
 		const fetcher = vi.fn().mockResolvedValue(Response.json({ data: { transactions: { edges: [] } } }));

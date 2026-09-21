@@ -28,57 +28,38 @@ afterEach(() => {
 	vi.clearAllMocks();
 });
 
-describe('transaction gateway lookup', () => {
-	it('returns a result from the configured gateway without querying another gateway', async () => {
+describe('transaction GraphQL lookup', () => {
+	it('looks up the transaction on the configured endpoint only, without a per-query gateway', async () => {
 		const getGQLData = vi.fn().mockResolvedValue({ data: [transaction] });
 
 		expect(await searchTxById({ txId, getGQLData })).toMatchObject(transaction);
 		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }]]);
 	});
 
-	it.each(['empty', 'error'])('goes directly to arweave.net after an %s result', async (result) => {
-		const getGQLData = vi.fn();
-		if (result === 'empty') getGQLData.mockResolvedValueOnce({ data: [] });
-		else getGQLData.mockRejectedValueOnce(new Error('Gateway unavailable'));
-		getGQLData.mockResolvedValueOnce({ data: [transaction] });
-
-		expect(await searchTxById({ txId, getGQLData })).toMatchObject(transaction);
-		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }], [{ gateway: 'https://arweave.net/graphql', id: [txId] }]]);
-	});
-
-	it('checks wallet activity after both transaction lookups are empty', async () => {
+	it('checks wallet activity after the transaction lookup is empty', async () => {
 		const getGQLData = vi
 			.fn()
-			.mockResolvedValueOnce({ data: [] })
 			.mockResolvedValueOnce({ data: [] })
 			.mockResolvedValueOnce({ data: [transaction] });
 
 		expect(await searchTxById({ txId, getGQLData })).toMatchObject({
 			node: { id: txId, tags: [{ name: 'Type', value: 'Wallet' }] },
 		});
-		expect(getGQLData.mock.calls).toEqual([
-			[{ id: [txId] }],
-			[{ gateway: 'https://arweave.net/graphql', id: [txId] }],
-			[{ owners: [txId] }],
-		]);
+		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }], [{ owners: [txId] }]]);
 	});
 
 	it('returns null when neither a transaction nor wallet activity exists', async () => {
 		const getGQLData = vi.fn().mockResolvedValue({ data: [] });
 
 		expect(await searchTxById({ txId, getGQLData })).toBeNull();
-		expect(getGQLData.mock.calls).toEqual([
-			[{ id: [txId] }],
-			[{ gateway: 'https://arweave.net/graphql', id: [txId] }],
-			[{ owners: [txId] }],
-		]);
+		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }], [{ owners: [txId] }]]);
 		expect(readAoBalance).toHaveBeenCalledWith(txId);
 	});
 
-	it('surfaces gateway failure after exhausting the remaining transaction lookups', async () => {
+	it('surfaces an endpoint failure without retrying another gateway', async () => {
 		const getGQLData = vi.fn().mockRejectedValue(new Error('Gateway unavailable'));
 
 		await expect(searchTxById({ txId, getGQLData })).rejects.toThrow('Gateway unavailable');
-		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }], [{ gateway: 'https://arweave.net/graphql', id: [txId] }]]);
+		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }]]);
 	});
 });

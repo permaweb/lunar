@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Button } from 'components/atoms/Button';
 import { Portal } from 'components/atoms/Portal';
+import { transitionExitMs } from 'helpers/animations';
 import { ASSETS, DOM } from 'helpers/config';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { CloseHandler } from 'wrappers/CloseHandler';
@@ -15,6 +16,9 @@ export default function Modal(props: IProps) {
 	const titleId = React.useId();
 	const previousFocus = React.useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
 	const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
+	const [isBodyScrolled, setIsBodyScrolled] = React.useState(false);
+	const [isClosing, setIsClosing] = React.useState(false);
+	const closeTimeoutRef = React.useRef<number | null>(null);
 	React.useEffect(() => {
 		if (!container) return;
 		const focusable = () =>
@@ -25,7 +29,8 @@ export default function Modal(props: IProps) {
 			).filter(
 				(element) => element.getAttribute('aria-hidden') !== 'true' && getComputedStyle(element).display !== 'none'
 			);
-		(focusable().find((element) => element.matches('input:not([type="file"])')) ?? focusable()[0] ?? container).focus();
+		// Start in the first text field; without one, focus the dialog itself so the close button is not preselected.
+		(focusable().find((element) => element.matches('input:not([type="file"])')) ?? container).focus();
 		function handleTab(event: KeyboardEvent) {
 			if (event.key !== 'Tab') return;
 			const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
@@ -33,7 +38,12 @@ export default function Modal(props: IProps) {
 			const elements = focusable();
 			const first = elements[0] ?? container;
 			const last = elements[elements.length - 1] ?? container;
-			if (event.shiftKey && (document.activeElement === first || !container.contains(document.activeElement))) {
+			if (
+				event.shiftKey &&
+				(document.activeElement === first ||
+					document.activeElement === container ||
+					!container.contains(document.activeElement))
+			) {
 				event.preventDefault();
 				last.focus();
 			} else if (!event.shiftKey && (document.activeElement === last || !container.contains(document.activeElement))) {
@@ -48,13 +58,30 @@ export default function Modal(props: IProps) {
 		};
 	}, [container]);
 
+	// Parents unmount a modal as soon as it closes, so panels slide out first and report the close afterwards.
+	const handleClose = React.useCallback(() => {
+		if (!props.onClose || closeTimeoutRef.current !== null) return;
+		if (props.type !== 'panel' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+			props.onClose();
+			return;
+		}
+		setIsClosing(true);
+		closeTimeoutRef.current = window.setTimeout(() => props.onClose(), transitionExitMs);
+	}, [props]);
+
+	React.useEffect(() => {
+		return () => {
+			if (closeTimeoutRef.current !== null) window.clearTimeout(closeTimeoutRef.current);
+		};
+	}, []);
+
 	const escFunction = React.useCallback(
 		(e: any) => {
 			if (e.key === 'Escape' && props.onClose && !props.closeHandlerDisabled) {
-				props.onClose();
+				handleClose();
 			}
 		},
-		[props]
+		[props.onClose, props.closeHandlerDisabled, handleClose]
 	);
 
 	React.useEffect(() => {
@@ -71,6 +98,10 @@ export default function Modal(props: IProps) {
 			document.removeEventListener('keydown', escFunction, false);
 		};
 	}, [escFunction]);
+
+	function handleBodyScroll(event: React.UIEvent<HTMLDivElement>) {
+		setIsBodyScrolled(event.currentTarget.scrollTop > 0);
+	}
 
 	function getBodyClassName() {
 		let className = '';
@@ -101,7 +132,7 @@ export default function Modal(props: IProps) {
 	const content = (
 		<>
 			{props.header && (
-				<S.Header>
+				<S.Header $scrolled={modalType === 'panel' ? isBodyScrolled : undefined}>
 					<S.LT>
 						<S.Title id={titleId}>{props.header}</S.Title>
 					</S.LT>
@@ -110,7 +141,7 @@ export default function Modal(props: IProps) {
 							<Button
 								type={'alt1'}
 								icon={ASSETS.close}
-								onPress={() => props.onClose()}
+								onPress={handleClose}
 								active={false}
 								height={30}
 								width={30}
@@ -124,20 +155,32 @@ export default function Modal(props: IProps) {
 					)}
 				</S.Header>
 			)}
-			<Body className={getBodyClassName()}>{props.children}</Body>
+			<Body className={getBodyClassName()} onScroll={handleBodyScroll}>
+				{props.children}
+			</Body>
 		</>
 	);
 
 	// Wrap Panel content with CloseHandler if it's a panel and not disabled
 	const containerContent =
 		modalType === 'panel' && !props.closeHandlerDisabled ? (
-			<Container $noHeader={!props.header} width={props.width} className={'border-wrapper-primary'}>
-				<CloseHandler active={true} disabled={false} callback={() => props.onClose && props.onClose()}>
+			<Container
+				$noHeader={!props.header}
+				width={props.width}
+				$closing={isClosing}
+				className={'border-wrapper-primary'}
+			>
+				<CloseHandler active={true} disabled={false} callback={handleClose}>
 					{content}
 				</CloseHandler>
 			</Container>
 		) : (
-			<Container $noHeader={!props.header} width={props.width} className={'border-wrapper-primary'}>
+			<Container
+				$noHeader={!props.header}
+				width={props.width}
+				$closing={isClosing}
+				className={'border-wrapper-primary'}
+			>
 				{content}
 			</Container>
 		);
@@ -151,6 +194,7 @@ export default function Modal(props: IProps) {
 				aria-labelledby={props.header ? titleId : undefined}
 				tabIndex={-1}
 				$noHeader={!props.header}
+				$closing={isClosing}
 				$top={window ? (window as any).pageYOffset : 0}
 			>
 				{containerContent}

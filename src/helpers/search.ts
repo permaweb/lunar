@@ -3,7 +3,7 @@ import { requestRemote } from 'api/http';
 
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
-import { DEFAULT_GATEWAYS, DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
+import { DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint, getTxEndpoint } from './endpoints';
 import { GQLNodeResponseType, MessageVariantEnum, SearchTxArgs, TagType } from './types';
 import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse } from './utils';
@@ -636,28 +636,8 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 	}
 
 	try {
-		let response: any = null;
-		let lastError: any = null;
+		let response: any = await args.getGQLData({ id: [args.txId] });
 
-		for (const gqlArgs of [
-			{
-				id: [args.txId],
-			},
-			{
-				gateway: DEFAULT_GATEWAYS.arweave,
-				id: [args.txId],
-			},
-		]) {
-			try {
-				response = await args.getGQLData(gqlArgs);
-				if (response.data?.length > 0) break;
-			} catch (e: any) {
-				lastError = e;
-				console.error(e);
-			}
-		}
-
-		if (!response && lastError) throw lastError;
 		if (!response) response = { data: [] };
 
 		response = await normalizeGqlResponse(response);

@@ -1,9 +1,10 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
-import { open, transition2 } from 'helpers/animations';
+import { close, open, slideInRight, slideOutRight, transition2, transitionExit } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div<{ $top: number; $noHeader: boolean }>`
+// The dialog takes focus when it has no text field, so the overlay suppresses its focus ring.
+export const Wrapper = styled.div<{ $top: number; $noHeader: boolean; $closing?: boolean }>`
 	min-height: 100vh;
 	height: 100%;
 	width: 100%;
@@ -12,7 +13,18 @@ export const Wrapper = styled.div<{ $top: number; $noHeader: boolean }>`
 	top: 0;
 	left: 0;
 	background: ${(props) => props.theme.colors.overlay.primary};
-	animation: ${open} ${transition2};
+	${(props) =>
+		props.$closing
+			? css`
+					animation: ${close} ${transitionExit} forwards;
+			  `
+			: css`
+					animation: ${open} ${transition2};
+			  `}
+
+	&:focus {
+		outline: none;
+	}
 `;
 
 export const Container = styled.div<{
@@ -30,6 +42,7 @@ export const Container = styled.div<{
 export const Panel = styled.div<{
 	$noHeader: boolean;
 	width?: number;
+	$closing?: boolean;
 }>`
 	height: 100vh;
 	width: ${(props) => (props.width ? `${props.width}px` : `650px`)};
@@ -41,6 +54,18 @@ export const Panel = styled.div<{
 	border: none !important;
 	border-left: 1.25px solid ${(props) => props.theme.colors.border.primary} !important;
 	border-radius: 0 !important;
+	${(props) =>
+		props.$closing
+			? css`
+					animation: ${slideOutRight} ${transitionExit} forwards;
+			  `
+			: css`
+					animation: ${slideInRight} ${transition2};
+			  `}
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
 
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		width: 100%;
@@ -49,13 +74,17 @@ export const Panel = styled.div<{
 	}
 `;
 
-export const Header = styled.div`
+// Panels pass `$scrolled` to mirror the app header's border once their body scrolls; modals leave it unset.
+export const Header = styled.div<{ $scrolled?: boolean }>`
 	height: 65px;
 	width: 100%;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	padding: 0 20px;
+	${(props) =>
+		props.$scrolled !== undefined &&
+		`border-bottom: 1px solid ${props.$scrolled ? props.theme.colors.border.primary : 'transparent'};`}
 `;
 
 export const LT = styled.div`

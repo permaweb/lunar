@@ -21,11 +21,14 @@ No wallet connection is required.
 
 Lunar starts with:
 
+- `arweave.net/~query@1.0`
 - `ao-search-gateway.goldsky.com`
 - `arweave-search.goldsky.com`
 - `arweave.net`
 
-The first gateway is selected by default. Enter another gateway base URL and save it to add it to the local list.
+`arweave.net/~query@1.0` is always listed first, is selected by default, and cannot be removed. Enter another gateway base URL and save it to add it to the local list.
+
+The playground's gateway only applies to this page. Every other GraphQL query in Lunar uses the endpoint under **Network Settings → GraphQL Endpoint**.
 
 Lunar appends `/graphql` when needed. Gateways can expose different schemas, indexes, or freshness, so a query that works on one gateway may need adjustment on another.
 

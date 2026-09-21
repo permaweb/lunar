@@ -4,7 +4,6 @@ import { STYLING } from 'helpers/config';
 
 export const CalendarWrapper = styled.div`
 	width: 100%;
-	background: ${(props) => props.theme.colors.container.primary.background};
 	user-select: none;
 `;
 
@@ -28,7 +27,7 @@ export const NavButton = styled.button`
 	align-items: center;
 	justify-content: center;
 	border-radius: ${STYLING.dimensions.radius.primary};
-	border: 1px solid ${(props) => props.theme.colors.border.alt1};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 
 	&:hover {
 		background: ${(props) => props.theme.colors.container.primary.active};
@@ -37,7 +36,7 @@ export const NavButton = styled.button`
 
 export const MonthYear = styled.div`
 	font-size: ${(props) => props.theme.typography.size.small};
-	font-weight: ${(props) => props.theme.typography.weight.bold};
+	font-weight: ${(props) => props.theme.typography.weight.medium};
 	color: ${(props) => props.theme.colors.font.primary};
 `;
 
@@ -75,7 +74,7 @@ export const Day = styled.div<{ disabled?: boolean; selected?: boolean; isToday?
 	justify-content: center;
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};
-	border: 1px solid ${(props) => props.theme.colors.border.alt1};
+	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.primary};
 	cursor: ${(props) => (props.disabled ? 'not-allowed' : 'pointer')};
 

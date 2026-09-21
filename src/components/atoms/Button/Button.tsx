@@ -6,11 +6,15 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 import * as S from './styles';
 import { IProps } from './types';
 
+const SIZED_TYPES: IProps['type'][] = ['primary', 'alt1', 'success', 'warning'];
+
 const Button = React.forwardRef<HTMLButtonElement, IProps>(function Button(props, ref) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider?.object?.[languageProvider.current] || { loading: 'Loading' };
 	const warning = props.warning || props.type === 'warning';
 	const success = !warning && (props.success || props.type === 'success');
+	// alt2 is a text link and alt3 and alt4 are already compact, so size only applies to the full-size types.
+	const small = props.size === 'small' && SIZED_TYPES.includes(props.type);
 
 	const buttonStyle = getType();
 	const StyledButton = buttonStyle.wrapper;
@@ -95,6 +99,7 @@ const Button = React.forwardRef<HTMLButtonElement, IProps>(function Button(props
 						iconSize={props.iconSize}
 						$iconTone={props.iconTone}
 						$iconFilled={props.iconFilled}
+						$small={small}
 					>
 						<ReactSVG src={props.icon} />
 					</StyledIcon>
@@ -111,6 +116,7 @@ const Button = React.forwardRef<HTMLButtonElement, IProps>(function Button(props
 						iconSize={props.iconSize}
 						$iconTone={props.iconTone}
 						$iconFilled={props.iconFilled}
+						$small={small}
 					>
 						<ReactSVG src={props.icon} />
 					</StyledIcon>
@@ -152,6 +158,7 @@ const Button = React.forwardRef<HTMLButtonElement, IProps>(function Button(props
 				success={success}
 				iconOnly={iconOnly}
 				padding={props.padding}
+				$small={small}
 				className={props.className || ''}
 			>
 				{getLabel()}

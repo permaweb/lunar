@@ -1,10 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getTransactions } from '../../src/api/blocks';
+import { setGraphQLEndpoint } from '../../src/api/graphql';
+import { DEFAULT_GRAPHQL_ENDPOINT } from '../../src/helpers/config';
 
 afterEach(() => {
 	vi.unstubAllGlobals();
+	setGraphQLEndpoint(DEFAULT_GRAPHQL_ENDPOINT);
 });
+
+function stubEmptyTransactions() {
+	const fetchMock = vi.fn().mockResolvedValue({
+		ok: true,
+		json: vi.fn().mockResolvedValue({ data: { transactions: { pageInfo: { hasNextPage: false }, edges: [] } } }),
+	} as unknown as Response);
+	vi.stubGlobal('fetch', fetchMock);
+
+	return fetchMock;
+}
 
 describe('Arweave block API adapter', () => {
 	it('requests the latest transactions in descending block order', async () => {
@@ -23,13 +36,13 @@ describe('Arweave block API adapter', () => {
 		} as unknown as Response);
 		vi.stubGlobal('fetch', fetchMock);
 
-		await getTransactions({ first: 20, gateway: 'https://gateway.example' });
+		await getTransactions({ first: 20 });
 
 		expect(fetchMock).toHaveBeenCalledOnce();
 		const request = fetchMock.mock.calls[0];
 		const body = JSON.parse((request[1] as RequestInit).body as string);
 
-		expect(request[0]).toBe('https://gateway.example/graphql');
+		expect(request[0]).toBe(DEFAULT_GRAPHQL_ENDPOINT);
 		expect(body.variables).toEqual({ first: 20, after: null });
 		expect(body.query).toContain('sort: HEIGHT_DESC');
 	});
@@ -55,7 +68,6 @@ describe('Arweave block API adapter', () => {
 			first: 50,
 			typeFilter: 'message',
 			includeCount: true,
-			gateway: 'https://gateway.example',
 		});
 
 		const request = fetchMock.mock.calls[0];
@@ -65,5 +77,14 @@ describe('Arweave block API adapter', () => {
 		expect(body.query).toContain('{ name: "Type", values: ["Message"] }');
 		expect(body.query).toContain('count');
 		expect(response.transactions.count).toBe(12);
+	});
+
+	it('queries the configured GraphQL endpoint', async () => {
+		const fetchMock = stubEmptyTransactions();
+		setGraphQLEndpoint('https://gateway.example/~query@1.0/graphql');
+
+		await getTransactions({ first: 5 });
+
+		expect(fetchMock.mock.calls[0][0]).toBe('https://gateway.example/~query@1.0/graphql');
 	});
 });

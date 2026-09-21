@@ -10,6 +10,7 @@ import { getLatestAddressSnapshot } from '../../../src/api/addresses';
 import { arweaveNodeApi, ArweaveNodeError } from '../../../src/api/arweaveNode';
 import { getBlockMetadataByHeight, getBlocks, getTransactions } from '../../../src/api/blocks';
 import { ArweaveNode } from '../../../src/features/Explorer/components/organisms/ArweaveNode';
+import { transitionExitMs } from '../../../src/helpers/animations';
 import { getArweaveNodeRoute } from '../../../src/helpers/arweaveNode';
 import { darkTheme, theme } from '../../../src/helpers/themes';
 import { MINER_ADDRESS, NODE_INFO, NODE_URL, nodeBlock } from '../../fixtures/arweaveNode';
@@ -68,6 +69,10 @@ async function render(isActive = true, tab = '') {
 }
 async function go(tab: string) {
 	await React.act(async () => navigate(getArweaveNodeRoute(NODE_URL, tab)));
+}
+// Panels closed from the modal itself slide out before they unmount.
+async function waitForPanelExit() {
+	await React.act(() => new Promise((resolve) => setTimeout(resolve, transitionExitMs)));
 }
 async function click(label: string) {
 	const button = [...document.querySelectorAll('button')].find(
@@ -207,6 +212,7 @@ it('progressively lists indexed miners and opens coverage information', async ()
 	await click('Tab Information');
 	expect(overlay.querySelector('[role="dialog"]')?.textContent).toContain('25 indexed blocks · heights 76–100');
 	await click('Close');
+	await waitForPanelExit();
 	expect(document.activeElement?.getAttribute('aria-label')).toBe('Tab Information');
 	expect(container.querySelector('[role="table"] [role="columnheader"]')?.textContent).toBe('Wallet Address');
 	expect(container.textContent).toContain('Blocks Mined');
@@ -892,6 +898,7 @@ it('opens the miner filter panel, applies a query, and restores focus when close
 	const result = await axe.run(overlay, { rules: { 'color-contrast': { enabled: false } } });
 	expect(result.violations).toEqual([]);
 	await React.act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+	await waitForPanelExit();
 	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
 });
 

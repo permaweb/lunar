@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { setGraphQLEndpoint } from 'api/graphql';
 import { createPeerApi, createPermawebApis, type PeerApi, type PermawebApi } from 'api/permaweb';
 
 import { useArweaveProvider } from 'providers/ArweaveProvider';
@@ -33,6 +34,11 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 		[settingsProvider.settings.aoNetwork, arProvider.wallet]
 	);
 
+	// A layout effect applies the endpoint before any child's data-fetching effect runs in the same commit.
+	React.useLayoutEffect(() => {
+		setGraphQLEndpoint(settingsProvider.settings.graphqlEndpoint);
+	}, [settingsProvider.settings.graphqlEndpoint]);
+
 	React.useEffect(() => {
 		try {
 			const activeNode = settingsProvider.settings.nodes.find((node) => node.active);
@@ -40,6 +46,7 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 				wallet: arProvider.wallet,
 				legacyComputeNode: settingsProvider.settings.legacyComputeNode,
 				node: activeNode,
+				graphqlEndpoint: settingsProvider.settings.graphqlEndpoint,
 			});
 
 			setLegacyApi(apis.legacyApi);
@@ -47,7 +54,12 @@ export default function PermawebProvider(props: { children: React.ReactNode }) {
 		} catch (error) {
 			console.error('Error in PermawebProvider initialization:', error);
 		}
-	}, [arProvider.wallet, settingsProvider.settings.nodes, settingsProvider.settings.legacyComputeNode]);
+	}, [
+		arProvider.wallet,
+		settingsProvider.settings.nodes,
+		settingsProvider.settings.legacyComputeNode,
+		settingsProvider.settings.graphqlEndpoint,
+	]);
 
 	return (
 		<PermawebContext.Provider

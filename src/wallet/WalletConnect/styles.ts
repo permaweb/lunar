@@ -270,9 +270,8 @@ export const SyncToggle = styled(PrimitiveButton)<{ active: boolean }>`
 	justify-content: space-between;
 	padding: 15px;
 	border-radius: ${STYLING.dimensions.radius.primary};
-	background: ${(props) =>
-		props.active ? props.theme.colors.container.primary.active : props.theme.colors.container.primary.background};
-	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt2 : props.theme.colors.border.primary)};
+	background: ${(props) => (props.active ? props.theme.colors.container.primary.active : 'transparent')};
+	border: 1px solid ${(props) => (props.active ? props.theme.colors.border.alt1 : props.theme.colors.border.primary)};
 	cursor: pointer;
 	transition: all 150ms;
 

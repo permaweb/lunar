@@ -3,9 +3,9 @@ import React from 'react';
 import type { CachedNodeHistory } from 'api/arweaveNode';
 import { arweaveNodeApi, getCachedNodeHistories } from 'api/arweaveNode';
 
-import { DEFAULT_GATEWAYS } from 'helpers/config';
+import { arweaveEndpoint } from 'helpers/endpoints';
 
-const MAINNET_NODE = new URL(DEFAULT_GATEWAYS.arweave).origin;
+const MAINNET_NODE = new URL(arweaveEndpoint).origin;
 const sourceId = (entry: CachedNodeHistory) => JSON.stringify([entry.node, entry.network]);
 type Rewards = { status: 'loading' } | { status: 'ready'; value: string | null } | { status: 'error' };
 const LOADING: Rewards = { status: 'loading' };
