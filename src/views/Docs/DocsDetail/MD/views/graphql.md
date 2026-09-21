@@ -17,16 +17,9 @@ The Playground provides:
 
 No wallet connection is required.
 
-#### Default Gateways
+#### Default Gateway
 
-Lunar starts with:
-
-- `arweave.net/~query@1.0`
-- `ao-search-gateway.goldsky.com`
-- `arweave-search.goldsky.com`
-- `arweave.net`
-
-`arweave.net/~query@1.0` is always listed first, is selected by default, and cannot be removed. Enter another gateway base URL and save it to add it to the local list.
+Lunar starts with `arweave.net`, which is always listed first, is selected by default, and cannot be removed. Enter another gateway base URL, such as `arweave.net/~query@1.0`, and save it to add it to the local list.
 
 The playground's gateway only applies to this page. Every other GraphQL query in Lunar uses the endpoint under **Network Settings → GraphQL Endpoint**.
 

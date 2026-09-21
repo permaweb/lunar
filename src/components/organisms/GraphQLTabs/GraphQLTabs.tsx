@@ -1,8 +1,8 @@
 import React from 'react';
 
 import { ViewTabs } from 'components/molecules/ViewTabs';
-import { ASSETS, DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT } from 'helpers/config';
-import { getGraphQLGatewayKey } from 'helpers/graphql';
+import { ASSETS } from 'helpers/config';
+import { GRAPHQL_TABS_STORAGE_KEY } from 'helpers/graphql';
 import { BaseTabType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -13,24 +13,8 @@ type GraphQLTabType = BaseTabType & {
 	gateway?: string;
 };
 
-const DEFAULT_GATEWAY = getGraphQLGatewayKey(DEFAULT_PLAYGROUND_GRAPHQL_ENDPOINT);
-const DEFAULT_GATEWAY_STORAGE_KEY = 'graphql-default-gateway';
-// The default before this key existed; tabs saved then carry no marker.
-const PREVIOUS_DEFAULT_GATEWAY = 'ao-search-gateway.goldsky.com';
-
-/**
- * Tabs save whichever gateway they last showed, so a tab never moved off the old default still holds it.
- * Clearing that gateway once, when the default changes, lets the tab open on the new default.
- */
-function getMigratedGateway(gateway: string | undefined, previousDefault: string) {
-	if (!gateway) return undefined;
-	if (previousDefault !== DEFAULT_GATEWAY && getGraphQLGatewayKey(gateway) === previousDefault) return undefined;
-
-	return gateway;
-}
-
 export default function GraphQLTabs() {
-	const storageKey = 'graphql-tabs';
+	const storageKey = GRAPHQL_TABS_STORAGE_KEY;
 	const activeTabStorageKey = 'graphql-active-tab';
 	const visitedTabsStorageKey = 'graphql-visited-tabs';
 	const tabsContainerRef = React.useRef<HTMLDivElement>(null);
@@ -42,12 +26,11 @@ export default function GraphQLTabs() {
 		const stored = localStorage.getItem(storageKey);
 		if (stored) {
 			const parsed = JSON.parse(stored);
-			const previousDefault = localStorage.getItem(DEFAULT_GATEWAY_STORAGE_KEY) ?? PREVIOUS_DEFAULT_GATEWAY;
 			return parsed.length > 0
 				? parsed.map((tab: any) => ({
 						...tab,
 						tabKey: tab.tabKey || `tab-${Date.now()}-${Math.random()}`,
-						gateway: getMigratedGateway(tab.gateway, previousDefault),
+						gateway: tab.gateway || undefined,
 				  }))
 				: [{ id: `playground-${Date.now()}`, label: 'Transactions', tabKey: `tab-${Date.now()}-${Math.random()}` }];
 		}
@@ -86,8 +69,6 @@ export default function GraphQLTabs() {
 
 	React.useEffect(() => {
 		localStorage.setItem(storageKey, JSON.stringify(tabs));
-		// Record the default alongside the migrated tabs so the migration runs only once.
-		localStorage.setItem(DEFAULT_GATEWAY_STORAGE_KEY, DEFAULT_GATEWAY);
 	}, [tabs]);
 
 	React.useEffect(() => {
