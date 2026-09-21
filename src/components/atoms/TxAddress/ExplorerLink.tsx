@@ -4,7 +4,7 @@ import { ReactSVG } from 'react-svg';
 
 import { getArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
-import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { checkValidAddress, checkValidEthereumAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { store } from 'store';
 import { selectTransaction } from 'store/transactions/reducer';
@@ -111,7 +111,7 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 		if (truncatedName) return truncatedName;
 
-		if (checkValidAddress(value)) return formatAddress(value, props.wrap);
+		if (checkValidAddress(value) || checkValidEthereumAddress(value)) return formatAddress(value, props.wrap);
 
 		return value;
 	}

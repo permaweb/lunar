@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
-import { checkValidAddress } from '../../src/helpers/utils';
+import { checkValidAddress, checkValidEthereumAddress, formatAddress } from '../../src/helpers/utils';
 
 const arweaveCharacter = fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-');
 
@@ -21,5 +21,15 @@ describe('Arweave identifier validation', () => {
 				expect(checkValidAddress(candidate)).toBe(expected);
 			})
 		);
+	});
+});
+
+describe('Address formatting', () => {
+	it('shortens Ethereum-style hex addresses without treating them as Arweave ids', () => {
+		const address = '0x0000000000000000000000000000000000000000';
+
+		expect(checkValidAddress(address)).toBe(false);
+		expect(checkValidEthereumAddress(address)).toBe(true);
+		expect(formatAddress(address, false)).toBe('0x0F8...FCF86b');
 	});
 });

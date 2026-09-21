@@ -23,10 +23,15 @@ export function checkValidAddress(address: string | null) {
 	return /^[a-z0-9_-]{43}$/i.test(address);
 }
 
+export function checkValidEthereumAddress(address: string | null) {
+	if (!address) return false;
+	return /^0x[a-f0-9]{40}$/i.test(address);
+}
+
 export function formatAddress(address: string | null, wrap: boolean) {
 	if (!address) return '';
-	if (!checkValidAddress(address)) return address;
-	const formattedAddress = address.substring(0, 5) + '...' + address.substring(38, address.length);
+	if (!checkValidAddress(address) && !checkValidEthereumAddress(address)) return address;
+	const formattedAddress = address.substring(0, 5) + '...' + address.substring(address.length - 5, address.length);
 	return wrap ? `(${formattedAddress})` : formattedAddress;
 }
 
