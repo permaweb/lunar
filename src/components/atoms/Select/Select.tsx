@@ -30,7 +30,9 @@ export default function Select(props: IProps) {
 					}}
 				>
 					<span>{props.activeOption.label}</span>
-					<ReactSVG src={ASSETS.arrow} />
+					<S.Chevron viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<S.ChevronPath d={active ? S.CHEVRON_UP_PATH : S.CHEVRON_DOWN_PATH} $active={active} />
+					</S.Chevron>
 				</S.Dropdown>
 				{active && (
 					<S.Options $top={props.top} $plain={props.variant === 'plain'}>

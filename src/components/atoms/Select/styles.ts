@@ -2,6 +2,9 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
+export const CHEVRON_DOWN_PATH = 'M6 9 L12 15 L18 9';
+export const CHEVRON_UP_PATH = 'M6 15 L12 9 L18 15';
+
 export const Wrapper = styled.div<{ $plain?: boolean }>`
 	height: fit-content;
 	width: 100%;
@@ -25,7 +28,7 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 	height: ${STYLING.dimensions.form.small};
 	width: 100%;
 	text-align: left;
-	padding: 0 17.5px;
+	padding: 0 12.5px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -75,17 +78,10 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 	svg {
 		height: 17px;
 		width: 17px;
-		margin: 5px 0 0 0;
-		transform: rotate(${(props) => (props.active ? '180deg' : '0deg')});
-		transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 		color: ${(props) =>
 			props.active
 				? props.theme.colors.button.primary.active.color
 				: props.theme.colors.button.primary.color} !important;
-
-		@media (prefers-reduced-motion: reduce) {
-			transition: none;
-		}
 	}
 
 	/* Chromeless trigger for headers: the label alone carries the control, so only its color reacts. */
@@ -108,7 +104,6 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 		svg {
 			height: 15px;
 			width: 15px;
-			margin: 1px 0 0 0;
 		}
 
 		&:hover,
@@ -122,6 +117,26 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 			}
 		}
 	`}
+`;
+
+export const Chevron = styled.svg`
+	display: block;
+	flex: 0 0 auto;
+	overflow: visible;
+`;
+
+export const ChevronPath = styled.path<{ $active: boolean }>`
+	d: path('${(props) => (props.$active ? CHEVRON_UP_PATH : CHEVRON_DOWN_PATH)}');
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	transition: d 320ms cubic-bezier(0.22, 1, 0.36, 1);
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
 `;
 
 export const Options = styled.ul<{ $top?: number; $plain?: boolean }>`
@@ -155,9 +170,9 @@ export const Option = styled.li<{ active: boolean }>`
 	padding: 0 4px 0 10px;
 	text-align: left;
 	cursor: pointer;
-	color: ${(props) => props.theme.colors.font.primary};
-	font-size: ${(props) => props.theme.typography.size.xxxSmall};
-	font-weight: ${(props) => (props.active ? props.theme.typography.weight.bold : props.theme.typography.weight.medium)};
+	color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-weight: ${(props) => (props.active ? props.theme.typography.weight.bold : props.theme.typography.weight.bold)};
 	background: ${(props) => (props.active ? props.theme.colors.container.primary.active : 'transparent')};
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	transition: background 100ms;

@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 
+import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
 
 export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
@@ -66,28 +67,6 @@ export const ActionsWrapper = styled.div`
 	display: flex;
 	gap: 10px;
 	align-items: center;
-`;
-
-export const GatewaysLabel = styled.div`
-	height: calc(${STYLING.dimensions.form.small} - 1.75px);
-	width: fit-content;
-	padding: 4.5px 15px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.border.alt2};
-	border-radius: ${STYLING.dimensions.radius.alt2};
-	span {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.light1};
-		text-align: center;
-		text-transform: uppercase;
-		white-space: nowrap;
-		line-height: 1;
-	}
 `;
 
 export const Container = styled.div<{ isFullscreen?: boolean }>`
@@ -168,31 +147,6 @@ export const DocsPanel = styled.div`
 	padding: 0 20px 20px 20px;
 `;
 
-export const DocsEndpoint = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	padding: 12px 0 16px 0;
-	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-
-	span {
-		color: ${(props) => props.theme.colors.font.alt1};
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		text-transform: uppercase;
-	}
-
-	p {
-		color: ${(props) => props.theme.colors.font.primary};
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		overflow-wrap: anywhere;
-	}
-`;
-
 export const DocsSection = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -204,16 +158,18 @@ export const DocsSectionHeader = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	gap: 12px;
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+	padding: 0 0 15px 0;
 
 	p,
 	span {
 		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
 	}
 
 	p {
-		color: ${(props) => props.theme.colors.font.primary};
-		font-size: ${(props) => props.theme.typography.size.base};
+		color: ${(props) => props.theme.colors.font.alt1};
+		font-size: ${(props) => props.theme.typography.size.small};
 	}
 
 	span {
@@ -231,16 +187,19 @@ export const DocsList = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
+
+	> * {
+		&:not(:last-child) {
+			border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+			padding: 0 0 15px 0;
+		}
+	}
 `;
 
 export const DocsField = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	padding: 12px;
-	background: ${(props) => props.theme.colors.container.primary.background};
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-radius: ${STYLING.dimensions.radius.alt2};
 `;
 
 export const DocsFieldHeader = styled.div`
@@ -249,9 +208,8 @@ export const DocsFieldHeader = styled.div`
 	justify-content: space-between;
 	gap: 12px;
 
-	button {
+	> button {
 		flex: 0 0 auto;
-		border-radius: ${STYLING.dimensions.radius.alt2} !important;
 	}
 `;
 
@@ -259,14 +217,91 @@ export const DocsFieldSignature = styled.div`
 	min-width: 0;
 
 	code {
-		color: ${(props) => props.theme.colors.font.primary};
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
+		color: ${(props) => props.theme.colors.editor.alt10};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt2};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
 		line-height: 1.5;
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
 	}
+`;
+
+export const DocsFieldName = styled.span`
+	color: ${(props) => props.theme.colors.editor.primary};
+`;
+
+export const DocsArgumentName = styled.span`
+	color: ${(props) => props.theme.colors.editor.alt4};
+`;
+
+export const DocsTypeName = styled.span`
+	color: ${(props) => props.theme.colors.editor.alt6};
+`;
+
+export const DocsTypeToggle = styled(PrimitiveButton)`
+	padding: 0;
+	border: 0;
+	border-radius: 2px;
+	background: transparent;
+	color: ${(props) => props.theme.colors.editor.alt6};
+	font: inherit;
+	text-align: left;
+	text-decoration: underline dotted;
+	text-underline-offset: 3px;
+	overflow-wrap: anywhere;
+	cursor: pointer;
+
+	&:hover,
+	&[aria-expanded='true'] {
+		text-decoration-style: solid;
+	}
+
+	&:focus-visible {
+		outline: 2px solid ${(props) => props.theme.colors.editor.alt4};
+		outline-offset: 3px;
+	}
+`;
+
+export const DocsTypeDetails = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	min-width: 0;
+	margin: 4px 0;
+	padding: 10px 0 10px 12px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	overflow-wrap: anywhere;
+
+	code {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt2};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		color: ${(props) => props.theme.colors.editor.alt10};
+	}
+`;
+
+export const DocsTypeDetailsHeader = styled.div`
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 8px;
+
+	code {
+		color: ${(props) => props.theme.colors.editor.alt6};
+	}
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		color: ${(props) => props.theme.colors.font.alt1};
+	}
+`;
+
+export const DocsTypeMember = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
 `;
 
 export const DocsDescription = styled.div`
@@ -296,9 +331,9 @@ export const DocsArg = styled.div`
 
 	code,
 	span {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-size: ${(props) => props.theme.typography.size.xxxSmall};
+		font-family: ${(props) => props.theme.typography.family.alt2};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
 		color: ${(props) => props.theme.colors.font.primary};
 		overflow-wrap: anywhere;
 	}
@@ -313,7 +348,7 @@ export const DocsDeprecated = styled.div`
 		color: ${(props) => props.theme.colors.warning.alt1};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
 	}
 `;
 
@@ -323,7 +358,7 @@ export const DocsTypeGrid = styled.div`
 	gap: 8px;
 `;
 
-export const DocsType = styled.div`
+export const DocsType = styled.div<{ $expanded: boolean }>`
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
@@ -333,21 +368,22 @@ export const DocsType = styled.div`
 	background: ${(props) => props.theme.colors.container.primary.background};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt2};
+	grid-column: ${(props) => (props.$expanded ? '1 / -1' : 'auto')};
 
-	code,
-	span {
+	> code,
+	> span {
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 
-	code {
+	> code {
 		color: ${(props) => props.theme.colors.font.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
 	}
 
-	span {
+	> span {
 		flex: 0 0 auto;
 		color: ${(props) => props.theme.colors.font.alt1};
 	}
@@ -360,7 +396,7 @@ export const DocsEmpty = styled.div`
 		color: ${(props) => props.theme.colors.font.alt1};
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
 	}
 `;
 

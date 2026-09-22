@@ -50,7 +50,7 @@ export const Panel = styled.div<{
 	position: fixed;
 	top: 0;
 	right: 0;
-	background: ${(props) => (props.$noHeader ? 'transparent' : props.theme.colors.container.alt1.background)};
+	background: ${(props) => (props.$noHeader ? 'transparent' : props.theme.colors.container.primary.background)};
 	border: none !important;
 	border-left: 1.25px solid ${(props) => props.theme.colors.border.primary} !important;
 	border-radius: 0 !important;
@@ -74,7 +74,7 @@ export const Panel = styled.div<{
 	}
 `;
 
-// Panels pass `$scrolled` to mirror the app header's border once their body scrolls; modals leave it unset.
+// Panels gain a distinct header surface and border once their body scrolls; modals leave `$scrolled` unset.
 export const Header = styled.div<{ $scrolled?: boolean }>`
 	height: 65px;
 	width: 100%;
@@ -82,9 +82,15 @@ export const Header = styled.div<{ $scrolled?: boolean }>`
 	justify-content: space-between;
 	align-items: center;
 	padding: 0 20px;
+	transition: background-color 100ms, border-color 100ms;
 	${(props) =>
 		props.$scrolled !== undefined &&
-		`border-bottom: 1px solid ${props.$scrolled ? props.theme.colors.border.primary : 'transparent'};`}
+		`border-bottom: 1px solid ${props.$scrolled ? props.theme.colors.border.primary : 'transparent'};
+		 background-color: ${props.$scrolled ? props.theme.colors.container.alt1.background : 'transparent'};`}
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
 `;
 
 export const LT = styled.div`
