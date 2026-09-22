@@ -178,3 +178,18 @@ export const MessageInfoLine = styled.div`
 		padding: 15px;
 	}
 `;
+
+export const MessageInfoID = styled(MessageInfoLine)`
+	min-height: 35px;
+	align-items: center !important;
+
+	span {
+		display: flex;
+		margin: 1.5px 0 0 0;
+	}
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		flex-direction: row;
+		align-items: flex-start;
+	}
+`;

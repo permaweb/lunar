@@ -31,6 +31,7 @@ import {
 	getRelativeDate,
 	getTagValue,
 	isNativeArTransfer,
+	isTransferAction,
 } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -163,7 +164,7 @@ function shouldSyncTransactionQueryParams(args: {
 }
 
 function isTransferTransaction(transaction: TransactionNode) {
-	return getTagValue(transaction.tags, 'Action') === DEFAULT_ACTIONS.transfer.name || isNativeArTransfer(transaction);
+	return isTransferAction(getTagValue(transaction.tags, 'Action')) || isNativeArTransfer(transaction);
 }
 
 function TransactionRow(props: {

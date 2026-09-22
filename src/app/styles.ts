@@ -218,10 +218,10 @@ export const GlobalStyle = createGlobalStyle`
   }
 
 	.border-wrapper-alt2 {
-    background: ${(props) => props.theme.colors.container.primary.background};
-    border: 1px solid ${(props) => props.theme.colors.border.primary};
-    border-radius: ${STYLING.dimensions.radius.alt1};
-  }
+		background: ${(props) => props.theme.colors.container.primary.background};
+		border: 1px solid ${(props) => props.theme.colors.border.primary};
+		border-radius: ${STYLING.dimensions.radius.alt1};
+	}
 
 	.border-wrapper-alt3 {
 		background: ${(props) => props.theme.colors.container.alt1.background};
@@ -229,13 +229,6 @@ export const GlobalStyle = createGlobalStyle`
 		border-radius: ${STYLING.dimensions.radius.alt1};
 		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
   	}
-
-	.border-wrapper-alt4 {
-		background: ${(props) => props.theme.colors.container.alt1.background};
-		border: 1px solid ${(props) => props.theme.colors.border.primary};
-		border-radius: ${STYLING.dimensions.radius.alt1};
-		box-shadow: ${(props) => props.theme.colors.shadow.primary} 0px 1px 2px 0.5px;
-  }
 
   .max-view-wrapper {
     width: 100%;

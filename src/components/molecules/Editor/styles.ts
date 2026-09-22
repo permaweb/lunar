@@ -65,7 +65,6 @@ export const ActionsWrapper = styled.div`
 	pointer-events: none;
 
 	button {
-		padding: 3.5px 0 0 0 !important;
 		pointer-events: auto;
 	}
 `;
