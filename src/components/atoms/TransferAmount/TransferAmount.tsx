@@ -1,21 +1,24 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 
-import { DEFAULT_ACTIONS, PROCESSES, TOKEN_DENOMINATIONS } from 'helpers/config';
+import { TOKEN_DENOMINATIONS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
+import {
+	formatTokenQuantity,
+	getKnownTokenMetadata,
+	getTokenMetadataFromResponse,
+	hasDenomination,
+	mergeTokenMetadata,
+	TokenMetadata,
+} from 'helpers/tokens';
 import { TagType } from 'helpers/types';
-import { formatUnits, getTagValue, hasPositiveAmount, removeCommitments } from 'helpers/utils';
+import { getTagValue, hasPositiveAmount, isTransferAction, removeCommitments } from 'helpers/utils';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
 import { addTransaction, selectTransaction } from 'store/transactions/reducer';
 
 import * as S from './styles';
-
-type TransferTokenMetadata = {
-	denomination: number | null;
-	ticker?: string | null;
-};
 
 type NativeArQuantity = {
 	winston?: string | number | null;
@@ -24,7 +27,7 @@ type NativeArQuantity = {
 
 type TransferQuantity = {
 	value: string;
-	metadata: TransferTokenMetadata;
+	metadata: TokenMetadata;
 };
 
 function getNativeArQuantity(quantity: NativeArQuantity | null | undefined): TransferQuantity | null {
@@ -53,98 +56,6 @@ function getNativeArQuantity(quantity: NativeArQuantity | null | undefined): Tra
 	}
 
 	return null;
-}
-
-function getTokenKey(target: string | null | undefined) {
-	if (!target) return null;
-
-	for (const [token, processId] of Object.entries(PROCESSES)) {
-		if (processId === target) return token;
-	}
-
-	return null;
-}
-
-function getKnownTokenMetadata(target: string | null | undefined): TransferTokenMetadata | null {
-	const token = getTokenKey(target);
-	if (!token || !TOKEN_DENOMINATIONS[token]) return null;
-
-	switch (token) {
-		case 'ao':
-			return {
-				denomination: TOKEN_DENOMINATIONS[token],
-				ticker: 'AO',
-			};
-		case 'pi':
-			return {
-				denomination: TOKEN_DENOMINATIONS[token],
-				ticker: 'PI',
-			};
-		default:
-			return {
-				denomination: TOKEN_DENOMINATIONS[token],
-				ticker: token.toUpperCase(),
-			};
-	}
-}
-
-function getResponseValue(response: any, key: string) {
-	const lowerKey = key.toLowerCase();
-
-	return (
-		response?.[key] ??
-		response?.[lowerKey] ??
-		response?.node?.[key] ??
-		response?.node?.[lowerKey] ??
-		getTagValue(response?.node?.tags, key) ??
-		null
-	);
-}
-
-function getTokenMetadataFromResponse(response: any): TransferTokenMetadata | null {
-	if (!response) return null;
-
-	const rawDenomination = getResponseValue(response, 'Denomination');
-	const hasRawDenomination = rawDenomination !== null && rawDenomination !== undefined && rawDenomination !== '';
-	const denomination = hasRawDenomination ? Number(rawDenomination) : null;
-	const ticker = getResponseValue(response, 'Ticker');
-
-	if ((!hasRawDenomination || !Number.isFinite(denomination)) && !ticker) return null;
-
-	return {
-		denomination: Number.isFinite(denomination) ? denomination : null,
-		ticker: ticker ?? null,
-	};
-}
-
-function formatTransferQuantity(quantity: string, metadata: TransferTokenMetadata | null) {
-	if (!metadata?.denomination && metadata?.denomination !== 0) return quantity;
-
-	try {
-		return formatUnits(quantity, metadata.denomination);
-	} catch (e: any) {
-		console.error(e);
-		return quantity;
-	}
-}
-
-function hasDenomination(metadata: TransferTokenMetadata | null) {
-	return metadata?.denomination !== null && metadata?.denomination !== undefined;
-}
-
-function mergeTokenMetadata(...metadataEntries: (TransferTokenMetadata | null)[]): TransferTokenMetadata | null {
-	const metadata = metadataEntries.reduce<TransferTokenMetadata | null>((acc, entry) => {
-		if (!entry) return acc;
-
-		return {
-			denomination: entry.denomination ?? acc?.denomination ?? null,
-			ticker: entry.ticker ?? acc?.ticker ?? null,
-		};
-	}, null);
-
-	if (!metadata?.ticker && metadata?.denomination === null) return null;
-
-	return metadata;
 }
 
 function mergeTargetResponse(cachedTarget: any, response: any) {
@@ -211,7 +122,7 @@ export default function TransferAmount(props: {
 	const nativeArQuantity = getNativeArQuantity(props.quantity);
 	const quantity = nativeArQuantity?.value ?? getTagValue(props.tags, 'Quantity');
 	const target = props.target ?? getTagValue(props.tags, 'Target');
-	const isTaggedTransfer = action === DEFAULT_ACTIONS.transfer.name;
+	const isTaggedTransfer = isTransferAction(action);
 	const isTransfer = isTaggedTransfer || !!nativeArQuantity;
 
 	const knownMetadata = React.useMemo(() => getKnownTokenMetadata(target), [target]);
@@ -284,7 +195,7 @@ export default function TransferAmount(props: {
 	if (!isTransfer || !quantity) return null;
 
 	const metadata = nativeArQuantity?.metadata ?? mergeTokenMetadata(knownMetadata, cachedMetadata, fetchedMetadata);
-	const formattedQuantity = formatTransferQuantity(quantity, metadata);
+	const formattedQuantity = formatTokenQuantity(quantity, metadata);
 	const title = metadata?.ticker ? `${formattedQuantity} ${metadata.ticker}` : formattedQuantity;
 
 	return (

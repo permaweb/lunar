@@ -18,6 +18,8 @@ export default function _Editor(props: {
 	noFullScreen?: boolean;
 	setEditorData?: (data: string) => void;
 	onSubmit?: (currentValue?: string) => void;
+	/** Shows the Run button for `onSubmit`. Set false to keep only the Cmd/Ctrl+Enter shortcut. Defaults to true. */
+	hasSubmitButton?: boolean;
 	header?: string;
 	useFixedHeight?: boolean;
 	fixedHeight?: number;
@@ -31,11 +33,17 @@ export default function _Editor(props: {
 	const editorRef = React.useRef(null);
 	const monacoRef = React.useRef<typeof import('monaco-editor') | null>(null);
 	const editorInstanceRef = React.useRef<any>(null);
+	// Monaco registers the submit shortcut once on mount, so it reads the latest handler through this ref.
+	const onSubmitRef = React.useRef(props.onSubmit);
 	const themeName = getMonacoThemeName(theme);
 
 	const [height, setHeight] = React.useState(0);
 	const [data, setData] = React.useState(props.initialData);
 	const [fullScreenMode, setFullScreenMode] = React.useState<boolean>(false);
+
+	React.useLayoutEffect(() => {
+		onSubmitRef.current = props.onSubmit;
+	}, [props.onSubmit]);
 
 	React.useEffect(() => {
 		setData(props.initialData);
@@ -107,16 +115,17 @@ export default function _Editor(props: {
 		editorInstanceRef.current = editor;
 
 		// Add keyboard shortcut for submit (Cmd+Enter or Ctrl+Enter)
-		if (props.onSubmit) {
-			editor.onKeyDown((e) => {
-				if ((e.metaKey || e.ctrlKey) && e.keyCode === monaco.KeyCode.Enter) {
-					e.preventDefault();
-					// Get the current value from the editor directly
-					const currentValue = editor.getValue();
-					props.onSubmit(currentValue);
-				}
-			});
-		}
+		editor.onKeyDown((e) => {
+			const onSubmit = onSubmitRef.current;
+			if (!onSubmit || !(e.metaKey || e.ctrlKey) || e.keyCode !== monaco.KeyCode.Enter) return;
+
+			// Monaco binds Cmd/Ctrl+Enter to "Insert Line Below" on an ancestor, and that binding ignores preventDefault,
+			// so stop the event here as well to submit without adding a line.
+			e.preventDefault();
+			e.stopPropagation();
+			// Get the current value from the editor directly
+			onSubmit(editor.getValue());
+		});
 
 		// Handle content size changes for dynamic height
 		if (!props.useFixedHeight && !props.fixedHeight) {
@@ -207,14 +216,15 @@ export default function _Editor(props: {
 							height={25}
 							width={25}
 							noMinWidth
-							iconSize={12.5}
+							iconSize={11}
+							padding={'3px 0 0 0'}
 							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 							tooltipPosition={'top-right'}
 							stopPropagation
 							preventDefault
 						/>
 					)}
-					{props.onSubmit && (
+					{props.onSubmit && props.hasSubmitButton !== false && (
 						<S.SubmitWrapper>
 							<Button
 								type={'alt1'}

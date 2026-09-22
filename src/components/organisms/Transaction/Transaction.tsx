@@ -16,8 +16,10 @@ import {
 	getTransactionCountByBlock,
 } from 'api/blocks';
 import { requestRemote } from 'api/http';
+import { readTransactionData, type TransactionData } from 'api/transactions';
 
 import { Button } from 'components/atoms/Button';
+import { StatusIndicator } from 'components/atoms/StatusIndicator';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { CSVViewer } from 'components/molecules/CSVViewer';
@@ -36,7 +38,9 @@ import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
 import type { PinTarget } from 'helpers/pinnedTabs';
+import { getAoProcessSummary } from 'helpers/processes';
 import { searchTxById } from 'helpers/search';
+import { getTokenTransfer } from 'helpers/tokens';
 import { GQLNodeResponseType, MessageVariantEnum, TransactionType } from 'helpers/types';
 import {
 	capitalize,
@@ -45,7 +49,6 @@ import {
 	formatBlockId,
 	formatCount,
 	formatDate,
-	formatUnits,
 	getAoVariantFromTags,
 	getByteSizeDisplay,
 	getRelativeDate,
@@ -53,6 +56,7 @@ import {
 	getTransactionTypeFromTags,
 	isLegacyMessageSpam,
 	isNumeric,
+	isTransferAction,
 	removeCommitments,
 	resolveMessageId,
 	resolvePermawebApi,
@@ -64,9 +68,11 @@ import { useNotifications } from 'providers/NotificationProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
 
+import { AoProcess } from '../AoProcess';
 import { AOS } from '../AOS';
 import { ProcessEditor } from '../ProcessEditor';
 import { ProcessSource } from '../ProcessSource';
+import { TokenTransfer, TokenTransferStatus } from '../TokenTransfer';
 
 import * as S from './styles';
 import type { ProcessMessagesViewProps } from './types';
@@ -101,6 +107,25 @@ function sortTagsAlphabetically(tags: DisplayTag[]) {
 			sensitivity: 'base',
 		});
 	});
+}
+
+/** Returns the displayable transaction data, or null when the body holds nothing to show. */
+function parseTransactionDataValue(text: string, isTextDocument: boolean) {
+	const trimmed = text.trim();
+	if (trimmed === '') return null;
+	if (isTextDocument) return trimmed;
+
+	try {
+		const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
+
+		const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
+		const isEmptyObject =
+			parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0;
+
+		return isEmptyArray || isEmptyObject ? null : parsed;
+	} catch {
+		return trimmed;
+	}
 }
 
 function cacheTransactionOverview(cacheKey: string, data: TransactionOverviewData) {
@@ -1068,19 +1093,15 @@ function Transaction(props: {
 			<O.MessageInfo className={'border-wrapper-primary'}>
 				<O.MessageInfoHeader>
 					<p>{isBundle ? language.bundleOverview : language.transactionOverview}</p>
-					<S.MessageInfoID>
+					<O.MessageInfoID>
 						<TxOverviewValue
 							primary={`Status: ${statusLabel}`}
 							secondary={statusEta}
 							indicator={
-								statusLoading || notYetFound ? null : (
-									<S.TransferInfoStatusIndicator pending={pending} success={!pending}>
-										<ReactSVG src={pending ? ASSETS.pending : ASSETS.success} />
-									</S.TransferInfoStatusIndicator>
-								)
+								statusLoading || notYetFound ? null : <StatusIndicator status={pending ? 'pending' : 'success'} />
 							}
 						/>
-					</S.MessageInfoID>
+					</O.MessageInfoID>
 				</O.MessageInfoHeader>
 				<O.MessageInfoBody $desktopItemCount={9}>
 					<TxOverviewLine label={language.value}>
@@ -1129,14 +1150,60 @@ function Transaction(props: {
 		);
 	};
 
-	const MessageInfoSection = () => {
+	const MessageTransferSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
 
-		const action = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || 'None' : 'None';
 		const from = txResponse
 			? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse?.node?.owner?.address
 			: undefined;
 		const target = txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target');
+		const isTransfer = isTransferAction(getTagValue(txResponse?.node?.tags, 'Action'));
+
+		const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+
+		React.useEffect(() => {
+			if (messageResult?.Response?.includes('Failed to fetch')) {
+				setStatusMessage('Failed To Fetch');
+			}
+		}, [messageResult]);
+
+		function getTransferStatus(): TokenTransferStatus {
+			if (messageResult?.message?.includes('Compute in progress')) return { state: 'computing' };
+			if (!messageResult) return { state: 'loading' };
+
+			const actions = {
+				'Debit-Notice': false,
+				'Credit-Notice': false,
+			};
+
+			for (const message of messageResult.Messages ?? []) {
+				const action = getTagValue(message.Tags, 'Action');
+				if (action && actions.hasOwnProperty(action)) actions[action] = true;
+			}
+
+			if (actions['Debit-Notice'] && actions['Credit-Notice']) return { state: 'success' };
+
+			return { state: 'failure', message: statusMessage };
+		}
+
+		if (!isTransfer) return null;
+
+		return (
+			<TokenTransfer
+				token={target ?? null}
+				from={from ?? null}
+				recipient={getTagValue(txResponse?.node?.tags, 'Recipient')}
+				quantity={getTagValue(txResponse?.node?.tags, 'Quantity')}
+				status={getTransferStatus()}
+				onResultsOpen={scrollToMessageList}
+			/>
+		);
+	};
+
+	const MessageInfoSection = () => {
+		const { txResponse } = React.useContext(TxResponseContext);
+
+		const action = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || 'None' : 'None';
 		const scheduledBlockHeight = txResponse?.node?.block?.height;
 		const scheduledSlot = txResponse?.node?.slot;
 		const isSpamMessage = isLegacyMessageSpam({
@@ -1146,225 +1213,18 @@ function Transaction(props: {
 			blockHeight: scheduledBlockHeight,
 		});
 
-		const isTransfer = getTagValue(txResponse?.node?.tags, 'Action') === 'Transfer';
-
-		const [targetResponse, setTargetResponse] = React.useState<any>(null);
-		const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
-
-		const fetchedTargetRef = React.useRef<string | null>(null);
-
-		React.useEffect(() => {
-			if (messageResult?.Response?.includes('Failed to fetch')) {
-				setStatusMessage('Failed To Fetch');
-			}
-		}, [messageResult]);
-
-		React.useEffect(() => {
-			if (target && fetchedTargetRef.current !== target) {
-				fetchedTargetRef.current = target;
-				setTargetResponse(null);
-				(async () => {
-					try {
-						const response = await searchTxById({
-							txId: target,
-							getGQLData: permawebProvider.legacyApi.getGQLData,
-							readProcess: permawebProvider.legacyApi.readProcess,
-							store: store,
-							dispatch: dispatch,
-						});
-						setTargetResponse(response);
-					} catch (e) {
-						console.error(e);
-					}
-				})();
-			}
-		}, [target]);
-
-		let quantity;
-		let recipient;
-		let isTransferLoading = !messageResult;
-		let isTransferSuccess = false;
-		let isTransferPending = false;
-
-		if (isTransfer) {
-			quantity = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Quantity') || '-' : '-';
-			recipient = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Recipient') || '-' : '-';
-
-			if (messageResult?.error) {
-				isTransferLoading = false;
-			}
-
-			if (messageResult?.message?.includes('Compute in progress')) {
-				isTransferPending = true;
-			}
-
-			if (messageResult?.Messages?.length > 0) {
-				const actions = {
-					'Debit-Notice': null,
-					'Credit-Notice': null,
-					'Transfer-Error': null,
-				};
-
-				for (const message of messageResult.Messages) {
-					const action = getTagValue(message.Tags, 'Action');
-					if (action && actions.hasOwnProperty(action) && !actions[action]) {
-						actions[action] = message;
-					}
-				}
-
-				if (actions['Debit-Notice'] && actions['Credit-Notice']) isTransferSuccess = true;
-				else if (actions['Transfer-Error']) isTransferSuccess = false;
-				else isTransferSuccess = false;
-			}
-		}
-
-		function getQuantity() {
-			if (!isTransfer) return '-';
-
-			let token;
-			for (const entry of Object.entries(PROCESSES)) {
-				if (entry[1] === target) {
-					token = entry[0];
-				}
-			}
-
-			if (token && TOKEN_DENOMINATIONS[token]) {
-				let icon = null;
-				let dimensions = 15;
-				let margin = '0';
-				switch (token) {
-					case 'ao':
-						icon = ASSETS.ao;
-						dimensions = 18.5;
-						margin = `7.5px 4.5px 0 0`;
-						break;
-					case 'pi':
-						dimensions = 10.5;
-						margin = `7.5px 4.5px 0 0`;
-						icon = ASSETS.pi;
-						break;
-				}
-
-				if (token === 'arweave') {
-					dimensions = 12.5;
-					margin = `0 0 4.95px 0`;
-					icon = ASSETS.arweave;
-				}
-
-				try {
-					const denomination = TOKEN_DENOMINATIONS[token];
-					const formatted = formatUnits(quantity, denomination);
-					return (
-						<S.TransferInfoAmount isNumber={true}>
-							{icon && (
-								<S.TransferLogoWrapper>
-									<S.TransferLogo dimensions={dimensions} margin={margin}>
-										<ReactSVG src={icon} />
-									</S.TransferLogo>
-								</S.TransferLogoWrapper>
-							)}
-							<p>{formatted}</p>
-						</S.TransferInfoAmount>
-					);
-				} catch (e) {
-					console.error(e);
-				}
-			}
-
-			// Check targetResponse for denomination and logo
-			if (targetResponse && targetResponse.Denomination) {
-				try {
-					const denomination = targetResponse.Denomination;
-					const formatted = formatUnits(quantity, denomination);
-					const logoTxId = targetResponse.Logo;
-
-					return (
-						<S.TransferInfoAmount isNumber={true}>
-							{logoTxId && (
-								<S.TransferLogoWrapper>
-									<S.TransferLogo dimensions={15} margin={'0'}>
-										<img src={getTxEndpoint(logoTxId)} alt={language.tokenLogo} />
-									</S.TransferLogo>
-								</S.TransferLogoWrapper>
-							)}
-							<p>{formatted}</p>
-						</S.TransferInfoAmount>
-					);
-				} catch (e) {
-					console.error(e);
-				}
-			}
-
-			return (
-				<S.TransferInfoAmount isNumber={true}>
-					<p>{quantity}</p>
-				</S.TransferInfoAmount>
-			);
-		}
-
 		return (
 			<>
-				{isTransfer && (
-					<S.TransferInfo className={'border-wrapper-alt4'}>
-						<S.TransferInfoHeader>
-							<p>{language.tokenTransfer}</p>
-							<S.TransferInfoID>
-								<span>{`${language.token}: `}</span>
-								<TxAddress address={target} />
-							</S.TransferInfoID>
-						</S.TransferInfoHeader>
-						<S.TransferInfoBody>
-							<S.TransferInfoLine>
-								<S.TransferInfoLineElement>
-									<span>{`${language.transferFrom}: `}</span>
-									<TxAddress address={from} />
-								</S.TransferInfoLineElement>
-								<S.TransferInfoLineElement>
-									<span>{`${language.to}: `}</span>
-									<TxAddress address={recipient} />
-								</S.TransferInfoLineElement>
-								<S.TransferInfoLineElement>
-									<span>{`${language.amount}: `}</span>
-									{getQuantity()}
-								</S.TransferInfoLineElement>
-							</S.TransferInfoLine>
-							<S.TransferInfoLine>
-								<S.TransferInfoStatus>
-									<span>{`${language.status}:`}</span>
-									<p>
-										{isTransferLoading
-											? `${language.loading}...`
-											: isTransferPending
-											? language.computeInProgress
-											: isTransferSuccess
-											? language.success
-											: statusMessage ?? language.error}
-									</p>
-									{!isTransferLoading && !isTransferPending && !statusMessage && (
-										<S.TransferInfoStatusIndicator pending={isTransferLoading} success={isTransferSuccess}>
-											<ReactSVG src={isTransferSuccess ? ASSETS.success : ASSETS.warning} />
-										</S.TransferInfoStatusIndicator>
-									)}
-								</S.TransferInfoStatus>
-								<S.TransferInfoLineElement>
-									<S.TransferInfoResult disabled={isTransferLoading} onClick={scrollToMessageList}>
-										<p>{language.goToResults}</p>
-									</S.TransferInfoResult>
-								</S.TransferInfoLineElement>
-							</S.TransferInfoLine>
-						</S.TransferInfoBody>
-					</S.TransferInfo>
-				)}
 				<O.MessageInfo className={'border-wrapper-primary'}>
 					<O.MessageInfoHeader>
 						<p>
 							{language.messageInfo}
 							{isSpamMessage && <span> ({language.markedAsSpam})</span>}
 						</p>
-						<S.MessageInfoID>
+						<O.MessageInfoID>
 							<span>{`${language.id}: `}</span>
 							<TxAddress address={txResponse?.node?.id} />
-						</S.MessageInfoID>
+						</O.MessageInfoID>
 					</O.MessageInfoHeader>
 					<O.MessageInfoBody $desktopItemCount={6}>
 						<O.MessageInfoLine>
@@ -1432,7 +1292,7 @@ function Transaction(props: {
 			<O.MessageInfo className={'border-wrapper-primary'}>
 				<O.MessageInfoHeader>
 					<p>{language.blockOverview}</p>
-					<S.MessageInfoID>
+					<O.MessageInfoID>
 						<span>{`${language.height}: `}</span>
 						{txResponse?.node?.block?.height ? (
 							<S.Height>
@@ -1441,7 +1301,7 @@ function Transaction(props: {
 						) : (
 							<p>-</p>
 						)}
-					</S.MessageInfoID>
+					</O.MessageInfoID>
 				</O.MessageInfoHeader>
 				<O.MessageInfoBody $desktopItemCount={9}>
 					<O.MessageInfoLine>
@@ -1616,14 +1476,17 @@ function Transaction(props: {
 
 	const DataSection = (props: { dataHeader?: string; fixedHeight?: number }) => {
 		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
-		const [data, setData] = React.useState<any>(null);
-		const [loading, setLoading] = React.useState<boolean>(false);
+		const [transactionData, setTransactionData] = React.useState<TransactionData | null>(null);
 		const [htmlPreviewReady, setHtmlPreviewReady] = React.useState<boolean>(false);
 
-		const contentType =
+		const hasTransaction = !!txResponse;
+		const knownDataSize = txResponse?.node?.data?.size ?? null;
+		const declaredContentType =
 			(txResponse?.node?.tags ? getTagValue(txResponse.node.tags, 'Content-Type') : null) ??
 			txResponse?.node?.data?.type ??
 			null;
+		// Render with the content type the adapter returned alongside a validated body.
+		const contentType = transactionData?.status === 'content' ? transactionData.contentType : declaredContentType;
 		const normalizedContentType = contentType?.split(';')[0].trim().toLowerCase();
 
 		// Check for video and audio content types
@@ -1665,54 +1528,60 @@ function Transaction(props: {
 		const isCSV = ['text/csv', 'application/csv', 'text/comma-separated-values'].includes(normalizedContentType ?? '');
 		const isHTML = ['text/html', 'application/xhtml+xml'].includes(normalizedContentType ?? '');
 
+		const data = React.useMemo(
+			() =>
+				transactionData?.status === 'content'
+					? parseTransactionDataValue(transactionData.text, isMarkdown || isCSV || isHTML)
+					: null,
+			[transactionData, isMarkdown, isCSV, isHTML]
+		);
+
 		React.useEffect(() => {
+			// Wait for the lookup so the recorded data size and content type are known before reading the body.
+			if (!hasTransaction || !checkValidAddress(inputTxId)) return;
+
+			const controller = new AbortController();
+			setTransactionData(null);
+			setHtmlPreviewReady(false);
+
 			(async function () {
-				if (checkValidAddress(inputTxId)) {
-					setLoading(true);
-					setHtmlPreviewReady(false);
-					try {
-						const messageFetch = await requestRemote(getTxEndpoint(inputTxId));
-						const rawMessage = await messageFetch.text();
+				const result = await readTransactionData({
+					txId: inputTxId,
+					knownSize: knownDataSize,
+					contentType: declaredContentType,
+					signal: controller.signal,
+				});
 
-						const raw = rawMessage ?? '';
-						const trimmed = raw.trim();
-
-						if (trimmed === '') {
-							setData(language.noData);
-						} else if (isMarkdown || isCSV || isHTML) {
-							setData(trimmed);
-						} else {
-							try {
-								const parsed = JSONbig({ storeAsString: true }).parse(trimmed);
-
-								const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
-								const isEmptyObject =
-									parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0;
-
-								if (isEmptyArray || isEmptyObject) {
-									setData(language.noData);
-								} else {
-									setData(parsed);
-								}
-							} catch {
-								setData(trimmed);
-							}
-						}
-					} catch (e: any) {
-						console.error(e);
-						setData(language.errorFetchingData || 'Error Fetching Data');
-					}
-					setLoading(false);
-				}
+				if (controller.signal.aborted) return;
+				if (result.status === 'error') console.error(`Transaction data unavailable: ${result.code}`);
+				setTransactionData(result);
 			})();
-		}, [inputTxId]);
+
+			return () => controller.abort();
+		}, [hasTransaction, inputTxId, knownDataSize, declaredContentType]);
+
+		function getDataText(text: string) {
+			return (
+				<Editor
+					initialData={text}
+					header={'Data'}
+					language={'lua'}
+					readOnly
+					loading={false}
+					fixedHeight={props.fixedHeight ?? 600}
+				/>
+			);
+		}
 
 		function getDataContent() {
-			if (loading || !data) {
+			if (!transactionData) {
 				return props.fixedHeight ? (
 					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight} />
 				) : null;
 			}
+
+			if (transactionData.status === 'error') return getDataText(language.errorFetchingData || 'Error Fetching Data');
+			if (transactionData.status === 'empty' || data === null) return getDataText(language.noData);
 
 			// Check for unsupported content types
 			if (isUnsupported) {
@@ -1835,16 +1704,7 @@ function Transaction(props: {
 				);
 			}
 
-			return (
-				<Editor
-					initialData={data}
-					header={'Data'}
-					language={'lua'}
-					readOnly
-					loading={false}
-					fixedHeight={props.fixedHeight ?? 600}
-				/>
-			);
+			return getDataText(String(data));
 		}
 
 		return <>{getDataContent()}</>;
@@ -1868,6 +1728,7 @@ function Transaction(props: {
 					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
 
 					const variant = getAoVariantFromTags(txResponse?.node?.tags);
+					const tokenTransfer = getTokenTransfer(txResponse?.node);
 					const hydrateAoTransferNotices = shouldHydrateAoTransferNotices({
 						action: getTagValue(txResponse?.node?.tags, 'Action'),
 						variant: variant,
@@ -1906,6 +1767,10 @@ function Transaction(props: {
 						case 'message':
 							return (
 								<S.ColumnFlexWrapper>
+									{resolvedType === 'process' && txResponse && (
+										<AoProcess process={getAoProcessSummary(txResponse.node)} />
+									)}
+									{resolvedType === 'message' && <MessageTransferSection />}
 									<TransactionOverviewSection />
 									{showOverview && <MessageInfoSection />}
 									{showRead && (
@@ -1966,6 +1831,14 @@ function Transaction(props: {
 						default:
 							return (
 								<S.ColumnFlexWrapper>
+									{tokenTransfer && (
+										<TokenTransfer
+											token={tokenTransfer.token}
+											from={tokenTransfer.from}
+											recipient={tokenTransfer.recipient}
+											quantity={tokenTransfer.quantity}
+										/>
+									)}
 									<TransactionOverviewSection />
 									<S.InfoWrapper>
 										<S.SectionWrapperFlex>
@@ -2157,7 +2030,7 @@ function Transaction(props: {
 			<>
 				{showPlaceholder && (
 					<S.Placeholder>
-						<S.PlaceholderIcon className={'border-wrapper-alt4'}>
+						<S.PlaceholderIcon className={'border-wrapper-alt3'}>
 							<ReactSVG src={placeholderIcon} />
 						</S.PlaceholderIcon>
 						<S.PlaceholderDescription>

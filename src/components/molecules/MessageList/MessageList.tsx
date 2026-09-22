@@ -32,8 +32,10 @@ import {
 } from 'helpers/config';
 import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
+import { dedupeGqlEdgesById } from 'helpers/gqlEdges';
 import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
+import { getTokenTransfer } from 'helpers/tokens';
 import {
 	GQLNodeResponseType,
 	MessageFilterType,
@@ -50,6 +52,7 @@ import {
 	getTagValue,
 	isLegacyMessageSpam,
 	isNativeArTransfer,
+	isTransferAction,
 	lowercaseTagKeys,
 	normalizeTagKeys,
 	removeCommitments,
@@ -98,6 +101,9 @@ const MESSAGE_QUERY_KEYS = {
 	page: 'messagePage',
 };
 
+// Gateways match tag values case-sensitively, and HyperBEAM writes the transfer action in lowercase.
+const TRANSFER_ACTION_TAG_VALUES = [DEFAULT_ACTIONS.transfer.name, DEFAULT_ACTIONS.transfer.name.toLowerCase()];
+
 function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
 	return getTagValue(tags, name)?.toLowerCase() === value.toLowerCase();
 }
@@ -106,11 +112,16 @@ function isAoMessageTransaction(tags: any[] | undefined) {
 	return tagValueEquals(tags, 'Data-Protocol', 'ao') && tagValueEquals(tags, TAGS.keys.type, 'Message');
 }
 
+function isAoTransferFilter(transferFilter: WalletTransferFilter) {
+	return transferFilter === 'ao-token' || transferFilter === 'ao-network';
+}
+
 function isAoActionTransfer(transaction: any) {
-	return (
+	const isAoTransferMessage =
 		isAoMessageTransaction(transaction?.tags) &&
-		tagValueEquals(transaction?.tags, 'Action', DEFAULT_ACTIONS.transfer.name)
-	);
+		tagValueEquals(transaction?.tags, 'Action', DEFAULT_ACTIONS.transfer.name);
+
+	return isAoTransferMessage || !!getTokenTransfer(transaction);
 }
 
 function isAoTokenTransfer(transaction: any) {
@@ -561,6 +572,7 @@ function Message(props: {
 		if (isNativeArTransfer(props.element.node)) return DEFAULT_ACTIONS.transfer.name;
 
 		const action = getTagValue(props.element.node.tags, 'Action');
+		if (isTransferAction(action)) return DEFAULT_ACTIONS.transfer.name;
 		if (action) return action;
 		if (shouldUseMessageActionFallback) return getNonMessageActionFallback(props.element.node.tags) ?? language.none;
 
@@ -1550,10 +1562,10 @@ export default function MessageList(props: {
 		return queryTags.length > 0 ? { tags: queryTags } : {};
 	}
 
+	// AO transfer filters skip the message tags because HyperBEAM L1 transfers carry none;
+	// matchesAppliedTransferFilter narrows the broader results on the client.
 	function withRequiredMessageTags(tags: { name: string; values: string[] }[]) {
-		const aoTransferFilter = appliedTransferFilter === 'ao-token' || appliedTransferFilter === 'ao-network';
-
-		if (props.type === 'process' || (props.type === 'wallet' && (appliedTypeFilter === 'ao' || aoTransferFilter))) {
+		if (props.type === 'process' || (props.type === 'wallet' && appliedTypeFilter === 'ao')) {
 			return [...DEFAULT_MESSAGE_TAGS, ...tags];
 		}
 
@@ -1561,12 +1573,9 @@ export default function MessageList(props: {
 	}
 
 	function getAppliedActionTags() {
-		const action =
-			appliedTransferFilter === 'ao-token' || appliedTransferFilter === 'ao-network'
-				? DEFAULT_ACTIONS.transfer.name
-				: appliedAction;
+		if (isAoTransferFilter(appliedTransferFilter)) return [{ name: 'Action', values: TRANSFER_ACTION_TAG_VALUES }];
 
-		return action ? [{ name: 'Action', values: [action] }] : [];
+		return appliedAction ? [{ name: 'Action', values: [appliedAction] }] : [];
 	}
 
 	function matchesAppliedTransferFilter(transaction: any) {
@@ -1651,6 +1660,31 @@ export default function MessageList(props: {
 		}
 	}
 
+	function getIncomingGQLArgs(incomingTags: { name: string; values: string[] }[]) {
+		// Incoming token transfers name the wallet in the Recipient tag; the L1 recipient is the token process.
+		const matchRecipientTag = props.type === 'wallet' && isAoTransferFilter(appliedTransferFilter);
+		const tags = matchRecipientTag
+			? [...withRequiredMessageTags(incomingTags), { name: 'Recipient', values: [props.txId] }]
+			: withRequiredMessageTags(incomingTags);
+		const incomingArgs: any = {
+			...getQueryTagsArg(tags),
+			...(matchRecipientTag ? {} : { recipients: [props.txId] }),
+		};
+
+		if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
+			if (appliedFromAddressIsProcess) {
+				return {
+					...incomingArgs,
+					...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
+				};
+			}
+
+			incomingArgs.owners = [appliedFromAddress];
+		}
+
+		return incomingArgs;
+	}
+
 	async function getOutgoingGQLArgs(outgoingTags) {
 		switch (props.type) {
 			case 'process':
@@ -1676,7 +1710,7 @@ export default function MessageList(props: {
 		const excludeAoMessages = props.type === 'wallet' && appliedTypeFilter === 'transaction';
 		const filterTransfers = props.type === 'wallet' && appliedTransferFilter !== 'all';
 		const filtersRowsClientSide = excludeAoMessages || filterTransfers;
-		const rows: any[] = [];
+		let rows: any[] = [];
 		let cursor: string | null = initialCursor ?? null;
 		let nextCursorValue: string | null = null;
 		let count: number | null = null;
@@ -1697,7 +1731,8 @@ export default function MessageList(props: {
 
 			if (!filtersRowsClientSide && count === null && response?.count !== undefined) count = response.count;
 
-			rows.push(...matchingRows);
+			// The gateway can return one transaction twice, so count unique rows and keep paging until the page is full.
+			rows = dedupeGqlEdgesById([...rows, ...matchingRows]);
 			nextCursorValue = responseNextCursor;
 
 			if (pageRows.length <= 0 || !responseNextCursor) break;
@@ -1721,25 +1756,10 @@ export default function MessageList(props: {
 			switch (currentFilter) {
 				case 'incoming': {
 					let incomingQueryArgs: any = {
-						...getQueryTagsArg(withRequiredMessageTags(tags)),
-						recipients: [props.txId],
+						...getIncomingGQLArgs(tags),
 						...cursorArg,
 						// sort: 'descending',
 					};
-
-					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
-						if (appliedFromAddressIsProcess) {
-							incomingQueryArgs = {
-								...incomingQueryArgs,
-								...getQueryTagsArg([
-									...withRequiredMessageTags(tags),
-									{ name: 'From-Process', values: [appliedFromAddress] },
-								]),
-							};
-						} else {
-							incomingQueryArgs.owners = [appliedFromAddress];
-						}
-					}
 
 					if (appliedStartDate) {
 						incomingQueryArgs.minBlock = await timestampToBlockHeight(dateToTimestamp(appliedStartDate));
@@ -1869,26 +1889,7 @@ export default function MessageList(props: {
 
 			if (props.txId) {
 				try {
-					// Build incoming query args
-					let incomingQueryArgs: any = {
-						...getQueryTagsArg(withRequiredMessageTags(baseTags)),
-						recipients: [props.txId],
-					};
-
-					// Add fromAddress filter if applicable
-					if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
-						if (appliedFromAddressIsProcess) {
-							incomingQueryArgs = {
-								...incomingQueryArgs,
-								...getQueryTagsArg([
-									...withRequiredMessageTags(baseTags),
-									{ name: 'From-Process', values: [appliedFromAddress] },
-								]),
-							};
-						} else {
-							incomingQueryArgs.owners = [appliedFromAddress];
-						}
-					}
+					let incomingQueryArgs: any = getIncomingGQLArgs(baseTags);
 
 					// Add time range filters
 					if (appliedStartDate) {
@@ -2021,26 +2022,10 @@ export default function MessageList(props: {
 						switch (currentFilter) {
 							case 'incoming':
 								let incomingQueryArgs: any = {
-									...getQueryTagsArg(withRequiredMessageTags(tags)),
-									recipients: [props.txId],
+									...getIncomingGQLArgs(tags),
 									...(pageCursor ? { cursor: pageCursor } : {}),
 									// sort: 'descending',
 								};
-
-								// Add fromAddress filter if applicable
-								if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
-									if (appliedFromAddressIsProcess) {
-										incomingQueryArgs = {
-											...incomingQueryArgs,
-											...getQueryTagsArg([
-												...withRequiredMessageTags(tags),
-												{ name: 'From-Process', values: [appliedFromAddress] },
-											]),
-										};
-									} else {
-										incomingQueryArgs.owners = [appliedFromAddress];
-									}
-								}
 
 								// Add time range filters
 								if (appliedStartDate) {

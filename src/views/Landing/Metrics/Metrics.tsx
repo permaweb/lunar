@@ -294,7 +294,7 @@ export function MetricTotals() {
 		return (
 			<S.TotalsWrapper>
 				{Array.from({ length: 4 }).map((_, index) => (
-					<S.TotalPlaceholder className={'border-wrapper-alt4'} key={index} />
+					<S.TotalPlaceholder className={'border-wrapper-alt3'} key={index} />
 				))}
 			</S.TotalsWrapper>
 		);
@@ -318,7 +318,7 @@ export function MetricTotals() {
 	return (
 		<S.TotalsWrapper>
 			{totals.map((total) => (
-				<S.TotalCard key={total.label} className={'border-wrapper-alt4'}>
+				<S.TotalCard key={total.label} className={'border-wrapper-alt3'}>
 					<S.TotalIcon>
 						<Icon src={total.icon} size={15} />
 					</S.TotalIcon>
@@ -346,7 +346,7 @@ export default function Metrics(props: { section: MetricsSection; gridTemplate: 
 		return (
 			<S.Wrapper gridTemplate={props.gridTemplate}>
 				{CHARTS[props.section].map((chart) => (
-					<S.Placeholder className={'border-wrapper-alt4'} key={chart.chartLabel} />
+					<S.Placeholder className={'border-wrapper-alt3'} key={chart.chartLabel} />
 				))}
 			</S.Wrapper>
 		);

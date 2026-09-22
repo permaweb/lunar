@@ -536,10 +536,11 @@ export default function GraphQLPlayground(props: {
 	}, []);
 
 	const executeQuery = React.useCallback(
-		async (queryOverride?: string) => {
+		async (queryOverride?: string, variablesOverride?: string) => {
 			// Use the override query if provided, otherwise use the state query
 			// Handle case where an event object might be passed instead of a string
 			const queryToExecute = typeof queryOverride === 'string' ? queryOverride : query;
+			const variablesToSend = typeof variablesOverride === 'string' ? variablesOverride : variables;
 
 			if (queryToExecute && typeof queryToExecute === 'string') {
 				setResult(null);
@@ -551,9 +552,9 @@ export default function GraphQLPlayground(props: {
 
 					// Parse variables if they exist
 					let parsedVariables = undefined;
-					if (variables.trim() && variables.trim() !== '{}') {
+					if (variablesToSend.trim() && variablesToSend.trim() !== '{}') {
 						try {
-							parsedVariables = JSON.parse(variables);
+							parsedVariables = JSON.parse(variablesToSend);
 							// Only include if it's a non-empty object
 							if (parsedVariables && typeof parsedVariables === 'object' && Object.keys(parsedVariables).length > 0) {
 							} else {
@@ -588,6 +589,12 @@ export default function GraphQLPlayground(props: {
 			}
 		},
 		[query, inputGateway, prepareQuery, showVariables, variables]
+	);
+
+	// Cmd/Ctrl+Enter in the variables editor runs the current query with the variables exactly as typed there.
+	const handleVariablesSubmit = React.useCallback(
+		(currentVariables?: string) => executeQuery(undefined, currentVariables),
+		[executeQuery]
 	);
 
 	const schemaTypesByName = React.useMemo(() => {
@@ -1024,6 +1031,8 @@ export default function GraphQLPlayground(props: {
 								initialData={variables}
 								language={'json'}
 								setEditorData={setVariables}
+								onSubmit={handleVariablesSubmit}
+								hasSubmitButton={false}
 								loading={false}
 								useFixedHeight
 								noFullScreen

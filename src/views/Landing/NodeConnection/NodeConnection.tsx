@@ -170,7 +170,7 @@ export default function NodeConnection() {
 	}
 
 	return (
-		<S.Wrapper className={'border-wrapper-alt4'}>
+		<S.Wrapper className={'border-wrapper-alt3'}>
 			<S.ActionWrapper>
 				<Button
 					type={'alt4'}

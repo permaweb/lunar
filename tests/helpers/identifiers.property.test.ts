@@ -26,10 +26,12 @@ describe('Arweave identifier validation', () => {
 
 describe('Address formatting', () => {
 	it('shortens Ethereum-style hex addresses without treating them as Arweave ids', () => {
-		const address = '0x0000000000000000000000000000000000000000';
+		// Mixed-case EIP-55 vector: distinct prefix/suffix and casing catch slicing or normalization regressions.
+		const address = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed';
 
 		expect(checkValidAddress(address)).toBe(false);
 		expect(checkValidEthereumAddress(address)).toBe(true);
-		expect(formatAddress(address, false)).toBe('0x0F8...FCF86b');
+		expect(formatAddress(address, false)).toBe('0x5aA...BeAed');
+		expect(formatAddress(address, true)).toBe('(0x5aA...BeAed)');
 	});
 });

@@ -14,7 +14,7 @@ export default function WalletBlock() {
 
 	return (
 		<S.Wrapper>
-			<S.Icon className={'border-wrapper-alt4'}>
+			<S.Icon className={'border-wrapper-alt3'}>
 				<ReactSVG src={ASSETS.wallet} />
 			</S.Icon>
 			<p>{language.connectToContinue}</p>

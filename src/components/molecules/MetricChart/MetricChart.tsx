@@ -701,11 +701,11 @@ function MetricChart(props: MetricChartProps) {
 	};
 
 	if (isLoading) {
-		return <S.Placeholder className={'border-wrapper-alt4'} />;
+		return <S.Placeholder className={'border-wrapper-alt3'} />;
 	}
 
 	return (
-		<S.Wrapper className={props.noWrapper ? '' : 'border-wrapper-alt4'} $pie={isPie}>
+		<S.Wrapper className={props.noWrapper ? '' : 'border-wrapper-alt3'} $pie={isPie}>
 			{!props.noHeader && (
 				<S.HeaderWrapper $noWrapper={props.noWrapper}>
 					<S.HeaderSection>

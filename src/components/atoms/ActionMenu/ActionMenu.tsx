@@ -113,7 +113,7 @@ export default function ActionMenu(props: {
 					id={menuId}
 					role="menu"
 					aria-labelledby={triggerId}
-					className="border-wrapper-alt4"
+					className="border-wrapper-alt3"
 					onKeyDown={handleMenuKeyDown}
 				>
 					{props.items.map((item) => (

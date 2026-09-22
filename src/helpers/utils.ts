@@ -118,6 +118,11 @@ export function isNativeArTransfer(transaction: {
 	return hasPositiveAmount(transaction.quantity?.winston) || hasPositiveAmount(transaction.quantity?.ar);
 }
 
+// HyperBEAM token messages send lowercase tag values (action: transfer), so match the action case-insensitively.
+export function isTransferAction(action: string | null | undefined) {
+	return matchesIgnoreCase(action, DEFAULT_ACTIONS.transfer.name);
+}
+
 export function formatCount(count: string): string {
 	if (count === '0' || !Number(count)) return '0';
 
@@ -431,9 +436,7 @@ export function shouldHydrateAoTransferNotices(args: {
 	recipient: string | null | undefined;
 }) {
 	return (
-		args.action === DEFAULT_ACTIONS.transfer.name &&
-		args.variant === MessageVariantEnum.Legacynet &&
-		args.recipient === PROCESSES.ao
+		isTransferAction(args.action) && args.variant === MessageVariantEnum.Legacynet && args.recipient === PROCESSES.ao
 	);
 }
 

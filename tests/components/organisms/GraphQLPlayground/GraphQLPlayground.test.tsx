@@ -12,8 +12,19 @@ import { darkTheme, lightTheme, theme } from '../../../../src/helpers/themes';
 
 vi.mock('api/http', () => ({ requestRemote: vi.fn() }));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden="true" /> }));
+type EditorProps = {
+	initialData: string;
+	language: string;
+	onSubmit?: (value?: string) => void;
+	hasSubmitButton?: boolean;
+};
+// The latest props of each rendered editor, keyed by its language (graphql for the query, json for variables).
+const editors = vi.hoisted(() => new Map<string, EditorProps>());
 vi.mock('components/molecules/Editor', () => ({
-	Editor: (props: { initialData: string }) => <pre data-testid="editor">{props.initialData}</pre>,
+	Editor: (props: EditorProps) => {
+		editors.set(props.language, props);
+		return <pre data-testid="editor">{props.initialData}</pre>;
+	},
 }));
 vi.mock('components/molecules/JSONReader', () => ({ JSONReader: () => null }));
 
@@ -87,6 +98,7 @@ let endpoint: string;
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	editors.clear();
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	vi.stubGlobal('matchMedia', () => ({ matches: true }));
 	endpoint = `https://schema-${++run}.example`;
@@ -204,4 +216,35 @@ it('resets expansions when docs reopen and preserves the Use action', async () =
 	await React.act(async () => buttons('Use')[0].click());
 	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
 	expect(container.querySelector('[data-testid="editor"]').textContent).toContain('query TransactionsQuery');
+});
+
+it('runs the current query when Cmd/Ctrl+Enter is pressed in the variables editor', async () => {
+	const playgroundId = `variables-test-${run}`;
+	const query = 'query ($first: Int) { blocks(first: $first) }';
+	localStorage.setItem(`lunar-gql-show-variables-${playgroundId}`, 'true');
+
+	try {
+		await React.act(async () =>
+			root.render(
+				<ThemeProvider theme={theme(darkTheme)}>
+					<GraphQLPlayground playgroundId={playgroundId} active initialGateway={endpoint} initialQuery={query} />
+				</ThemeProvider>
+			)
+		);
+
+		const variablesEditor = editors.get('json');
+		expect(variablesEditor?.hasSubmitButton).toBe(false);
+		expect(editors.get('graphql')?.hasSubmitButton).toBeUndefined();
+
+		// The editor hands over its current text, so variables typed just before the shortcut are used.
+		await React.act(async () => variablesEditor?.onSubmit?.('{ "first": 2 }'));
+
+		const bodies = vi
+			.mocked(requestRemote)
+			.mock.calls.map(([, init]) => (typeof init?.body === 'string' ? JSON.parse(init.body) : null));
+		expect(bodies).toContainEqual({ query, variables: { first: 2 } });
+	} finally {
+		localStorage.removeItem(`lunar-gql-show-variables-${playgroundId}`);
+		localStorage.removeItem(`lunar-gql-variables-${playgroundId}`);
+	}
 });
