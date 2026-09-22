@@ -99,6 +99,9 @@ const INTROSPECTION_QUERY = `
 					isDeprecated
 					deprecationReason
 				}
+				possibleTypes {
+					...TypeRef
+				}
 			}
 		}
 	}
@@ -161,6 +164,7 @@ type GQLType = {
 	fields?: GQLField[] | null;
 	inputFields?: GQLInputValue[] | null;
 	enumValues?: GQLEnumValue[] | null;
+	possibleTypes?: GQLTypeRef[] | null;
 };
 
 type GQLSchemaDocs = {
@@ -201,15 +205,6 @@ function formatTypeRef(type: GQLTypeRef | null | undefined): string {
 	return type.name || type.kind;
 }
 
-function buildFieldSignature(field: GQLField) {
-	const args =
-		field.args && field.args.length > 0
-			? `(${field.args.map((arg) => `${arg.name}: ${formatTypeRef(arg.type)}`).join(', ')})`
-			: '';
-
-	return `${field.name}${args}: ${formatTypeRef(field.type)}`;
-}
-
 function getNamedTypeName(type: GQLTypeRef | null | undefined): string | null {
 	if (!type) return null;
 	if (type.name) return type.name;
@@ -219,6 +214,11 @@ function getNamedTypeName(type: GQLTypeRef | null | undefined): string | null {
 
 function isLeafType(type: GQLType | undefined) {
 	return !type || ['SCALAR', 'ENUM'].includes(type.kind);
+}
+
+function getDocsDescription(description: string | null | undefined): string | null {
+	const trimmed = description?.trim();
+	return trimmed && !/^No description provided\.?$/i.test(trimmed) ? trimmed : null;
 }
 
 function capitalize(value: string) {
@@ -322,6 +322,8 @@ export default function GraphQLPlayground(props: {
 	const [schemaDocs, setSchemaDocs] = React.useState<GQLSchemaDocs | null>(null);
 	const [schemaDocsLoading, setSchemaDocsLoading] = React.useState<boolean>(false);
 	const [schemaDocsError, setSchemaDocsError] = React.useState<string | null>(null);
+	const [expandedDocsTypes, setExpandedDocsTypes] = React.useState<Set<string>>(() => new Set());
+	const docsId = React.useId();
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const layoutTimeoutRef = React.useRef<any | null>(null);
 	const schemaDocsEndpoint = React.useMemo(() => getGatewayGraphqlEndpoint(inputGateway.trim()), [inputGateway]);
@@ -458,6 +460,7 @@ export default function GraphQLPlayground(props: {
 
 		setSchemaDocsLoading(true);
 		setSchemaDocsError(null);
+		setExpandedDocsTypes(new Set());
 
 		fetchSchemaDocs(schemaDocsEndpoint)
 			.then((schema) => {
@@ -646,6 +649,128 @@ export default function GraphQLPlayground(props: {
 		setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 	}
 
+	function handleDocsTypeToggle(path: string) {
+		setExpandedDocsTypes((previous) => {
+			const next = new Set(previous);
+			if (next.has(path)) {
+				for (const expandedPath of next) {
+					if (expandedPath === path || expandedPath.startsWith(`${path}/`)) next.delete(expandedPath);
+				}
+			} else {
+				next.add(path);
+			}
+			return next;
+		});
+	}
+
+	function renderDocsTypeReference(type: GQLTypeRef, path: string): React.ReactNode {
+		const name = getNamedTypeName(type);
+		if (!name || !schemaTypesByName.has(name)) return <S.DocsTypeName>{formatTypeRef(type)}</S.DocsTypeName>;
+		const isExpanded = expandedDocsTypes.has(path);
+
+		return (
+			<S.DocsTypeToggle
+				type="button"
+				aria-expanded={isExpanded}
+				aria-controls={isExpanded ? `${docsId}-${path}` : undefined}
+				onClick={() => handleDocsTypeToggle(path)}
+			>
+				{formatTypeRef(type)}
+			</S.DocsTypeToggle>
+		);
+	}
+
+	function renderDocsInputValue(input: GQLInputValue, path: string): React.ReactNode {
+		const description = getDocsDescription(input.description);
+		return (
+			<S.DocsTypeMember key={path}>
+				<code>
+					<S.DocsArgumentName>{input.name}</S.DocsArgumentName>
+					{': '}
+					{renderDocsTypeReference(input.type, path)}
+					{input.defaultValue != null && ` = ${input.defaultValue}`}
+				</code>
+				{description && (
+					<S.DocsDescription>
+						<p>{description}</p>
+					</S.DocsDescription>
+				)}
+				{renderDocsTypeDetails(input.type, path)}
+			</S.DocsTypeMember>
+		);
+	}
+
+	function renderDocsTypeDetails(typeRef: GQLTypeRef, path: string): React.ReactNode {
+		// Only expanded paths recurse, including when a schema refers back to the same type.
+		if (!expandedDocsTypes.has(path)) return null;
+		const type = schemaTypesByName.get(getNamedTypeName(typeRef) ?? '');
+		if (!type) return null;
+
+		return (
+			<S.DocsTypeDetails id={`${docsId}-${path}`}>
+				<S.DocsTypeDetailsHeader>
+					<code>{type.name}</code>
+					<span>{type.kind}</span>
+				</S.DocsTypeDetailsHeader>
+				<S.DocsDescription>
+					<p>
+						{getDocsDescription(type.description) ||
+							language.graphqlTypeDescriptions[type.kind] ||
+							language.graphqlTypeNoDescription}
+					</p>
+				</S.DocsDescription>
+				{type.inputFields?.map((input) => renderDocsInputValue(input, `${path}/input/${input.name}`))}
+				{type.fields?.map((field) => (
+					<S.DocsTypeMember key={field.name}>
+						<code>
+							<S.DocsFieldName>{field.name}</S.DocsFieldName>
+							{': '}
+							{renderDocsTypeReference(field.type, `${path}/field/${field.name}/type`)}
+						</code>
+						{getDocsDescription(field.description) && (
+							<S.DocsDescription>
+								<p>{field.description}</p>
+							</S.DocsDescription>
+						)}
+						{field.args?.map((arg) => renderDocsInputValue(arg, `${path}/field/${field.name}/arg/${arg.name}`))}
+						{renderDocsTypeDetails(field.type, `${path}/field/${field.name}/type`)}
+						{field.isDeprecated && (
+							<S.DocsDeprecated>
+								<p>{field.deprecationReason || language.graphqlDeprecated}</p>
+							</S.DocsDeprecated>
+						)}
+					</S.DocsTypeMember>
+				))}
+				{type.enumValues?.map((value) => (
+					<S.DocsTypeMember key={value.name}>
+						<code>
+							<S.DocsArgumentName>{value.name}</S.DocsArgumentName>
+						</code>
+						{getDocsDescription(value.description) && (
+							<S.DocsDescription>
+								<p>{value.description}</p>
+							</S.DocsDescription>
+						)}
+						{value.isDeprecated && (
+							<S.DocsDeprecated>
+								<p>{value.deprecationReason || language.graphqlDeprecated}</p>
+							</S.DocsDeprecated>
+						)}
+					</S.DocsTypeMember>
+				))}
+				{type.possibleTypes?.map((possibleType) => {
+					const possiblePath = `${path}/possible/${getNamedTypeName(possibleType)}`;
+					return (
+						<S.DocsTypeMember key={possiblePath}>
+							<code>{renderDocsTypeReference(possibleType, possiblePath)}</code>
+							{renderDocsTypeDetails(possibleType, possiblePath)}
+						</S.DocsTypeMember>
+					);
+				})}
+			</S.DocsTypeDetails>
+		);
+	}
+
 	function renderFieldDocs(operation: 'query' | 'mutation' | 'subscription', fields: GQLField[]) {
 		if (fields.length <= 0) {
 			return (
@@ -661,11 +786,36 @@ export default function GraphQLPlayground(props: {
 					<S.DocsField key={field.name}>
 						<S.DocsFieldHeader>
 							<S.DocsFieldSignature>
-								<code>{buildFieldSignature(field)}</code>
+								<code>
+									<S.DocsFieldName>{field.name}</S.DocsFieldName>
+									{field.args && field.args.length > 0 && (
+										<>
+											{'(\n'}
+											{field.args.map((arg) => (
+												<React.Fragment key={arg.name}>
+													{'  '}
+													<S.DocsArgumentName>{arg.name}</S.DocsArgumentName>
+													{': '}
+													{renderDocsTypeReference(arg.type, `${operation}/${field.name}/arg/${arg.name}`)}
+													{'\n'}
+												</React.Fragment>
+											))}
+											{')'}
+										</>
+									)}
+									{': '}
+									{renderDocsTypeReference(field.type, `${operation}/${field.name}/type`)}
+								</code>
 							</S.DocsFieldSignature>
-							<Button type={'alt3'} label={'Use'} onPress={() => useFieldQuery(operation, field)} height={30} />
+							<Button type={'alt4'} label={'Use'} onPress={() => useFieldQuery(operation, field)} height={30} />
 						</S.DocsFieldHeader>
-						{field.description && (
+						{field.args?.map((arg) => (
+							<React.Fragment key={arg.name}>
+								{renderDocsTypeDetails(arg.type, `${operation}/${field.name}/arg/${arg.name}`)}
+							</React.Fragment>
+						))}
+						{renderDocsTypeDetails(field.type, `${operation}/${field.name}/type`)}
+						{/* {field.description && (
 							<S.DocsDescription>
 								<p>{field.description}</p>
 							</S.DocsDescription>
@@ -674,12 +824,15 @@ export default function GraphQLPlayground(props: {
 							<S.DocsArgs>
 								{field.args.map((arg) => (
 									<S.DocsArg key={arg.name}>
-										<code>{`${arg.name}: ${formatTypeRef(arg.type)}`}</code>
+										<code>
+											{`${arg.name}: `}
+											{renderDocsTypeReference(arg.type, `${operation}/${field.name}/arg/${arg.name}`)}
+										</code>
 										{arg.defaultValue && <span>{`= ${arg.defaultValue}`}</span>}
 									</S.DocsArg>
 								))}
 							</S.DocsArgs>
-						)}
+						)} */}
 						{field.isDeprecated && (
 							<S.DocsDeprecated>
 								<p>{field.deprecationReason || 'Deprecated'}</p>
@@ -691,30 +844,31 @@ export default function GraphQLPlayground(props: {
 		);
 	}
 
-	function renderTypeDocs() {
-		const visibleTypes = (schemaDocs?.types ?? [])
-			.filter((type) => type.name && !type.name.startsWith('__'))
-			.sort((a, b) => a.name.localeCompare(b.name));
+	// function renderTypeDocs() {
+	// 	const visibleTypes = (schemaDocs?.types ?? [])
+	// 		.filter((type) => type.name && !type.name.startsWith('__'))
+	// 		.sort((a, b) => a.name.localeCompare(b.name));
 
-		if (visibleTypes.length <= 0) return null;
+	// 	if (visibleTypes.length <= 0) return null;
 
-		return (
-			<S.DocsSection>
-				<S.DocsSectionHeader>
-					<p>Types</p>
-					<span>{visibleTypes.length}</span>
-				</S.DocsSectionHeader>
-				<S.DocsTypeGrid>
-					{visibleTypes.map((type) => (
-						<S.DocsType key={type.name}>
-							<code>{type.name}</code>
-							<span>{type.kind}</span>
-						</S.DocsType>
-					))}
-				</S.DocsTypeGrid>
-			</S.DocsSection>
-		);
-	}
+	// 	return (
+	// 		<S.DocsSection>
+	// 			<S.DocsSectionHeader>
+	// 				<p>Types</p>
+	// 				<span>{visibleTypes.length}</span>
+	// 			</S.DocsSectionHeader>
+	// 			<S.DocsTypeGrid>
+	// 				{visibleTypes.map((type) => (
+	// 					<S.DocsType key={type.name} $expanded={expandedDocsTypes.has(`types/${type.name}`)}>
+	// 						<code>{renderDocsTypeReference(type, `types/${type.name}`)}</code>
+	// 						<span>{type.kind}</span>
+	// 						{renderDocsTypeDetails(type, `types/${type.name}`)}
+	// 					</S.DocsType>
+	// 				))}
+	// 			</S.DocsTypeGrid>
+	// 		</S.DocsSection>
+	// 	);
+	// }
 
 	function renderDocsPanel() {
 		const queryFields = getRootFields(schemaDocs?.queryType);
@@ -722,12 +876,8 @@ export default function GraphQLPlayground(props: {
 		const subscriptionFields = getRootFields(schemaDocs?.subscriptionType);
 
 		return (
-			<Modal type="panel" width={680} header={`${language.docs} - GraphQL`} onClose={() => setShowDocs(false)}>
+			<Modal type="panel" width={680} header={schemaDocsEndpoint} onClose={() => setShowDocs(false)}>
 				<S.DocsPanel>
-					<S.DocsEndpoint>
-						<span>Gateway</span>
-						<p>{schemaDocsEndpoint}</p>
-					</S.DocsEndpoint>
 					{schemaDocsLoading && (
 						<S.DocsEmpty>
 							<p>{`${language.loading}...`}</p>
@@ -765,7 +915,7 @@ export default function GraphQLPlayground(props: {
 									{renderFieldDocs('subscription', subscriptionFields)}
 								</S.DocsSection>
 							)}
-							{renderTypeDocs()}
+							{/* {renderTypeDocs()} */}
 						</>
 					)}
 				</S.DocsPanel>

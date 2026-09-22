@@ -1,5 +1,15 @@
 export const language = {
 	en: {
+		graphqlTypeDescriptions: {
+			SCALAR: 'A single value, such as text, a number, or a boolean.',
+			INPUT_OBJECT: 'An input object with the following fields.',
+			OBJECT: 'An object with the following fields.',
+			ENUM: 'One of the following values.',
+			INTERFACE: 'A shared set of fields implemented by the listed object types.',
+			UNION: 'A result that can be any of the listed object types.',
+		},
+		graphqlTypeNoDescription: 'No description is available for this type.',
+		graphqlDeprecated: 'Deprecated',
 		appDeployment: 'App Deployment',
 		blockIndex: 'Block Index',
 		arweaveMessagesLoading: 'Loading scheduled messages…',
