@@ -67,6 +67,45 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		ar: null,
 	});
 
+	const handleOpenSearch = React.useCallback(() => {
+		setPanelOpen(false);
+		setSearchOpen(true);
+	}, []);
+
+	const handleCloseSearch = React.useCallback(() => setSearchOpen(false), []);
+
+	React.useEffect(() => {
+		function handleSearchShortcut(event: KeyboardEvent) {
+			if (
+				event.key !== '/' ||
+				event.defaultPrevented ||
+				event.repeat ||
+				event.isComposing ||
+				event.ctrlKey ||
+				event.metaKey ||
+				event.altKey ||
+				searchOpen
+			)
+				return;
+
+			const target = event.target;
+			if (
+				target instanceof Element &&
+				target.closest(
+					'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="spinbutton"]'
+				)
+			)
+				return;
+			if (document.querySelector('[role="dialog"][aria-modal="true"], dialog[open]')) return;
+
+			event.preventDefault();
+			handleOpenSearch();
+		}
+
+		document.addEventListener('keydown', handleSearchShortcut);
+		return () => document.removeEventListener('keydown', handleSearchShortcut);
+	}, [searchOpen, handleOpenSearch]);
+
 	React.useEffect(() => {
 		const header = document.getElementById('navigation-header');
 		if (!header) return;
@@ -90,11 +129,6 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 
 	const paths = React.useMemo(() => {
 		return [
-			{
-				path: URLS.base,
-				icon: ASSETS.app,
-				label: language.home,
-			},
 			{
 				path: URLS.explorer,
 				icon: ASSETS.explorer,
@@ -290,24 +324,30 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		return null;
 	}, [loadingTx, txResponse, inputTxId, language, searchError]);
 
-	function getSearch(autoFocus: boolean = false) {
+	function getSearch() {
 		return (
 			<S.SearchWrapper>
-				<S.SearchInputWrapper>
-					<ReactSVG src={ASSETS.search} />
-					<FormField
-						value={inputTxId}
-						onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
-						onFocus={() => setTxOutputOpen(true)}
-						placeholder={language.explorerSearchInput}
-						invalid={{ status: inputTxId ? !isValidSearchInput(inputTxId) : false, message: null }}
-						disabled={false}
-						autoFocus={autoFocus}
-						hideErrorMessage
-						sm
-					/>
-				</S.SearchInputWrapper>
-				{txOutputOpen && isValidSearchInput(inputTxId) && <S.SearchOutputWrapper>{searchOutput}</S.SearchOutputWrapper>}
+				<FormField
+					value={inputTxId}
+					onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
+					onFocus={() => setTxOutputOpen(true)}
+					placeholder={language.explorerSearchInput}
+					icon={ASSETS.search}
+					endAdornment={
+						<S.ShortcutButton type={'button'} aria-label={language.close} onClick={handleCloseSearch}>
+							{language.escapeKey}
+						</S.ShortcutButton>
+					}
+					invalid={{ status: inputTxId ? !isValidSearchInput(inputTxId) : false, message: null }}
+					disabled={false}
+					size={'large'}
+					hideErrorMessage
+				/>
+				{txOutputOpen && isValidSearchInput(inputTxId) && (
+					<S.SearchOutputWrapper aria-live={'polite'} aria-busy={loadingTx}>
+						{searchOutput}
+					</S.SearchOutputWrapper>
+				)}
 			</S.SearchWrapper>
 		);
 	}
@@ -374,13 +414,34 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							</Link>
 						</S.PriceWrapper>
 						<S.SearchActionWrapper>
+							<FormField
+								value={''}
+								onChange={() => {}}
+								onClick={handleOpenSearch}
+								onKeyDown={(event) => {
+									if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.nativeEvent.isComposing)
+										return;
+									if (event.key === 'Enter' || event.key === ' ' || event.key === '/') {
+										event.preventDefault();
+										handleOpenSearch();
+									}
+								}}
+								placeholder={language.search}
+								icon={ASSETS.search}
+								endAdornment={<S.ShortcutKey aria-hidden={'true'}>/</S.ShortcutKey>}
+								aria-haspopup={'dialog'}
+								aria-keyshortcuts={'/'}
+								invalid={{ status: false, message: null }}
+								disabled={false}
+								readOnly
+								sm
+							/>
+						</S.SearchActionWrapper>
+						<S.MobileSearchActionWrapper>
 							<Button
 								type={'primary'}
 								icon={ASSETS.search}
-								onPress={() => {
-									setPanelOpen(false);
-									setSearchOpen(true);
-								}}
+								onPress={handleOpenSearch}
 								height={32.5}
 								width={32.5}
 								iconSize={14}
@@ -388,7 +449,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 								stopPropagation
 								preventDefault
 							/>
-						</S.SearchActionWrapper>
+						</S.MobileSearchActionWrapper>
 						<S.MMenuWrapper>
 							<Button
 								type={'primary'}
@@ -409,8 +470,8 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				</S.Content>
 			</S.Header>
 			{searchOpen && (
-				<Modal type={'panel'} width={500} header={language.search} onClose={() => setSearchOpen(false)}>
-					<S.MSearchPanelContent>{getSearch(true)}</S.MSearchPanelContent>
+				<Modal type={'spotlight'} header={null} aria-label={language.search} onClose={handleCloseSearch}>
+					{getSearch()}
 				</Modal>
 			)}
 			{panelOpen && (

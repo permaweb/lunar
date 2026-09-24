@@ -1,4 +1,5 @@
 import React from 'react';
+import { ReactSVG } from 'react-svg';
 
 import { Modal } from 'components/atoms/Modal';
 import { ASSETS } from 'helpers/config';
@@ -19,6 +20,33 @@ export default function FormField(props: IProps) {
 			return props.value;
 		}
 	}
+
+	const input = (
+		<S.Input
+			aria-label={props.label || props.placeholder || undefined}
+			aria-haspopup={props['aria-haspopup']}
+			aria-keyshortcuts={props['aria-keyshortcuts']}
+			type={props.type ? props.type : 'text'}
+			step={props.step ? props.step : '1'}
+			value={getValue()}
+			onWheel={(e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur()}
+			onChange={props.onChange}
+			onFocus={props.onFocus}
+			onBlur={props.onBlur}
+			onClick={props.onClick}
+			onKeyDown={props.onKeyDown}
+			readOnly={props.readOnly}
+			disabled={props.disabled}
+			invalid={props.invalid.status}
+			placeholder={props.placeholder ? props.placeholder : ''}
+			sm={props.sm}
+			$large={props.size === 'large'}
+			$hasIcon={!!props.icon}
+			$hasEndAdornment={!!props.endAdornment}
+			autoFocus={props.autoFocus ? props.autoFocus : false}
+			data-testid={props.testingCtx}
+		/>
+	);
 
 	return (
 		<>
@@ -49,22 +77,21 @@ export default function FormField(props: IProps) {
 						)}
 					</S.TWrapper>
 				)}
-				<S.Input
-					aria-label={props.label || props.placeholder || undefined}
-					type={props.type ? props.type : 'text'}
-					step={props.step ? props.step : '1'}
-					value={getValue()}
-					onWheel={(e: any) => e.target.blur()}
-					onChange={props.onChange}
-					onFocus={() => (props.onFocus ? props.onFocus() : {})}
-					onBlur={props.onBlur}
-					disabled={props.disabled}
-					invalid={props.invalid.status}
-					placeholder={props.placeholder ? props.placeholder : ''}
-					sm={props.sm}
-					autoFocus={props.autoFocus ? props.autoFocus : false}
-					data-testid={props.testingCtx}
-				/>
+				{props.icon || props.endAdornment ? (
+					<S.Control>
+						{props.icon && (
+							<S.LeadingIcon $large={props.size === 'large'} aria-hidden={'true'}>
+								<ReactSVG src={props.icon} />
+							</S.LeadingIcon>
+						)}
+						{input}
+						{props.endAdornment && (
+							<S.EndAdornment $large={props.size === 'large'}>{props.endAdornment}</S.EndAdornment>
+						)}
+					</S.Control>
+				) : (
+					input
+				)}
 				{props.endText && (
 					<S.EndTextContainer disabled={props.disabled} sm={props.sm}>
 						{props.endText && <S.EndText sm={props.sm}>{props.endText}</S.EndText>}

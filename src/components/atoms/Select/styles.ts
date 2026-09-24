@@ -38,7 +38,7 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 	border: 1px solid
 		${(props) =>
 			props.active ? props.theme.colors.button.primary.active.border : props.theme.colors.button.primary.border};
-	border-radius: ${STYLING.dimensions.radius.alt2};
+	border-radius: ${STYLING.dimensions.radius.primary};
 	transition: all 100ms;
 	&:hover,
 	&:focus {

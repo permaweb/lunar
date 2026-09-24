@@ -1,5 +1,6 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
+import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { STYLING } from 'helpers/config';
 
 export const Header = styled.header<{ navigationOpen: boolean }>`
@@ -40,27 +41,6 @@ export const SearchWrapper = styled.div`
 	width: 100%;
 	max-width: 100%;
 	position: relative;
-`;
-
-export const SearchInputWrapper = styled.div`
-	width: 100%;
-	position: relative;
-
-	input {
-		background: transparent;
-		padding: 10px 10px 10px 43.5px !important;
-	}
-
-	svg {
-		height: 15px;
-		width: 15px;
-		color: ${(props) => props.theme.colors.font.alt1};
-		fill: ${(props) => props.theme.colors.font.alt1};
-		position: absolute;
-		z-index: 1;
-		top: 11.5px;
-		left: 14.5px;
-	}
 `;
 
 export const SearchOutputWrapper = styled.div`
@@ -130,6 +110,8 @@ export const SearchResultInfo = styled.div`
 	display: flex;
 	align-items: center;
 	gap: 12.5px;
+	min-width: 0;
+	overflow-wrap: anywhere;
 
 	svg {
 		height: 19.5px !important;
@@ -197,7 +179,11 @@ export const DNavWrapper = styled.div`
 	gap: 30px;
 	margin: 0 0 0 12.5px;
 
-	@media (max-width: ${STYLING.cutoffs.tablet}) {
+	@media (max-width: calc(${STYLING.cutoffs.desktop} + 100px)) {
+		gap: 20px;
+	}
+
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		display: none;
 	}
 `;
@@ -221,6 +207,7 @@ export const ActionsWrapper = styled.div`
 	align-items: center;
 	gap: 15px;
 	position: relative;
+	flex-shrink: 0;
 `;
 
 export const PriceWrapper = styled.div`
@@ -285,9 +272,56 @@ export const PriceItem = styled.div`
 	}
 `;
 
-export const SearchActionWrapper = styled.div``;
+export const SearchActionWrapper = styled.div`
+	width: 230px;
+	flex-shrink: 0;
 
-export const MMenuWrapper = styled(SearchActionWrapper)`
+	input {
+		height: 32.5px !important;
+		background: ${(props) => props.theme.colors.form.active.background};
+	}
+
+	@media (max-width: ${STYLING.cutoffs.tablet}) {
+		display: none;
+	}
+`;
+
+const shortcutKey = css`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: ${(props) => props.theme.colors.font.alt1};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-size: ${(props) => props.theme.typography.size.xxxSmall};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	background: ${(props) => props.theme.colors.container.alt1.background};
+	border: 1px solid ${(props) => props.theme.colors.border.alt1};
+	border-radius: ${STYLING.dimensions.radius.alt2};
+`;
+
+export const ShortcutKey = styled.kbd`
+	${shortcutKey}
+	width: 22px;
+	height: 22px;
+`;
+
+export const ShortcutButton = styled(PrimitiveButton)`
+	${shortcutKey}
+	width: 42px;
+	height: 32px;
+	padding: 0;
+	cursor: pointer;
+	&:hover {
+		color: ${(props) => props.theme.colors.font.primary};
+		background: ${(props) => props.theme.colors.container.alt3.background};
+	}
+	&:focus-visible {
+		outline: 2px solid ${(props) => props.theme.colors.font.alt1};
+		outline-offset: 2px;
+	}
+`;
+
+export const MobileSearchActionWrapper = styled.div`
 	display: none;
 
 	@media (max-width: ${STYLING.cutoffs.tablet}) {
@@ -295,15 +329,17 @@ export const MMenuWrapper = styled(SearchActionWrapper)`
 	}
 `;
 
-export const MWrapper = styled.div`
-	display: none;
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
+export const MMenuWrapper = styled(MobileSearchActionWrapper)`
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		display: block;
 	}
 `;
 
-export const MSearchPanelContent = styled.div`
-	padding: 15px 20px;
+export const MWrapper = styled.div`
+	display: none;
+	@media (max-width: ${STYLING.cutoffs.desktop}) {
+		display: block;
+	}
 `;
 
 export const MNavWrapper = styled.div`

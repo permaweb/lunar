@@ -122,6 +122,10 @@ export default function Modal(props: IProps) {
 			Container = S.Panel;
 			Body = S.PanelBody;
 			break;
+		case 'spotlight':
+			Container = S.Spotlight;
+			Body = S.SpotlightBody;
+			break;
 		default:
 			Container = S.Container;
 			Body = S.Body;
@@ -179,7 +183,7 @@ export default function Modal(props: IProps) {
 				$noHeader={!props.header}
 				width={props.width}
 				$closing={isClosing}
-				className={'border-wrapper-primary'}
+				className={modalType === 'spotlight' ? undefined : 'border-wrapper-primary'}
 			>
 				{content}
 			</Container>
@@ -191,11 +195,18 @@ export default function Modal(props: IProps) {
 				ref={setContainer}
 				role={'dialog'}
 				aria-modal={'true'}
+				aria-label={props['aria-label']}
 				aria-labelledby={props.header ? titleId : undefined}
 				tabIndex={-1}
 				$noHeader={!props.header}
 				$closing={isClosing}
+				$spotlight={modalType === 'spotlight'}
 				$top={window ? (window as any).pageYOffset : 0}
+				onClick={(event) => {
+					if (modalType === 'spotlight' && event.target === event.currentTarget && !props.closeHandlerDisabled) {
+						handleClose();
+					}
+				}}
 			>
 				{containerContent}
 			</S.Wrapper>

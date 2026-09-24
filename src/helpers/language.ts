@@ -531,6 +531,7 @@ export const language = {
 		schedulerPageSizeLimit: (count: number | string) => `Scheduler mode supports up to ${count} results per page`,
 		schedulerType: `Scheduler Type`,
 		search: `Search`,
+		escapeKey: `ESC`,
 		searchProcessId: `Search for Process ID`,
 		searching: `Searching`,
 		seconds: `Seconds`,
