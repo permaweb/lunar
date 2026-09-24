@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import axe from 'axe-core';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
@@ -70,6 +71,113 @@ async function enter(value: string) {
 	});
 	await React.act(async () => vi.advanceTimersByTimeAsync(250));
 }
+
+async function pressKey(key: string, target: EventTarget = document, options: KeyboardEventInit = {}) {
+	const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options });
+	await React.act(async () => {
+		target.dispatchEvent(event);
+	});
+	return event;
+}
+
+it('opens the focused search overlay from the desktop field and restores focus on Escape', async () => {
+	await pressKey('Escape');
+	const trigger = container.querySelector<HTMLInputElement>('input[aria-label="Search"]');
+	expect(trigger.placeholder).toBe('Search');
+	expect(trigger.readOnly).toBe(true);
+	expect(trigger.parentElement.textContent).toContain('/');
+	trigger.focus();
+	await React.act(async () => trigger.click());
+	expect(overlay.querySelector('[role="dialog"]').getAttribute('aria-label')).toBe('Search');
+	expect(document.activeElement).toBe(overlay.querySelector('input'));
+	expect(document.body.style.overflowY).toBe('hidden');
+	await pressKey('Escape');
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+	expect(document.activeElement).toBe(trigger);
+	expect(document.body.style.overflowY).toBe('auto');
+});
+
+it('opens with slash without inserting it, supports typing slashes, and contains keyboard focus', async () => {
+	await pressKey('Escape');
+	const shortcut = await pressKey('/');
+	expect(shortcut.defaultPrevented).toBe(true);
+	const input = overlay.querySelector('input');
+	expect(document.activeElement).toBe(input);
+	expect(input.value).toBe('');
+	expect((await pressKey('/', input)).defaultPrevented).toBe(false);
+	await pressKey('Tab', input, { shiftKey: true });
+	const close = overlay.querySelector<HTMLButtonElement>('button[aria-label="Close"]');
+	expect(document.activeElement).toBe(close);
+	await pressKey('Tab', close);
+	expect(document.activeElement).toBe(input);
+	await React.act(async () => close.click());
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it.each(['Enter', ' ', '/'])('opens the desktop field with %s', async (key) => {
+	await pressKey('Escape');
+	const trigger = container.querySelector<HTMLInputElement>('input[aria-label="Search"]');
+	trigger.focus();
+	await pressKey(key, trigger);
+	expect(document.activeElement).toBe(overlay.querySelector('input'));
+});
+
+it.each([
+	'<input />',
+	'<textarea></textarea>',
+	'<select></select>',
+	'<div contenteditable="true"><span></span></div>',
+	'<div role="textbox"><span></span></div>',
+])('does not capture slash while editing %s', async (markup) => {
+	await pressKey('Escape');
+	const editor = document.createElement('div');
+	editor.innerHTML = markup;
+	container.append(editor);
+	const event = await pressKey('/', editor.querySelector('span') ?? editor.firstElementChild);
+	expect(event.defaultPrevented).toBe(false);
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it.each([{ ctrlKey: true }, { metaKey: true }, { altKey: true }, { isComposing: true }, { repeat: true }])(
+	'does not capture modified, composed, or repeated slash: %j',
+	async (options) => {
+		await pressKey('Escape');
+		expect((await pressKey('/', document, options)).defaultPrevented).toBe(false);
+		expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+	}
+);
+
+it('leaves an existing modal and handled keyboard events alone', async () => {
+	await pressKey('Escape');
+	const dialog = document.createElement('div');
+	dialog.setAttribute('role', 'dialog');
+	dialog.setAttribute('aria-modal', 'true');
+	container.append(dialog);
+	expect((await pressKey('/')).defaultPrevented).toBe(false);
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+	dialog.remove();
+	const event = new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true });
+	event.preventDefault();
+	await React.act(async () => document.dispatchEvent(event));
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it('closes on backdrop clicks while keeping input clicks inside the overlay', async () => {
+	await React.act(async () => overlay.querySelector('input').click());
+	expect(overlay.querySelector('[role="dialog"]')).not.toBeNull();
+	await React.act(async () => overlay.querySelector<HTMLElement>('[role="dialog"]').click());
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it('has an accessible search dialog', async () => {
+	vi.useRealTimers();
+	const results = await axe.run(overlay, { rules: { 'color-contrast': { enabled: false } } });
+	expect(results.violations).toEqual([]);
+	await pressKey('Escape');
+	const field = container.querySelector<HTMLInputElement>('input[aria-label="Search"]');
+	const triggerResults = await axe.run(field, { rules: { 'color-contrast': { enabled: false } } });
+	expect(triggerResults.violations).toEqual([]);
+});
 
 it.each([NODE_URL, 'https://arweave.net', 'https://node.example/', '8.8.8.8:1984'])(
 	'opens an encoded node explorer route for %s after checking info',

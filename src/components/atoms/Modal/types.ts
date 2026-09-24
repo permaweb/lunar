@@ -1,7 +1,8 @@
 import React from 'react';
 
 export interface IProps {
-	type?: 'modal' | 'panel';
+	type?: 'modal' | 'panel' | 'spotlight';
+	'aria-label'?: string;
 	header: string | null | undefined;
 	onClose: () => void | null;
 	children: React.ReactNode;

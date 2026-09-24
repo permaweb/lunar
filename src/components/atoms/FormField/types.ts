@@ -2,7 +2,11 @@ import React from 'react';
 
 import { FormFieldType, ValidationType } from 'helpers/types';
 
-export interface IProps {
+export interface IProps
+	extends Pick<
+		React.InputHTMLAttributes<HTMLInputElement>,
+		'readOnly' | 'onClick' | 'onKeyDown' | 'aria-haspopup' | 'aria-keyshortcuts'
+	> {
 	value: number | string;
 	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 	onFocus?: () => void;
@@ -16,6 +20,9 @@ export interface IProps {
 	endText?: string;
 	error?: string | null;
 	sm?: boolean;
+	size?: 'large';
+	icon?: string;
+	endAdornment?: React.ReactNode;
 	testingCtx?: string;
 	tooltip?: string;
 	tooltipLabel?: string;

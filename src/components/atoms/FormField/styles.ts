@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
@@ -42,6 +42,9 @@ export const Input = styled.input<{
 	sm: boolean | undefined;
 	disabled: boolean;
 	invalid: boolean;
+	$large?: boolean;
+	$hasIcon?: boolean;
+	$hasEndAdornment?: boolean;
 }>`
 	height: ${(props) => (props.sm ? STYLING.dimensions.form.small : STYLING.dimensions.form.max)};
 	color: ${(props) =>
@@ -53,7 +56,9 @@ export const Input = styled.input<{
 	background: ${(props) => props.theme.colors.form.background};
 	border: 1px solid
 		${(props) => (props.invalid ? props.theme.colors.form.invalid.outline : props.theme.colors.form.border)};
-	border-radius: ${STYLING.dimensions.radius.alt2};
+	border-radius: ${STYLING.dimensions.radius.primary};
+	${(props) => props.$hasIcon && `padding-left: ${props.$large ? '54px' : '40px'} !important;`}
+	${(props) => props.$hasEndAdornment && `padding-right: ${props.$large ? '70px' : '46px'} !important;`}
 
 	&::placeholder {
 		color: ${(props) => props.theme.colors.font.alt2} !important;
@@ -106,6 +111,61 @@ export const Input = styled.input<{
 		color: ${(props) => props.theme.colors.form.disabled.label};
 		box-shadow: none;
 		border: 1px solid ${(props) => props.theme.colors.form.disabled.border};
+	}
+
+	${(props) =>
+		props.$large &&
+		css`
+			height: 64px;
+			font-size: ${props.theme.typography.size.base};
+			font-weight: ${props.theme.typography.weight.medium};
+			border-radius: ${STYLING.dimensions.radius.alt1};
+			&::placeholder {
+				font-size: ${props.theme.typography.size.base};
+				font-weight: ${props.theme.typography.weight.medium};
+			}
+		`}
+
+	&[readonly][aria-haspopup] {
+		cursor: pointer;
+	}
+`;
+
+export const Control = styled.div`
+	position: relative;
+	width: 100%;
+	display: flex;
+	input {
+		width: 100%;
+		min-width: 0;
+	}
+`;
+
+export const LeadingIcon = styled.span<{ $large: boolean }>`
+	position: absolute;
+	left: ${(props) => (props.$large ? '20px' : '13px')};
+	top: 50%;
+	transform: translateY(-50%);
+	pointer-events: none;
+	svg {
+		display: block;
+		width: ${(props) => (props.$large ? '20px' : '15px')};
+		height: ${(props) => (props.$large ? '20px' : '15px')};
+		color: ${(props) => props.theme.colors.font.alt1};
+		fill: currentColor;
+	}
+`;
+
+export const EndAdornment = styled.div<{ $large: boolean }>`
+	position: absolute;
+	right: ${(props) => (props.$large ? '12px' : '6px')};
+	top: 50%;
+	transform: translateY(-50%);
+	display: flex;
+	align-items: center;
+	pointer-events: none;
+	button {
+		pointer-events: auto;
 	}
 `;
 

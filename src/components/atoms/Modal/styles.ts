@@ -4,7 +4,7 @@ import { close, open, slideInRight, slideOutRight, transition2, transitionExit }
 import { STYLING } from 'helpers/config';
 
 // The dialog takes focus when it has no text field, so the overlay suppresses its focus ring.
-export const Wrapper = styled.div<{ $top: number; $noHeader: boolean; $closing?: boolean }>`
+export const Wrapper = styled.div<{ $top: number; $noHeader: boolean; $closing?: boolean; $spotlight?: boolean }>`
 	min-height: 100vh;
 	height: 100%;
 	width: 100%;
@@ -13,6 +13,13 @@ export const Wrapper = styled.div<{ $top: number; $noHeader: boolean; $closing?:
 	top: 0;
 	left: 0;
 	background: ${(props) => props.theme.colors.overlay.primary};
+	${(props) =>
+		props.$spotlight &&
+		css`
+			backdrop-filter: blur(3px);
+			-webkit-backdrop-filter: blur(3px);
+			overflow-y: auto;
+		`}
 	${(props) =>
 		props.$closing
 			? css`
@@ -25,6 +32,25 @@ export const Wrapper = styled.div<{ $top: number; $noHeader: boolean; $closing?:
 	&:focus {
 		outline: none;
 	}
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+`;
+
+export const Spotlight = styled.div<{ width?: number }>`
+	width: ${(props) => (props.width ? `${props.width}px` : '760px')};
+	max-width: calc(100% - 40px);
+	margin: clamp(80px, 23vh, 240px) auto 24px;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		max-width: calc(100% - 24px);
+		margin-top: 80px;
+	}
+`;
+
+export const SpotlightBody = styled.div`
+	width: 100%;
 `;
 
 export const Container = styled.div<{
