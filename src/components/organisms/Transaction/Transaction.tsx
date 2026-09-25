@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
@@ -32,6 +31,7 @@ import { MessageList } from 'components/molecules/MessageList';
 import { MessageResult } from 'components/molecules/MessageResult';
 import { OverviewStyles as O } from 'components/molecules/Overview';
 import { ProcessRead } from 'components/molecules/ProcessRead';
+import { TagsSection } from 'components/molecules/TagsSection';
 import { TransactionList } from 'components/molecules/TransactionList';
 import { useWalletMining, WalletMiningInfo, WalletMiningTabs } from 'features/Mining';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
@@ -57,7 +57,6 @@ import {
 	isLegacyMessageSpam,
 	isNumeric,
 	isTransferAction,
-	removeCommitments,
 	resolveMessageId,
 	resolvePermawebApi,
 	shouldHydrateAoTransferNotices,
@@ -87,27 +86,11 @@ type TransactionOverviewData = {
 	arUsdPrice: number | null;
 };
 
-type DisplayTag = {
-	name: string;
-	value: any;
-};
-
 const TRANSACTION_OVERVIEW_CACHE_LIMIT = 50;
 const transactionOverviewCache = new Map<string, TransactionOverviewData>();
 const transactionOverviewRequestCache = new Map<string, Promise<TransactionOverviewData>>();
 let arUsdPriceCache: number | null | undefined;
 let arUsdPriceRequestCache: Promise<number | null> | null = null;
-
-function sortTagsAlphabetically(tags: DisplayTag[]) {
-	return [...tags].sort((a, b) => {
-		const nameSort = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-		if (nameSort !== 0) return nameSort;
-
-		return (a.value?.toString?.() ?? '').localeCompare(b.value?.toString?.() ?? '', undefined, {
-			sensitivity: 'base',
-		});
-	});
-}
 
 /** Returns the displayable transaction data, or null when the body holds nothing to show. */
 function parseTransactionDataValue(text: string, isTextDocument: boolean) {
@@ -331,6 +314,16 @@ function Transaction(props: {
 	tabKey?: string; // Stable key from TransactionTabs to maintain component identity
 	onLoadingChange?: (loading: boolean) => void;
 	processMessagesView: React.ComponentType<ProcessMessagesViewProps>;
+	inspector?: {
+		id: string;
+		label: string;
+		url: string;
+		content: React.ReactNode;
+		fallback: React.ReactNode;
+		actions?: React.ReactNode;
+		badges?: { label: string; description?: string }[];
+		onRefresh?: () => void;
+	};
 }) {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
@@ -513,6 +506,7 @@ function Transaction(props: {
 			return;
 		}
 		if (inputTxId && isValidExplorerInput(inputTxId)) {
+			if (hasFetched && props.inspector?.id === inputTxId) props.inspector.onRefresh?.();
 			setLoadingTx(true);
 			setRefreshKey((prev) => prev + 1);
 			const messageResultRequestId = ++messageResultRequestRef.current;
@@ -652,7 +646,7 @@ function Transaction(props: {
 									});
 
 									if (mountedRef.current && messageResultRequestRef.current === messageResultRequestId) {
-										setMessageResult(removeCommitments(resultResponse));
+										setMessageResult(resultResponse);
 									}
 								}
 							} catch (e: any) {
@@ -823,139 +817,6 @@ function Transaction(props: {
 			);
 		}
 	);
-
-	const OverviewLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
-		const defaultRender = (v: any) => {
-			if (typeof v === 'string' && checkValidAddress(v)) {
-				return <TxAddress address={v} />;
-			}
-			return <p>{v}</p>;
-		};
-
-		const renderContent = render || defaultRender;
-
-		return (
-			<S.OverviewLine>
-				<span>{label}</span>
-				{value ? renderContent(value) : <p>-</p>}
-			</S.OverviewLine>
-		);
-	};
-
-	const TagValue = ({ value, tooltipPlacement = 'top' }: { value: any; tooltipPlacement?: 'top' | 'bottom' }) => {
-		const displayValue = value?.toString?.() ?? value;
-		const buttonRef = React.useRef<HTMLButtonElement | null>(null);
-		const [copied, setCopied] = React.useState<boolean>(false);
-		const [tooltipVisible, setTooltipVisible] = React.useState<boolean>(false);
-		const [tooltipPosition, setTooltipPosition] = React.useState<{
-			top?: number;
-			bottom?: number;
-			left?: number;
-			right?: number;
-			maxWidth: number;
-		} | null>(null);
-		const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-		const updateTooltipPosition = React.useCallback(() => {
-			const element = buttonRef.current;
-			if (!element) return;
-
-			const rect = element.getBoundingClientRect();
-			const viewportPadding = 10;
-			const gap = 3.5;
-			const minReadableWidth = 160;
-			const shouldAlignLeft = rect.right - viewportPadding < minReadableWidth;
-			const horizontalPosition = shouldAlignLeft
-				? {
-						left: Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - viewportPadding)),
-						maxWidth: Math.min(400, window.innerWidth - Math.max(viewportPadding, rect.left) - viewportPadding),
-				  }
-				: {
-						right: window.innerWidth - Math.min(rect.right, window.innerWidth - viewportPadding),
-						maxWidth: Math.min(400, rect.right - viewportPadding),
-				  };
-
-			setTooltipPosition(
-				tooltipPlacement === 'bottom'
-					? { top: rect.bottom + gap, ...horizontalPosition }
-					: { bottom: window.innerHeight - rect.top + gap, ...horizontalPosition }
-			);
-		}, [tooltipPlacement]);
-
-		React.useEffect(() => {
-			return () => {
-				if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-			};
-		}, []);
-
-		React.useEffect(() => {
-			if (!tooltipVisible) return;
-
-			updateTooltipPosition();
-			window.addEventListener('resize', updateTooltipPosition);
-			window.addEventListener('scroll', updateTooltipPosition, true);
-
-			return () => {
-				window.removeEventListener('resize', updateTooltipPosition);
-				window.removeEventListener('scroll', updateTooltipPosition, true);
-			};
-		}, [tooltipVisible, updateTooltipPosition]);
-
-		async function handleCopy(e: React.MouseEvent) {
-			e.preventDefault();
-			e.stopPropagation();
-
-			if (!displayValue) return;
-
-			await navigator.clipboard.writeText(displayValue);
-			setCopied(true);
-			setTooltipVisible(true);
-
-			if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-			copyTimeoutRef.current = setTimeout(() => {
-				setCopied(false);
-				setTooltipVisible(false);
-			}, 2000);
-		}
-
-		function hideTooltip() {
-			setTooltipVisible(false);
-		}
-
-		function showTooltip() {
-			updateTooltipPosition();
-			setTooltipVisible(true);
-		}
-
-		return checkValidAddress(value) ? (
-			<TxAddress address={value} />
-		) : (
-			<S.TagValue
-				ref={buttonRef}
-				type={'button'}
-				onBlur={hideTooltip}
-				onClick={handleCopy}
-				onFocus={showTooltip}
-				onMouseEnter={showTooltip}
-				onMouseLeave={hideTooltip}
-				$tooltipVisible={tooltipVisible}
-			>
-				<p>{displayValue}</p>
-				{tooltipVisible &&
-					tooltipPosition &&
-					typeof document !== 'undefined' &&
-					ReactDOM.createPortal(
-						<S.TagValueTooltip $placement={tooltipPlacement} $position={tooltipPosition}>
-							{copied ? `${language.copied}!` : displayValue}
-						</S.TagValueTooltip>,
-						document.body
-					)}
-			</S.TagValue>
-		);
-	};
-
-	const renderTagValue = (value: any) => <TagValue value={value} />;
-	const renderFirstTagValue = (value: any) => <TagValue value={value} tooltipPlacement={'bottom'} />;
 
 	const TxOverviewValue = ({
 		primary,
@@ -1364,114 +1225,24 @@ function Transaction(props: {
 
 	const BundleTagsSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
-		const tags = txResponse?.node?.tags ?? [];
-		const filteredTags = sortTagsAlphabetically(
-			tags.filter((tag: DisplayTag) => !['type', 'name'].includes(tag.name.toLowerCase()))
+		const tags = (txResponse?.node?.tags ?? []).filter(
+			(tag) => !['type', 'name'].includes(tag.name.toLowerCase()) && !tag.name.toLowerCase().endsWith('+link')
 		);
-
-		if (filteredTags.length <= 0) return null;
-
-		return (
-			<S.Section className={'border-wrapper-alt3'}>
-				<S.SectionHeader>
-					<p>{language.tags}</p>
-				</S.SectionHeader>
-				<S.OverviewWrapper className={'scroll-wrapper'}>
-					{filteredTags.map((tag: DisplayTag, index: number) => (
-						<OverviewLine
-							key={`${tag.name}-${index}`}
-							label={tag.name}
-							value={tag.value}
-							render={index === 0 ? renderFirstTagValue : renderTagValue}
-						/>
-					))}
-				</S.OverviewWrapper>
-			</S.Section>
-		);
+		if (!tags.length) return null;
+		return <TagsSection tags={tags} showCount={false} />;
 	};
 
-	const TagsSection = (props: { fixedHeight?: number } = {}) => {
+	const TransactionTagsSection = (props: { fixedHeight?: number } = {}) => {
 		const { txResponse } = React.useContext(TxResponseContext);
-		const overviewWrapperRef = React.useRef<HTMLDivElement | null>(null);
-		const [overviewHasOverflow, setOverviewHasOverflow] = React.useState<boolean>(false);
-		const excludedTagNames: string[] = [];
-		const filteredTags = sortTagsAlphabetically(
-			txResponse?.node?.tags?.filter((tag: DisplayTag) => !excludedTagNames.includes(tag.name)) || []
-		);
-		const displayTags = txResponse
-			? sortTagsAlphabetically([
+		const tags = txResponse
+			? [
 					...(resolvedType === 'process'
-						? [
-								{
-									name: language.owner,
-									value: txResponse?.node?.owner?.address,
-								},
-						  ]
+						? [{ name: language.owner, value: txResponse.node?.owner?.address ?? '' }]
 						: []),
-					...filteredTags,
-			  ])
-			: [];
-
-		React.useEffect(() => {
-			const element = overviewWrapperRef.current;
-			if (!element) return;
-
-			function updateOverflowState() {
-				setOverviewHasOverflow(element.scrollHeight > element.clientHeight);
-			}
-
-			updateOverflowState();
-
-			if (typeof ResizeObserver === 'undefined') {
-				window.addEventListener('resize', updateOverflowState);
-				return () => window.removeEventListener('resize', updateOverflowState);
-			}
-
-			const observer = new ResizeObserver(updateOverflowState);
-			observer.observe(element);
-
-			return () => observer.disconnect();
-		}, [props.fixedHeight, txResponse]);
-
-		return (
-			<S.TagsSection className={`border-wrapper-alt3`} $fixedHeight={props.fixedHeight}>
-				<S.SectionHeader>
-					<p>{language.tags}</p>
-					<span>({txResponse ? displayTags.length : '-'})</span>
-				</S.SectionHeader>
-				<S.OverviewWrapper
-					ref={overviewWrapperRef}
-					$fixedHeight={props.fixedHeight}
-					$hasOverflow={overviewHasOverflow}
-					className={'scroll-wrapper'}
-				>
-					{txResponse ? (
-						<>
-							{displayTags.length > 0 ? (
-								<>
-									{displayTags.map((tag: DisplayTag, index: number) => (
-										<OverviewLine
-											key={index}
-											label={tag.name}
-											value={tag.value}
-											render={index === 0 ? renderFirstTagValue : renderTagValue}
-										/>
-									))}
-								</>
-							) : (
-								<S.OverviewLine>
-									<span>{'None'}</span>
-								</S.OverviewLine>
-							)}
-						</>
-					) : (
-						<S.OverviewLine>
-							<span>{language.processOrMessageTagsInfo}</span>
-						</S.OverviewLine>
-					)}
-				</S.OverviewWrapper>
-			</S.TagsSection>
-		);
+					...(txResponse.node?.tags ?? []),
+			  ]
+			: null;
+		return <TagsSection tags={tags} fixedHeight={props.fixedHeight} />;
 	};
 
 	const DataSection = (props: { dataHeader?: string; fixedHeight?: number }) => {
@@ -1718,7 +1489,7 @@ function Transaction(props: {
 		const showTags = resolvedType === 'process';
 		const showRead = resolvedType === 'process' || resolvedType === 'message';
 
-		const tabs = [
+		const tabs: React.ComponentProps<typeof URLTabs>['tabs'] = [
 			{
 				label: language.overview,
 				icon: ASSETS.overview,
@@ -1726,6 +1497,7 @@ function Transaction(props: {
 				url: URLS.explorerInfo(inputTxId),
 				view: () => {
 					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
+					if (!txResponse && props.inspector?.id === inputTxId) return <>{props.inspector.fallback}</>;
 
 					const variant = getAoVariantFromTags(txResponse?.node?.tags);
 					const tokenTransfer = getTokenTransfer(txResponse?.node);
@@ -1754,13 +1526,16 @@ function Transaction(props: {
 								<S.ColumnFlexWrapper>
 									<TransactionOverviewSection />
 									<BundleTagsSection />
-									<TransactionList
-										key={refreshKey}
-										mode={'bundle'}
-										bundleId={inputTxId}
-										header={language.transactions}
-										onTotalCountChange={setBundleTransactionCount}
-									/>
+									{txResponse?.node?.id === inputTxId && (
+										<TransactionList
+											key={refreshKey}
+											mode={'bundle'}
+											bundleId={inputTxId}
+											bundleTags={txResponse.node.tags}
+											header={language.transactions}
+											onTotalCountChange={setBundleTransactionCount}
+										/>
+									)}
 								</S.ColumnFlexWrapper>
 							);
 						case 'process':
@@ -1777,7 +1552,7 @@ function Transaction(props: {
 										<S.InfoWrapper>
 											{showTags && (
 												<S.TagsWrapper>
-													<TagsSection />
+													<TransactionTagsSection />
 												</S.TagsWrapper>
 											)}
 											<S.ReadWrapper fullWidth={!showTags}>
@@ -1842,7 +1617,7 @@ function Transaction(props: {
 									<TransactionOverviewSection />
 									<S.InfoWrapper>
 										<S.SectionWrapperFlex>
-											<TagsSection />
+											<TransactionTagsSection />
 										</S.SectionWrapperFlex>
 										<S.SectionWrapperFlex>
 											<DataSection dataHeader={'Data'} />
@@ -1854,6 +1629,16 @@ function Transaction(props: {
 				},
 			},
 		];
+
+		if (props.inspector?.id === inputTxId) {
+			tabs.push({
+				label: props.inspector.label,
+				icon: ASSETS.core,
+				disabled: false,
+				url: props.inspector.url,
+				content: props.inspector.content,
+			});
+		}
 
 		if (resolvedType === 'process') {
 			tabs.push(
@@ -1951,6 +1736,7 @@ function Transaction(props: {
 		props.type,
 		props.active,
 		props.processMessagesView,
+		props.inspector,
 		props.onMessageOpen,
 		resolvedType,
 		inputTxId,
@@ -2017,7 +1803,7 @@ function Transaction(props: {
 	})();
 
 	function getTransaction() {
-		const showPlaceholder = !inputTxId || !txResponse;
+		const showPlaceholder = !inputTxId || (!txResponse && props.inspector?.id !== inputTxId);
 		const showMissingTransaction = !!inputTxId && hasFetched && !loadingTx && !txResponse;
 		const placeholderIcon = showMissingTransaction ? ASSETS.pending : ASSETS.transaction;
 		const placeholderTitle = loadingTx
@@ -2101,6 +1887,7 @@ function Transaction(props: {
 	const previousBlockHeight = hasBlockNavigation && blockHeight > 0 ? blockHeight - 1 : null;
 	const nextBlockHeight = hasBlockNavigation ? blockHeight + 1 : null;
 	const nextBlockDisabled = blockConfirmations === 0;
+	const inspectorBadges = props.inspector?.id === inputTxId ? props.inspector.badges ?? [] : [];
 
 	return (
 		<>
@@ -2116,6 +1903,9 @@ function Transaction(props: {
 					onFullscreen={toggleFullscreen}
 					actions={
 						<>
+							{props.inspector?.id === inputTxId && props.inspector.actions && (
+								<C.SeparatedActions>{props.inspector.actions}</C.SeparatedActions>
+							)}
 							{isMiner && (
 								<C.SeparatedActions>
 									<WalletMiningInfo
@@ -2160,34 +1950,43 @@ function Transaction(props: {
 					}
 					info={
 						<>
-							{resolvedType && txResponse && (
+							{((resolvedType && txResponse) || inspectorBadges.length > 0) && (
 								<C.TxInfoWrapper>
-									<C.UpdateWrapperType>
-										<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
-										<span>{capitalize(resolvedType)}</span>
-									</C.UpdateWrapperType>
-									{isMiner && (
-										<C.UpdateWrapperType>
-											<ReactSVG src={ASSETS.pickaxe} />
-											<span>{language.walletMiner}</span>
-										</C.UpdateWrapperType>
-									)}
+									{resolvedType && txResponse && (
+										<>
+											<C.UpdateWrapperType>
+												<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
+												<span>{capitalize(resolvedType)}</span>
+											</C.UpdateWrapperType>
+											{isMiner && (
+												<C.UpdateWrapperType>
+													<ReactSVG src={ASSETS.pickaxe} />
+													<span>{language.walletMiner}</span>
+												</C.UpdateWrapperType>
+											)}
 
-									{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
-										<>
-											<C.UpdateWrapper>
-												<span>{getTagValue(txResponse.node.tags, 'Variant')}</span>
-											</C.UpdateWrapper>
+											{txResponse?.node?.tags && getTagValue(txResponse.node.tags, 'Variant') && (
+												<>
+													<C.UpdateWrapper>
+														<span>{getTagValue(txResponse.node.tags, 'Variant')}</span>
+													</C.UpdateWrapper>
+												</>
+											)}
+											{!!txResponse?.node?.block?.timestamp && (
+												<>
+													<C.UpdateWrapper>
+														<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>
+													</C.UpdateWrapper>
+												</>
+											)}
+											{balanceSections}
 										</>
 									)}
-									{!!txResponse?.node?.block?.timestamp && (
-										<>
-											<C.UpdateWrapper>
-												<span>{formatDate(txResponse?.node?.block?.timestamp * 1000, 'timestamp')}</span>
-											</C.UpdateWrapper>
-										</>
-									)}
-									{balanceSections}
+									{inspectorBadges.map((badge) => (
+										<C.UpdateWrapper key={badge.label} title={badge.description}>
+											<span>{badge.label}</span>
+										</C.UpdateWrapper>
+									))}
 								</C.TxInfoWrapper>
 							)}
 						</>

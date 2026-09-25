@@ -1,5 +1,243 @@
 export const language = {
 	en: {
+		aoCore: {
+			title: 'AO Core',
+			aboutMessage: 'AO Core Message Info',
+			storedMessage: 'Stored message',
+			unverified: 'Not cryptographically verified',
+			introduction: 'A message is a set of named values.',
+			introductionDescription:
+				'Values can be text, numbers, nested messages, or links to other values. A device determines how a request reads or operates on this message.',
+			requestedId: 'Opened ID',
+			device: 'Device',
+			defaultDevice: 'Default when no device is specified.',
+			inlineDevice: 'Inline device definition',
+			linkedDevice: 'Device reference; its behavior has not been loaded.',
+			role: 'Declared type',
+			unknownRole: 'No type declared',
+			representation: 'Received representation',
+			jsonRepresentation: 'AO JSON (json@1.0)',
+			recognizedBy: 'Inspector selected from:',
+			evidence: {
+				protocol: 'AO protocol metadata',
+				variant: 'AO variant',
+				device: 'device metadata',
+				commitment: 'AO commitment metadata',
+				context: 'AO exploration context',
+			},
+			recognitionExplanation: 'Recognition does not establish authenticity.',
+			resolutionTitle: 'How this message is resolved',
+			baseTitle: 'Start with a message',
+			baseDescription: 'This message provides the base values and its device.',
+			requestTitle: 'Apply a request',
+			requestDescription:
+				'A separate request supplies a path. The device decides how to resolve that path against the base message.',
+			resultTitle: 'Receive a result',
+			resultDescription:
+				'Resolution returns a message or a value. Further path segments can continue from that result.',
+			resolutionExplanation:
+				'This is an explanation, not an execution trace. The inspector reads the stored message at the opened ID; it does not execute a process or substitute an assignment or computed result.',
+			commitments: 'Commitments',
+			commitmentsDescription: 'Each commitment describes its own declared coverage and method.',
+			commitmentId: 'Declared commitment ID',
+			matchesOpenedId: 'Matches the opened ID. This identity has not been verified.',
+			verification: 'Local verification',
+			verificationStates: { 'not-checked': 'Not checked', unsupported: 'Unsupported commitment device' },
+			commitmentDevice: 'Commitment device',
+			algorithm: 'Algorithm',
+			declaredCommitter: 'Declared committer (unverified)',
+			declaredCoverage: 'Declared covered fields',
+			notProvided: 'Not provided',
+			unsigned: 'Unsigned commitment',
+			unsignedExplanation:
+				'An HMAC or constant-key commitment does not identify a public signer. Its integrity has not been checked locally.',
+			verificationExplanation:
+				'These are declarations from the received message. Lunar has not reconstructed the signed representation or verified this commitment, its ID, or its committer.',
+			unknownCoverage: 'Coverage unknown',
+			emptyCoverage: 'No fields listed',
+			linkedCommitments:
+				'Commitments are linked. Open commitments+link in Message Fields to view their stored representation.',
+			noCommitments:
+				'No inline commitments were supplied. This does not prove that the message has no other commitments.',
+			fields: 'Message Fields',
+			graph: {
+				viewMode: 'Message view',
+				table: 'Table View',
+				view: 'Graph View',
+				root: 'Opened message',
+				loading: 'Loading graph view…',
+				description: 'Expand values to explore messages. Select a coverage count to see its evidence.',
+				legend:
+					'Solid line: inline value. Dashed line: linked value. This graph shows stored data, not an execution trace.',
+				fit: 'Fit view',
+				arrange: 'Arrange',
+				zoomIn: 'Zoom in',
+				zoomOut: 'Zoom out',
+				limit: (count: number) => `Showing ${count} cards. Collapse a branch before opening more.`,
+				connection: (key: string, linked: boolean) => `${key}: ${linked ? 'linked value' : 'inline value'}`,
+				selectCommitment: 'Select a commitment ID to highlight the fields it lists in its message card.',
+				highlighted: (id: string) => `Highlight fields listed by ${id}`,
+			},
+			fieldKey: 'Key',
+			fieldType: 'Type',
+			fieldCoverage: 'Coverage',
+			fieldValue: 'Value',
+			fieldTypes: {
+				link: 'Link',
+				message: 'Message',
+				list: 'List',
+				text: 'Text',
+				integer: 'Integer',
+				number: 'Number',
+				boolean: 'Boolean',
+				null: 'Null',
+			},
+			typesDescription:
+				'Types in the received AO JSON representation. Encoding metadata such as ao-types is retained as a field.',
+			coverageDescription:
+				'Exact field names listed by each of this message’s inline commitments. Declarations are not cryptographic verification and do not establish coverage of a child message’s fields.',
+			coverageStates: { listed: 'Listed (unverified)', 'not-listed': 'Not listed', unknown: 'Unknown' },
+			coverageCount: (listed: number, total: number) => `${listed} of ${total} listed`,
+			coverageUnknownCount: (count: number) => `${count} unknown`,
+			expandCoverage: (key: string) => `Show coverage for ${key || '""'}`,
+			collapseCoverage: (key: string) => `Hide coverage for ${key || '""'}`,
+			coverageFor: (key: string) => `Commitment coverage for ${key || '""'}`,
+			commitmentKind: 'Kind',
+			signatureCommitment: 'Signature commitment',
+			coverageEvidence: 'Evidence',
+			coverageEvidenceDescription:
+				'Each row checks this field’s exact key in one commitment’s committed list. Item numbers start at 1, matching the expanded list. No cryptographic verification has been performed.',
+			coverageMatch: (position: number, key: string) => `committed · item ${position}: ${key || '""'}`,
+			coverageAbsent: (count: number) => `Not in committed (${count} ${count === 1 ? 'item' : 'items'})`,
+			coverageUnavailable: 'Unknown: committed list missing or malformed',
+			coverageInfo: {
+				title: 'About coverage',
+				introductionTitle: 'Which commitments include this field?',
+				introduction:
+					'Coverage shows which commitments declare that they include a particular message field. Lunar compares the field’s exact key with the committed list inside each commitment supplied with this message.',
+				commitmentsDescription:
+					'A message is a set of named values. A commitment is a separate record describing a method of committing to some of those values. Different commitments can include different fields, and a commitment can be signed or unsigned. Coverage describes that declared scope.',
+				labelsTitle: 'How to read the column',
+				labels: [
+					{
+						label: '2 of 3 listed',
+						description:
+							'This exact key appears in two of the three supplied commitments’ lists. Each commitment counts once. The total includes signed and unsigned commitments; it is not a count of verified signatures or independent signers.',
+					},
+					{
+						label: '1 of 3 listed · 1 unknown',
+						description:
+							'One commitment lists the key, one has no usable list, and the remaining commitment does not list it. Unknown entries are included in the total but never counted as a match.',
+					},
+					{
+						label: 'Not listed',
+						description:
+							'All supplied lists are readable, and none includes this exact key. An empty list also lists no fields. This label describes the received lists; it does not prove that no commitment elsewhere could cover the field.',
+					},
+					{
+						label: 'Unknown',
+						description:
+							'No match can be established because no inline commitments were supplied, or at least one committed list is missing or malformed. A missing list is never interpreted as covering every field.',
+					},
+				],
+				exampleTitle: 'Example: base-hashpath',
+				exampleIntroduction: 'Suppose a message includes these three commitments. Their committed lists are:',
+				exampleCommitments: [
+					{ label: 'Commitment A — signature', fields: '["ao-types", "base-hashpath"]' },
+					{ label: 'Commitment B — unsigned', fields: '["ao-types", "base-hashpath"]' },
+					{ label: 'Commitment C — signature', fields: '["hashpath"]' },
+				],
+				exampleConclusion:
+					'base-hashpath shows “2 of 3 listed”. It is item 2 in A and B, and absent from C. hashpath would show “1 of 3 listed”. Neither count says that any commitment has been verified.',
+				sections: [
+					{
+						id: 'evidence',
+						title: 'Open the evidence',
+						paragraphs: [
+							'Click a coverage count or status to expand its evidence when inline commitments are available. Each row shows the commitment ID, its declared kind, and the matching list position—or why a match cannot be established.',
+							'“committed → item 2: base-hashpath” points to the second value in that commitment’s list. Item numbers start at 1. You can also expand commitments → commitment ID → committed to inspect the original list. Reading coverage does not run a request or execute a process.',
+						],
+					},
+					{
+						id: 'verification',
+						title: 'Coverage and cryptographic verification',
+						paragraphs: [
+							'Lunar currently reads declarations from the received message. It has not checked the signature, recomputed the commitment ID, or authenticated the declared signer. A listed field can still belong to an invalid or altered commitment.',
+							'Verification would require interpreting the commitment’s device and method, reconstructing the relevant representation, and checking its cryptographic proof. Counting names in committed does not perform those checks. Coverage also does not establish that the returned message matches the opened ID or that a computation or hashpath is correct.',
+						],
+					},
+					{
+						id: 'unsigned',
+						title: 'Why unsigned commitments count',
+						paragraphs: [
+							'An unsigned commitment can still declare a list of fields, so it contributes to the coverage count. Lunar labels recognized HMAC or constant-key commitments as unsigned. Such a commitment does not identify a public signer, and Lunar has not checked its integrity.',
+							'A signature commitment label means a signature was supplied, not that it is valid. More listed commitments do not automatically mean more trust or more independent endorsements.',
+						],
+					},
+					{
+						id: 'children',
+						title: 'Links, child messages, and exact keys',
+						paragraphs: [
+							'This inspector compares the keys in the received AO JSON exactly. For example, body and body+link are different keys for this check. If a list contains body while the table shows body+link, the row is not counted as listed. Interpreting coverage across encodings requires the commitment’s device-specific rules, which this column does not apply.',
+							'A child message is checked against its own commitments. Its fields do not inherit the parent’s count. Commitment records and the lists inside them omit the Coverage column so that metadata entries are not confused with the message fields they describe.',
+						],
+					},
+					{
+						id: 'scope',
+						title: 'Which commitments are included?',
+						paragraphs: [
+							'The count uses only commitments supplied inline with the current message. Opening commitments+link lets you inspect linked metadata, but does not merge those records into the current message’s counts. Other commitments may exist elsewhere.',
+							'Transport headers are separate from the message fields checked here. The node serving the response is also separate from any signer declared by a commitment.',
+						],
+					},
+				],
+			},
+			inferredDevice: 'default',
+			fieldCount: (count: number) => `${count.toLocaleString()} ${count === 1 ? 'field' : 'fields'}`,
+			itemCount: (count: number) => `${count.toLocaleString()} ${count === 1 ? 'item' : 'items'}`,
+			fieldsPage: (page: number, total: number) => `Page ${page} of ${total}`,
+			expandField: (key: string) => `Expand ${key}`,
+			collapseField: (key: string) => `Collapse ${key}`,
+			childFields: (key: string) => `Fields of ${key}`,
+			loadingLink: 'Loading linked value…',
+			openLinkedMessage: 'Open linked ID',
+			invalidLink: 'This link is not a supported 43-character message ID.',
+			cyclicLink: 'This ID is already open in this branch. Open it separately to explore it again.',
+			depthLimit: 'This branch has reached the expansion limit. Use the raw message or open the linked ID separately.',
+			noFields: 'No fields in this message or list.',
+			linkErrors: {
+				unavailable: 'The linked value could not be loaded from the configured AO providers.',
+				timeout: 'The linked value read timed out. You can retry it.',
+				'invalid-response':
+					'The provider did not return a supported AO JSON value. The original link is preserved above.',
+			},
+			provenance: 'Source & raw message',
+			provider: 'Served by',
+			source: 'Read source',
+			configuredPeers: 'Configured AO peers',
+			sources: { peers: 'AO peers', permawebos: 'PermawebOS', fallback: 'AO peers (fallback)' },
+			identityExplanation:
+				'The opened ID is the lookup address. Commitment IDs and hashpaths have separate roles; Lunar has not verified that this response matches the opened ID. Raw JSON retains every received field, including commitments. Transport headers describe the response and are not treated as signed message fields.',
+			showRaw: 'Show raw response',
+			hideRaw: 'Hide raw response',
+			rawMessage: 'Received JSON',
+			transportHeaders: 'Transport response headers',
+			loading: 'Reading the stored AO message…',
+			retry: 'Retry AO read',
+			unrecognized: 'This response has no recognized AO metadata. The transaction Overview remains available.',
+			errors: {
+				unavailable:
+					'The configured AO providers could not return this message. Try again or review the AO network settings.',
+				timeout: 'The AO read timed out. You can retry the request.',
+				'invalid-response':
+					'The provider did not return a supported AO JSON message. This inspector accepts message maps up to 4 MiB and 64 levels deep.',
+			},
+			unindexedTitle: 'No indexed transaction is available',
+			unindexedDescription:
+				'This ID resolved through the AO network. Open AO Core Info to inspect its message; transaction inclusion and confirmation details are unavailable.',
+			unindexedPending:
+				'Open AO Core Info for the stored-message read status. Transaction inclusion and confirmation details are unavailable.',
+		},
 		graphqlTypeDescriptions: {
 			SCALAR: 'A single value, such as text, a number, or a boolean.',
 			INPUT_OBJECT: 'An input object with the following fields.',
@@ -425,7 +663,7 @@ export const language = {
 		noVariant: `No Variant`,
 		node: `Node`,
 		networkSettings: `Network Settings`,
-		aosNode: `AOS Node`,
+		aosNode: `Compute Node`,
 		aosNodeDescription: `Used by the AOS page for process creation, evaluation, and results.`,
 		aoReadNetwork: `AO Read Network`,
 		aoReadNetworkDescription: `Used for process state, results, and scheduler reads in Explorer.`,
@@ -539,7 +777,7 @@ export const language = {
 		september: `September`,
 		settings: `Settings`,
 		showFixedNodeStatus: `Show Node Status`,
-		showFixedNodeStatusDescription: `Displays the AOS Node in the bottom-right corner of the app.`,
+		showFixedNodeStatusDescription: `Displays the Compute Node in the bottom-right corner of the app.`,
 		showResults: `Show Results`,
 		showingRange: (start: number, end: number, total: number) => `Showing ${start} - ${end} of ${total}`,
 		sidebarClose: `Close sidebar`,

@@ -77,91 +77,6 @@ export const PageCounter = styled.div`
 	}
 `;
 
-export const Table = styled.div`
-	width: 100%;
-	overflow-x: auto;
-	background: ${(props) => props.theme.colors.container.primary.background};
-`;
-
-export const TableHeader = styled.div<{ $columns: number }>`
-	height: 40px;
-	min-width: ${(props) => Math.max(960, props.$columns * 180)}px;
-	display: grid;
-	grid-template-columns: repeat(${(props) => props.$columns}, minmax(0, 1fr));
-	align-items: center;
-	gap: 15px;
-	padding: 0 15px;
-	border: 1px solid ${(props) => props.theme.colors.border.primary};
-	background: ${(props) => props.theme.colors.container.alt1.background};
-
-	div,
-	p {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.alt1};
-	}
-`;
-
-export const TableBody = styled.div<{ $columns: number }>`
-	width: 100%;
-	min-width: ${(props) => Math.max(960, props.$columns * 180)}px;
-`;
-
-export const TableRow = styled.div<{ $columns: number; $expanded?: boolean }>`
-	cursor: pointer;
-	height: 40px;
-	position: relative;
-	display: grid;
-	grid-template-columns: repeat(${(props) => props.$columns}, minmax(0, 1fr));
-	align-items: center;
-	gap: 15px;
-	padding: 0 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-	background: ${(props) => props.theme.colors.container.primary.background};
-	transition: all 75ms;
-	${(props) =>
-		props.$expanded &&
-		`
-		background: ${props.theme.colors.container.alt1.background};
-		border-left-color: ${props.theme.colors.border.alt4};
-		border-right-color: ${props.theme.colors.border.alt4};
-		box-shadow: inset 0 1px 0 ${props.theme.colors.border.alt4};
-	`}
-
-	p {
-		font-size: ${(props) => props.theme.typography.size.xSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	&:hover,
-	&:focus-visible {
-		background: ${(props) => props.theme.colors.container.primary.active};
-		border-color: ${(props) => props.theme.colors.border.alt4};
-		box-shadow: inset 0 1px 0 ${(props) => props.theme.colors.border.alt4};
-	}
-`;
-
-export const DetailsRow = styled.div`
-	border-left: 1px solid ${(props) => props.theme.colors.border.alt4};
-	border-right: 1px solid ${(props) => props.theme.colors.border.alt4};
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.alt4};
-	background: ${(props) => props.theme.colors.container.alt1.background};
-`;
-
-export const DetailsCell = styled.div`
-	min-width: 0;
-	padding: 5px;
-	background: ${(props) => props.theme.colors.container.alt2.background};
-`;
-
 export const AddressColumn = styled.div`
 	min-width: 0;
 	width: 100%;
@@ -179,14 +94,6 @@ export const BalanceColumn = styled.div`
 	p {
 		text-align: left;
 	}
-`;
-
-export const ValueColumn = styled.div`
-	min-width: 0;
-	width: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: flex-start;
 `;
 
 export const LastTransactionColumn = styled.div`
@@ -244,13 +151,4 @@ export const Footer = styled.div<{ $borderTop: boolean }>`
 export const Count = styled.span`
 	font-size: ${(props) => props.theme.typography.size.small};
 	color: ${(props) => props.theme.colors.font.alt1};
-`;
-
-export const SourceColumn = styled.div`
-	min-width: 0;
-	display: flex;
-	align-items: center;
-	&:last-child {
-		justify-content: flex-end;
-	}
 `;

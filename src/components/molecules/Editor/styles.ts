@@ -8,7 +8,7 @@ export const Wrapper = styled.div`
 	gap: 7.5px;
 `;
 
-export const Header = styled.div`
+export const Header = styled.div<{ $textStyle?: 'code' | 'body' }>`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -19,7 +19,7 @@ export const Header = styled.div`
 		color: ${(props) => props.theme.colors.font.primary};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		font-size: ${(props) => props.theme.typography.size.lg};
+		font-size: ${(props) => props.theme.typography.size[props.$textStyle === 'body' ? 'xSmall' : 'lg']};
 	}
 `;
 
@@ -34,7 +34,7 @@ export const EditorWrapper = styled.div<{ useFixedHeight: boolean }>`
 	position: relative;
 `;
 
-export const Editor = styled.div<{ $hasHeader?: boolean }>`
+export const Editor = styled.div<{ $hasHeader?: boolean; $textStyle?: 'code' | 'body' }>`
 	height: 100%;
 	width: 100%;
 	min-width: 0;
@@ -49,7 +49,8 @@ export const Editor = styled.div<{ $hasHeader?: boolean }>`
 	}
 
 	> * {
-		font-family: ${(props) => props.theme.typography.family.alt2} !important;
+		font-family: ${(props) =>
+			props.theme.typography.family[props.$textStyle === 'body' ? 'primary' : 'alt2']} !important;
 	}
 `;
 

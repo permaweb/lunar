@@ -87,6 +87,7 @@ export const ASSETS = {
 	checkmark: getAssetEndpoint('checkmark.svg'),
 	close: getAssetEndpoint('close.svg'),
 	code: getAssetEndpoint('code.svg'),
+	core: getAssetEndpoint('core.svg'),
 	console: getAssetEndpoint('console.svg'),
 	copy: getAssetEndpoint('copy.svg'),
 	dark: getAssetEndpoint('dark.svg'),
@@ -212,7 +213,8 @@ export const NODE_INFO_CONCURRENCY = 8;
 export const FLAGS = {
 	CLIENT_SIDE_PAGINATION: false,
 	CONTROL_PAGINATION: false,
-	USE_GATEWAY_BUNDLE_REQUEST: false,
+	// Enable when the GraphQL gateway supports both the bundledIn field and filter again.
+	USE_GQL_BUNDLED_IN: false,
 	USE_TX_CACHE: true,
 	SHOW_AVAILABLE_NODES: false,
 	SHOW_NODES_LOADER: false,
@@ -286,6 +288,7 @@ function createURLs() {
 		explorerMining: (id: string) => `${explorer}${id}/mining`,
 		explorerTransactions: (id: string) => `${explorer}${id}/transactions`,
 		explorerInfo: (id: string) => `${explorer}${id}/info`,
+		explorerAoCore: (id: string) => `${explorer}${id}/ao-core`,
 		explorerMessages: (id: string) => `${explorer}${id}/messages`,
 		explorerRead: (id: string) => `${explorer}${id}/read`,
 		explorerWrite: (id: string) => `${explorer}${id}/write`,

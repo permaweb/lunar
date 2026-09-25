@@ -68,6 +68,7 @@ function getLuaTokenType(token: string) {
 export default function _JSONTree(props: {
 	data: any;
 	header?: string;
+	textStyle?: 'code' | 'body';
 	placeholder?: string;
 	maxHeight?: number;
 	fixedHeight?: number;
@@ -201,13 +202,14 @@ export default function _JSONTree(props: {
 
 	return (
 		<S.Wrapper
+			$textStyle={props.textStyle}
 			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}`}
 			noWrapper={props.noWrapper && !fullScreenMode}
 			fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
 			$maxHeight={!fullScreenMode ? props.maxHeight : undefined}
 			ref={readerRef}
 		>
-			<S.Header>
+			<S.Header $textStyle={props.textStyle}>
 				<p>{props.header ?? language.output}</p>
 
 				<S.ActionsWrapper>

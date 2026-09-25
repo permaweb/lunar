@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ViewTabs } from 'components/molecules/ViewTabs';
 import { AOS } from 'components/organisms/AOS';
-import { Transaction } from 'components/organisms/Transaction';
+import { AoCoreTransaction } from 'features/AoCore';
 import { PinnedTabsPanel } from 'features/Pins';
 import { getArweaveNodeRoute, normalizeArweaveNode, readArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
@@ -566,7 +566,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		}
 
 		return props.type === 'explorer' ? (
-			<Transaction
+			<AoCoreTransaction
 				pinTarget={{
 					id: tab.id,
 					label: renderTabLabel(tab),
