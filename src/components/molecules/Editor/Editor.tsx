@@ -21,6 +21,7 @@ export default function _Editor(props: {
 	/** Shows the Run button for `onSubmit`. Set false to keep only the Cmd/Ctrl+Enter shortcut. Defaults to true. */
 	hasSubmitButton?: boolean;
 	header?: string;
+	textStyle?: 'code' | 'body';
 	useFixedHeight?: boolean;
 	fixedHeight?: number;
 	loading: boolean;
@@ -167,11 +168,11 @@ export default function _Editor(props: {
 				className={'border-wrapper-alt3 scroll-wrapper'}
 			>
 				{props.header && (
-					<S.Header>
+					<S.Header $textStyle={props.textStyle}>
 						<p>{props.header}</p>
 					</S.Header>
 				)}
-				<S.Editor $hasHeader={props.header !== null && props.header !== undefined}>
+				<S.Editor $hasHeader={props.header !== null && props.header !== undefined} $textStyle={props.textStyle}>
 					<Editor
 						height={'100%'}
 						defaultLanguage={props.language}
@@ -189,9 +190,9 @@ export default function _Editor(props: {
 							formatOnType: true,
 							minimap: { enabled: false },
 							wordWrap: 'on',
-							fontFamily: theme.typography.family.alt2,
+							fontFamily: theme.typography.family[props.textStyle === 'body' ? 'primary' : 'alt2'],
 							fontSize: theme.typography.size.xxSmall,
-							fontWeight: '600',
+							fontWeight: props.textStyle === 'body' ? theme.typography.weight.medium : '600',
 							scrollBeyondLastLine: false,
 							guides: {
 								indentation: false,

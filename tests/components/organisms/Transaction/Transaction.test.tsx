@@ -17,13 +17,21 @@ import {
 	TOKEN_PROCESS_ID,
 } from '../../../fixtures/transactionData';
 
-const mocks = vi.hoisted(() => ({ lookup: vi.fn(), balance: vi.fn(), arBalance: vi.fn(), showFirstTab: false }));
+const mocks = vi.hoisted(() => ({
+	lookup: vi.fn(),
+	dispatch: vi.fn(),
+	legacyApi: { getGQLData: vi.fn() },
+	balance: vi.fn(),
+	arBalance: vi.fn(),
+	showFirstTab: false,
+	tabLabels: [] as string[],
+}));
 vi.mock('helpers/search', () => ({ searchTxById: mocks.lookup }));
 vi.mock('api/balances', () => ({ readAoBalance: mocks.balance, readArBalance: mocks.arBalance }));
-vi.mock('react-redux', () => ({ useDispatch: () => vi.fn() }));
+vi.mock('react-redux', () => ({ useDispatch: () => mocks.dispatch }));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden={'true'} /> }));
 vi.mock('store', () => ({ store: { getState: () => ({ transactions: {} }) } }));
-vi.mock('providers/PermawebProvider', () => ({ usePermawebProvider: () => ({ legacyApi: {} }) }));
+vi.mock('providers/PermawebProvider', () => ({ usePermawebProvider: () => ({ legacyApi: mocks.legacyApi }) }));
 vi.mock('providers/ArweaveProvider', () => ({ useArweaveProvider: () => ({ walletAddress: null }) }));
 vi.mock('providers/NotificationProvider', () => ({ useNotifications: () => ({ addNotification: vi.fn() }) }));
 vi.mock('features/Mining', () => ({ useWalletMining: () => ({ isMiner: false }) }));
@@ -34,7 +42,8 @@ vi.mock('api/blocks', async (original) => ({
 	getTransactionById: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('components/atoms/URLTabs', () => ({
-	URLTabs: (props: { tabs: { view: React.ComponentType }[] }) => {
+	URLTabs: (props: { tabs: { view: React.ComponentType; label: string }[] }) => {
+		mocks.tabLabels = props.tabs.map((tab) => tab.label);
 		const View = props.tabs[0].view;
 		return mocks.showFirstTab ? <View /> : null;
 	},
@@ -50,7 +59,12 @@ vi.mock('components/molecules/HTMLViewer', () => ({
 }));
 vi.mock('components/molecules/ExplorerControls', async (original) => ({
 	...(await original<typeof import('../../../../src/components/molecules/ExplorerControls')>()),
-	ExplorerControls: (props) => <>{props.info}</>,
+	ExplorerControls: (props) => (
+		<>
+			{props.actions}
+			{props.info}
+		</>
+	),
 }));
 
 const processId = 'hmW7EXCHRzfC6YAE8FKInptdS8-6BOl3fxjZfxmAOpY';
@@ -75,12 +89,23 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-async function render(type: TransactionType = 'process', txId = processId) {
+async function render(
+	type: TransactionType = 'process',
+	txId = processId,
+	inspector?: React.ComponentProps<typeof Transaction>['inspector']
+) {
 	await React.act(async () =>
 		root.render(
 			<MemoryRouter>
 				<ThemeProvider theme={theme(darkTheme)}>
-					<Transaction txId={txId} type={type} active onMessageOpen={vi.fn()} processMessagesView={() => null} />
+					<Transaction
+						txId={txId}
+						type={type}
+						active
+						onMessageOpen={vi.fn()}
+						processMessagesView={() => null}
+						inspector={inspector}
+					/>
 				</ThemeProvider>
 			</MemoryRouter>
 		)
@@ -90,6 +115,38 @@ async function render(type: TransactionType = 'process', txId = processId) {
 function transaction(tags: TagType[]): GQLNodeResponseType {
 	return { cursor: null, node: { id: processId, tags, owner: { address: 'a'.repeat(43) }, data: null, block: null } };
 }
+
+it('populates the bundle table by resolving each linked ID from its tags', async () => {
+	mocks.showFirstTab = true;
+	const linkedIds = ['uX2tJrIgBgDTGvSU30Q16-TVZU1J3NXpflyDtu0kA5c', 'R39lRKpiIOzyggzGPttRhGMmVx_5AMbkupORp-XGnR0'];
+	const bundle = transaction([
+		{ name: 'Bundle-Format', value: 'binary' },
+		{ name: 'Bundle-Version', value: '2.0.0' },
+		{ name: '2+link', value: linkedIds[1] },
+		{ name: '1+link', value: linkedIds[0] },
+	]);
+	mocks.lookup.mockImplementation(async ({ txId }) =>
+		txId === processId
+			? bundle
+			: {
+					...transaction([{ name: 'Type', value: 'Message' }]),
+					node: { ...transaction([{ name: 'Type', value: 'Message' }]).node, id: txId },
+			  }
+	);
+	const fetchMock = vi.fn();
+	vi.stubGlobal('fetch', fetchMock);
+
+	await render('bundle');
+
+	const rows = [...container.querySelectorAll('.transaction-list-element')];
+	expect(rows).toHaveLength(2);
+	for (const [index, id] of linkedIds.entries()) {
+		expect(rows[index].getAttribute('aria-label')).toContain(id);
+		expect(rows[index].textContent).toContain('Message');
+		expect(mocks.lookup).toHaveBeenCalledWith(expect.objectContaining({ txId: id }));
+	}
+	expect(fetchMock).not.toHaveBeenCalled();
+});
 
 it.each([
 	{
@@ -266,4 +323,37 @@ describe('section order', () => {
 		expect(transfer).toBeGreaterThanOrEqual(0);
 		expect(transfer).toBeLessThan(overview);
 	});
+});
+
+it('keeps the inspector visible for an AO ID without indexed transaction data', async () => {
+	mocks.lookup.mockResolvedValue(null);
+	mocks.showFirstTab = true;
+	await render('transaction', processId, {
+		id: processId,
+		label: 'AO Core Info',
+		url: `/explorer/${processId}/ao-core`,
+		content: <p>AO details</p>,
+		fallback: <p data-testid="unindexed">No indexed transaction</p>,
+		actions: <span data-testid="inspector-action">Message info</span>,
+	});
+	expect(mocks.tabLabels).toEqual(['Overview', 'AO Core Info']);
+	const notice = container.querySelector('[data-testid="unindexed"]');
+	expect(notice).not.toBeNull();
+	expect((notice.parentElement as HTMLElement).style.display).toBe('block');
+	const action = container.querySelector('[data-testid="inspector-action"]');
+	expect(action).not.toBeNull();
+	expect(getComputedStyle(action.parentElement).borderLeftWidth).toBe('1px');
+});
+
+it('inserts AO Core Info after Overview while preserving process tabs', async () => {
+	mocks.lookup.mockResolvedValue(transaction([{ name: 'device', value: 'process@1.0' }]));
+	await render('process', processId, {
+		id: processId,
+		label: 'AO Core Info',
+		url: `/explorer/${processId}/ao-core`,
+		content: <p>AO details</p>,
+		fallback: null,
+	});
+	expect(mocks.tabLabels.slice(0, 3)).toEqual(['Overview', 'AO Core Info', 'Messages']);
+	expect(mocks.tabLabels).toEqual(expect.arrayContaining(['Read', 'Write', 'Data', 'Source']));
 });

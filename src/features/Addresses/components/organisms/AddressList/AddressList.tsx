@@ -6,6 +6,7 @@ import { AddressChunk, AddressSnapshot, getAddressChunk, getLatestAddressSnapsho
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
+import { ExplorerTable } from 'components/molecules/ExplorerTable';
 import { ASSETS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getArPrice } from 'helpers/prices';
 import { formatCount, formatUnits } from 'helpers/utils';
@@ -351,91 +352,60 @@ export default function AddressList(props: {
 			</S.Header>
 
 			{visibleAddresses.length > 0 ? (
-				<S.Table role={'table'} aria-label={props.header ?? language.addresses}>
-					<S.TableHeader role={'row'} $columns={(props.source?.columns.length ?? 3) + 1}>
-						<S.AddressColumn role={'columnheader'}>
-							<p>{language.walletAddress}</p>
-						</S.AddressColumn>
-						{props.source ? (
-							props.source.columns.map((column) => (
-								<S.SourceColumn role={'columnheader'} key={column.label}>
-									<p>{column.label}</p>
-								</S.SourceColumn>
-							))
-						) : (
-							<>
-								<S.BalanceColumn role={'columnheader'}>
-									<p>{language.balance}</p>
-								</S.BalanceColumn>
-								<S.ValueColumn role={'columnheader'}>
-									<p>{language.value}</p>
-								</S.ValueColumn>
-								<S.LastTransactionColumn role={'columnheader'}>
-									<p>{language.lastTransaction}</p>
-								</S.LastTransactionColumn>
-							</>
-						)}
-					</S.TableHeader>
-					<S.TableBody role={'rowgroup'} $columns={(props.source?.columns.length ?? 3) + 1}>
-						{visibleAddresses.map((address) => {
-							const details = props.source?.renderRowDetails?.(address.address);
-							return (
-								<React.Fragment key={address.address}>
-									<S.TableRow
-										$expanded={!!details}
-										$columns={(props.source?.columns.length ?? 3) + 1}
-										role={'row'}
-										tabIndex={0}
-										aria-label={`${language.inspect} ${address.address}`}
-										onClick={(event) => {
-											if (!(event.target as Element).closest('a, button'))
-												navigate(`${URLS.explorer}${address.address}`);
-										}}
-										onKeyDown={(event) => {
-											if (event.target === event.currentTarget && event.key === 'Enter') {
-												event.preventDefault();
-												navigate(`${URLS.explorer}${address.address}`);
-											}
-										}}
-									>
-										<S.AddressColumn role={'cell'} title={address.address}>
-											<TxAddress address={address.address} tooltipPosition={'right'} />
-										</S.AddressColumn>
-										{props.source ? (
-											props.source.columns.map((column) => (
-												<S.SourceColumn role={'cell'} key={column.label}>
-													{column.render(address.address)}
-												</S.SourceColumn>
-											))
-										) : (
-											<>
-												<S.BalanceColumn
-													role={'cell'}
-													title={address.balance === undefined ? undefined : `${address.balance} winston`}
-												>
-													<p>{address.balance === undefined ? '—' : formatArBalance(address.balance)}</p>
-												</S.BalanceColumn>
-												<S.ValueColumn role={'cell'}>
-													<p>{address.balance === undefined ? '—' : formatArUsdValue(address.balance, arUsdPrice)}</p>
-												</S.ValueColumn>
-												<S.LastTransactionColumn role={'cell'} title={address.lastTransaction ?? undefined}>
-													<ExplorerLink value={address.lastTransaction} type={'transaction'} tooltipPosition={'left'} />
-												</S.LastTransactionColumn>
-											</>
-										)}
-									</S.TableRow>
-									{details && (
-										<S.DetailsRow role={'row'}>
-											<S.DetailsCell role={'cell'} aria-colspan={(props.source?.columns.length ?? 3) + 1}>
-												{details}
-											</S.DetailsCell>
-										</S.DetailsRow>
-									)}
-								</React.Fragment>
-							);
-						})}
-					</S.TableBody>
-				</S.Table>
+				<ExplorerTable
+					label={props.header ?? language.addresses}
+					rows={visibleAddresses}
+					getRowKey={(address) => address.address}
+					getRowLabel={(address) => `${language.inspect} ${address.address}`}
+					onRowClick={(address) => navigate(`${URLS.explorer}${address.address}`)}
+					renderRowDetails={(address) => props.source?.renderRowDetails?.(address.address)}
+					columns={[
+						{
+							key: 'address',
+							label: language.walletAddress,
+							render: (address) => (
+								<S.AddressColumn title={address.address}>
+									<TxAddress address={address.address} tooltipPosition={'right'} />
+								</S.AddressColumn>
+							),
+						},
+						...(props.source
+							? props.source.columns.map((column, index) => ({
+									key: column.label,
+									label: column.label,
+									align: index === props.source.columns.length - 1 ? ('end' as const) : ('start' as const),
+									render: (address: (typeof visibleAddresses)[number]) => column.render(address.address),
+							  }))
+							: [
+									{
+										key: 'balance',
+										label: language.balance,
+										render: (address: (typeof visibleAddresses)[number]) => (
+											<S.BalanceColumn title={address.balance === undefined ? undefined : `${address.balance} winston`}>
+												<p>{address.balance === undefined ? '—' : formatArBalance(address.balance)}</p>
+											</S.BalanceColumn>
+										),
+									},
+									{
+										key: 'value',
+										label: language.value,
+										render: (address: (typeof visibleAddresses)[number]) => (
+											<p>{address.balance === undefined ? '—' : formatArUsdValue(address.balance, arUsdPrice)}</p>
+										),
+									},
+									{
+										key: 'last-transaction',
+										label: language.lastTransaction,
+										align: 'end' as const,
+										render: (address: (typeof visibleAddresses)[number]) => (
+											<S.LastTransactionColumn title={address.lastTransaction ?? undefined}>
+												<ExplorerLink value={address.lastTransaction} type={'transaction'} tooltipPosition={'left'} />
+											</S.LastTransactionColumn>
+										),
+									},
+							  ]),
+					]}
+				/>
 			) : props.source ? (
 				<S.UpdateWrapper role={isLoading ? 'status' : undefined}>
 					<p>{props.source.emptyMessage ?? `${language.loading}...`}</p>
