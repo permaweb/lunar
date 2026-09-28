@@ -12,7 +12,7 @@ export const Table = styled.div<{ $roundedBottom?: boolean }>`
 	background: ${(props) => props.theme.colors.container.primary.background};
 `;
 
-export const TableHeader = styled.div<TableSizing>`
+export const TableHeader = styled.div<TableSizing & { $embedded?: boolean }>`
 	height: 40px;
 	min-width: ${(props) => props.$minWidth ?? Math.max(960, props.$columns * 180)}px;
 	display: grid;
@@ -21,6 +21,7 @@ export const TableHeader = styled.div<TableSizing>`
 	gap: 15px;
 	padding: 0 15px;
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-inline-color: ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
 	background: ${(props) => props.theme.colors.container.alt1.background};
 
 	div,
@@ -42,7 +43,7 @@ export const TableBody = styled.div<TableSizing & { $roundedBottom?: boolean }>`
 	}
 `;
 
-export const TableRow = styled.div<TableSizing & { $expanded?: boolean; $interactive?: boolean }>`
+export const TableRow = styled.div<TableSizing & { $expanded?: boolean; $interactive?: boolean; $embedded?: boolean }>`
 	cursor: ${(props) => (props.$interactive ? 'pointer' : 'default')};
 	height: 40px;
 	position: relative;
@@ -51,11 +52,14 @@ export const TableRow = styled.div<TableSizing & { $expanded?: boolean; $interac
 	align-items: center;
 	gap: 15px;
 	padding: 0 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-	border-right: 1px solid ${(props) => props.theme.colors.border.primary};
+	border-left: 1px solid ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
+	border-right: 1px solid ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	background: ${(props) => props.theme.colors.container.primary.background};
 	transition: all 75ms;
+	&:last-child {
+		border-bottom-color: ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
+	}
 	${(props) =>
 		props.$expanded &&
 		`
@@ -83,11 +87,14 @@ export const TableRow = styled.div<TableSizing & { $expanded?: boolean; $interac
 	}
 `;
 
-export const DetailsRow = styled.div`
-	border-left: 1px solid ${(props) => props.theme.colors.border.alt4};
-	border-right: 1px solid ${(props) => props.theme.colors.border.alt4};
+export const DetailsRow = styled.div<{ $embedded?: boolean }>`
+	border-left: 1px solid ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.alt4)};
+	border-right: 1px solid ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.alt4)};
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.alt4};
 	background: ${(props) => props.theme.colors.container.alt1.background};
+	&:last-child {
+		border-bottom-color: ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.alt4)};
+	}
 `;
 
 export const DetailsCell = styled.div`

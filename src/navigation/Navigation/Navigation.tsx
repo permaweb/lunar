@@ -53,6 +53,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
+	const searchResultsRef = React.useRef<HTMLDivElement>(null);
 	const [searchOpen, setSearchOpen] = React.useState<boolean>(false);
 	const [inputTxId, setInputTxId] = React.useState<string>('');
 	const [txOutputOpen, setTxOutputOpen] = React.useState<boolean>(false);
@@ -324,9 +325,46 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		return null;
 	}, [loadingTx, txResponse, inputTxId, language, searchError]);
 
+	function handleSearchKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+		if (
+			event.defaultPrevented ||
+			event.nativeEvent.isComposing ||
+			event.ctrlKey ||
+			event.metaKey ||
+			event.altKey ||
+			loadingTx ||
+			!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)
+		)
+			return;
+
+		const results = Array.from(searchResultsRef.current?.querySelectorAll<HTMLAnchorElement>('a[href]') ?? []);
+		const target = event.target;
+		const focusedIndex = results.findIndex((result) => target instanceof Node && result.contains(target));
+		if (!results.length || (!(target instanceof HTMLInputElement) && focusedIndex === -1)) return;
+
+		if (event.key === 'Enter') {
+			if (event.repeat) return;
+			const result = focusedIndex >= 0 ? results[focusedIndex] : results.length === 1 ? results[0] : null;
+			if (result) {
+				event.preventDefault();
+				result.click();
+			}
+			return;
+		}
+
+		event.preventDefault();
+		const nextIndex =
+			focusedIndex === -1
+				? event.key === 'ArrowDown'
+					? 0
+					: results.length - 1
+				: (focusedIndex + (event.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
+		results[nextIndex].focus();
+	}
+
 	function getSearch() {
 		return (
-			<S.SearchWrapper>
+			<S.SearchWrapper onKeyDown={handleSearchKeyDown}>
 				<FormField
 					value={inputTxId}
 					onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputTxId(e.target.value)}
@@ -344,7 +382,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 					hideErrorMessage
 				/>
 				{txOutputOpen && isValidSearchInput(inputTxId) && (
-					<S.SearchOutputWrapper aria-live={'polite'} aria-busy={loadingTx}>
+					<S.SearchOutputWrapper ref={searchResultsRef} aria-live={'polite'} aria-busy={loadingTx}>
 						{searchOutput}
 					</S.SearchOutputWrapper>
 				)}

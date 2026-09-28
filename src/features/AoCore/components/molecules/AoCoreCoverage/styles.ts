@@ -3,8 +3,9 @@ import styled from 'styled-components';
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
 import { BlockListStyles } from 'components/molecules/BlockList';
 
-export const Header = styled(BlockListStyles.Header)`
+export const Header = styled(BlockListStyles.Header)<{ $embedded?: boolean }>`
 	border-radius: 0;
+	border-inline-color: ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
 	padding: 15px 15px 7.5px 15px;
 	background: ${(props) => props.theme.colors.container.primary.background};
 	h4 {

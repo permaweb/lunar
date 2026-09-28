@@ -156,6 +156,8 @@ function GraphCanvas(props: { value: MessageValue; rootId: string }) {
 						<Button type="alt3" label={copy.close} onPress={() => setInspection(null)} />
 					</S.Toolbar>
 					<AoCoreCoverage
+						embedded
+						roundedBottom
 						fieldKey={inspection.key}
 						commitments={readCommitments(inspectedMessage)}
 						selectedCommitment={inspection.commitment}

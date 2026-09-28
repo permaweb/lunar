@@ -20,6 +20,7 @@ export default function ExplorerTable<Row>(props: {
 	minWidth?: number;
 	columnLayout?: string;
 	roundedBottom?: boolean;
+	embedded?: boolean;
 }) {
 	const sizing = {
 		$columns: props.columns.length,
@@ -28,7 +29,7 @@ export default function ExplorerTable<Row>(props: {
 	};
 	return (
 		<S.Table role="table" aria-label={props.label} $roundedBottom={props.roundedBottom}>
-			<S.TableHeader role="row" {...sizing}>
+			<S.TableHeader role="row" {...sizing} $embedded={props.embedded}>
 				{props.columns.map((column) => (
 					<S.HeaderCell role="columnheader" key={column.key} $align={column.align} title={column.description}>
 						<p>{column.label}</p>
@@ -45,6 +46,7 @@ export default function ExplorerTable<Row>(props: {
 								{...sizing}
 								$expanded={!!details}
 								$interactive={!!props.onRowClick}
+								$embedded={props.embedded}
 								role="row"
 								tabIndex={props.onRowClick ? 0 : undefined}
 								aria-label={props.getRowLabel?.(row)}
@@ -65,7 +67,7 @@ export default function ExplorerTable<Row>(props: {
 								))}
 							</S.TableRow>
 							{details && (
-								<S.DetailsRow role="row">
+								<S.DetailsRow role="row" $embedded={props.embedded}>
 									<S.DetailsCell role="cell" aria-colspan={props.columns.length}>
 										{details}
 									</S.DetailsCell>

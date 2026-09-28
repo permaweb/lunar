@@ -16,6 +16,8 @@ export default function AoCoreCoverage(props: {
 	commitments: CommitmentInfo[];
 	selectedCommitment?: string;
 	onSelectCommitment?: (id: string) => void;
+	embedded?: boolean;
+	roundedBottom?: boolean;
 }) {
 	const provider = useLanguageProvider();
 	const copy = provider.object[provider.current];
@@ -29,7 +31,7 @@ export default function AoCoreCoverage(props: {
 
 	return (
 		<>
-			<S.Header>
+			<S.Header $embedded={props.embedded}>
 				<h4>{label}</h4>
 				{totalPages > 1 && (
 					<S.Actions>
@@ -55,6 +57,8 @@ export default function AoCoreCoverage(props: {
 				rows={rows}
 				getRowKey={(entry) => entry.id}
 				minWidth={650}
+				embedded={props.embedded}
+				roundedBottom={props.roundedBottom}
 				columns={[
 					{
 						key: 'commitment',

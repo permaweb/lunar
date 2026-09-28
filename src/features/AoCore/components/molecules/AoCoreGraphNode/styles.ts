@@ -87,7 +87,6 @@ export const Field = styled.div<{ $covered: boolean }>`
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
 	gap: 12px;
 	padding: 9px 15px;
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	background: ${(props) => (props.$covered ? props.theme.colors.container.primary.active : 'transparent')};
 	box-shadow: ${(props) => (props.$covered ? `inset 3px 0 ${props.theme.colors.link.color}` : 'none')};
 `;
