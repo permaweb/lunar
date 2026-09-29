@@ -31,9 +31,19 @@ export const Content = styled.div`
 	width: 100%;
 	max-width: ${STYLING.cutoffs.max};
 	padding: 0 25px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 500px);
+	align-items: start;
+	gap: 40px;
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		padding: 0 15px;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 24px;
 	}
+`;
+export const SearchContent = styled.div`
+	min-width: 0;
+	align-self: center;
 `;
 export const Search = styled.form`
 	width: 100%;

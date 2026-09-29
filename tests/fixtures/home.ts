@@ -17,8 +17,8 @@ export const HOME_METRICS: NetworkMetricsSnapshot = {
 	},
 };
 export const HOME_ACTIVITY: NetworkActivityEntry[] = [
-	{ id: 'b'.repeat(64), kind: 'block', network: 'arweave', height: 2000000, timestamp: 1790683100 },
-	{ id: 't'.repeat(43), kind: 'transaction', network: 'arweave', timestamp: 1790683000 },
-	{ id: 'm'.repeat(43), kind: 'message', network: 'ao', timestamp: null },
-	{ id: 'p'.repeat(43), kind: 'process', network: 'ao', timestamp: 1790682900 },
+	{ id: 'b'.repeat(64), kind: 'block', network: 'arweave', height: 2000000, timestamp: 1790683100, dataSize: null },
+	{ id: 't'.repeat(43), kind: 'transaction', network: 'arweave', timestamp: 1790683000, dataSize: '1000000' },
+	{ id: 'm'.repeat(43), kind: 'message', network: 'ao', timestamp: null, dataSize: '0' },
+	{ id: 'p'.repeat(43), kind: 'process', network: 'ao', timestamp: 1790682900, dataSize: null },
 ];

@@ -264,6 +264,7 @@ export const PriceItem = styled.div`
 	}
 
 	p {
+		width: max-content;
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};

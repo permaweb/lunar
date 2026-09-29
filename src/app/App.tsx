@@ -6,9 +6,10 @@ import { requestRemote } from 'api/http';
 
 import { serviceWorkerManager } from 'helpers/serviceWorkerManager';
 import { pruneTransactionCache } from 'store/transactions/reducer';
+import type { Landing as LandingView } from 'views/Landing';
 const views = import.meta.glob('../views/**/index.ts');
 
-const Landing = getLazyImport('Landing');
+const Landing = getLazyImport<React.ComponentProps<typeof LandingView>>('Landing');
 const Blocks = getLazyImport('Blocks');
 const Addresses = getLazyImport('Addresses');
 const Nodes = getLazyImport('Nodes');
@@ -29,9 +30,9 @@ import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import * as S from './styles';
 
-function getLazyImport(view: string) {
+function getLazyImport<Props = {}>(view: string) {
 	const key = `../views/${view}/index.ts`;
-	const loader = views[key] as (() => Promise<Record<string, React.ComponentType>>) | undefined;
+	const loader = views[key] as (() => Promise<Record<string, React.ComponentType<Props>>>) | undefined;
 	if (!loader) {
 		throw new Error(`View not found: ${view}`);
 	}
@@ -66,6 +67,7 @@ export default function App() {
 	const [isNodeOnline, setIsNodeOnline] = React.useState<boolean>(false);
 	const [isNodeStatusLoading, setIsNodeStatusLoading] = React.useState<boolean>(true);
 	const [_isScrolledToPageBottom, setIsScrolledToPageBottom] = React.useState<boolean>(false);
+	const [hasScrolledPastHomePrices, setHasScrolledPastHomePrices] = React.useState(false);
 
 	React.useEffect(() => {
 		const storedVersion = localStorage.getItem('app-version');
@@ -222,7 +224,11 @@ export default function App() {
 		const view = (() => {
 			return (
 				<>
-					<Navigation open={settings.sidebarOpen} toggle={() => updateSettings('sidebarOpen', !settings.sidebarOpen)} />
+					<Navigation
+						open={settings.sidebarOpen}
+						toggle={() => updateSettings('sidebarOpen', !settings.sidebarOpen)}
+						hideTokenPrices={path === URLS.base && !hasScrolledPastHomePrices}
+					/>
 					<S.View navigationOpen={settings.sidebarOpen}>{element}</S.View>
 					<S.ViewWrapper>
 						<Footer />
@@ -243,7 +249,7 @@ export default function App() {
 			<React.Suspense fallback={<Loader />}>
 				<S.App>
 					<Routes>
-						{getRoute(URLS.base, <Landing />)}
+						{getRoute(URLS.base, <Landing onPricesScrollChange={setHasScrolledPastHomePrices} />)}
 						{getRoute(URLS.blocks, <Blocks />)}
 						{getRoute(URLS.addresses, <Addresses />)}
 						{getRoute(URLS.nodes, <Nodes />)}

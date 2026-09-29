@@ -175,6 +175,7 @@ function TransactionRow(props: {
 	pending?: boolean;
 	observedAt?: number;
 	preview?: boolean;
+	hasDetail?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 	const dispatch = useDispatch();
@@ -288,6 +289,7 @@ function TransactionRow(props: {
 			onClick={handleRowClick}
 			onKeyDown={handleRowKeyDown}
 			$preview={props.preview}
+			$hasDetail={props.hasDetail}
 		>
 			<S.ID title={transaction.id} $preview={props.preview}>
 				<S.LinkLabel>
@@ -320,8 +322,13 @@ function TransactionRow(props: {
 					</S.Recipient>
 				</>
 			)}
+			{props.hasDetail && (
+				<S.Size $preview={props.preview}>
+					<p>{display?.detail ?? '-'}</p>
+				</S.Size>
+			)}
 			<S.Size $preview={props.preview}>
-				<p>{display?.detail ?? getSize(transaction)}</p>
+				<p>{getSize(transaction)}</p>
 			</S.Size>
 			<S.Time $preview={props.preview}>
 				<p>
@@ -956,7 +963,7 @@ export default function TransactionList(props: {
 				</S.Header>
 				{transactions.length > 0 ? (
 					<S.Wrapper $preview={props.preview}>
-						<S.HeaderWrapper className={'fade-in'} $preview={props.preview}>
+						<S.HeaderWrapper className={'fade-in'} $preview={props.preview} $hasDetail={!!props.source?.detailLabel}>
 							<S.ID $preview={props.preview}>
 								<p>{language.id}</p>
 							</S.ID>
@@ -973,14 +980,19 @@ export default function TransactionList(props: {
 									</S.Recipient>
 								</>
 							)}
+							{props.source?.detailLabel && (
+								<S.Size $preview={props.preview}>
+									<p>{props.source.detailLabel}</p>
+								</S.Size>
+							)}
 							<S.Size $preview={props.preview}>
-								<p>{props.source?.detailLabel ?? language.size}</p>
+								<p>{language.size}</p>
 							</S.Size>
 							<S.Time $preview={props.preview}>
 								<p>{props.source?.timeLabel ?? language.time}</p>
 							</S.Time>
 						</S.HeaderWrapper>
-						<S.BodyWrapper className={'fade-in'} $preview={props.preview}>
+						<S.BodyWrapper className={'fade-in'} $preview={props.preview} $hasDetail={!!props.source?.detailLabel}>
 							{transactions.map((edge) => (
 								<TransactionRow
 									key={edge.node.id}
@@ -990,6 +1002,7 @@ export default function TransactionList(props: {
 									pending={props.source?.pendingIds?.includes(edge.node.id)}
 									observedAt={props.source?.timestamps?.[edge.node.id]}
 									preview={props.preview}
+									hasDetail={!!props.source?.detailLabel}
 								/>
 							))}
 						</S.BodyWrapper>

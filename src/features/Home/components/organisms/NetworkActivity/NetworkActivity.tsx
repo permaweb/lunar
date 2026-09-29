@@ -5,6 +5,7 @@ import { useTheme } from 'styled-components';
 import { Button } from 'components/atoms/Button';
 import { Toggle } from 'components/atoms/Toggle';
 import { TransactionList, TransactionListEntry } from 'components/molecules/TransactionList';
+import { ViewTitle } from 'components/molecules/ViewTitle';
 import { getRelativeDate } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -35,7 +36,11 @@ export default function NetworkActivity() {
 		.slice(0, 12);
 	const rows: TransactionListEntry[] = (entries ?? []).map((entry) => ({
 		cursor: entry.id,
-		node: { id: entry.id, tags: [] },
+		node: {
+			id: entry.id,
+			tags: [],
+			data: entry.dataSize === null ? undefined : { size: entry.dataSize, type: '' },
+		},
 		display: {
 			identifier: entry.kind === 'block' ? entry.height : entry.id,
 			typeLabel: language.landing.activityKinds[entry.kind],
@@ -75,20 +80,21 @@ export default function NetworkActivity() {
 	}
 	return (
 		<S.Wrapper id="network-activity" aria-labelledby="activity-title">
-			<S.Heading>
-				<div>
-					<h2 id="activity-title">{language.landing.activityTitle}</h2>
-					<p>{language.landing.activityDescription}</p>
-				</div>
-				<S.Filters>
+			<ViewTitle
+				id="activity-title"
+				header={language.landing.activityTitle}
+				headingLevel="h2"
+				layout="section"
+				actions={[
 					<Toggle
+						key="network-filter"
 						label={language.landing.filterNetwork}
 						value={network}
 						options={networkOptions}
 						onChange={handleFilter}
-					/>
-				</S.Filters>
-			</S.Heading>
+					/>,
+				]}
+			/>
 			{(activity.status === 'error' || activity.status === 'stale') && (
 				<S.Status role="status">
 					{activity.status === 'stale' ? language.landing.activityStale : language.landing.activityError}

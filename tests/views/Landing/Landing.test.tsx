@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import axe from 'axe-core';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { getNetworkActivity } from '../../../src/api/networkActivity';
 import { getMetricsSnapshot } from '../../../src/api/networkMetrics';
+import { getTokenPriceQuote } from '../../../src/api/prices';
 import { getArweaveNodeRoute } from '../../../src/helpers/arweaveNode';
 import { STORAGE } from '../../../src/helpers/config';
 import { darkTheme, theme } from '../../../src/helpers/themes';
@@ -36,6 +37,7 @@ vi.mock('store/transactions/reducer', () => ({ selectTransaction: () => null }))
 vi.mock('components/molecules/Editor', () => ({ Editor: () => null }));
 
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden="true" /> }));
+vi.mock('api/prices', () => ({ getTokenPriceQuote: vi.fn() }));
 vi.mock('api/networkActivity', () => ({ getNetworkActivity: vi.fn() }));
 vi.mock('api/networkMetrics', () => ({ getMetricsSnapshot: vi.fn(), readMetricsSnapshot: () => null }));
 vi.mock('components/molecules/MetricChart', () => ({
@@ -47,9 +49,11 @@ vi.mock('../../../src/views/Landing/Nodes', () => ({ Nodes: () => null }));
 let container: HTMLElement;
 let root: ReturnType<typeof createRoot>;
 let route: string;
+let navigate: ReturnType<typeof useNavigate>;
 let requestSignal: AbortSignal;
 function Harness() {
 	const location = useLocation();
+	navigate = useNavigate();
 	route = location.pathname + location.search + location.hash;
 	return <Landing />;
 }
@@ -106,6 +110,9 @@ beforeEach(async () => {
 		count: 25,
 		nextCursor: null,
 	});
+	vi.mocked(getTokenPriceQuote).mockImplementation(async (symbol) =>
+		symbol === 'AR' ? { price: 4.21, change24hPercent: 2.44 } : { price: 4.53, change24hPercent: -1.25 }
+	);
 	vi.mocked(getMetricsSnapshot).mockResolvedValue(HOME_METRICS);
 	vi.mocked(getNetworkActivity).mockImplementation(async (signal) => {
 		requestSignal = signal;
@@ -147,17 +154,32 @@ async function enter(query: string) {
 		container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
 	);
 }
-it('presents search, equal network entry points, activity, then detailed statistics', () => {
+it('presents a hero with search and network summaries, then activity and detailed statistics', () => {
 	const headings = [...container.querySelectorAll('h1,h2')].map((element) => element.textContent);
-	expect(headings).toEqual([
-		'Explore Arweave + AO',
-		'Arweave',
-		'AO',
-		'Network activity',
-		'Network statistics',
-		'Your AO connection',
-	]);
+	expect(headings).toEqual(['Arweave & AO Explorer', 'Arweave', 'AO', 'Network Activity', 'Network Statistics']);
+	expect(container.querySelector('#connection-title')?.textContent).toBe('Your AO Connection');
 	expect(container.textContent).toContain('9,007,199,254,740,993');
+	const networks = container.querySelector('section[aria-label="Explore The Networks"]');
+	expect(networks.querySelectorAll('article')).toHaveLength(2);
+	expect(networks.querySelector('[aria-label="Arweave Price (USD)"]').textContent).toBe('$4.21');
+	expect(networks.querySelector('[aria-label="AO Price (USD)"]').textContent).toBe('$4.53');
+	expect(networks.closest('section[aria-labelledby="home-title"]')).not.toBeNull();
+	expect(
+		[...networks.querySelectorAll('[title="24h Change"]')].map((element) => element.getAttribute('aria-label'))
+	).toEqual(['24h Change: +2.44%', '24h Change: -1.25%']);
+	expect([...networks.querySelectorAll('p')].map((element) => element.textContent)).toEqual([
+		'Permanent Data Network',
+		'Decentralized Compute Network',
+	]);
+	const networkLinks = [...networks.querySelectorAll('a')];
+	expect(networkLinks.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+		['Visit Arweave', 'https://arweave.org'],
+		['Visit AO', 'https://ao.arweave.net'],
+	]);
+	for (const link of networkLinks) {
+		expect(link.target).toBe('_blank');
+		expect(link.rel).toBe('noopener noreferrer');
+	}
 	expect(getMetricsSnapshot).toHaveBeenCalledOnce();
 	expect(container.querySelectorAll('#network-activity .transaction-list-element')).toHaveLength(4);
 });
@@ -181,6 +203,17 @@ it('restores 10 recent transactions and blocks below Arweave metrics and 20 mess
 	}
 	expect(ao.querySelector('.message-list-element').textContent).toContain('Message');
 });
+
+it('includes Size beside Network in Latest Activity without changing the recent transaction columns', () => {
+	const activity = container.querySelector('#network-activity');
+	const rows = [...activity.querySelectorAll('.transaction-list-element')];
+	expect(rows[0].parentElement.previousElementSibling.textContent).toBe('IDTypeNetworkSizeTime');
+	expect(rows.map((row) => row.children[3].textContent)).toEqual(['-', '1 MB', '0 Bytes', '-']);
+	expect(rows.map((row) => row.children[2].textContent)).toEqual(['Arweave', 'Arweave', 'AO', 'AO']);
+	const recent = container.querySelector('[aria-labelledby="arweave-statistics-title"] .transaction-list-element');
+	expect(recent.children).toHaveLength(4);
+	expect(recent.children[2].textContent).toBe('100 Bytes');
+});
 it('uses the transaction table renderer for activity and opens a block row by height with the keyboard', async () => {
 	const row = container.querySelector('#network-activity .transaction-list-element');
 	expect(row.getAttribute('role')).toBe('link');
@@ -189,18 +222,18 @@ it('uses the transaction table renderer for activity and opens a block row by he
 	await React.act(async () => row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
 	expect(route).toBe('/explorer/2000000');
 });
-it('filters either network, opens process entries from the AO card, and returns to all activity', async () => {
-	const filter = container.querySelector('[role="radiogroup"][aria-label="Filter activity by network"]');
+it('filters either network, supports process deep links, and returns to all activity', async () => {
+	const filter = container.querySelector('[role="radiogroup"][aria-label="Filter Activity By Network"]');
 	const option = (value: string) => filter.querySelector<HTMLInputElement>(`input[value="${value}"]`);
 	expect(option('all').checked).toBe(true);
 	await click(option('ao'));
 	expect(option('ao').checked).toBe(true);
 	expect(container.querySelectorAll('#network-activity .transaction-list-element')).toHaveLength(2);
 	expect(route).toBe('/?network=ao');
-	await click(container.querySelector<HTMLAnchorElement>('a[href*="activity=process"]'));
+	await React.act(async () => navigate('/?network=ao&activity=process#network-activity'));
 	expect(container.querySelectorAll('#network-activity .transaction-list-element')).toHaveLength(1);
 	expect(container.querySelector('#network-activity .transaction-list-element').textContent).toContain(
-		'Process registered'
+		'Process Registered'
 	);
 	await click(option('all'));
 	expect(option('all').checked).toBe(true);

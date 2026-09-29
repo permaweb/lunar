@@ -14,7 +14,7 @@ export const PlainTrigger = styled(PrimitiveButton)`
 	padding: 0;
 	display: flex;
 	align-items: center;
-	gap: 5px;
+	gap: 6px;
 	background: transparent;
 	border: none;
 	border-radius: ${STYLING.dimensions.radius.alt2};

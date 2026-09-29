@@ -17,12 +17,13 @@ const RIPPLE_SHADER = `
 		return exp(-offset * offset) * envelope;
 	}
 	float scan(vec2 uv, float width) {
-		return ripple(uv, vec2(0.74, 0.38), fract(elapsed * 0.055 + 0.24), width)
-			+ ripple(uv, vec2(0.93, 0.72), fract(elapsed * 0.042 + 0.57), width);
+		return ripple(uv, vec2(0.28, 0.38), fract(elapsed * 0.055 + 0.24), width)
+			+ ripple(uv, vec2(0.78, 0.72), fract(elapsed * 0.042 + 0.57), width);
 	}
 	float fieldFade(vec2 uv) {
 		float vertical = smoothstep(0.0, 0.55, uv.y) * (1.0 - smoothstep(0.78, 1.0, uv.y));
-		return smoothstep(0.2, 0.62, uv.x) * vertical * strength;
+		float horizontal = smoothstep(0.0, 0.04, uv.x) * (1.0 - smoothstep(0.96, 1.0, uv.x));
+		return horizontal * vertical * strength;
 	}
 `;
 const STAR_VERTEX = `
@@ -78,7 +79,7 @@ const RIPPLE_FRAGMENT = `
 	${RIPPLE_SHADER}
 	void main() {
 		float rings = scan(fieldUv, 0.008) * 0.075 + scan(fieldUv, 0.07) * 0.018;
-		vec2 offset = (fieldUv - vec2(0.85, 0.55)) * vec2(1.6, 2.0);
+		vec2 offset = (fieldUv - vec2(0.5, 0.55)) * vec2(0.8, 2.0);
 		float haze = exp(-dot(offset, offset) * 2.0) * hazeStrength;
 		float blend = (haze + rings) * fieldFade(fieldUv);
 		gl_FragColor = vec4(background, 1.0);
@@ -107,7 +108,7 @@ const SHAPE_VERTEX = `
 		// Wrap beyond the faded edges, with a little vertical drift rather than rigid lanes.
 		uv.x = mod(uv.x + 0.12 + elapsed * speed / aspect, 1.24) - 0.12;
 		uv.y += sin(elapsed * 0.16 + phase) * 0.085;
-		float fade = fieldFade(uv) * (1.0 - smoothstep(0.94, 1.06, uv.x));
+		float fade = fieldFade(uv);
 		intensity = (0.18 + scan(uv, 0.18) * 0.2) * fade;
 		rotation = phase + elapsed * (0.035 + speed) * (mod(kind, 2.0) * 2.0 - 1.0);
 		shapeKind = kind;
@@ -233,7 +234,7 @@ export function mountLunarScene(canvas: HTMLCanvasElement, palette: LunarPalette
 
 	const stopObserving = observeLunarScene(canvas, {
 		resize(width, height) {
-			uniforms.strength.value = isDark ? (width < 600 ? 0.45 : 0.85) : width < 600 ? 0.35 : 0.65;
+			uniforms.strength.value = isDark ? (width < 600 ? 0.45 : 0.85) : width < 600 ? 0.6 : 0.95;
 			starGeometry.setDrawRange(0, width < 600 ? 700 : 2200);
 			shapeGeometry.setDrawRange(0, width < 600 ? 12 : 48);
 			const ratio = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(1800000 / (width * height)));

@@ -1,17 +1,26 @@
-import { Link } from 'react-router-dom';
-
+import { ExternalLink } from 'components/atoms/ExternalLink';
 import { Icon } from 'components/atoms/Icon';
-import { ASSETS, URLS } from 'helpers/config';
+import { TokenPrice } from 'components/atoms/TokenPrice';
+import { ASSETS, LINKS } from 'helpers/config';
 import type { NetworkMetricsSnapshot } from 'helpers/types';
+import { useTokenPrices } from 'hooks/useTokenPrices';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { formatBytes, formatDecimal, getMetric } from '../../../model/metrics';
 
 import * as S from './styles';
+import { usePricesScrollPosition } from './usePricesScrollPosition';
 
-export default function NetworkCards(props: { snapshot: NetworkMetricsSnapshot | null; isLoading: boolean }) {
+export default function NetworkCards(props: {
+	snapshot: NetworkMetricsSnapshot | null;
+	isLoading: boolean;
+	onPricesScrollChange?: (hasScrolledPast: boolean) => void;
+}) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
+	const prices = useTokenPrices();
+	const priceRefs = usePricesScrollPosition(props.onPricesScrollChange);
+
 	function metric(key: string, format: 'count' | 'bytes' | 'decimal' = 'count') {
 		if (!props.snapshot) return props.isLoading ? language.loading : '—';
 		const raw = props.snapshot.metrics[key]?.[format === 'bytes' ? 'bytes' : 'value'];
@@ -24,56 +33,61 @@ export default function NetworkCards(props: { snapshot: NetworkMetricsSnapshot |
 		{
 			id: 'arweave',
 			name: language.arweave,
-			icon: ASSETS.arweave,
 			description: language.landing.arweaveDescription,
-			detail: language.landing.arweaveDetail,
+			icon: ASSETS.arweave,
+			size: 14,
+			price: prices.ar,
+			href: LINKS.arweave,
+			visitLabel: language.landing.visitArweave,
 			stats: [
 				{ label: language.transactions, value: metric('total-txs') },
 				{ label: language.landing.currentTps, value: metric('current-tps', 'decimal') },
 				{ label: language.landing.weaveSize, value: metric('total-weave-size', 'bytes') },
 			],
-			path: URLS.transactions,
-			action: language.landing.exploreArweave,
-			links: [
-				{ label: language.blocks, path: URLS.blocks },
-				{ label: language.landing.wallets, path: URLS.addresses },
-				{ label: language.nodes, path: URLS.nodes },
-			],
 		},
 		{
 			id: 'ao',
 			name: language.landing.ao,
-			icon: ASSETS.ao,
 			description: language.landing.aoDescription,
-			detail: language.landing.aoDetail,
+			icon: ASSETS.ao,
+			size: 18,
+			price: prices.ao,
+			href: LINKS.ao,
+			visitLabel: language.landing.visitAo,
 			stats: [
 				{ label: language.landing.mainnetProcesses, value: metric('ao-mainnet-processes-total') },
 				{ label: language.landing.mainnetMessages, value: metric('ao-mainnet-messages-total') },
 				{ label: language.landing.messagesWindow, value: metric('ao-mainnet-messages-rolling') },
 			],
-			path: `${URLS.base}?network=ao#network-activity`,
-			action: language.landing.exploreAo,
-			links: [
-				{ label: language.landing.processes, path: `${URLS.base}?network=ao&activity=process#network-activity` },
-				{ label: language.messages, path: `${URLS.base}?network=ao&activity=message#network-activity` },
-				{ label: language.aos, path: URLS.aos },
-			],
 		},
 	];
 	return (
 		<S.Wrapper aria-label={language.landing.networks}>
-			{cards.map((card) => (
-				<S.Card key={card.id} className="border-wrapper-alt3" aria-labelledby={`${card.id}-title`}>
+			{cards.map((card, index) => (
+				<S.Card key={card.id} aria-labelledby={`${card.id}-title`}>
 					<S.Intro>
-						<S.NetworkIcon>
-							<Icon src={card.icon} size={24} />
-						</S.NetworkIcon>
-						<div>
+						<S.IntroFlex>
+							<S.NetworkIcon $size={card.size}>
+								<Icon src={card.icon} size={card.size} />
+							</S.NetworkIcon>
 							<h2 id={`${card.id}-title`}>{card.name}</h2>
-							<p>{card.description}</p>
-						</div>
+						</S.IntroFlex>
+						<S.Price
+							ref={(element) => {
+								priceRefs.current[index] = element;
+							}}
+						>
+							<TokenPrice
+								price={card.price?.price ?? null}
+								change24hPercent={card.price?.change24hPercent ?? null}
+								priceLabel={`${card.name} ${language.price} (USD)`}
+								changeLabel={language.priceChange24h}
+							/>
+						</S.Price>
 					</S.Intro>
-					<S.Detail>{card.detail}</S.Detail>
+					<S.Description>
+						<p>{card.description}</p>
+					</S.Description>
 					<S.Stats aria-busy={props.isLoading}>
 						{card.stats.map((stat) => (
 							<div key={stat.label}>
@@ -83,16 +97,7 @@ export default function NetworkCards(props: { snapshot: NetworkMetricsSnapshot |
 						))}
 					</S.Stats>
 					<S.Actions>
-						<Link to={card.path}>
-							{card.action} <span aria-hidden="true">→</span>
-						</Link>
-						<S.Links>
-							{card.links.map((link) => (
-								<Link key={link.label} to={link.path}>
-									{link.label}
-								</Link>
-							))}
-						</S.Links>
+						<ExternalLink href={card.href} label={card.visitLabel} />
 					</S.Actions>
 				</S.Card>
 			))}

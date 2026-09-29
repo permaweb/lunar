@@ -16,10 +16,12 @@ import { NODE_INFO, NODE_URL } from '../../fixtures/arweaveNode';
 
 const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), api: { getGQLData: vi.fn(), readProcess: vi.fn() } }));
 vi.mock('react-redux', () => ({ useDispatch: () => mocks.dispatch }));
-vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden={'true'} /> }));
+vi.mock('react-svg', () => ({
+	ReactSVG: (props: { className?: string }) => <svg className={props.className} aria-hidden={'true'} />,
+}));
 vi.mock('wallet/WalletConnect', () => ({ WalletConnect: () => null }));
 vi.mock('store', () => ({ store: {} }));
-vi.mock('helpers/prices', () => ({ getArPrice: async () => null, getAoPrice: async () => null }));
+vi.mock('api/prices', () => ({ getTokenPriceQuote: async () => null }));
 vi.mock('helpers/search', () => ({ searchTxById: vi.fn() }));
 vi.mock('providers/PermawebProvider', () => ({ usePermawebProvider: () => ({ legacyApi: mocks.api }) }));
 vi.mock('api/blocks', () => ({ getBlock: vi.fn() }));
@@ -82,6 +84,31 @@ async function pressKey(key: string, target: EventTarget = document, options: Ke
 	});
 	return event;
 }
+
+it('removes token icons and prices when hidden and restores them when shown', async () => {
+	await pressKey('Escape');
+	async function renderPrices(hideTokenPrices: boolean) {
+		await React.act(async () =>
+			root.render(
+				<MemoryRouter>
+					<ThemeProvider theme={theme(darkTheme)}>
+						<Navigation open={false} toggle={() => {}} hideTokenPrices={hideTokenPrices} />
+					</ThemeProvider>
+				</MemoryRouter>
+			)
+		);
+	}
+	await renderPrices(true);
+	expect(container.querySelector('[aria-label="Arweave Price (USD)"]')).toBeNull();
+	expect(container.querySelector('[aria-label="AO Price (USD)"]')).toBeNull();
+	expect(container.querySelector('.ar-icon, .ao-icon')).toBeNull();
+	await renderPrices(false);
+	expect(container.querySelector('[aria-label="Arweave Price (USD)"]')).not.toBeNull();
+	expect(container.querySelector('[aria-label="AO Price (USD)"]')).not.toBeNull();
+	expect(container.querySelectorAll('.ar-icon, .ao-icon')).toHaveLength(2);
+	await renderPrices(true);
+	expect(container.querySelector('[aria-label="AO Price (USD)"]')).toBeNull();
+});
 
 it('opens the focused search overlay from the desktop field and restores focus on Escape', async () => {
 	await pressKey('Escape');

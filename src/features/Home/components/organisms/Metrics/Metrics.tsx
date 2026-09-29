@@ -31,7 +31,7 @@ const CHARTS: Record<
 		},
 		{
 			chartLabel: 'mainnetProcessesWindow',
-			chartType: 'line',
+			chartType: 'vertical-bar',
 			metric: 'mainnet_processes_rolling',
 			totalField: 'mainnet_processes_total',
 			totalLabel: 'mainnetProcesses',

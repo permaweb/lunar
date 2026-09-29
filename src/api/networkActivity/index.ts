@@ -7,10 +7,11 @@ export type NetworkActivityEntry = {
 	network: 'arweave' | 'ao';
 	kind: 'block' | 'transaction' | 'message' | 'process';
 	timestamp: number | null;
+	dataSize: string | null;
 	height?: number;
 };
 
-const TRANSACTION_FIELDS = 'edges { node { id tags { name value } block { timestamp } } }';
+const TRANSACTION_FIELDS = 'edges { node { id tags { name value } data { size } block { timestamp } } }';
 const QUERY = `query HomeNetworkActivity {
 	blocks(first: 6, sort: HEIGHT_DESC) { edges { node { id height timestamp } } }
 	transactions(first: 6, sort: HEIGHT_DESC) { ${TRANSACTION_FIELDS} }
@@ -32,6 +33,12 @@ function timestamp(value: unknown): number {
 	return value;
 }
 
+function dataSize(value: unknown): string | null {
+	if (typeof value === 'string' && /^\d+$/.test(value)) return value;
+	if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return String(value);
+	return null;
+}
+
 export function parseNetworkActivity(payload: unknown): NetworkActivityEntry[] {
 	const envelope = record(payload);
 	if (envelope.errors) throw new Error('unavailable');
@@ -51,6 +58,7 @@ export function parseNetworkActivity(payload: unknown): NetworkActivityEntry[] {
 					timestamp: timestamp(node.timestamp),
 					network: 'arweave',
 					kind: 'block',
+					dataSize: null,
 				});
 				continue;
 			}
@@ -68,6 +76,7 @@ export function parseNetworkActivity(payload: unknown): NetworkActivityEntry[] {
 				timestamp: node.block ? timestamp(record(node.block).timestamp) : null,
 				network: isAo ? 'ao' : 'arweave',
 				kind,
+				dataSize: node.data ? dataSize(record(node.data).size) : null,
 			});
 		}
 	}

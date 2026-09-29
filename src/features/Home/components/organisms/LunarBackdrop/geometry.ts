@@ -27,7 +27,7 @@ export function createStarField(count: number): {
 	const glints = new Float32Array(count);
 	const random = seededRandom(19690720);
 	for (let i = 0; i < count; i++) {
-		positions.set([random() ** 0.7 * 2 - 1, random() * 2 - 1, 0], i * 3);
+		positions.set([random() * 2 - 1, random() * 2 - 1, 0], i * 3);
 		brightness[i] = 0.22 + random() * 0.38;
 		glints[i] = random() > 0.975 ? 1 : 0;
 		sizes[i] = glints[i] ? 7 : 2.4 + random() * 2.2;

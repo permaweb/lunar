@@ -12,13 +12,14 @@ import { ActionMenu } from 'components/atoms/ActionMenu';
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
+import { TokenPrice } from 'components/atoms/TokenPrice';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
-import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
 import { checkValidBlockHeight, checkValidBlockId, isValidSearchInput } from 'helpers/searchInput';
 import { formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
+import { useTokenPrices } from 'hooks/useTokenPrices';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
@@ -29,7 +30,7 @@ import * as S from './styles';
 
 type NavigationItem = { label: string } & ({ path: string } | { id: string; onSelect: () => void });
 
-export default function Navigation(props: { open: boolean; toggle: () => void }) {
+export default function Navigation(props: { open: boolean; toggle: () => void; hideTokenPrices?: boolean }) {
 	const dispatch = useDispatch();
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -49,10 +50,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	} | null>(null);
 	const [searchError, setSearchError] = React.useState<string | null>(null);
 	const [panelOpen, setPanelOpen] = React.useState<boolean>(false);
-	const [prices, setPrices] = React.useState<{ ao: number | null; ar: number | null }>({
-		ao: null,
-		ar: null,
-	});
+	const prices = useTokenPrices();
 
 	const handleOpenSearch = React.useCallback(() => {
 		setPanelOpen(false);
@@ -170,29 +168,6 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 			debouncedResize.cancel();
 		};
 	}, [debouncedResize]);
-
-	React.useEffect(() => {
-		let cancelled = false;
-
-		async function fetchPrices() {
-			const [ao, ar] = await Promise.all([getAoPrice(), getArPrice()]);
-
-			if (!cancelled) {
-				setPrices({
-					ao: ao,
-					ar: ar,
-				});
-			}
-		}
-
-		fetchPrices();
-		const interval = window.setInterval(fetchPrices, 60 * 1000);
-
-		return () => {
-			cancelled = true;
-			window.clearInterval(interval);
-		};
-	}, []);
 
 	React.useEffect(() => {
 		const input = inputTxId.trim();
@@ -335,17 +310,6 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		);
 	}
 
-	function formatUsdPrice(price: number | null) {
-		if (price === null) return '-';
-
-		return price.toLocaleString(undefined, {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: price >= 1 ? 2 : 4,
-			maximumFractionDigits: price >= 1 ? 2 : 6,
-		});
-	}
-
 	const isTabsView =
 		location.pathname.startsWith(URLS.explorer) ||
 		location.pathname.startsWith(URLS.aos) ||
@@ -391,18 +355,34 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 						</S.DNavWrapper>
 					</S.C1Wrapper>
 					<S.ActionsWrapper>
-						<S.PriceWrapper>
-							<S.PriceItem>
-								<ReactSVG className={'ar-icon'} src={ASSETS.arweave} />
-								<p>{formatUsdPrice(prices.ar)}</p>
-							</S.PriceItem>
-							<Link to={`${URLS.explorer}${PROCESSES.ao}`}>
+						{!props.hideTokenPrices && (
+							<S.PriceWrapper>
 								<S.PriceItem>
-									<ReactSVG className={'ao-icon'} src={ASSETS.ao} />
-									<p>{formatUsdPrice(prices.ao)}</p>
+									<ReactSVG className={'ar-icon'} src={ASSETS.arweave} />
+									<p>
+										<TokenPrice
+											price={prices.ar?.price ?? null}
+											change24hPercent={prices.ar?.change24hPercent ?? null}
+											priceLabel={`${language.arweave} ${language.price} (USD)`}
+											changeLabel={language.priceChange24h}
+										/>
+									</p>
 								</S.PriceItem>
-							</Link>
-						</S.PriceWrapper>
+								<Link to={`${URLS.explorer}${PROCESSES.ao}`}>
+									<S.PriceItem>
+										<ReactSVG className={'ao-icon'} src={ASSETS.ao} />
+										<p>
+											<TokenPrice
+												price={prices.ao?.price ?? null}
+												change24hPercent={prices.ao?.change24hPercent ?? null}
+												priceLabel={`${language.landing.ao} ${language.price} (USD)`}
+												changeLabel={language.priceChange24h}
+											/>
+										</p>
+									</S.PriceItem>
+								</Link>
+							</S.PriceWrapper>
+						)}
 						<S.SearchActionWrapper>
 							<FormField
 								value={''}
