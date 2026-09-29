@@ -323,6 +323,11 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 	id,
 	scheme: currentTheme.scheme,
 	colors: {
+		lunar: {
+			background: currentTheme.neutral1,
+			light: currentTheme.neutralA2,
+			accent: currentTheme.neutral5,
+		},
 		accordion: {
 			background: currentTheme.neutral1,
 			hover: currentTheme.neutral2,

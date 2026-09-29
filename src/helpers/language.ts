@@ -1,9 +1,7 @@
 export const language = {
 	en: {
 		landing: {
-			identity: 'Arweave + AO explorer',
 			title: 'Explore Arweave + AO',
-			description: 'Search transactions, blocks, wallets, processes, messages, nodes, and more.',
 			searchPlaceholder: 'Search Arweave or AO...',
 			searchExamples: 'Transaction ID · Block · Wallet · Process · Message · Node URL',
 			searchError: 'Enter a transaction, wallet, process or message ID, a block height or hash, or a node URL.',
