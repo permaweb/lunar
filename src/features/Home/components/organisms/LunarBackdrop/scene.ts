@@ -17,8 +17,9 @@ const RIPPLE_SHADER = `
 		return exp(-offset * offset) * envelope;
 	}
 	float scan(vec2 uv, float width) {
-		return ripple(uv, vec2(0.28, 0.38), fract(elapsed * 0.055 + 0.24), width)
-			+ ripple(uv, vec2(0.78, 0.72), fract(elapsed * 0.042 + 0.57), width);
+		// Launch each illumination wave at the center and let it travel out through the particles.
+		return ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065), width)
+			+ ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.5), width);
 	}
 	float fieldFade(vec2 uv) {
 		float vertical = smoothstep(0.0, 0.55, uv.y) * (1.0 - smoothstep(0.78, 1.0, uv.y));

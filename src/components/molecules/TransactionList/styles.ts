@@ -46,7 +46,7 @@ const previewWithDetail = css<{ $preview?: boolean; $hasDetail?: boolean }>`
 		`}
 `;
 
-export const HeaderWrapper = styled(BlockListStyles.HeaderWrapper)`
+export const HeaderWrapper = styled(BlockListStyles.HeaderWrapper)<{ $hasDetail?: boolean }>`
 	${previewWithDetail}
 `;
 
@@ -72,7 +72,7 @@ export const BodyWrapper = styled.div<{ $preview?: boolean; $hasDetail?: boolean
 	}
 `;
 
-export const ElementWrapper = styled(BlockListStyles.ElementWrapper)`
+export const ElementWrapper = styled(BlockListStyles.ElementWrapper)<{ $hasDetail?: boolean }>`
 	${previewWithDetail}
 	&:focus-visible {
 		background: ${(props) => props.theme.colors.container.primary.active};
