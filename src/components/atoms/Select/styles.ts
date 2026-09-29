@@ -1,9 +1,6 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
-
-export const CHEVRON_DOWN_PATH = 'M6 9 L12 15 L18 9';
-export const CHEVRON_UP_PATH = 'M6 15 L12 9 L18 15';
 
 export const Wrapper = styled.div<{ $plain?: boolean }>`
 	height: fit-content;
@@ -119,34 +116,11 @@ export const Dropdown = styled.button<{ active: boolean; $plain?: boolean }>`
 	`}
 `;
 
-export const Chevron = styled.svg`
-	display: block;
-	flex: 0 0 auto;
-	overflow: visible;
-`;
-
-export const ChevronPath = styled.path<{ $active: boolean }>`
-	d: path('${(props) => (props.$active ? CHEVRON_UP_PATH : CHEVRON_DOWN_PATH)}');
-	fill: none;
-	stroke: currentColor;
-	stroke-width: 1.5;
-	stroke-linecap: round;
-	stroke-linejoin: round;
-	transition: d 320ms cubic-bezier(0.22, 1, 0.36, 1);
-
-	@media (prefers-reduced-motion: reduce) {
-		transition: none;
-	}
-`;
-
-export const Options = styled.ul<{ $top?: number; $plain?: boolean }>`
-	width: ${(props) => (props.$plain ? 'max-content' : '100%')};
+export const dropdownSurfaceStyles = css`
 	min-width: 100%;
 	max-width: 90vw;
 	max-height: 248px;
 	position: absolute;
-	${(props) => props.$plain && 'right: 0;'}
-	top: ${(props) => (props.$top ? `${props.$top.toString()}px` : 'calc(100% + 5px)')};
 	z-index: 4;
 	display: flex;
 	flex-direction: column;
@@ -160,7 +134,14 @@ export const Options = styled.ul<{ $top?: number; $plain?: boolean }>`
 	box-shadow: 0 10px 30px ${(props) => props.theme.colors.shadow.primary};
 `;
 
-export const Option = styled.li<{ active: boolean }>`
+export const Options = styled.ul<{ $top?: number; $plain?: boolean }>`
+	${dropdownSurfaceStyles}
+	width: ${(props) => (props.$plain ? 'max-content' : '100%')};
+	${(props) => props.$plain && 'right: 0;'}
+	top: ${(props) => (props.$top ? `${props.$top.toString()}px` : 'calc(100% + 5px)')};
+`;
+
+export const dropdownItemStyles = css<{ $active?: boolean }>`
 	min-height: 34px;
 	display: flex;
 	flex: none;
@@ -170,16 +151,23 @@ export const Option = styled.li<{ active: boolean }>`
 	padding: 0 4px 0 10px;
 	text-align: left;
 	cursor: pointer;
-	color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
+	color: ${(props) => (props.$active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
+	font-family: ${(props) => props.theme.typography.family.primary};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
-	font-weight: ${(props) => (props.active ? props.theme.typography.weight.bold : props.theme.typography.weight.bold)};
-	background: ${(props) => (props.active ? props.theme.colors.container.primary.active : 'transparent')};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	background: ${(props) => (props.$active ? props.theme.colors.container.primary.active : 'transparent')};
+	border: none;
 	border-radius: ${STYLING.dimensions.radius.alt2};
 	transition: background 100ms;
 
-	&:hover {
+	&:hover,
+	&:focus-visible {
 		background: ${(props) => props.theme.colors.container.primary.active};
 	}
+`;
+
+export const Option = styled.li<{ $active: boolean }>`
+	${dropdownItemStyles}
 `;
 
 export const OptionLabel = styled.span`

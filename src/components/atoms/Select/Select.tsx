@@ -1,6 +1,7 @@
 import React from 'react';
 import { ReactSVG } from 'react-svg';
 
+import { Chevron } from 'components/atoms/Chevron';
 import { ASSETS } from 'helpers/config';
 import { SelectOptionType } from 'helpers/types';
 import { CloseHandler } from 'wrappers/CloseHandler';
@@ -30,9 +31,7 @@ export default function Select(props: IProps) {
 					}}
 				>
 					<span>{props.activeOption.label}</span>
-					<S.Chevron viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-						<S.ChevronPath d={active ? S.CHEVRON_UP_PATH : S.CHEVRON_DOWN_PATH} $active={active} />
-					</S.Chevron>
+					<Chevron isOpen={active} size={props.variant === 'plain' ? 15 : 17} />
 				</S.Dropdown>
 				{active && (
 					<S.Options $top={props.top} $plain={props.variant === 'plain'}>
@@ -40,7 +39,7 @@ export default function Select(props: IProps) {
 							return (
 								<S.Option
 									key={index}
-									active={option.id === props.activeOption.id}
+									$active={option.id === props.activeOption.id}
 									onClick={(e) => {
 										e.stopPropagation();
 										if (option.id !== props.activeOption.id) {

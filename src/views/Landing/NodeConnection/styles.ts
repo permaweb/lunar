@@ -1,10 +1,19 @@
 import styled from 'styled-components';
 
+import { STYLING } from 'helpers/config';
+
 export const Wrapper = styled.div`
 	width: 100%;
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 25px;
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 15px;
+	}
 	padding: 15px;
 	position: relative;
 	background: ${(props) => props.theme.colors.container.alt1.background} !important;
@@ -14,6 +23,11 @@ export const ActionWrapper = styled.div`
 	position: absolute;
 	top: 15px;
 	right: 15px;
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		position: static;
+		grid-column: 1 / -1;
+		justify-self: end;
+	}
 `;
 
 export const MetricsSection = styled.div`
@@ -30,7 +44,7 @@ export const MetricsSection = styled.div`
 		font-family: ${(props) => props.theme.typography.family.primary};
 		color: ${(props) => props.theme.colors.font.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-		white-space: nowrap;
+		overflow-wrap: anywhere;
 	}
 
 	span {

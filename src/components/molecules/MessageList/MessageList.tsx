@@ -1104,6 +1104,8 @@ function shouldSyncMessageQueryParams(args: {
 export default function MessageList(props: {
 	header?: string;
 	headerCount?: number | null;
+	pageSize?: number;
+	preview?: boolean;
 	txId?: string;
 	variant: MessageVariantEnum;
 	type?: TransactionType;
@@ -1136,6 +1138,7 @@ export default function MessageList(props: {
 
 	const tableContainerRef = React.useRef(null);
 	const syncQueryParams =
+		!props.preview &&
 		!hasSource &&
 		shouldSyncMessageQueryParams({
 			pathname: location.pathname,
@@ -1157,10 +1160,10 @@ export default function MessageList(props: {
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
 	const filterStorageKey = React.useMemo(() => {
-		if (hasSource || props.childList || props.result) return null;
+		if (props.preview || hasSource || props.childList || props.result) return null;
 
 		return STORAGE.messageFilter(props.txId || 'global');
-	}, [hasSource, props.txId, props.childList, props.result]);
+	}, [props.preview, hasSource, props.txId, props.childList, props.result]);
 
 	const loadedFilterState = React.useMemo(() => {
 		if (filterStorageKey) {
@@ -1243,7 +1246,10 @@ export default function MessageList(props: {
 
 	const [loadedData, setCurrentData] = React.useState<any[] | null>(null);
 	const [internalLoading, setLoadingMessages] = React.useState<boolean>(false);
-	const currentData = props.source?.edges ?? loadedData;
+	const availableData = props.source?.edges ?? loadedData;
+	const currentData = props.preview
+		? availableData?.slice(0, props.pageSize ?? DEFAULT_RESULTS_PER_PAGE)
+		: availableData;
 	const loadingMessages = props.source?.loading ?? internalLoading;
 	const [schedulerFallbackActive, setSchedulerFallbackActive] = React.useState<boolean>(false);
 
@@ -1258,10 +1264,10 @@ export default function MessageList(props: {
 	const pageNumber = props.source ? props.source.page + 1 : internalPageNumber;
 	const [pageInput, setPageInput] = React.useState<string>((queryFilterState?.page ?? 1).toString());
 	const [perPage, setPerPage] = React.useState<string>(
-		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+		initialFilterState?.perPage ?? (props.pageSize ?? DEFAULT_RESULTS_PER_PAGE).toString()
 	);
 	const [perPageInput, setPerPageInput] = React.useState<string>(
-		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+		initialFilterState?.perPage ?? (props.pageSize ?? DEFAULT_RESULTS_PER_PAGE).toString()
 	);
 	const [recipient, setRecipient] = React.useState<string>(initialFilterState?.recipient ?? '');
 	const [fromAddress, setFromAddress] = React.useState<string>(initialFilterState?.fromAddress ?? '');
@@ -2158,6 +2164,7 @@ export default function MessageList(props: {
 
 				let globalQueryArgs: any = {
 					...getQueryTagsArg(tags),
+					...(props.preview ? { sort: 'descending' } : {}),
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
 				};
@@ -2207,6 +2214,7 @@ export default function MessageList(props: {
 		pageNumber,
 		permawebProvider.legacyApi,
 		permawebProvider.mainnetApi,
+		props.preview,
 		schedulerCandidateForCurrentFilters,
 		hasSchedulerVariant,
 		useSchedulerForProcessMessages,
@@ -2614,7 +2622,7 @@ export default function MessageList(props: {
 								</div>
 							)}
 						</S.HeaderMain>
-						{props.source && (
+						{!props.preview && props.source && (
 							<S.HeaderActions className={'scroll-wrapper-hidden'}>
 								<Button
 									type={'alt3'}
@@ -2638,7 +2646,7 @@ export default function MessageList(props: {
 								{getPaginator(false)}
 							</S.HeaderActions>
 						)}
-						{!hasSource && !props.result && (
+						{!props.preview && !hasSource && !props.result && (
 							<S.HeaderActions className={'scroll-wrapper-hidden'}>
 								{props.type && props.type !== 'message' && (
 									<>
@@ -2846,7 +2854,7 @@ export default function MessageList(props: {
 					</S.UpdateWrapper>
 				)}
 				{currentData?.length > 0 ? (
-					<S.Wrapper childList={props.childList}>
+					<S.Wrapper childList={props.childList} $preview={props.preview}>
 						{!props.childList && (
 							<S.HeaderWrapper className={'fade-in'}>
 								<S.ID>
@@ -2913,9 +2921,9 @@ export default function MessageList(props: {
 				) : (
 					getMessage()
 				)}
-				{!props.childList && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
+				{!props.preview && !props.childList && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
 			</S.Container>
-			{!hasSource && !props.childList && showFilters && (
+			{!props.preview && !hasSource && !props.childList && showFilters && (
 				<Modal
 					type="panel"
 					width={515}

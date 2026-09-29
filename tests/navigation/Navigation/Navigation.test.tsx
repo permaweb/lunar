@@ -31,8 +31,11 @@ let container: HTMLElement;
 let overlay: HTMLElement;
 let root: ReturnType<typeof createRoot>;
 let path: string;
+let query: string;
 function Harness() {
-	path = useLocation().pathname;
+	const location = useLocation();
+	path = location.pathname;
+	query = location.search;
 	return <Navigation open={false} toggle={() => {}} />;
 }
 beforeEach(async () => {
@@ -226,4 +229,16 @@ it('continues to support block heights and transaction IDs', async () => {
 	await enter(id);
 	expect(overlay.querySelector('a').getAttribute('href')).toBe(`/explorer/${id}`);
 	expect(arweaveNodeApi.getInfo).not.toHaveBeenCalled();
+});
+
+it('groups network navigation and opens the AO process activity view', async () => {
+	await pressKey('Escape');
+	const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="AO"]');
+	await pressKey('ArrowDown', trigger);
+	expect(document.activeElement.textContent).toBe('Processes');
+	const process = container.querySelector<HTMLButtonElement>('[role="menuitem"]');
+	await React.act(async () => process.click());
+	expect(path).toBe('/');
+	expect(query).toBe('?network=ao&activity=process');
+	expect(container.querySelector('[role="menu"]')).toBeNull();
 });

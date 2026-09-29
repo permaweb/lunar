@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { debounce } from 'lodash';
 import { useTheme } from 'styled-components';
@@ -8,6 +8,7 @@ import { useTheme } from 'styled-components';
 import { arweaveNodeApi, ArweaveNodeError } from 'api/arweaveNode';
 import { getBlock } from 'api/blocks';
 
+import { ActionMenu } from 'components/atoms/ActionMenu';
 import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
@@ -15,38 +16,24 @@ import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
 import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
-import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { checkValidBlockHeight, checkValidBlockId, isValidSearchInput } from 'helpers/searchInput';
+import { formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
+import { useSettingsProvider } from 'providers/SettingsProvider';
 import { store } from 'store';
 import { WalletConnect } from 'wallet/WalletConnect';
 
 import * as S from './styles';
 
-function checkValidBlockId(id: string | null): boolean {
-	if (!id) return false;
-	return /^[a-z0-9_-]{64}$/i.test(id);
-}
-
-function checkValidBlockHeight(id: string | null): boolean {
-	if (!id) return false;
-	return /^\d+$/.test(id);
-}
-
-function isValidSearchInput(value: string): boolean {
-	const input = value.trim();
-	return (
-		normalizeArweaveNode(input) !== null ||
-		checkValidAddress(input) ||
-		checkValidBlockHeight(input) ||
-		checkValidBlockId(input)
-	);
-}
+type NavigationItem = { label: string } & ({ path: string } | { id: string; onSelect: () => void });
 
 export default function Navigation(props: { open: boolean; toggle: () => void }) {
 	const dispatch = useDispatch();
 	const location = useLocation();
+	const navigate = useNavigate();
+	const settingsProvider = useSettingsProvider();
 	const theme = useTheme();
 
 	const permawebProvider = usePermawebProvider();
@@ -127,50 +114,45 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 		};
 	}, [theme.colors.border.primary]);
 
-	const paths = React.useMemo(() => {
-		return [
+	const groups: { label: string; items: NavigationItem[] }[] = React.useMemo(
+		() => [
 			{
-				path: URLS.explorer,
-				icon: ASSETS.explorer,
-				label: language.explorer,
+				label: language.arweave,
+				items: [
+					{ path: URLS.transactions, label: language.transactions },
+					{ path: URLS.blocks, label: language.blocks },
+					{ path: URLS.addresses, label: language.landing.wallets },
+					{ path: URLS.nodes, label: language.nodes },
+				],
 			},
 			{
-				path: URLS.transactions,
-				icon: ASSETS.transaction,
-				label: language.transactions,
+				label: language.landing.ao,
+				items: [
+					{ path: `${URLS.base}?network=ao&activity=process#network-activity`, label: language.landing.processes },
+					{ path: `${URLS.base}?network=ao&activity=message#network-activity`, label: language.messages },
+				],
 			},
 			{
-				path: URLS.blocks,
-				icon: ASSETS.block,
-				label: language.blocks,
+				label: language.landing.tools,
+				items: [
+					{ path: URLS.aos, label: language.aos },
+					{ path: URLS.graphql, label: language.graphql },
+				],
 			},
 			{
-				path: URLS.addresses,
-				icon: ASSETS.users,
-				label: language.addresses,
+				label: language.landing.more,
+				items: [
+					{ path: URLS.docs, label: language.docs },
+					{
+						id: 'network-settings',
+						label: language.networkSettings,
+						onSelect: () => settingsProvider.setShowNodeSettings(true),
+					},
+				],
 			},
-			{
-				path: URLS.nodes,
-				icon: ASSETS.arweave,
-				label: language.nodes,
-			},
-			{
-				path: URLS.aos,
-				icon: ASSETS.console,
-				label: language.aos,
-			},
-			{
-				path: URLS.graphql,
-				icon: ASSETS.code,
-				label: language.graphql,
-			},
-			{
-				path: URLS.docs,
-				icon: ASSETS.docs,
-				label: language.docs,
-			},
-		];
-	}, [language]);
+		],
+		[language, settingsProvider.setShowNodeSettings]
+	);
 
 	function handleWindowResize() {
 		if (checkWindowCutoff(parseInt(STYLING.cutoffs.tablet))) {
@@ -185,6 +167,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 
 		return () => {
 			window.removeEventListener('resize', debouncedResize);
+			debouncedResize.cancel();
 		};
 	}, [debouncedResize]);
 
@@ -380,24 +363,31 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 				<S.Content>
 					<S.C1Wrapper>
 						<S.LogoWrapper>
-							<Link to={URLS.base}>
+							<Link to={URLS.base} aria-label={language.home}>
 								<ReactSVG src={ASSETS.logo} />
 							</Link>
 						</S.LogoWrapper>
-						<S.DNavWrapper>
-							{paths.map((element: { path: string; label: string; target?: '_blank' }, index: number) => {
-								const active =
-									element.path === URLS.base
-										? location.pathname === URLS.base
-										: location.pathname.startsWith(element.path);
-								return (
-									<S.DNavLink key={index} active={active}>
-										<Link to={element.path} target={element.target || ''}>
-											{element.label}
-										</Link>
-									</S.DNavLink>
-								);
-							})}
+						<S.DNavWrapper aria-label={language.goTo}>
+							<S.DNavLink active={location.pathname === URLS.base}>
+								<Link to={URLS.base}>{language.home}</Link>
+							</S.DNavLink>
+							<S.DNavLink active={location.pathname.startsWith(URLS.explorer)}>
+								<Link to={URLS.explorer}>{language.explorer}</Link>
+							</S.DNavLink>
+							{groups.map((group) => (
+								<ActionMenu
+									key={group.label}
+									label={group.label}
+									ariaLabel={group.label}
+									variant="plain"
+									menuOffset={0}
+									items={group.items.map((item) => ({
+										id: 'path' in item ? item.path : item.id,
+										label: item.label,
+										onSelect: 'path' in item ? () => navigate(item.path) : item.onSelect,
+									}))}
+								/>
+							))}
 						</S.DNavWrapper>
 					</S.C1Wrapper>
 					<S.ActionsWrapper>
@@ -454,6 +444,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 							<Button
 								type={'primary'}
 								icon={ASSETS.menu}
+								tooltip={language.goTo}
 								onPress={() => {
 									setSearchOpen(false);
 									setPanelOpen(true);
@@ -477,13 +468,35 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 			{panelOpen && (
 				<Modal type={'panel'} width={400} header={language.goTo} onClose={() => setPanelOpen(false)}>
 					<S.MNavWrapper>
-						{paths.map((element: { path: string; label: string; target?: '_blank' }, index: number) => {
-							return (
-								<Link key={index} to={element.path} target={element.target || ''} onClick={() => setPanelOpen(false)}>
-									{element.label}
-								</Link>
-							);
-						})}
+						<Link to={URLS.base} onClick={() => setPanelOpen(false)}>
+							{language.home}
+						</Link>
+						<Link to={URLS.explorer} onClick={() => setPanelOpen(false)}>
+							{language.explorer}
+						</Link>
+						{groups.map((group) => (
+							<S.MobileGroup key={group.label}>
+								<h2>{group.label}</h2>
+								{group.items.map((item) =>
+									'path' in item ? (
+										<Link key={item.path} to={item.path} onClick={() => setPanelOpen(false)}>
+											{item.label}
+										</Link>
+									) : (
+										<S.MobileAction
+											key={item.id}
+											type="button"
+											onClick={() => {
+												setPanelOpen(false);
+												item.onSelect();
+											}}
+										>
+											{item.label}
+										</S.MobileAction>
+									)
+								)}
+							</S.MobileGroup>
+						))}
 					</S.MNavWrapper>
 				</Modal>
 			)}
