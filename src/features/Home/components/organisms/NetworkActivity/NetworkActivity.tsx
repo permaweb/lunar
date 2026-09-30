@@ -51,7 +51,7 @@ export default function NetworkActivity() {
 						: entry.kind === 'process'
 						? 'eval'
 						: entry.kind === 'block'
-						? 'other'
+						? 'transfer'
 						: 'balance'
 				],
 			detail: entry.network === 'ao' ? language.landing.ao : language.arweave,

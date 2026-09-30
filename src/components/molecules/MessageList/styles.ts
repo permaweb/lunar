@@ -243,10 +243,13 @@ export const BodyWrapper = styled.div<{
 	childList?: boolean;
 	isOverallLast?: boolean;
 	$nestingLevel?: number;
+	$preview?: boolean;
 }>`
 	width: 100%;
 
 	> *:last-child {
+		border-bottom-left-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
+		border-bottom-right-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
 		border-bottom: 1px solid
 			${(props) =>
 				props.childList && !props.isOverallLast

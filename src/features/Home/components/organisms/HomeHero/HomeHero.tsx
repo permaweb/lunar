@@ -53,17 +53,6 @@ export default function HomeHero(props: {
 							invalid={{ status: hasSubmitted && !isValid, message: null }}
 							disabled={false}
 							hideErrorMessage
-							endAdornment={
-								<Button
-									type="alt1"
-									icon={ASSETS.arrowRight}
-									tooltip={language.search}
-									onPress={() => {}}
-									formSubmit
-									height={32}
-									iconSize={16}
-								/>
-							}
 						/>
 						{hasSubmitted && !isValid && <S.Error role="alert">{language.landing.searchError}</S.Error>}
 					</S.Search>

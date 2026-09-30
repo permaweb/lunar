@@ -2892,6 +2892,7 @@ export default function MessageList(props: {
 							childList={props.childList}
 							isOverallLast={props.isOverallLast}
 							$nestingLevel={props.nestingLevel}
+							$preview={props.preview}
 							className={'fade-in'}
 						>
 							{currentData.map((element: any, index: number) => {
