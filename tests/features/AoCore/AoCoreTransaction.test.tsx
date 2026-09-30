@@ -8,6 +8,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { parseAoCoreMessage } from '../../../src/api/aoCore';
 import { AoCoreTransaction } from '../../../src/features/AoCore';
 import { DEFAULT_AO_NETWORK } from '../../../src/helpers/aoNetwork';
+import { FLAGS } from '../../../src/helpers/config';
 import { darkTheme, theme } from '../../../src/helpers/themes';
 
 const mocks = vi.hoisted(() => ({ read: vi.fn(), props: null, network: null }));
@@ -34,6 +35,7 @@ let container: HTMLElement;
 let overlay: HTMLElement;
 let root: ReturnType<typeof createRoot>;
 const id = 'a'.repeat(43);
+const defaultAoCoreFlag = FLAGS.ENABLE_AO_CORE;
 const response = (raw: unknown, requestedId = id) => ({
 	data: parseAoCoreMessage(JSON.stringify(raw), requestedId),
 	provider: 'https://ao.example',
@@ -41,6 +43,7 @@ const response = (raw: unknown, requestedId = id) => ({
 });
 beforeEach(() => {
 	vi.clearAllMocks();
+	FLAGS.ENABLE_AO_CORE = true;
 	mocks.network = null;
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-reduced-motion') }));
@@ -52,6 +55,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
 	await React.act(async () => root.unmount());
+	FLAGS.ENABLE_AO_CORE = defaultAoCoreFlag;
 	container.remove();
 	overlay.remove();
 	vi.unstubAllGlobals();
@@ -73,6 +77,22 @@ async function render(txId = id, path = `/explorer/${id}/info`, active = true) {
 		)
 	);
 }
+
+it.each(['info', 'ao-core'])('disables AO Core by default on /%s, even with AO metadata', async (tab) => {
+	FLAGS.ENABLE_AO_CORE = defaultAoCoreFlag;
+	expect(FLAGS.ENABLE_AO_CORE).toBe(false);
+	const path = `/explorer/${id}/${tab}`;
+	await render(id, path);
+	await React.act(async () =>
+		mocks.props.onTxChange({ node: { id, tags: [{ name: 'Device', value: 'process@1.0' }] } })
+	);
+	await render(id, path, false);
+	mocks.network = { ...DEFAULT_AO_NETWORK, peers: ['https://new.example'] };
+	await render(id, path);
+	expect(container.textContent).toBe('Overview');
+	expect(mocks.props.inspector).toBeUndefined();
+	expect(mocks.read).not.toHaveBeenCalled();
+});
 
 it('keeps ordinary transactions on Overview when only Type or an HTTP signature is present', async () => {
 	mocks.read.mockResolvedValue(response({ Type: 'Message', signature: 'untrusted' }));

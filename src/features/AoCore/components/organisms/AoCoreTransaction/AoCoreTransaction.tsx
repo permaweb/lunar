@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { recognizeAoMetadata } from 'api/aoCore';
 
 import { Transaction } from 'components/organisms/Transaction';
-import { URLS } from 'helpers/config';
+import { FLAGS, URLS } from 'helpers/config';
 import type { GQLNodeResponseType } from 'helpers/types';
 import { checkValidAddress } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -32,7 +32,7 @@ export default function AoCoreTransaction(props: React.ComponentProps<typeof Tra
 		setExploration({ id: props.txId, explicit: explicitContext });
 	}
 	const context = metadata.length > 0 || explicitContext || (exploration.id === props.txId && exploration.explicit);
-	const eligible = checkValidAddress(props.txId);
+	const eligible = FLAGS.ENABLE_AO_CORE && checkValidAddress(props.txId);
 	const enabled = eligible && props.active !== false;
 	const state = useAoCoreMessage(props.txId, enabled, context, revision);
 	const available = eligible && (state.status === 'ready' || context);

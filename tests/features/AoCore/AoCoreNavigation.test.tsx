@@ -8,6 +8,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { parseAoCoreMessage } from '../../../src/api/aoCore';
 import { ExplorerTabs } from '../../../src/features/Explorer';
 import { DEFAULT_AO_NETWORK } from '../../../src/helpers/aoNetwork';
+import { FLAGS } from '../../../src/helpers/config';
 import { darkTheme, theme } from '../../../src/helpers/themes';
 import { PinnedTabsProvider } from '../../../src/providers/PinnedTabsProvider';
 
@@ -67,6 +68,7 @@ vi.mock('@xyflow/react', () => ({
 const id = 'a'.repeat(43);
 const linkedId = 'b'.repeat(43);
 const path = `/explorer/${id}/ao-core`;
+const defaultAoCoreFlag = FLAGS.ENABLE_AO_CORE;
 let container: HTMLElement;
 let root: ReturnType<typeof createRoot>;
 let navigate: ReturnType<typeof useNavigate>;
@@ -78,6 +80,7 @@ function Harness() {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	FLAGS.ENABLE_AO_CORE = true;
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	vi.stubGlobal('matchMedia', () => ({ matches: true }));
 	Element.prototype.scrollTo = vi.fn();
@@ -112,6 +115,7 @@ beforeEach(() => {
 
 afterEach(async () => {
 	await React.act(async () => root.unmount());
+	FLAGS.ENABLE_AO_CORE = defaultAoCoreFlag;
 	container.remove();
 	vi.unstubAllGlobals();
 });
@@ -139,6 +143,17 @@ async function click(label: string, within: Element) {
 	expect(button, label).toBeDefined();
 	await React.act(async () => button.click());
 }
+
+it.each(['info', 'ao-core'])('hides AO Core and makes no AO Core requests when disabled on /%s', async (tab) => {
+	FLAGS.ENABLE_AO_CORE = false;
+	window.history.replaceState(null, '', `/#/explorer/${id}/${tab}`);
+	await render();
+	await React.act(async () => navigate(`/explorer/${linkedId}/ao-core`));
+	expect(container.textContent).not.toContain('AO Core');
+	expect(container.querySelector('section[aria-label="Message Fields"]')).toBeNull();
+	expect(mocks.read).not.toHaveBeenCalled();
+	expect(mocks.readValue).not.toHaveBeenCalled();
+});
 
 it.each(['table', 'graph'] as const)(
 	'preserves the %s inspector after following a link and returning by tab or history',

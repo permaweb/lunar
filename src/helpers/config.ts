@@ -211,6 +211,7 @@ export const DEFAULT_MESSAGE_TAGS = [{ name: 'Type', values: ['Message'] }, ...D
 export const NODE_INFO_CONCURRENCY = 8;
 
 export const FLAGS = {
+	ENABLE_AO_CORE: false,
 	CLIENT_SIDE_PAGINATION: false,
 	CONTROL_PAGINATION: false,
 	// Enable when the GraphQL gateway supports both the bundledIn field and filter again.
