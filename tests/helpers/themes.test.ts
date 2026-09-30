@@ -100,6 +100,8 @@ describe('theme palettes', () => {
 			selectedTheme.colors.font.alt5,
 			selectedTheme.colors.link.color,
 			selectedTheme.colors.link.active,
+			selectedTheme.colors.priceChange.positive,
+			selectedTheme.colors.priceChange.negative,
 		];
 
 		for (const foreground of foregrounds) {

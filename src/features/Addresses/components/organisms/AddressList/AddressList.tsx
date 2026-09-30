@@ -1,12 +1,12 @@
 import React from 'react';
 
 import { AddressChunk, AddressSnapshot, getAddressChunk, getLatestAddressSnapshot } from 'api/addresses';
+import { getArPrice } from 'api/prices';
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { ASSETS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
-import { getArPrice } from 'helpers/prices';
 import { formatCount, formatUnits } from 'helpers/utils';
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';

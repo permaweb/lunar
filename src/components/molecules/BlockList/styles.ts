@@ -1,6 +1,16 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
+
+const previewColumnSpacing = css<{ $preview?: boolean }>`
+	${(props) =>
+		props.$preview &&
+		css`
+			> :nth-child(3):nth-last-child(2) {
+				padding-left: 15px;
+			}
+		`}
+`;
 
 export const Container = styled.div<{ $preview?: boolean }>`
 	scroll-margin-top: 80px;
@@ -86,6 +96,8 @@ export const HeaderWrapper = styled.div<{ $preview?: boolean }>`
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	background: ${(props) => props.theme.colors.container.alt1.background};
 
+	${previewColumnSpacing}
+
 	div,
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};
@@ -130,6 +142,8 @@ export const ElementWrapper = styled.div<{ $preview?: boolean }>`
 	cursor: pointer;
 	transition: all 75ms;
 	background: ${(props) => props.theme.colors.container.primary.background};
+
+	${previewColumnSpacing}
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xSmall};

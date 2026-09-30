@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
+import { dropdownItemStyles, dropdownSurfaceStyles } from 'components/atoms/Select';
 import { STYLING } from 'helpers/config';
 
 export const Wrapper = styled.div`
@@ -8,68 +9,55 @@ export const Wrapper = styled.div`
 	display: flex;
 `;
 
-export const Trigger = styled(PrimitiveButton)`
-	height: 30px;
-	width: 30px;
+export const PlainTrigger = styled(PrimitiveButton)`
+	height: 32px;
 	padding: 0;
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	gap: 6px;
 	background: transparent;
-	border: 1px solid transparent;
-	border-radius: 50%;
-	color: ${(props) => props.theme.colors.font.primary};
+	border: none;
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	color: ${(props) => props.theme.colors.font.alt1};
+	font-family: ${(props) => props.theme.typography.family.alt1};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
 	cursor: pointer;
-	transition: background 100ms, border-color 100ms;
 
 	&:hover,
-	&:focus-visible {
-		background: ${(props) => props.theme.colors.button.primary.active.background};
-		border-color: ${(props) => props.theme.colors.button.primary.active.border};
+	&:focus-visible,
+	&[aria-expanded='true'] {
+		color: ${(props) => props.theme.colors.font.primary};
 	}
 
-	svg {
-		display: block;
-		height: 16px;
-		width: 16px;
+	&:focus-visible {
+		outline: 2px solid ${(props) => props.theme.colors.border.alt4};
+		outline-offset: 4px;
 	}
 `;
 
-export const Menu = styled.div`
-	position: absolute;
-	z-index: 4;
-	top: calc(100% + 8.5px);
-	right: -1.5px;
+export const Menu = styled.div<{ $alignStart?: boolean; $offset?: number }>`
+	${dropdownSurfaceStyles}
+	top: calc(100% + ${(props) => props.$offset ?? 8.5}px);
+	${(props) => (props.$alignStart ? 'left: 0;' : 'right: -1.5px;')}
 	width: 220px;
 	max-width: 75vw;
 	max-height: 65vh;
 	padding: 6.5px;
-	overflow-y: auto;
 	overscroll-behavior: none;
 	border-radius: ${STYLING.dimensions.radius.primary} !important;
 `;
 
 export const Item = styled(PrimitiveButton)`
+	${dropdownItemStyles}
 	width: 100%;
-	height: 35px;
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 0 7.5px;
-	text-align: left;
-	background: transparent;
-	border: 1px solid transparent;
-	border-radius: ${STYLING.dimensions.radius.alt2};
-	color: ${(props) => props.theme.colors.font.primary};
-	font-family: ${(props) => props.theme.typography.family.primary};
-	font-size: ${(props) => props.theme.typography.size.xxxSmall};
-	font-weight: ${(props) => props.theme.typography.weight.bold};
-	cursor: pointer;
-	transition: background 100ms;
+	justify-content: flex-start;
 
-	&:not(:disabled):hover,
-	&:focus-visible {
-		background: ${(props) => props.theme.colors.container.primary.active};
+	span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	&:disabled {
@@ -81,7 +69,7 @@ export const Item = styled(PrimitiveButton)`
 		display: block;
 		height: 12px;
 		width: 12px;
-		color: ${(props) => props.theme.colors.font.alt2};
-		fill: ${(props) => props.theme.colors.font.alt2};
+		color: currentColor;
+		fill: currentColor;
 	}
 `;

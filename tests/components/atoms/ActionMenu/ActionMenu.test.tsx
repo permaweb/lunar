@@ -22,13 +22,14 @@ beforeEach(() => {
 	root = createRoot(container);
 });
 
-async function render(label?: string, disabledLabel?: string) {
+async function render(label?: string, disabledLabel?: string, variant?: 'default' | 'plain') {
 	await React.act(async () =>
 		root.render(
 			<ThemeProvider theme={theme(darkTheme)}>
 				<ActionMenu
 					ariaLabel="Tab actions"
 					label={label}
+					variant={variant}
 					icon="ellipsis.svg"
 					items={['Pinned', 'New', 'Clear'].map((label) => ({
 						id: label,
@@ -93,16 +94,19 @@ it.each([undefined, 'Actions'])('closes on an outside pointer action with label 
 	expect(onSelect).not.toHaveBeenCalled();
 });
 
-it('skips disabled actions during keyboard navigation and prevents selection', async () => {
-	await render(undefined, 'New');
-	await React.act(async () => trigger().click());
-	expect(document.activeElement).toBe(items()[0]);
-	await press('ArrowDown');
-	expect(document.activeElement).toBe(items()[2]);
-	await press('ArrowUp');
-	expect(document.activeElement).toBe(items()[0]);
-	await React.act(async () => items()[1].click());
-	expect(onSelect).not.toHaveBeenCalled();
-	expect(container.querySelector('[role="menu"]')).not.toBeNull();
-	expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
-});
+it.each(['default', 'plain'] as const)(
+	'skips disabled actions and prevents selection with the %s trigger',
+	async (variant) => {
+		await render('Actions', 'New', variant);
+		await React.act(async () => trigger().click());
+		expect(document.activeElement).toBe(items()[0]);
+		await press('ArrowDown');
+		expect(document.activeElement).toBe(items()[2]);
+		await press('ArrowUp');
+		expect(document.activeElement).toBe(items()[0]);
+		await React.act(async () => items()[1].click());
+		expect(onSelect).not.toHaveBeenCalled();
+		expect(container.querySelector('[role="menu"]')).not.toBeNull();
+		expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
+	}
+);

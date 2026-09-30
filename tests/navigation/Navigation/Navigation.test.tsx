@@ -14,14 +14,24 @@ import { darkTheme, theme } from '../../../src/helpers/themes';
 import { Navigation } from '../../../src/navigation/Navigation';
 import { NODE_INFO, NODE_URL } from '../../fixtures/arweaveNode';
 
-const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), api: { getGQLData: vi.fn(), readProcess: vi.fn() } }));
+const mocks = vi.hoisted(() => ({
+	dispatch: vi.fn(),
+	api: { getGQLData: vi.fn(), readProcess: vi.fn() },
+	settings: { inAppTabs: { explorer: false, aos: false, graphql: false } },
+	setShowNodeSettings: vi.fn(),
+}));
 vi.mock('react-redux', () => ({ useDispatch: () => mocks.dispatch }));
-vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden={'true'} /> }));
+vi.mock('react-svg', () => ({
+	ReactSVG: (props: { className?: string }) => <svg className={props.className} aria-hidden={'true'} />,
+}));
 vi.mock('wallet/WalletConnect', () => ({ WalletConnect: () => null }));
 vi.mock('store', () => ({ store: {} }));
-vi.mock('helpers/prices', () => ({ getArPrice: async () => null, getAoPrice: async () => null }));
+vi.mock('api/prices', () => ({ getTokenPriceQuote: async () => null }));
 vi.mock('helpers/search', () => ({ searchTxById: vi.fn() }));
 vi.mock('providers/PermawebProvider', () => ({ usePermawebProvider: () => ({ legacyApi: mocks.api }) }));
+vi.mock('providers/SettingsProvider', () => ({
+	useSettingsProvider: () => ({ settings: mocks.settings, setShowNodeSettings: mocks.setShowNodeSettings }),
+}));
 vi.mock('api/blocks', () => ({ getBlock: vi.fn() }));
 vi.mock('api/arweaveNode', async () => ({
 	...(await vi.importActual('../../../src/api/arweaveNode/types')),
@@ -31,20 +41,14 @@ let container: HTMLElement;
 let overlay: HTMLElement;
 let root: ReturnType<typeof createRoot>;
 let path: string;
+let query: string;
 function Harness() {
-	path = useLocation().pathname;
+	const location = useLocation();
+	path = location.pathname;
+	query = location.search;
 	return <Navigation open={false} toggle={() => {}} />;
 }
-beforeEach(async () => {
-	vi.clearAllMocks();
-	vi.useFakeTimers();
-	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-	vi.mocked(arweaveNodeApi.getInfo).mockResolvedValue(NODE_INFO);
-	container = document.createElement('main');
-	overlay = document.createElement('div');
-	overlay.id = 'overlay';
-	document.body.append(container, overlay);
-	root = createRoot(container);
+async function renderNavigation() {
 	await React.act(async () =>
 		root.render(
 			<MemoryRouter>
@@ -54,6 +58,19 @@ beforeEach(async () => {
 			</MemoryRouter>
 		)
 	);
+}
+beforeEach(async () => {
+	vi.clearAllMocks();
+	mocks.settings.inAppTabs = { explorer: false, aos: false, graphql: false };
+	vi.useFakeTimers();
+	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+	vi.mocked(arweaveNodeApi.getInfo).mockResolvedValue(NODE_INFO);
+	container = document.createElement('main');
+	overlay = document.createElement('div');
+	overlay.id = 'overlay';
+	document.body.append(container, overlay);
+	root = createRoot(container);
+	await renderNavigation();
 	await React.act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Search"]').click());
 });
 afterEach(async () => {
@@ -79,6 +96,31 @@ async function pressKey(key: string, target: EventTarget = document, options: Ke
 	});
 	return event;
 }
+
+it('removes token icons and prices when hidden and restores them when shown', async () => {
+	await pressKey('Escape');
+	async function renderPrices(hideTokenPrices: boolean) {
+		await React.act(async () =>
+			root.render(
+				<MemoryRouter>
+					<ThemeProvider theme={theme(darkTheme)}>
+						<Navigation open={false} toggle={() => {}} hideTokenPrices={hideTokenPrices} />
+					</ThemeProvider>
+				</MemoryRouter>
+			)
+		);
+	}
+	await renderPrices(true);
+	expect(container.querySelector('[aria-label="Arweave Price (USD)"]')).toBeNull();
+	expect(container.querySelector('[aria-label="AO Price (USD)"]')).toBeNull();
+	expect(container.querySelector('.ar-icon, .ao-icon')).toBeNull();
+	await renderPrices(false);
+	expect(container.querySelector('[aria-label="Arweave Price (USD)"]')).not.toBeNull();
+	expect(container.querySelector('[aria-label="AO Price (USD)"]')).not.toBeNull();
+	expect(container.querySelectorAll('.ar-icon, .ao-icon')).toHaveLength(2);
+	await renderPrices(true);
+	expect(container.querySelector('[aria-label="AO Price (USD)"]')).toBeNull();
+});
 
 it('opens the focused search overlay from the desktop field and restores focus on Escape', async () => {
 	await pressKey('Escape');
@@ -227,4 +269,36 @@ it('continues to support block heights and transaction IDs', async () => {
 	await enter(id);
 	expect(overlay.querySelector('a').getAttribute('href')).toBe(`/explorer/${id}`);
 	expect(arweaveNodeApi.getInfo).not.toHaveBeenCalled();
+});
+
+it('groups network navigation and opens the AO process activity view', async () => {
+	await pressKey('Escape');
+	const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="AO"]');
+	await pressKey('ArrowDown', trigger);
+	expect(document.activeElement.textContent).toBe('Processes');
+	const process = container.querySelector<HTMLButtonElement>('[role="menuitem"]');
+	await React.act(async () => process.click());
+	expect(path).toBe('/');
+	expect(query).toBe('?network=ao&activity=process');
+	expect(container.querySelector('[role="menu"]')).toBeNull();
+});
+
+it('retains tab-mode layout and network settings in the redesigned navigation', async () => {
+	await pressKey('Escape');
+	const explorer = container.querySelector<HTMLAnchorElement>('a[href="/explorer/"]');
+	await React.act(async () => explorer.click());
+	expect(path).toBe('/explorer/');
+	expect(container.querySelector('#navigation-header').classList.contains('tabs-view')).toBe(false);
+	mocks.settings.inAppTabs.explorer = true;
+	await renderNavigation();
+	const more = container.querySelector<HTMLButtonElement>('button[aria-label="More"]');
+	await React.act(async () => more.click());
+	expect(container.querySelector('#navigation-header').classList.contains('tabs-view')).toBe(true);
+	const settings = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+		(item) => item.textContent === 'Network Settings'
+	);
+	await React.act(async () => settings.click());
+	expect(mocks.setShowNodeSettings).toHaveBeenCalledWith(true);
+	expect(container.querySelector('[role="menu"]')).toBeNull();
+	expect(container.querySelector('[aria-label="Arweave Price (USD)"]')).not.toBeNull();
 });

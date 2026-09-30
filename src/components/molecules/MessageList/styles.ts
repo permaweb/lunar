@@ -200,8 +200,10 @@ export const Divider = styled.div`
 	}
 `;
 
-export const Wrapper = styled.div<{ childList?: boolean }>`
+export const Wrapper = styled.div<{ childList?: boolean; $preview?: boolean }>`
 	width: 100%;
+	border-radius: ${(props) =>
+		props.$preview ? `0 0 ${STYLING.dimensions.radius.alt1} ${STYLING.dimensions.radius.alt1}` : '0'};
 	overflow: auto;
 	background: ${(props) =>
 		props.childList ? props.theme.colors.container.alt2.background : props.theme.colors.container.primary.background};
@@ -241,10 +243,13 @@ export const BodyWrapper = styled.div<{
 	childList?: boolean;
 	isOverallLast?: boolean;
 	$nestingLevel?: number;
+	$preview?: boolean;
 }>`
 	width: 100%;
 
 	> .message-list-element:last-child {
+		border-bottom-left-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
+		border-bottom-right-radius: ${(props) => (props.$preview ? STYLING.dimensions.radius.alt1 : '0')};
 		border-bottom: 1px solid
 			${(props) =>
 				props.childList && !props.isOverallLast
