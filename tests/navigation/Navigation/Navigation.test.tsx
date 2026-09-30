@@ -189,6 +189,7 @@ it.each([NODE_URL, 'https://arweave.net', 'https://node.example/', '8.8.8.8:1984
 		expect(getBlock).not.toHaveBeenCalled();
 		expect(searchTxById).not.toHaveBeenCalled();
 		await React.act(async () => link.click());
+		expect(link.target).toBe('');
 		expect(path).toBe(getArweaveNodeRoute(input));
 		expect(overlay.querySelector('[role="dialog"]')).toBeNull();
 	}

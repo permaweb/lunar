@@ -6,11 +6,14 @@ import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { requestRemote } from '../../../../src/api/http';
+import { lookupTransaction } from '../../../../src/api/transactions';
 import { Transaction } from '../../../../src/components/organisms/Transaction';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import type { GQLNodeResponseType, TagType, TransactionType } from '../../../../src/helpers/types';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
 import {
+	BUNDLE_HEADERS,
+	BUNDLE_ID,
 	EMPTY_TRANSFER_HEADERS,
 	EMPTY_TRANSFER_ID,
 	HYPERBUDDY_HTML,
@@ -43,6 +46,11 @@ vi.mock('components/molecules/Editor', () => ({
 	Editor: (props: { initialData: string }) => <pre data-testid={'editor'}>{props.initialData}</pre>,
 }));
 vi.mock('components/molecules/MessageList', () => ({ MessageList: () => null }));
+vi.mock('components/molecules/TransactionList', () => ({
+	TransactionList: (props: { mode: string; bundleId?: string }) => (
+		<div data-testid={'transaction-list'} data-mode={props.mode} data-bundle-id={props.bundleId} />
+	),
+}));
 vi.mock('components/molecules/MessageResult', () => ({ MessageResult: () => null }));
 vi.mock('components/molecules/ProcessRead', () => ({ ProcessRead: () => null }));
 vi.mock('components/molecules/HTMLViewer', () => ({
@@ -90,6 +98,22 @@ async function render(type: TransactionType = 'process', txId = processId) {
 function transaction(tags: TagType[]): GQLNodeResponseType {
 	return { cursor: null, node: { id: processId, tags, owner: { address: 'a'.repeat(43) }, data: null, block: null } };
 }
+
+it('opens the bundle overview and contents from a generic explorer link with signature-only bundle metadata', async () => {
+	mocks.showFirstTab = true;
+	vi.mocked(requestRemote).mockResolvedValue(new Response(HYPERBUDDY_HTML, { headers: BUNDLE_HEADERS }));
+	mocks.lookup.mockImplementation((args: { txId: string }) => lookupTransaction(args.txId));
+
+	await render('transaction', BUNDLE_ID);
+
+	expect(container.textContent).toContain('Bundle Overview');
+	expect(container.textContent).toContain('bundle-formatbinary');
+	expect(container.textContent).toContain('bundle-version2.0.0');
+	expect(container.textContent).not.toContain('Transaction Overview');
+	const list = container.querySelector('[data-testid="transaction-list"]');
+	expect(list?.getAttribute('data-mode')).toBe('bundle');
+	expect(list?.getAttribute('data-bundle-id')).toBe(BUNDLE_ID);
+});
 
 it.each([
 	{

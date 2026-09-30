@@ -244,7 +244,7 @@ export const BodyWrapper = styled.div<{
 }>`
 	width: 100%;
 
-	> *:last-child {
+	> .message-list-element:last-child {
 		border-bottom: 1px solid
 			${(props) =>
 				props.childList && !props.isOverallLast
@@ -252,18 +252,10 @@ export const BodyWrapper = styled.div<{
 					: props.theme.colors.border.primary} !important;
 	}
 
-	.message-list-element {
+	> .message-list-element {
 		border-top: 0.5px solid transparent;
-		border-left: 1px solid
-			${(props) =>
-				props.childList
-					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
-					: props.theme.colors.border.primary};
-		border-right: 1px solid
-			${(props) =>
-				props.childList
-					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
-					: props.theme.colors.border.primary};
+		border-left: ${(props) => (props.childList ? 'none' : `1px solid ${props.theme.colors.border.primary}`)};
+		border-right: ${(props) => (props.childList ? 'none' : `1px solid ${props.theme.colors.border.primary}`)};
 		border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 `;
@@ -306,8 +298,14 @@ export const ElementWrapper = styled.div<{
 		background: ${(props) =>
 			props.$spam ? props.theme.colors.container.alt1.background : props.theme.colors.container.primary.active};
 		border-top: 0.5px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-		border-left: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-		border-right: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+		border-left: ${(props) =>
+			props.childList
+				? 'none'
+				: `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`} !important;
+		border-right: ${(props) =>
+			props.childList
+				? 'none'
+				: `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`} !important;
 		border-bottom: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
 	}
 
@@ -315,9 +313,9 @@ export const ElementWrapper = styled.div<{
 		content: '';
 		position: absolute;
 		height: 1px;
-		width: calc(100% + 2px);
+		width: ${(props) => (props.childList ? '100%' : 'calc(100% + 2px)')};
 		top: -1px;
-		left: -1px;
+		left: ${(props) => (props.childList ? '0' : '-1px')};
 		right: 0;
 		bottom: 0;
 		border-top: 1px solid ${(props) => getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
@@ -327,8 +325,12 @@ export const ElementWrapper = styled.div<{
 	${(props) =>
 		props.open &&
 		css`
-			border-left: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
-			border-right: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)} !important;
+			border-left: ${props.childList
+				? 'none'
+				: `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`} !important;
+			border-right: ${props.childList
+				? 'none'
+				: `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`} !important;
 			border-bottom: 1px solid ${props.theme.colors.border.primary} !important;
 
 			background: ${props.theme.colors.container.alt1.background};
@@ -337,9 +339,9 @@ export const ElementWrapper = styled.div<{
 				content: '';
 				position: absolute;
 				height: 1px;
-				width: calc(100% + 2px);
+				width: ${props.childList ? '100%' : 'calc(100% + 2px)'};
 				top: -1px;
-				left: -1px;
+				left: ${props.childList ? '0' : '-1px'};
 				right: 0;
 				bottom: 0;
 				border-top: 1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)};
@@ -482,34 +484,6 @@ export const From = styled(ElementItem)`
 	}
 `;
 
-export const Input = styled(ElementItem)`
-	min-width: 75px;
-	width: 75px;
-	justify-content: center;
-	p {
-		text-align: right;
-	}
-
-	button {
-		padding: 4.5px 12.5px !important
-;
-	}
-`;
-
-export const Output = styled(ElementItem)`
-	min-width: 75px;
-	width: 75px;
-	justify-content: center;
-	p {
-		text-align: right;
-	}
-
-	button {
-		padding: 4.5px 12.5px !important
-;
-	}
-`;
-
 export const Time = styled(ElementItem)`
 	min-width: 115px;
 	width: 115px;
@@ -532,6 +506,77 @@ export const Results = styled(ElementItem)<{ open?: boolean }>`
 	}
 `;
 
+export const ExpandAction = styled(PrimitiveButton)`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px;
+	background: transparent;
+	color: inherit;
+	border: none;
+	border-radius: ${STYLING.dimensions.radius.alt2};
+	cursor: pointer;
+
+	&:focus-visible {
+		outline: 2px solid ${(props) => props.theme.colors.border.alt4};
+		outline-offset: 2px;
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+`;
+
+export const ExpandedContent = styled.div<{ $nestingLevel: number; $childList?: boolean }>`
+	min-width: 0;
+	border-left: ${(props) =>
+		props.$childList
+			? 'none'
+			: `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`};
+	border-right: ${(props) =>
+		props.$childList
+			? 'none'
+			: `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`};
+`;
+
+export const InlineInput = styled.section`
+	box-sizing: border-box;
+	height: 350px;
+	max-height: 350px;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	gap: 15px;
+	padding: 15px 0;
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+`;
+
+export const InputColumns = styled.div`
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	min-height: 0;
+	margin: 0 15px;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: repeat(2, minmax(0, 1fr));
+	}
+`;
+
+export const InputTags = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 7.5px;
+	min-width: 0;
+	min-height: 0;
+	padding-right: 15px;
+	overflow: auto;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		padding: 0 0 15px;
+	}
+`;
+
 export const OverlayWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -539,22 +584,23 @@ export const OverlayWrapper = styled.div`
 	padding: 0 20px 20px 20px;
 `;
 
-export const OverlayTagsWrapper = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 7.5px;
-	margin: 2.5px 0 0 0;
-`;
-
 export const OverlayTagsHeader = styled.div`
 	margin: 0 0 1.5px 0;
-	padding: 0 0 10.5px 0;
+	padding: 0 15px 10.5px;
 	border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
 	p {
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 	}
+`;
+
+export const OutputHeader = styled(OverlayTagsHeader)`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 15px;
+	margin: 10px 0 0;
 `;
 
 export const OverlayLine = styled.div`
@@ -695,6 +741,20 @@ export const OverlayOutput = styled.div`
 	}
 `;
 
+export const InputData = styled(OverlayOutput)`
+	min-width: 0;
+	min-height: 0;
+	padding-left: 15px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	overflow: auto;
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		padding: 15px 0 0;
+		border-left: none;
+		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	}
+`;
+
 export const OverlayActions = styled.div`
 	width: fit-content;
 	display: flex;
@@ -758,10 +818,8 @@ export const MPageCounter = styled(PageCounter)`
 export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 	padding: ${(props) => (props.childList ? `15px` : `0 15px 15px 15px`)};
 	border-top: 0.15px solid ${(props) => (props.childList ? props.theme.colors.border.alt4 : 'transparent')};
-	border-left: 1px solid
-		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
-	border-right: 1px solid
-		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)};
+	border-left: ${(props) => (props.childList ? 'none' : `1px solid ${props.theme.colors.border.primary}`)};
+	border-right: ${(props) => (props.childList ? 'none' : `1px solid ${props.theme.colors.border.primary}`)};
 	border-bottom: 1px solid
 		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)} !important;
 	background: ${(props) =>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useTheme } from 'styled-components';
 
 import {
@@ -33,6 +33,7 @@ import {
 	isNativeArTransfer,
 	isTransferAction,
 } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -177,7 +178,7 @@ function TransactionRow(props: {
 }) {
 	const currentTheme: any = useTheme();
 	const dispatch = useDispatch();
-	const navigate = useNavigate();
+	const { openExplorer } = useExplorerNavigation();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -221,7 +222,7 @@ function TransactionRow(props: {
 	}, [hydratedTransaction.error]);
 
 	function handleRowClick() {
-		navigate(`${URLS.explorer}${transaction.id}`);
+		openExplorer(`${URLS.explorer}${transaction.id}`);
 	}
 
 	function handleRowKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {

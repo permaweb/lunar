@@ -70,6 +70,42 @@ describe('direct transaction lookup', () => {
 		expect((await lookupTransaction(BUNDLE_ID)).node.data).toEqual({ size: undefined, type: undefined });
 	});
 
+	it('recovers bundle tags carried as signature parameters instead of headers', async () => {
+		respond(HYPERBUDDY_HTML, BUNDLE_HEADERS);
+
+		expect((await lookupTransaction(BUNDLE_ID)).node.tags).toEqual(
+			expect.arrayContaining([
+				{ name: 'bundle-format', value: 'binary' },
+				{ name: 'bundle-version', value: '2.0.0' },
+				{ name: '1+link', value: BUNDLE_HEADERS['1+link'] },
+			])
+		);
+	});
+
+	it('preserves original bundle tags without adding case-insensitive duplicates', async () => {
+		respond(HYPERBUDDY_HTML, {
+			...BUNDLE_HEADERS,
+			'signature-input': `${BUNDLE_HEADERS['signature-input']};original-tags="1:Bundle-Format:YmluYXJ5, 2:Bundle-Version:Mi4wLjA"`,
+		});
+
+		const tags = (await lookupTransaction(BUNDLE_ID)).node.tags.filter((tag) =>
+			tag.name.toLowerCase().startsWith('bundle-')
+		);
+		expect(tags).toEqual([
+			{ name: 'Bundle-Format', value: 'binary' },
+			{ name: 'Bundle-Version', value: '2.0.0' },
+		]);
+	});
+
+	it('does not infer bundle tags when the signature identifies a non-bundle', async () => {
+		respond(HYPERBUDDY_HTML, {
+			...BUNDLE_HEADERS,
+			'signature-input': BUNDLE_HEADERS['signature-input'].replace('bundle="true"', 'bundle="false"'),
+		});
+
+		expect((await lookupTransaction(BUNDLE_ID)).node.tags.some((tag) => tag.name.startsWith('bundle-'))).toBe(false);
+	});
+
 	it('returns null when the gateway has no such message', async () => {
 		respond('Not found', { 'content-type': 'text/html' }, 404);
 

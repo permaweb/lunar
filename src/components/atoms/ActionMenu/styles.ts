@@ -43,9 +43,10 @@ export const Menu = styled.div`
 	width: 220px;
 	max-width: 75vw;
 	max-height: 65vh;
-	padding: 7.5px;
+	padding: 6.5px;
 	overflow-y: auto;
 	overscroll-behavior: none;
+	border-radius: ${STYLING.dimensions.radius.primary} !important;
 `;
 
 export const Item = styled(PrimitiveButton)`
@@ -66,9 +67,14 @@ export const Item = styled(PrimitiveButton)`
 	cursor: pointer;
 	transition: background 100ms;
 
-	&:hover,
+	&:not(:disabled):hover,
 	&:focus-visible {
 		background: ${(props) => props.theme.colors.container.primary.active};
+	}
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.5;
 	}
 
 	svg {

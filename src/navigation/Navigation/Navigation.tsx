@@ -17,6 +17,7 @@ import { getAoPrice, getArPrice } from 'helpers/prices';
 import { searchTxById } from 'helpers/search';
 import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
@@ -47,6 +48,7 @@ function isValidSearchInput(value: string): boolean {
 export default function Navigation(props: { open: boolean; toggle: () => void }) {
 	const dispatch = useDispatch();
 	const location = useLocation();
+	const { isInAppTabsEnabled } = useExplorerNavigation();
 	const theme = useTheme();
 
 	const permawebProvider = usePermawebProvider();
@@ -364,9 +366,10 @@ export default function Navigation(props: { open: boolean; toggle: () => void })
 	}
 
 	const isTabsView =
-		location.pathname.startsWith(URLS.explorer) ||
-		location.pathname.startsWith(URLS.aos) ||
-		location.pathname.startsWith(URLS.graphql);
+		isInAppTabsEnabled &&
+		[URLS.explorer, URLS.aos, URLS.graphql].some(
+			(path) => location.pathname === path.replace(/\/$/, '') || location.pathname.startsWith(path)
+		);
 
 	const isDocsView = location.pathname.startsWith(URLS.docs);
 

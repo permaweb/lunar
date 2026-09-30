@@ -62,6 +62,7 @@ import {
 	resolvePermawebApi,
 	shouldHydrateAoTransferNotices,
 } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useArweaveProvider } from 'providers/ArweaveProvider';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { useNotifications } from 'providers/NotificationProvider';
@@ -334,6 +335,7 @@ function Transaction(props: {
 }) {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
+	const { openExplorer } = useExplorerNavigation();
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
@@ -2090,9 +2092,9 @@ function Transaction(props: {
 
 	const handleBlockNavigation = React.useCallback(
 		(blockHeight: number) => {
-			navigate(`${URLS.explorer}${blockHeight}`);
+			openExplorer(`${URLS.explorer}${blockHeight}`);
 		},
-		[navigate]
+		[openExplorer]
 	);
 
 	const blockHeight = resolvedType === 'block' ? txResponse?.node?.block?.height : null;

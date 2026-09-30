@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { AddressChunk, AddressSnapshot, getAddressChunk, getLatestAddressSnapshot } from 'api/addresses';
 
@@ -9,6 +8,7 @@ import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { ASSETS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getArPrice } from 'helpers/prices';
 import { formatCount, formatUnits } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { formatArUsdValue } from '../../../model/formatAddressValue';
@@ -78,7 +78,7 @@ export default function AddressList(props: {
 		emptyMessage?: string;
 	};
 }) {
-	const navigate = useNavigate();
+	const { openExplorer } = useExplorerNavigation();
 	const hasSource = props.source !== undefined;
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -389,12 +389,12 @@ export default function AddressList(props: {
 										aria-label={`${language.inspect} ${address.address}`}
 										onClick={(event) => {
 											if (!(event.target as Element).closest('a, button'))
-												navigate(`${URLS.explorer}${address.address}`);
+												openExplorer(`${URLS.explorer}${address.address}`);
 										}}
 										onKeyDown={(event) => {
 											if (event.target === event.currentTarget && event.key === 'Enter') {
 												event.preventDefault();
-												navigate(`${URLS.explorer}${address.address}`);
+												openExplorer(`${URLS.explorer}${address.address}`);
 											}
 										}}
 									>

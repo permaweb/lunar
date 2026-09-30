@@ -212,25 +212,28 @@ it('pins subsequent pages to the current snapshot and gets a new snapshot on ref
 	expect(mocks.read).toHaveBeenLastCalledWith(expect.objectContaining({ page: 0, latestSlot: undefined }));
 });
 
-it('uses the existing Input panel with native tags and slot details, without fetching AO results or transaction data', async () => {
+it('expands native input and slot details without fetching AO results or transaction data', async () => {
 	await render();
-	const outputButtons = [...container.querySelectorAll('button')].filter((button) => button.textContent === 'Output');
-	expect(outputButtons).toHaveLength(2);
-	expect(outputButtons.every((button) => button.disabled)).toBe(true);
-	await click('Input');
-	const dialog = document.querySelector('[role="dialog"]');
-	expect(dialog).not.toBeNull();
-	expect(dialog.textContent).toContain('Slot1');
-	expect(dialog.textContent).toContain('Block Index0');
-	expect(dialog.textContent).toContain('offer-quantity');
-	expect(dialog.textContent).toContain('6000000000000000000');
-	expect(dialog.textContent).toContain('No Data');
+	expect(
+		[...container.querySelectorAll('button')].some((button) => ['Input', 'Output'].includes(button.textContent))
+	).toBe(false);
+	const row = container.querySelector<HTMLElement>('.message-list-element');
+	await React.act(async () => row.click());
+	const input = container.querySelector('section[aria-label^="Input"]');
+	expect(input).not.toBeNull();
+	expect(document.querySelector('[role="dialog"]')).toBeNull();
+	expect(input.textContent).toContain('Slot1');
+	expect(input.textContent).toContain('Block Index0');
+	expect(input.textContent).toContain('offer-quantity');
+	expect(input.textContent).toContain('6000000000000000000');
+	expect(input.textContent).toContain('No Data');
+	expect(container.textContent).not.toContain('View raw output');
 	expect(mocks.remote).not.toHaveBeenCalled();
 	expect(mocks.gql).not.toHaveBeenCalled();
 	expect(mocks.result).not.toHaveBeenCalled();
-	const closeButton = [...dialog.querySelectorAll('button')].find((button) => button.textContent === 'Close');
-	await React.act(async () => closeButton.click());
-	expect(document.querySelector('[role="dialog"]')).toBeNull();
+	expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
+	await React.act(async () => row.querySelector<HTMLButtonElement>('button[aria-expanded]').click());
+	expect(container.querySelector('section[aria-label^="Input"]')).toBeNull();
 });
 
 it('uses the shared CSV export with the current page and lossless tags', async () => {

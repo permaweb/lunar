@@ -3,16 +3,17 @@ import styled from 'styled-components';
 import { PrimitiveInput } from 'components/atoms/PrimitiveInput';
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div`
+export const Wrapper = styled.div<{ $isInAppTabsEnabled: boolean }>`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: ${(props) => (props.$isInAppTabsEnabled ? '25px' : '0')};
 `;
 
-export const HeaderWrapper = styled.div`
+export const HeaderWrapper = styled.div<{ $isInAppTabsEnabled: boolean }>`
 	width: 100%;
-	background: ${(props) => props.theme.colors.container.alt1.background};
+	background: ${(props) =>
+		props.$isInAppTabsEnabled ? props.theme.colors.container.alt1.background : props.theme.colors.view.background};
 `;
 
 export const TabsWrapper = styled.div`

@@ -10,6 +10,7 @@ export type ActionMenuItem = {
 	id: string;
 	label: string;
 	icon?: string;
+	disabled?: boolean;
 	onSelect: () => void;
 };
 
@@ -29,7 +30,7 @@ export default function ActionMenu(props: {
 
 	React.useEffect(() => {
 		if (!isOpen) return;
-		const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+		const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)');
 		items?.[focusLastRef.current ? items.length - 1 : 0]?.focus();
 
 		function handleOutside(event: Event) {
@@ -74,7 +75,9 @@ export default function ActionMenu(props: {
 		}
 		if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
 		event.preventDefault();
-		const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+		const items = Array.from(
+			menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? []
+		);
 		const currentIndex = items.findIndex((item) => item === document.activeElement);
 		const nextIndex =
 			event.key === 'Home'
@@ -121,8 +124,10 @@ export default function ActionMenu(props: {
 							key={item.id}
 							type="button"
 							role="menuitem"
+							disabled={item.disabled}
 							tabIndex={-1}
 							onClick={() => {
+								if (item.disabled) return;
 								handleClose();
 								item.onSelect();
 							}}

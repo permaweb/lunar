@@ -22,7 +22,7 @@ beforeEach(() => {
 	root = createRoot(container);
 });
 
-async function render(label?: string) {
+async function render(label?: string, disabledLabel?: string) {
 	await React.act(async () =>
 		root.render(
 			<ThemeProvider theme={theme(darkTheme)}>
@@ -30,7 +30,12 @@ async function render(label?: string) {
 					ariaLabel="Tab actions"
 					label={label}
 					icon="ellipsis.svg"
-					items={['Pinned', 'New', 'Clear'].map((label) => ({ id: label, label, onSelect }))}
+					items={['Pinned', 'New', 'Clear'].map((label) => ({
+						id: label,
+						label,
+						onSelect,
+						disabled: label === disabledLabel,
+					}))}
 				/>
 			</ThemeProvider>
 		)
@@ -86,4 +91,18 @@ it.each([undefined, 'Actions'])('closes on an outside pointer action with label 
 	await React.act(async () => document.body.dispatchEvent(new Event('pointerdown', { bubbles: true })));
 	expect(container.querySelector('[role="menu"]')).toBeNull();
 	expect(onSelect).not.toHaveBeenCalled();
+});
+
+it('skips disabled actions during keyboard navigation and prevents selection', async () => {
+	await render(undefined, 'New');
+	await React.act(async () => trigger().click());
+	expect(document.activeElement).toBe(items()[0]);
+	await press('ArrowDown');
+	expect(document.activeElement).toBe(items()[2]);
+	await press('ArrowUp');
+	expect(document.activeElement).toBe(items()[0]);
+	await React.act(async () => items()[1].click());
+	expect(onSelect).not.toHaveBeenCalled();
+	expect(container.querySelector('[role="menu"]')).not.toBeNull();
+	expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
 });
