@@ -63,9 +63,20 @@ export const ActionsWrapper = styled.div`
 	gap: 15px;
 `;
 
-export const JSONViewerRoot = styled.div<{ fullScreenMode: boolean; maxHeight?: number; fixedHeight?: number }>`
-	height: ${(props) => (props.fixedHeight ? `calc(${props.fixedHeight}px - 32.5px - 30px)` : `calc(100% - 32.5px)`)};
-	max-height: ${(props) => (props.maxHeight ? `calc(${props.maxHeight.toString()}px - 32.5px - 30px)` : 'none')};
+export const JSONViewerRoot = styled.div<{
+	fullScreenMode: boolean;
+	maxHeight?: number;
+	fixedHeight?: number;
+	$hideHeader?: boolean;
+}>`
+	height: ${(props) =>
+		props.fixedHeight
+			? `calc(${props.fixedHeight}px - ${props.$hideHeader ? '0px' : '32.5px'} - 30px)`
+			: props.$hideHeader
+			? 'auto'
+			: `calc(100% - 32.5px)`};
+	max-height: ${(props) =>
+		props.maxHeight ? `calc(${props.maxHeight}px - ${props.$hideHeader ? '0px' : '32.5px'} - 30px)` : 'none'};
 	font-family: inherit;
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	line-height: 1.6;

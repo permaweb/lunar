@@ -1,10 +1,10 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import JSONbig from 'json-bigint';
 
 import { Button } from 'components/atoms/Button';
 import { ASSETS, URLS } from 'helpers/config';
 import { checkValidAddress, stripAnsiChars } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -69,6 +69,7 @@ export default function _JSONTree(props: {
 	data: any;
 	header?: string;
 	textStyle?: 'code' | 'body';
+	hideHeader?: boolean;
 	placeholder?: string;
 	maxHeight?: number;
 	fixedHeight?: number;
@@ -209,79 +210,82 @@ export default function _JSONTree(props: {
 			$maxHeight={!fullScreenMode ? props.maxHeight : undefined}
 			ref={readerRef}
 		>
-			<S.Header $textStyle={props.textStyle}>
-				<p>{props.header ?? language.output}</p>
+			{!props.hideHeader && (
+				<S.Header $textStyle={props.textStyle}>
+					<p>{props.header ?? language.output}</p>
 
-				<S.ActionsWrapper>
-					<Button
-						type={'primary'}
-						icon={ASSETS.plusMinus}
-						onPress={handleToggleCollapse}
-						disabled={!data}
-						height={25}
-						width={25}
-						noMinWidth
-						iconSize={11}
-						padding={`2px 0 0 0`}
-						tooltip={language.collapseExpandAll}
-						tooltipPosition={'bottom-right'}
-						stopPropagation
-						preventDefault
-					/>
-					{!props.noFullScreen && (
+					<S.ActionsWrapper>
 						<Button
 							type={'primary'}
-							icon={ASSETS.fullscreen}
-							onPress={toggleFullscreen}
+							icon={ASSETS.plusMinus}
+							onPress={handleToggleCollapse}
+							disabled={!data}
+							height={25}
+							width={25}
+							noMinWidth
+							iconSize={11}
+							padding={`2px 0 0 0`}
+							tooltip={language.collapseExpandAll}
+							tooltipPosition={'bottom-right'}
+							stopPropagation
+							preventDefault
+						/>
+						{!props.noFullScreen && (
+							<Button
+								type={'primary'}
+								icon={ASSETS.fullscreen}
+								onPress={toggleFullscreen}
+								height={25}
+								width={25}
+								noMinWidth
+								iconSize={11}
+								padding={`3px 0 0 0`}
+								tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+								tooltipPosition={'bottom-right'}
+								stopPropagation
+								preventDefault
+							/>
+						)}
+						<Button
+							type={'primary'}
+							icon={ASSETS.save}
+							onPress={downloadData}
+							disabled={!data}
+							height={25}
+							width={25}
+							noMinWidth
+							iconSize={11}
+							padding={`2.5px 0 0 0`}
+							tooltip={language.downloadJSON ?? 'Download JSON'}
+							tooltipPosition={'bottom-right'}
+							stopPropagation
+							preventDefault
+						/>
+						<Button
+							type={'primary'}
+							icon={ASSETS.copy}
+							onPress={copyData}
+							disabled={!data}
 							height={25}
 							width={25}
 							noMinWidth
 							iconSize={11}
 							padding={`3px 0 0 0`}
-							tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+							tooltip={copied ? `${language.copied}!` : language.copyJSON}
 							tooltipPosition={'bottom-right'}
 							stopPropagation
 							preventDefault
 						/>
-					)}
-					<Button
-						type={'primary'}
-						icon={ASSETS.save}
-						onPress={downloadData}
-						disabled={!data}
-						height={25}
-						width={25}
-						noMinWidth
-						iconSize={11}
-						padding={`2.5px 0 0 0`}
-						tooltip={language.downloadJSON ?? 'Download JSON'}
-						tooltipPosition={'bottom-right'}
-						stopPropagation
-						preventDefault
-					/>
-					<Button
-						type={'primary'}
-						icon={ASSETS.copy}
-						onPress={copyData}
-						disabled={!data}
-						height={25}
-						width={25}
-						noMinWidth
-						iconSize={11}
-						padding={`3px 0 0 0`}
-						tooltip={copied ? `${language.copied}!` : language.copyJSON}
-						tooltipPosition={'bottom-right'}
-						stopPropagation
-						preventDefault
-					/>
-				</S.ActionsWrapper>
-			</S.Header>
+					</S.ActionsWrapper>
+				</S.Header>
+			)}
 
 			{data ? (
 				<CustomJSONViewer
 					data={data}
 					ref={jsonViewerRef}
 					fullScreenMode={fullScreenMode}
+					hideHeader={props.hideHeader}
 					maxHeight={props.maxHeight}
 					fixedHeight={props.fixedHeight}
 					preserveViewState={props.preserveViewState}
@@ -299,9 +303,16 @@ export default function _JSONTree(props: {
 const CustomJSONViewer = React.memo(
 	React.forwardRef<
 		{ collapseAll: () => void; expandAll: () => void; getCollapsedState: () => { isFullyCollapsed: boolean } },
-		{ data: any; fullScreenMode: boolean; maxHeight?: number; fixedHeight?: number; preserveViewState?: boolean }
+		{
+			data: any;
+			fullScreenMode: boolean;
+			hideHeader?: boolean;
+			maxHeight?: number;
+			fixedHeight?: number;
+			preserveViewState?: boolean;
+		}
 	>((props, ref) => {
-		const navigate = useNavigate();
+		const { openExplorer } = useExplorerNavigation();
 		const languageProvider = useLanguageProvider();
 		const language = languageProvider.object[languageProvider.current];
 		const [copiedValue, setCopiedValue] = React.useState<string | null>(null);
@@ -551,7 +562,7 @@ const CustomJSONViewer = React.memo(
 								>
 									"{value}"
 								</S.JSONStringID>
-								<S.JSONStringIDOpen onClick={() => navigate(`${URLS.explorer}${value}`)}>
+								<S.JSONStringIDOpen onClick={() => openExplorer(`${URLS.explorer}${value}`)}>
 									({language.open})
 								</S.JSONStringIDOpen>
 							</S.JSONStringIDFlex>
@@ -944,6 +955,7 @@ const CustomJSONViewer = React.memo(
 		return (
 			<S.JSONViewerRoot
 				fullScreenMode={props.fullScreenMode}
+				$hideHeader={props.hideHeader}
 				maxHeight={!props.fullScreenMode ? props.maxHeight : undefined}
 				fixedHeight={!props.fullScreenMode ? props.fixedHeight : undefined}
 				className={'scroll-wrapper'}

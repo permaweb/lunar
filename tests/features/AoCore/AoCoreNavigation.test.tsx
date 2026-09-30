@@ -24,7 +24,7 @@ vi.mock('api/aoCore', async (original) => ({
 	readAoCoreValue: mocks.readValue,
 }));
 vi.mock('providers/SettingsProvider', () => ({
-	useSettingsProvider: () => ({ settings: { aoNetwork: DEFAULT_AO_NETWORK } }),
+	useSettingsProvider: () => ({ settings: { aoNetwork: DEFAULT_AO_NETWORK, inAppTabs: { explorer: true } } }),
 }));
 vi.mock('helpers/search', () => ({ searchTxById: vi.fn().mockResolvedValue(null) }));
 vi.mock('react-redux', () => ({ useDispatch: () => mocks.dispatch }));

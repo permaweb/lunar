@@ -2,6 +2,7 @@ import React from 'react';
 import { ReactSVG } from 'react-svg';
 
 import { Button } from 'components/atoms/Button';
+import { Chevron } from 'components/atoms/Chevron';
 import { ASSETS } from 'helpers/config';
 
 import * as S from './styles';
@@ -10,6 +11,7 @@ export type ActionMenuItem = {
 	id: string;
 	label: string;
 	icon?: string;
+	disabled?: boolean;
 	onSelect: () => void;
 };
 
@@ -18,6 +20,8 @@ export default function ActionMenu(props: {
 	ariaLabel: string;
 	icon?: string;
 	items: ActionMenuItem[];
+	variant?: 'default' | 'plain';
+	menuOffset?: number;
 }) {
 	const menuId = React.useId();
 	const triggerId = React.useId();
@@ -29,7 +33,7 @@ export default function ActionMenu(props: {
 
 	React.useEffect(() => {
 		if (!isOpen) return;
-		const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+		const items = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)');
 		items?.[focusLastRef.current ? items.length - 1 : 0]?.focus();
 
 		function handleOutside(event: Event) {
@@ -74,7 +78,9 @@ export default function ActionMenu(props: {
 		}
 		if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
 		event.preventDefault();
-		const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+		const items = Array.from(
+			menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? []
+		);
 		const currentIndex = items.findIndex((item) => item === document.activeElement);
 		const nextIndex =
 			event.key === 'Home'
@@ -97,23 +103,31 @@ export default function ActionMenu(props: {
 
 	return (
 		<S.Wrapper ref={wrapperRef}>
-			<Button
-				{...triggerProps}
-				type="primary"
-				label={props.label ?? undefined}
-				icon={props.icon ?? ASSETS.ellipsisHorizontal}
-				onPress={handleToggle}
-				height={32}
-				width={props.label ? undefined : 32.5}
-				iconSize={16}
-			/>
+			{props.variant === 'plain' ? (
+				<S.PlainTrigger {...triggerProps} type="button" onClick={handleToggle}>
+					<span>{props.label}</span>
+					<Chevron isOpen={isOpen} size={15} />
+				</S.PlainTrigger>
+			) : (
+				<Button
+					{...triggerProps}
+					type="primary"
+					label={props.label ?? undefined}
+					icon={props.icon ?? ASSETS.ellipsisHorizontal}
+					onPress={handleToggle}
+					height={32}
+					width={props.label ? undefined : 32.5}
+					iconSize={16}
+				/>
+			)}
 			{isOpen && (
 				<S.Menu
+					$alignStart={props.variant === 'plain'}
+					$offset={props.menuOffset}
 					ref={menuRef}
 					id={menuId}
 					role="menu"
 					aria-labelledby={triggerId}
-					className="border-wrapper-alt3"
 					onKeyDown={handleMenuKeyDown}
 				>
 					{props.items.map((item) => (
@@ -121,8 +135,10 @@ export default function ActionMenu(props: {
 							key={item.id}
 							type="button"
 							role="menuitem"
+							disabled={item.disabled}
 							tabIndex={-1}
 							onClick={() => {
+								if (item.disabled) return;
 								handleClose();
 								item.onSelect();
 							}}

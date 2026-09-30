@@ -15,8 +15,10 @@ import {
 	getTagValue,
 	getTransactionTypeFromTags,
 } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePinnedTabsProvider } from 'providers/PinnedTabsProvider';
+import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import type { ExplorerTab as ExplorerTabType } from '../../../model/tabs';
 import { parseExplorerTabs } from '../../../model/tabs';
@@ -32,6 +34,9 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const pins = usePinnedTabsProvider();
+	const { settings, updateSettings } = useSettingsProvider();
+	const { openExplorer } = useExplorerNavigation();
+	const isInAppTabsEnabled = settings.inAppTabs?.[props.type] ?? false;
 
 	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
 	const callbacksRef = React.useRef<Map<string, (newTx: GQLNodeResponseType) => void>>(new Map());
@@ -48,7 +53,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const language = languageProvider.object[languageProvider.current];
 
 	const [transactions, setTransactions] = React.useState<ExplorerTabType[]>(() => {
-		const parsed = parseExplorerTabs(localStorage.getItem(storageKey));
+		const parsed = isInAppTabsEnabled ? parseExplorerTabs(localStorage.getItem(storageKey)) : [];
 		if (parsed.length) {
 			return parsed.map((tx) => ({
 				...tx,
@@ -86,6 +91,24 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	React.useEffect(() => {
 		const { txId, subPath, txType } = extractTxDetailsFromPath(location.pathname);
 		const route = getRouteForTab({ id: txId, type: txType }, subPath, getLocationSearch());
+		if (!isInAppTabsEnabled) {
+			setTransactions((previous) => {
+				const current = previous[activeTabIndex];
+				return [
+					{
+						...(current && isSameTab(current, txId, txType)
+							? current
+							: { id: txId, ...getTabName(txId, txId), type: txType, tabKey: `tab-${Date.now()}-${Math.random()}` }),
+						lastRoute: route,
+					},
+				];
+			});
+			setActiveTabIndex(0);
+			setVisitedTabs(new Set([0]));
+			navigateIfNeeded(route, { replace: true });
+			previousLocationPathRef.current = location.pathname;
+			return;
+		}
 		const insertNewTabsNextToActive = props.type === 'explorer' && isExplorerPath(previousLocationPathRef.current);
 
 		if (txId && !transactions.some((tab) => isSameTab(tab, txId, txType)) && !isDeletingRef.current) {
@@ -137,11 +160,12 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			}
 		}
 		previousLocationPathRef.current = location.pathname;
-	}, [location.pathname, location.search]);
+	}, [location.pathname, location.search, isInAppTabsEnabled]);
 
 	React.useEffect(() => {
+		if (!isInAppTabsEnabled) return;
 		localStorage.setItem(storageKey, JSON.stringify(transactions));
-	}, [transactions]);
+	}, [transactions, isInAppTabsEnabled, storageKey]);
 
 	React.useEffect(() => {
 		if (props.type !== 'explorer') return;
@@ -181,7 +205,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			const activeTab = transactions[activeTabIndex];
 
 			// If a concrete id is already in the URL, let the path-sync effect open/switch to that tab.
-			if (!txId && activeTab && (activeTab.id !== txId || activeTab.type !== txType)) {
+			if (isInAppTabsEnabled && !txId && activeTab && (activeTab.id !== txId || activeTab.type !== txType)) {
 				const route = activeTab.lastRoute || getRouteForTab(activeTab);
 				navigateIfNeeded(route, { replace: true });
 			}
@@ -204,7 +228,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				}, 100);
 			}
 		},
-		[location.pathname, transactions, activeTabIndex, props.type, navigate]
+		[location.pathname, transactions, activeTabIndex, props.type, navigate, isInAppTabsEnabled]
 	);
 
 	function getTabName(
@@ -358,6 +382,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 
 			setTransactions((prev) => {
 				const updated = [...prev];
+				if (updated[tabIndex]?.tabKey !== tabKey) return prev;
 				if (updated[tabIndex]) {
 					const previousTab = updated[tabIndex];
 					const nextType = type as TransactionTabType['type'];
@@ -454,6 +479,42 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			navigateIfNeeded(id ? getRouteForTab(newTab) : URLS[props.type]);
 		},
 		[props.type, navigate, pins.tabs]
+	);
+
+	const handleInAppTabsChange = (enabled: boolean) => {
+		if (enabled) {
+			const current = transactions[activeTabIndex];
+			const restored: ExplorerTabType[] = parseExplorerTabs(localStorage.getItem(storageKey)).map((tab) => ({
+				...tab,
+				...getTabName(tab.id, tab.label, tab.labelEdited),
+				lastRoute: tab.id
+					? getRouteForTab(tab, getStoredSubPath(tab.lastRoute), getStoredSearch(tab.lastRoute))
+					: undefined,
+				tabKey: tab.tabKey || `tab-${Date.now()}-${Math.random()}`,
+			}));
+			const existingIndex = current ? restored.findIndex((tab) => isSameTab(tab, current.id, current.type)) : -1;
+			const nextIndex = existingIndex >= 0 ? existingIndex : restored.length;
+			if (current) {
+				const saved = restored[nextIndex];
+				restored[nextIndex] = {
+					...current,
+					...(saved?.labelEdited && !current.labelEdited ? { label: saved.label, labelEdited: true } : {}),
+				};
+			}
+			setTransactions(restored);
+			setActiveTabIndex(nextIndex);
+			setVisitedTabs(new Set([nextIndex]));
+		}
+		updateSettings('inAppTabs', { ...settings.inAppTabs, [props.type]: enabled });
+	};
+
+	// Transaction tab views depend on this callback; shell updates must not recreate them.
+	const handleMessageOpen = React.useCallback(
+		(id: string) => {
+			if (isInAppTabsEnabled) handleAddTab(id);
+			else openExplorer(`${URLS.explorer}${id}`);
+		},
+		[isInAppTabsEnabled, handleAddTab, openExplorer]
 	);
 
 	const handleDeleteTab = (deletedIndex: number) => {
@@ -579,7 +640,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				type={tab.type as any}
 				active={isActive}
 				onTxChange={onTxChange}
-				onMessageOpen={handleAddTab}
+				onMessageOpen={handleMessageOpen}
 				tabKey={tab.tabKey}
 				onLoadingChange={onLoadingChange}
 				processMessagesView={ProcessMessages}
@@ -599,6 +660,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		<>
 			<ViewTabs<ExplorerTabType>
 				type={props.type}
+				isInAppTabsEnabled={isInAppTabsEnabled}
+				onInAppTabsChange={handleInAppTabsChange}
 				header={language[props.type]}
 				headerActions={[
 					{
@@ -626,6 +689,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 				renderContent={renderContent}
 				languageLabels={{
 					tabActions: language.tabActions,
+					enableInAppTabs: language.enableInAppTabs,
+					disableInAppTabs: language.disableInAppTabs,
 					newTab: language.new,
 					newTabTooltip: language.createNewTab,
 					clearTabs: language.clear,

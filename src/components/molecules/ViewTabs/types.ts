@@ -6,6 +6,8 @@ import { BaseTabType } from 'helpers/types';
 export interface TabsContainerProps<T extends BaseTabType> {
 	type: string;
 	header: string;
+	isInAppTabsEnabled: boolean;
+	onInAppTabsChange: (enabled: boolean) => void;
 	headerActions?: ActionMenuItem[];
 	defaultTab: Omit<T, 'tabKey'>;
 	tabs: T[];
@@ -25,6 +27,8 @@ export interface TabsContainerProps<T extends BaseTabType> {
 	onMount?: (tabsRef: React.RefObject<HTMLDivElement>) => void;
 	languageLabels: {
 		tabActions: string;
+		enableInAppTabs: string;
+		disableInAppTabs: string;
 		newTab: string;
 		newTabTooltip: string;
 		clearTabs: string;

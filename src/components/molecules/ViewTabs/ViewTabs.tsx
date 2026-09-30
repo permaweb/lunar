@@ -14,30 +14,23 @@ import * as S from './styles';
 import { TabsContainerProps } from './types';
 
 // Render a single tab pane and avoid recalculating heavy children when inactive
-const TabPane = React.memo(
-	function TabPane<T>({
-		tab,
-		index,
-		isActive,
-		renderContent,
-	}: {
-		tab: T;
-		index: number;
-		isActive: boolean;
-		renderContent: (tab: T, index: number, isActive: boolean) => React.ReactNode;
-	}) {
-		const content = React.useMemo(() => renderContent(tab, index, isActive), [tab, index, isActive, renderContent]);
+const TabPane = React.memo(function TabPane<T extends BaseTabType>(props: {
+	tab: T;
+	index: number;
+	isActive: boolean;
+	renderContent: (tab: T, index: number, isActive: boolean) => React.ReactNode;
+}) {
+	const content = React.useMemo(
+		() => props.renderContent(props.tab, props.index, props.isActive),
+		[props.tab, props.index, props.isActive, props.renderContent]
+	);
 
-		return (
-			<S.ContentWrapper active={isActive} data-tab-key={(tab as any).tabKey ?? index}>
-				{content}
-			</S.ContentWrapper>
-		);
-	},
-	(prev, next) => {
-		return prev.tab === next.tab && prev.isActive === next.isActive && prev.index === next.index;
-	}
-);
+	return (
+		<S.ContentWrapper active={props.isActive} data-tab-key={props.tab.tabKey}>
+			{content}
+		</S.ContentWrapper>
+	);
+});
 
 export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProps<T>) {
 	const tabsRef = React.useRef<HTMLDivElement>(null);
@@ -55,7 +48,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 		if (props.onMount) {
 			props.onMount(tabsRef);
 		}
-	}, []);
+	}, [props.isInAppTabsEnabled]);
 
 	React.useEffect(() => {
 		const el = tabsRef.current;
@@ -86,7 +79,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 		return () => {
 			el.removeEventListener('wheel', onWheel);
 		};
-	}, []);
+	}, [props.isInAppTabsEnabled]);
 
 	React.useEffect(() => {
 		if (editingTabIndex === null) return;
@@ -168,6 +161,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 	};
 
 	const handleAddTab = React.useCallback(() => {
+		if (!props.isInAppTabsEnabled) return;
 		if (props.onAddTab) {
 			props.onAddTab();
 		} else {
@@ -188,7 +182,16 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 				}
 			}, 0);
 		}
-	}, [props.tabs.length, props.defaultTab, props.onAddTab]);
+	}, [
+		props.tabs,
+		props.defaultTab,
+		props.onAddTab,
+		props.isInAppTabsEnabled,
+		props.onTabsChange,
+		props.onActiveTabChange,
+		props.onVisitedTabsChange,
+		props.visitedTabs,
+	]);
 
 	const handleDeleteTab = (deletedIndex: number) => {
 		if (isAnyLoading) return;
@@ -360,8 +363,8 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 
 	const isAnyLoading = React.useMemo(() => {
 		if (!props.loadingStates) return false;
-		return Array.from(props.loadingStates.values()).some((loading) => loading);
-	}, [props.loadingStates]);
+		return props.tabs.some((tab) => props.loadingStates.get(tab.tabKey));
+	}, [props.loadingStates, props.tabs]);
 
 	const tabElements = React.useMemo(() => {
 		const closeDisabled = isAnyLoading;
@@ -453,6 +456,8 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 		);
 	}, [
 		props.tabs,
+		props.isInAppTabsEnabled,
+		handleAddTab,
 		props.activeTabIndex,
 		props.languageLabels,
 		props.onRenameTab,
@@ -465,23 +470,36 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 
 	return (
 		<>
-			<S.Wrapper>
-				<S.HeaderWrapper>
+			<S.Wrapper $isInAppTabsEnabled={props.isInAppTabsEnabled}>
+				<S.HeaderWrapper $isInAppTabsEnabled={props.isInAppTabsEnabled}>
 					<ViewTitle
 						header={props.header}
 						actions={[
 							<ActionMenu
 								ariaLabel={props.languageLabels.tabActions}
 								items={[
-									...(props.headerActions ?? []),
+									{
+										id: 'in-app-tabs',
+										label: props.isInAppTabsEnabled
+											? props.languageLabels.disableInAppTabs
+											: props.languageLabels.enableInAppTabs,
+										icon: ASSETS.newTab,
+										onSelect: () => props.onInAppTabsChange(!props.isInAppTabsEnabled),
+									},
+									...(props.headerActions ?? []).map((action) => ({
+										...action,
+										disabled: !props.isInAppTabsEnabled || action.disabled,
+									})),
 									{
 										id: 'new',
+										disabled: !props.isInAppTabsEnabled,
 										label: props.languageLabels.newTab,
 										icon: ASSETS.add,
 										onSelect: () => handleAddTab(),
 									},
 									{
 										id: 'clear',
+										disabled: !props.isInAppTabsEnabled,
 										label: props.languageLabels.clearTabs,
 										icon: ASSETS.delete,
 										onSelect: () => setShowClearConfirmation(true),
@@ -490,11 +508,13 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 							/>,
 						]}
 					/>
-					<S.TabsWrapper>
-						<S.PlaceholderFull id={'placeholder-start'} />
-						<ViewWrapper>{tabElements}</ViewWrapper>
-						<S.PlaceholderFull id={'placeholder-end'} />
-					</S.TabsWrapper>
+					{props.isInAppTabsEnabled && (
+						<S.TabsWrapper>
+							<S.PlaceholderFull id={'placeholder-start'} />
+							<ViewWrapper>{tabElements}</ViewWrapper>
+							<S.PlaceholderFull id={'placeholder-end'} />
+						</S.TabsWrapper>
+					)}
 				</S.HeaderWrapper>
 				<ViewWrapper>
 					<>
@@ -502,7 +522,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 							const isActive = index === props.activeTabIndex;
 							const hasBeenVisited = props.visitedTabs.has(index);
 
-							if (!hasBeenVisited) {
+							if (!isActive && (!props.isInAppTabsEnabled || !hasBeenVisited)) {
 								return null;
 							}
 
@@ -519,7 +539,7 @@ export default function ViewTabs<T extends BaseTabType>(props: TabsContainerProp
 					</>
 				</ViewWrapper>
 			</S.Wrapper>
-			{showClearConfirmation && (
+			{props.isInAppTabsEnabled && showClearConfirmation && (
 				<Modal header={props.languageLabels.clearTabsTooltip} onClose={() => setShowClearConfirmation(false)}>
 					<S.ModalWrapper>
 						<S.ModalBodyWrapper>

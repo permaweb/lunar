@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { BlockMetadata, BlockNode, getBlockMetadataByHeight, getBlocks, GQLEdge } from 'api/blocks';
 
@@ -20,6 +20,7 @@ import {
 	getByteSizeDisplay,
 	getRelativeDate,
 } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
@@ -110,7 +111,7 @@ function BlockRow(props: {
 	supplied?: boolean;
 	preview?: boolean;
 }) {
-	const navigate = useNavigate();
+	const { openExplorer } = useExplorerNavigation();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -152,7 +153,7 @@ function BlockRow(props: {
 	}, [metadataResponse.error, props.edge.node.height, props.onMetadataLoaded]);
 
 	function handleRowClick() {
-		navigate(`${URLS.explorer}${blockLinkValue}`);
+		openExplorer(`${URLS.explorer}${blockLinkValue}`);
 	}
 
 	return (

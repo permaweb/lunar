@@ -23,30 +23,44 @@ export const Header = styled.div<{ $textStyle?: 'code' | 'body' }>`
 	}
 `;
 
-export const EditorWrapper = styled.div<{ useFixedHeight: boolean }>`
-	min-height: 125px;
-	max-height: ${(props) => (props.useFixedHeight ? '100%' : `calc(100vh - 190px)`)};
+export const EditorWrapper = styled.div<{ $useFixedHeight?: boolean; $height: number; $noWrapper?: boolean }>`
+	height: ${(props) => (props.$useFixedHeight ? '100%' : `${props.$height}px`)};
+	min-height: ${(props) => (props.$noWrapper ? '0' : '125px')};
+	max-height: ${(props) => (props.$useFixedHeight ? '100%' : `calc(100vh - 190px)`)};
+	overflow: hidden;
 	width: 100%;
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 	position: relative;
+	isolation: isolate;
 `;
 
-export const Editor = styled.div<{ $hasHeader?: boolean; $textStyle?: 'code' | 'body' }>`
+export const Editor = styled.div<{ $hasHeader?: boolean; $noWrapper?: boolean; $textStyle?: 'code' | 'body' }>`
 	height: 100%;
 	width: 100%;
 	min-width: 0;
 	flex: 1;
 	position: relative;
-	padding: ${(props) => (props.$hasHeader ? `0 0 15px 0` : `18.5px 0 15px 0`)};
-	background: ${(props) => props.theme.colors.container.alt1.background};
+	z-index: 0;
+	min-height: 0;
+	padding: ${(props) => (props.$noWrapper ? '0' : props.$hasHeader ? `0 0 15px 0` : `18.5px 0 15px 0`)};
+	background: ${(props) => (props.$noWrapper ? 'transparent' : props.theme.colors.container.alt1.background)};
 
 	> div {
 		height: 100% !important;
-		background: ${(props) => props.theme.colors.container.alt1.background} !important;
+		background: ${(props) =>
+			props.$noWrapper ? 'transparent' : props.theme.colors.container.alt1.background} !important;
 	}
+
+	${(props) =>
+		props.$noWrapper &&
+		`
+			.monaco-editor, .monaco-editor-background, .margin {
+				background: transparent !important;
+			}
+		`}
 
 	> * {
 		font-family: ${(props) =>

@@ -14,17 +14,43 @@ import { parsePinnedTabs, PINNED_TABS_KEY } from '../../../src/helpers/pinnedTab
 import { darkTheme, theme } from '../../../src/helpers/themes';
 import type { GQLNodeResponseType } from '../../../src/helpers/types';
 import { PinnedTabsProvider, usePinnedTabsProvider } from '../../../src/providers/PinnedTabsProvider';
+import { SettingsProvider } from '../../../src/providers/SettingsProvider';
 import { NODE_URL } from '../../fixtures/arweaveNode';
 
+vi.mock('providers/NotificationProvider', () => ({
+	NotificationViewport: () => null,
+	useNotifications: () => ({ addNotification: vi.fn(), removeNotification: vi.fn() }),
+}));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden={'true'} /> }));
 vi.mock('store', () => ({ store: { getState: () => ({}) } }));
 vi.mock('store/transactions/reducer', () => ({ selectTransaction: () => null }));
-vi.mock('components/organisms/AOS', () => ({ AOS: () => null }));
+vi.mock('components/organisms/AOS', () => ({
+	AOS: (props) => (
+		<div data-process={props.processId}>
+			<ExplorerLink value={linkedId} label={'Inspect linked transaction'} />
+		</div>
+	),
+}));
+vi.mock('api/aoNetwork', async (original) => {
+	const actual = await original<typeof import('../../../src/api/aoNetwork')>();
+	const status = { source: 'peers' };
+	const transport = {
+		getStatus: () => status,
+		subscribe: () => () => {},
+		readResponse: async (_path: string, parse: (response: Response) => Promise<unknown>) => ({
+			data: await parse(new Response('{}', { headers: { 'content-type': 'application/json' } })),
+			provider: 'https://ao.example',
+			source: 'peers',
+		}),
+	};
+	return { ...actual, getAoReadTransport: () => transport };
+});
 vi.mock('components/organisms/Transaction', () => ({
 	Transaction: (props) => {
 		if (props.active) {
 			pinTarget = props.pinTarget;
 			resolveTransaction = props.onTxChange;
+			openMessage = props.onMessageOpen;
 		}
 		return (
 			<div data-transaction={props.txId}>
@@ -54,22 +80,26 @@ let currentPath = '';
 let currentRoute = '';
 let navigate: ReturnType<typeof useNavigate>;
 let resolveNode: () => void;
+let openMessage: (id: string) => void;
 let resolveTransaction: (transaction: GQLNodeResponseType) => void;
 let pinTarget: PinTarget;
 let togglePin: ReturnType<typeof usePinnedTabsProvider>['toggle'];
-function Harness() {
+function Harness(props: { type?: 'explorer' | 'aos' }) {
 	navigate = useNavigate();
 	const location = useLocation();
 	currentPath = location.pathname;
 	currentRoute = location.pathname + location.search;
 	togglePin = usePinnedTabsProvider().toggle;
-	return <ExplorerTabs type={'explorer'} />;
+	return <ExplorerTabs type={props.type ?? 'explorer'} />;
 }
 beforeEach(() => {
 	resolveNode = undefined;
 	resolveTransaction = undefined;
 	pinTarget = undefined;
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+	vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+	localStorage.setItem('settings', JSON.stringify({ inAppTabs: { explorer: true, aos: true, graphql: true } }));
+	localStorage.removeItem('aos-transactions');
 	Element.prototype.scrollTo = vi.fn();
 	localStorage.removeItem('explorer-transactions');
 	localStorage.removeItem(PINNED_TABS_KEY);
@@ -87,12 +117,15 @@ async function render(path: string, shouldResolve = true) {
 		root.render(
 			<MemoryRouter initialEntries={[path]}>
 				<ThemeProvider theme={theme(darkTheme)}>
-					<PinnedTabsProvider>
-						<Routes>
-							<Route path={'/explorer/'} element={<Harness />} />
-							<Route path={'/explorer/:txid/*'} element={<Harness />} />
-						</Routes>
-					</PinnedTabsProvider>
+					<SettingsProvider>
+						<PinnedTabsProvider>
+							<Routes>
+								<Route path={'/aos/*'} element={<Harness type="aos" />} />
+								<Route path={'/explorer/'} element={<Harness />} />
+								<Route path={'/explorer/:txid/*'} element={<Harness />} />
+							</Routes>
+						</PinnedTabsProvider>
+					</SettingsProvider>
 					<div id={DOM.overlay} />
 				</ThemeProvider>
 			</MemoryRouter>
@@ -201,8 +234,8 @@ it('shows compact tab actions and opens saved pins without a connected wallet', 
 		menuButton.click();
 	});
 	const items = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
-	expect(items.map((item) => item.textContent)).toEqual(['Pinned', 'New', 'Clear']);
-	await React.act(async () => items[0].click());
+	expect(items.map((item) => item.textContent)).toEqual(['Disable in-app tabs', 'Pinned', 'New', 'Clear']);
+	await React.act(async () => items[1].click());
 	const panel = container.querySelector('[role="dialog"]');
 	expect(panel.textContent).toContain('Saved address');
 	const pin = [...panel.querySelectorAll('button')].find((button) => button.textContent.includes('Saved address'));
@@ -314,4 +347,105 @@ it('opens a node deep link even when saved tabs contain corrupt JSON', async () 
 	localStorage.setItem('explorer-transactions', '{invalid');
 	await render(getArweaveNodeRoute(NODE_URL));
 	expect(tabs()).toMatchObject([{ id: NODE_URL, type: 'arweave-node' }]);
+});
+
+async function selectMenuAction(label: string) {
+	await React.act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Tab actions"]').click());
+	const item = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(
+		(item) => item.textContent === label
+	);
+	await React.act(async () => item.click());
+}
+
+it.each(['explorer', 'aos'] as const)(
+	'defaults %s to a single page, navigates in the current browser tab, and disables other actions',
+	async (type) => {
+		localStorage.removeItem('settings');
+		const id = 'a'.repeat(43);
+		const savedTabs = JSON.stringify([{ id: 'b'.repeat(43), label: 'Saved', type: 'transaction', tabKey: 'saved' }]);
+		localStorage.setItem(`${type}-transactions`, savedTabs);
+		const open = vi.spyOn(window, 'open').mockReturnValue(null);
+		await render(`/${type}/${id}`);
+		expect(currentPath).toBe(`/${type}/${id}`);
+		expect(container.querySelector('[data-tab-index]')).toBeNull();
+		expect(container.textContent).not.toContain(id);
+		expect(container.textContent).not.toContain('Saved');
+		const link = container.querySelector<HTMLAnchorElement>(`a[href="#/explorer/${linkedId}"]`);
+		expect(link.target).toBe('');
+		await React.act(async () => link.click());
+		expect(open).not.toHaveBeenCalled();
+		expect(currentPath).toBe(`/explorer/${linkedId}`);
+		expect(container.querySelectorAll('[data-tab-key]')).toHaveLength(1);
+		await React.act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Tab actions"]').click());
+		const actions = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+		expect(actions.map((action) => [action.textContent, action.disabled])).toEqual([
+			['Enable in-app tabs', false],
+			['Pinned', true],
+			['New', true],
+			['Clear', true],
+		]);
+		await React.act(async () => actions[3].click());
+		expect(container.querySelector('[role="dialog"]')).toBeNull();
+		expect(localStorage.getItem(`${type}-transactions`)).toBe(savedTabs);
+		await React.act(async () => navigate(-1));
+		expect(currentPath).toBe(`/${type}/${id}`);
+		open.mockRestore();
+	}
+);
+
+it.each(['explorer', 'aos'] as const)(
+	'keeps the current %s resource and saved tabs when toggling modes',
+	async (type) => {
+		const id = 'a'.repeat(43);
+		const otherId = 'b'.repeat(43);
+		await render(`/${type}/${id}`);
+		await React.act(async () => navigate(`/${type}/${otherId}`));
+		expect(container.querySelectorAll('[data-tab-index]')).toHaveLength(2);
+		await selectMenuAction('Disable in-app tabs');
+		expect(container.querySelector('[data-tab-index]')).toBeNull();
+		expect(container.querySelectorAll('[data-tab-key]')).toHaveLength(1);
+		expect(currentPath).toBe(`/${type}/${otherId}`);
+		await React.act(async () => navigate(`/${type}/${id}/messages?cursor=saved`));
+		expect(currentRoute).toBe(`/${type}/${id}/messages?cursor=saved`);
+		expect(container.querySelectorAll('[data-tab-key]')).toHaveLength(1);
+		await selectMenuAction('Enable in-app tabs');
+		expect(container.querySelectorAll('[data-tab-index]')).toHaveLength(2);
+		expect(currentRoute).toBe(`/${type}/${id}/messages?cursor=saved`);
+		expect(JSON.parse(localStorage.getItem(`${type}-transactions`))).toHaveLength(2);
+	}
+);
+
+it('keeps an empty single-page explorer empty despite a saved workspace', async () => {
+	localStorage.removeItem('settings');
+	localStorage.setItem(
+		'explorer-transactions',
+		JSON.stringify([{ id: linkedId, label: linkedId, type: 'transaction', tabKey: 'saved' }])
+	);
+	await render('/explorer/');
+	expect(currentPath).toBe('/explorer/');
+	expect(container.querySelector('[data-transaction]')?.getAttribute('data-transaction')).toBe('');
+});
+
+it('opens message actions in the current browser tab after disabling in-app tabs', async () => {
+	await render('/explorer/' + 'a'.repeat(43));
+	await selectMenuAction('Disable in-app tabs');
+	const open = vi.spyOn(window, 'open').mockReturnValue(null);
+	await React.act(async () => openMessage(linkedId));
+	expect(open).not.toHaveBeenCalled();
+	expect(currentPath).toBe(`/explorer/${linkedId}`);
+	expect(container.querySelectorAll('[data-tab-key]')).toHaveLength(1);
+	open.mockRestore();
+});
+
+it('ignores late results from a replaced single page', async () => {
+	localStorage.removeItem('settings');
+	const id = 'a'.repeat(43);
+	await render('/explorer/' + id);
+	const resolvePrevious = resolveTransaction;
+	await React.act(async () => navigate('/explorer/' + linkedId));
+	await React.act(async () =>
+		resolvePrevious({ node: { id, tags: [{ name: 'Name', value: 'Old page' }] } } as GQLNodeResponseType)
+	);
+	expect(currentPath).toBe('/explorer/' + linkedId);
+	expect(container.querySelector('[data-transaction]')?.getAttribute('data-transaction')).toBe(linkedId);
 });

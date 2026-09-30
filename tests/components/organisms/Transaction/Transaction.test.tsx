@@ -6,11 +6,14 @@ import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { requestRemote } from '../../../../src/api/http';
+import { lookupTransaction } from '../../../../src/api/transactions';
 import { Transaction } from '../../../../src/components/organisms/Transaction';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import type { GQLNodeResponseType, TagType, TransactionType } from '../../../../src/helpers/types';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
 import {
+	BUNDLE_HEADERS,
+	BUNDLE_ID,
 	EMPTY_TRANSFER_HEADERS,
 	EMPTY_TRANSFER_ID,
 	HYPERBUDDY_HTML,
@@ -145,6 +148,29 @@ it('populates the bundle table by resolving each linked ID from its tags', async
 		expect(rows[index].textContent).toContain('Message');
 		expect(mocks.lookup).toHaveBeenCalledWith(expect.objectContaining({ txId: id }));
 	}
+	expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('opens the bundle overview and contents from a generic explorer link with signature-only bundle metadata', async () => {
+	mocks.showFirstTab = true;
+	vi.mocked(requestRemote).mockResolvedValue(new Response(HYPERBUDDY_HTML, { headers: BUNDLE_HEADERS }));
+	mocks.lookup.mockImplementation((args: { txId: string }) =>
+		args.txId === BUNDLE_ID
+			? lookupTransaction(args.txId)
+			: { ...transaction([]), node: { ...transaction([]).node, id: args.txId } }
+	);
+	const fetchMock = vi.fn();
+	vi.stubGlobal('fetch', fetchMock);
+
+	await render('transaction', BUNDLE_ID);
+
+	expect(container.textContent).toContain('Bundle Overview');
+	expect(container.textContent).toContain('bundle-formatbinary');
+	expect(container.textContent).toContain('bundle-version2.0.0');
+	expect(container.textContent).not.toContain('Transaction Overview');
+	const rows = [...container.querySelectorAll('.transaction-list-element')];
+	expect(rows).toHaveLength(1);
+	expect(rows[0].getAttribute('aria-label')).toContain(BUNDLE_HEADERS['1+link']);
 	expect(fetchMock).not.toHaveBeenCalled();
 });
 

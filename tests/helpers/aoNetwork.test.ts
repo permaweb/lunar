@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+
 import { DEFAULT_AO_NETWORK, parseAoPeers, restoreAoNetwork } from '../../src/helpers/aoNetwork';
 
 it('migrates old preferences without using the saved AOS node as a peer', () => {

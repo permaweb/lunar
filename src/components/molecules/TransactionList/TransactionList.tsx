@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useTheme } from 'styled-components';
 
 import {
@@ -34,6 +34,7 @@ import {
 	isNativeArTransfer,
 	isTransferAction,
 } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useVisibleData } from 'hooks/useVisibleData';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
@@ -42,6 +43,7 @@ import { store } from 'store';
 import * as FilterS from '../MessageList/styles';
 
 import * as S from './styles';
+import { TransactionListEntry } from './types';
 
 const DEFAULT_TRANSACTIONS_PER_PAGE = 50;
 const TYPE_FILTER_OPTIONS: TransactionTypeFilter[] = ['message', 'assignment', 'bundle', 'transaction'];
@@ -169,16 +171,17 @@ function isTransferTransaction(transaction: TransactionNode) {
 }
 
 function TransactionRow(props: {
-	edge: GQLEdge<TransactionNode>;
+	edge: TransactionListEntry;
 	onHydrated: (transaction: TransactionNode) => void;
 	disableHydration?: boolean;
 	pending?: boolean;
 	observedAt?: number;
 	preview?: boolean;
+	hasDetail?: boolean;
 }) {
 	const currentTheme: any = useTheme();
 	const dispatch = useDispatch();
-	const navigate = useNavigate();
+	const { openExplorer } = useExplorerNavigation();
 
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -203,6 +206,8 @@ function TransactionRow(props: {
 	});
 	const transaction = hydratedTransaction.data ?? props.edge.node;
 	const tags = transaction.tags ?? [];
+	const display = props.edge.display;
+	const identifier = display?.identifier ?? transaction.id;
 	const timestamp = props.observedAt ?? (transaction.block?.timestamp ? transaction.block.timestamp * 1000 : null);
 	const transferTarget = transaction.recipient ?? getTagValue(tags, 'Target');
 	const pendingHydration = props.pending || (!props.disableHydration && needsHydration && !hydratedTransaction.loaded);
@@ -222,7 +227,7 @@ function TransactionRow(props: {
 	}, [hydratedTransaction.error]);
 
 	function handleRowClick() {
-		navigate(`${URLS.explorer}${transaction.id}`);
+		openExplorer(`${URLS.explorer}${identifier}`);
 	}
 
 	function handleRowKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -282,19 +287,20 @@ function TransactionRow(props: {
 			className={'transaction-list-element'}
 			role={'link'}
 			tabIndex={0}
-			aria-label={`${language.inspect} ${transaction.id}`}
+			aria-label={`${language.inspect} ${identifier}`}
 			onClick={handleRowClick}
 			onKeyDown={handleRowKeyDown}
 			$preview={props.preview}
+			$hasDetail={props.hasDetail}
 		>
 			<S.ID title={transaction.id} $preview={props.preview}>
 				<S.LinkLabel>
-					<ExplorerLink value={transaction.id} type={'transaction'} />
+					<ExplorerLink value={identifier} type={typeof identifier === 'number' ? 'block' : 'transaction'} />
 				</S.LinkLabel>
 			</S.ID>
-			<S.TypeValue background={getTypeBackground(transaction)} $preview={props.preview}>
+			<S.TypeValue background={display?.typeColor ?? getTypeBackground(transaction)} $preview={props.preview}>
 				<div className={'type-indicator'} />
-				<p>{getTransactionType(transaction)}</p>
+				<p>{display?.typeLabel ?? getTransactionType(transaction)}</p>
 				<TransferAmount tags={tags} target={transferTarget} quantity={transaction.quantity} />
 			</S.TypeValue>
 			{!props.preview && (
@@ -318,16 +324,22 @@ function TransactionRow(props: {
 					</S.Recipient>
 				</>
 			)}
+			{props.hasDetail && (
+				<S.Size $preview={props.preview}>
+					<p>{display?.detail ?? '-'}</p>
+				</S.Size>
+			)}
 			<S.Size $preview={props.preview}>
 				<p>{getSize(transaction)}</p>
 			</S.Size>
 			<S.Time $preview={props.preview}>
 				<p>
-					{timestamp
-						? props.preview
-							? getRelativeDate(timestamp)
-							: formatDate(timestamp, 'timestamp', true)
-						: getPendingLabel()}
+					{display?.time ??
+						(timestamp
+							? props.preview
+								? getRelativeDate(timestamp)
+								: formatDate(timestamp, 'timestamp', true)
+							: getPendingLabel())}
 				</p>
 			</S.Time>
 		</S.ElementWrapper>
@@ -346,7 +358,7 @@ export default function TransactionList(props: {
 	pageSize?: number;
 	preview?: boolean;
 	source?: {
-		edges: GQLEdge<TransactionNode>[];
+		edges: TransactionListEntry[];
 		loading: boolean;
 		loadingMessage?: string;
 		emptyMessage?: string;
@@ -354,6 +366,7 @@ export default function TransactionList(props: {
 		onRefresh: () => void;
 		pagination?: (showCounter: boolean) => React.ReactNode;
 		timeLabel?: string;
+		detailLabel?: string;
 		pendingIds?: string[];
 		timestamps?: Record<string, number>;
 	};
@@ -893,7 +906,7 @@ export default function TransactionList(props: {
 
 	return (
 		<>
-			<S.Container ref={tableContainerRef} $preview={props.preview}>
+			<S.Container ref={tableContainerRef} $preview={props.preview} aria-busy={loading}>
 				<S.Header>
 					<S.HeaderMain>
 						<p>
@@ -959,7 +972,7 @@ export default function TransactionList(props: {
 				</S.Header>
 				{transactions.length > 0 ? (
 					<S.Wrapper $preview={props.preview}>
-						<S.HeaderWrapper className={'fade-in'} $preview={props.preview}>
+						<S.HeaderWrapper className={'fade-in'} $preview={props.preview} $hasDetail={!!props.source?.detailLabel}>
 							<S.ID $preview={props.preview}>
 								<p>{language.id}</p>
 							</S.ID>
@@ -976,6 +989,11 @@ export default function TransactionList(props: {
 									</S.Recipient>
 								</>
 							)}
+							{props.source?.detailLabel && (
+								<S.Size $preview={props.preview}>
+									<p>{props.source.detailLabel}</p>
+								</S.Size>
+							)}
 							<S.Size $preview={props.preview}>
 								<p>{language.size}</p>
 							</S.Size>
@@ -983,7 +1001,7 @@ export default function TransactionList(props: {
 								<p>{props.source?.timeLabel ?? language.time}</p>
 							</S.Time>
 						</S.HeaderWrapper>
-						<S.BodyWrapper className={'fade-in'} $preview={props.preview}>
+						<S.BodyWrapper className={'fade-in'} $preview={props.preview} $hasDetail={!!props.source?.detailLabel}>
 							{transactions.map((edge) => (
 								<TransactionRow
 									key={edge.node.id}
@@ -993,6 +1011,7 @@ export default function TransactionList(props: {
 									pending={props.source?.pendingIds?.includes(edge.node.id)}
 									observedAt={props.source?.timestamps?.[edge.node.id]}
 									preview={props.preview}
+									hasDetail={!!props.source?.detailLabel}
 								/>
 							))}
 						</S.BodyWrapper>

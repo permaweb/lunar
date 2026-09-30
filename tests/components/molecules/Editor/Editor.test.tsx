@@ -11,22 +11,36 @@ import { darkTheme, theme } from '../../../../src/helpers/themes';
 const ENTER = 3;
 
 // A stand-in for Monaco: like the real editor, it calls onMount once and keeps every key handler registered then.
-const monaco = vi.hoisted(() => ({ keyHandlers: [] as ((event: unknown) => void)[], value: '' }));
+const monaco = vi.hoisted(() => ({
+	keyHandlers: [] as ((event: unknown) => void)[],
+	value: '',
+	layout: vi.fn(),
+	disposeKeydown: vi.fn(),
+	disposeContentSize: vi.fn(),
+}));
 vi.mock('@monaco-editor/react', async () => {
 	const React = await import('react');
 
 	return {
 		default: (props: { onMount: (editor: unknown, monacoApi: unknown) => void }) => {
 			React.useEffect(() => {
+				let onDispose: (() => void) | undefined;
 				props.onMount(
 					{
-						onKeyDown: (handler: (event: unknown) => void) => monaco.keyHandlers.push(handler),
+						onKeyDown: (handler: (event: unknown) => void) => {
+							monaco.keyHandlers.push(handler);
+							return { dispose: monaco.disposeKeydown };
+						},
 						getValue: () => monaco.value,
-						layout: () => {},
-						onDidContentSizeChange: () => ({ dispose: () => {} }),
+						layout: monaco.layout,
+						onDidContentSizeChange: () => ({ dispose: monaco.disposeContentSize }),
+						onDidDispose: (handler: () => void) => {
+							onDispose = handler;
+						},
 					},
 					{ KeyCode: { Enter: ENTER } }
 				);
+				return () => onDispose?.();
 			}, []);
 
 			return <div data-testid={'monaco'} />;
@@ -38,16 +52,22 @@ vi.mock('providers/LanguageProvider', () => ({ useLanguageProvider: () => ({ cur
 
 let container: HTMLElement;
 let root: ReturnType<typeof createRoot>;
+let resizeObservers: { observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[];
 
 beforeEach(() => {
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+	resizeObservers = [];
 	vi.stubGlobal(
 		'ResizeObserver',
 		class {
-			observe() {}
-			disconnect() {}
+			observe = vi.fn();
+			disconnect = vi.fn();
+			constructor() {
+				resizeObservers.push(this);
+			}
 		}
 	);
+	vi.clearAllMocks();
 	monaco.keyHandlers = [];
 	monaco.value = 'query { blocks }';
 	container = document.createElement('main');
@@ -61,7 +81,11 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-async function render(props: { onSubmit?: (value?: string) => void; hasSubmitButton?: boolean }) {
+async function render(props: {
+	onSubmit?: (value?: string) => void;
+	hasSubmitButton?: boolean;
+	useFixedHeight?: boolean;
+}) {
 	await React.act(async () =>
 		root.render(
 			<ThemeProvider theme={theme(darkTheme)}>
@@ -71,7 +95,7 @@ async function render(props: { onSubmit?: (value?: string) => void; hasSubmitBut
 					onSubmit={props.onSubmit}
 					hasSubmitButton={props.hasSubmitButton}
 					loading={false}
-					useFixedHeight
+					useFixedHeight={props.useFixedHeight ?? true}
 				/>
 			</ThemeProvider>
 		)
@@ -135,4 +159,69 @@ it('shows the Run button by default and can keep only the shortcut', async () =>
 
 	expect(runButton()).toBeUndefined();
 	expect(onSubmit).toHaveBeenCalledWith('query { blocks }');
+});
+
+it('disconnects the fixed-height observer and cancels pending layout when the editor is removed', async () => {
+	const requestFrame = vi.fn(() => 42);
+	const cancelFrame = vi.fn();
+	vi.stubGlobal('requestAnimationFrame', requestFrame);
+	vi.stubGlobal('cancelAnimationFrame', cancelFrame);
+	await render({});
+
+	expect(resizeObservers).toHaveLength(1);
+	expect(resizeObservers[0].observe).toHaveBeenCalledOnce();
+	expect(requestFrame).toHaveBeenCalledOnce();
+
+	await React.act(async () => root.render(null));
+	window.dispatchEvent(new Event('resize'));
+
+	expect(resizeObservers[0].disconnect).toHaveBeenCalledOnce();
+	expect(cancelFrame).toHaveBeenCalledWith(42);
+	expect(monaco.disposeKeydown).toHaveBeenCalledOnce();
+	expect(monaco.layout).not.toHaveBeenCalled();
+});
+
+it('disposes the content-size subscription when a dynamic-height editor is removed', async () => {
+	await render({ useFixedHeight: false });
+	await React.act(async () => root.render(null));
+
+	expect(resizeObservers).toHaveLength(0);
+	expect(monaco.disposeContentSize).toHaveBeenCalledOnce();
+	expect(monaco.disposeKeydown).toHaveBeenCalledOnce();
+});
+
+it('keeps one fullscreen control per editor when a neighboring editor is removed and reopened', async () => {
+	async function renderEditors(count: number) {
+		await React.act(async () =>
+			root.render(
+				<ThemeProvider theme={theme(darkTheme)}>
+					{Array.from({ length: count }, (_, index) => (
+						<Editor
+							key={index}
+							initialData={'print("test")'}
+							language={'lua'}
+							loading={false}
+							useFixedHeight
+							noWrapper
+						/>
+					))}
+				</ThemeProvider>
+			)
+		);
+	}
+	const fullscreenButtons = () => container.querySelectorAll(`button[aria-label="${language.en.enterFullScreen}"]`);
+
+	await renderEditors(2);
+	expect(fullscreenButtons()).toHaveLength(2);
+	const firstButton = fullscreenButtons()[0];
+
+	await renderEditors(1);
+	expect(fullscreenButtons()).toHaveLength(1);
+	expect(fullscreenButtons()[0]).toBe(firstButton);
+	expect(resizeObservers[0].disconnect).not.toHaveBeenCalled();
+	expect(resizeObservers[1].disconnect).toHaveBeenCalledOnce();
+
+	await renderEditors(2);
+	expect(fullscreenButtons()).toHaveLength(2);
+	expect(fullscreenButtons()[0]).toBe(firstButton);
 });

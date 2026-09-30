@@ -1,15 +1,15 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { AddressChunk, AddressSnapshot, getAddressChunk, getLatestAddressSnapshot } from 'api/addresses';
+import { getArPrice } from 'api/prices';
 
 import { Button } from 'components/atoms/Button';
 import { Loader } from 'components/atoms/Loader';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { ExplorerTable } from 'components/molecules/ExplorerTable';
 import { ASSETS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
-import { getArPrice } from 'helpers/prices';
 import { formatCount, formatUnits } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { formatArUsdValue } from '../../../model/formatAddressValue';
@@ -79,7 +79,7 @@ export default function AddressList(props: {
 		emptyMessage?: string;
 	};
 }) {
-	const navigate = useNavigate();
+	const { openExplorer } = useExplorerNavigation();
 	const hasSource = props.source !== undefined;
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -357,7 +357,7 @@ export default function AddressList(props: {
 					rows={visibleAddresses}
 					getRowKey={(address) => address.address}
 					getRowLabel={(address) => `${language.inspect} ${address.address}`}
-					onRowClick={(address) => navigate(`${URLS.explorer}${address.address}`)}
+					onRowClick={(address) => openExplorer(`${URLS.explorer}${address.address}`)}
 					renderRowDetails={(address) => props.source?.renderRowDetails?.(address.address)}
 					columns={[
 						{

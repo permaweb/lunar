@@ -13,6 +13,7 @@ import { Modal } from 'components/atoms/Modal';
 import { type AoNetworkSettings, DEFAULT_AO_NETWORK, parseAoPeers, restoreAoNetwork } from 'helpers/aoNetwork';
 import { ASSETS, DEFAULT_AO_NODE, DEFAULT_GRAPHQL_ENDPOINT, DEFAULT_LEGACY_CU_URL, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
+import { type InAppTabsSettings, restoreInAppTabs } from 'helpers/tabMode';
 import {
 	darkTheme,
 	darkThemeAlt1,
@@ -58,6 +59,7 @@ export interface NodeConfig {
 }
 
 interface Settings {
+	inAppTabs: InAppTabsSettings;
 	theme: ThemeType;
 	syncWithSystem: boolean;
 	preferredLightTheme: ThemeType;
@@ -90,6 +92,7 @@ interface SettingsProviderProps {
 }
 
 const defaultSettings: Settings = {
+	inAppTabs: restoreInAppTabs(null),
 	theme: window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark-primary' : 'light-primary',
 	syncWithSystem: true,
 	preferredLightTheme: 'light-primary',
@@ -146,6 +149,7 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 			settings = {
 				...defaultSettings,
 				...parsedSettings,
+				inAppTabs: restoreInAppTabs(parsedSettings.inAppTabs),
 				isDesktop,
 				windowSize: { width: window.innerWidth, height: window.innerHeight },
 				sidebarOpen: isDesktop ? parsedSettings.sidebarOpen : false,

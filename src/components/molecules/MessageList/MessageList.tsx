@@ -1,7 +1,7 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { useDispatch } from 'react-redux';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
@@ -430,7 +430,6 @@ function Message(props: {
 	canReadResults?: boolean;
 }) {
 	const currentTheme: any = useTheme();
-	const navigate = useNavigate();
 
 	const permawebProvider = usePermawebProvider();
 
@@ -439,8 +438,10 @@ function Message(props: {
 
 	const [open, setOpen] = React.useState<boolean>(false);
 
-	const [data, setData] = React.useState<any>(null);
-	const [showViewData, setShowViewData] = React.useState<boolean>(false);
+	const detailsId = React.useId();
+	const [input, setInput] = React.useState<
+		{ status: 'loading' } | { status: 'success'; data: unknown } | { status: 'error' }
+	>({ status: 'loading' });
 
 	const [result, setResult] = React.useState<any>(null);
 	const [showViewResult, setShowViewResult] = React.useState<boolean>(false);
@@ -461,107 +462,87 @@ function Message(props: {
 	);
 
 	React.useEffect(() => {
-		(async function () {
-			if ((open || showViewResult) && !result && canFetchAoResult) {
-				let processId: string = props.element.node.recipient;
-				let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
+		if (!open || result || !canFetchAoResult) return;
+		let cancelled = false;
 
-				if (processId) {
-					/* Find the variant of the recipient process to handle messages between networks */
-					try {
-						const processLookup = await permawebProvider.legacyApi.getGQLData({
-							ids: [processId],
-						});
-
-						if (processLookup.data?.length > 0) {
-							const node = processLookup.data[0].node;
-							const processVariant = getTagValue(node.tags, 'Variant') as MessageVariantEnum;
-
-							if (processVariant) variant = processVariant;
-						}
-					} catch (e: any) {
-						console.error(e);
-					}
-
-					const deps = resolvePermawebApi({
-						variant: variant,
-						permawebProvider: permawebProvider,
-					});
-
-					const messageId = await resolveMessageId({
-						messageId: props.element.node.id,
-						variant: variant,
-						target: props.element.node.recipient,
-						permawebProvider: permawebProvider,
-					});
-
-					try {
-						const messageResult = await deps.ao.result({
-							process: processId,
-							message: messageId,
-						});
-
-						setResult(removeCommitments(messageResult));
-					} catch (e: any) {
-						console.error(e);
-						setResult({ Result: e.message ?? 'Error Getting Result' });
-					}
+		(async () => {
+			const processId = props.element.node.recipient;
+			let variant = getTagValue(props.element.node.tags, 'Variant') as MessageVariantEnum;
+			try {
+				// Messages can cross networks, so use the recipient process variant when available.
+				try {
+					const processLookup = await permawebProvider.legacyApi.getGQLData({ ids: [processId] });
+					const processVariant = getTagValue(processLookup.data?.[0]?.node.tags, 'Variant') as MessageVariantEnum;
+					if (processVariant) variant = processVariant;
+				} catch (error) {
+					console.error(error);
+				}
+				if (cancelled) return;
+				const deps = resolvePermawebApi({ variant, permawebProvider });
+				const messageId = await resolveMessageId({
+					messageId: props.element.node.id,
+					variant,
+					target: processId,
+					permawebProvider,
+				});
+				if (cancelled) return;
+				const messageResult = await deps.ao.result({ process: processId, message: messageId });
+				if (!cancelled) setResult(removeCommitments(messageResult));
+			} catch (error) {
+				if (!cancelled) {
+					console.error(error);
+					setResult({ Result: language.errorFetchingResult });
 				}
 			}
 		})();
-	}, [open, result, showViewResult, props.currentFilter, canFetchAoResult]);
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		open,
+		result,
+		canFetchAoResult,
+		props.element.node.id,
+		props.element.node.recipient,
+		props.element.node.tags,
+		permawebProvider,
+		language.errorFetchingResult,
+	]);
 
 	React.useEffect(() => {
-		(async function () {
-			if (!data && showViewData) {
+		if (!open || input.status !== 'loading') return;
+		const controller = new AbortController();
+
+		(async () => {
+			try {
 				if (props.element.display?.input !== undefined) {
-					setData(props.element.display.input || language.noData);
+					setInput({ status: 'success', data: props.element.display.input ?? '' });
 					return;
 				}
+				const response = await requestRemote(getTxEndpoint(props.element.node.id), { signal: controller.signal });
+				if (!response.ok) throw new Error(language.errorFetchingMessageData);
+				const raw = (await response.text()).trim();
+				let data: unknown = raw;
 				try {
-					const messageFetch = await requestRemote(getTxEndpoint(props.element.node.id));
-					const rawMessage = await messageFetch.text();
-
-					const raw = rawMessage ?? '';
-					const trimmed = raw.trim();
-
-					if (trimmed === '') {
-						setData(language.noData);
-					} else {
-						try {
-							const parsed = JSON.parse(trimmed);
-
-							const isEmptyArray = Array.isArray(parsed) && parsed.length === 0;
-							const isEmptyObject =
-								parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length === 0;
-
-							if (isEmptyArray || isEmptyObject) {
-								setData(language.noData);
-							} else {
-								setData(parsed);
-							}
-						} catch {
-							setData(trimmed);
-						}
-					}
-				} catch (e: any) {
-					console.error(e);
+					data = JSON.parse(raw);
+				} catch {
+					// Message input may be plain text or Lua instead of JSON.
 				}
+				if (!controller.signal.aborted) setInput({ status: 'success', data });
+			} catch {
+				if (!controller.signal.aborted) setInput({ status: 'error' });
 			}
 		})();
-	}, [data, showViewData, props.element.display?.input, language.noData]);
+
+		return () => controller.abort();
+	}, [open, input.status, props.element.node.id, props.element.display?.input, language.errorFetchingMessageData]);
 
 	const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
 	const filteredTags =
 		props?.element?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
 
-	function handleShowViewData(e: any) {
-		e.preventDefault();
-		e.stopPropagation();
-		setShowViewData((prev) => !prev);
-	}
-
-	function handleShowViewResult(e: any) {
+	function handleShowViewResult(e: React.MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 		setShowViewResult((prev) => !prev);
@@ -668,15 +649,24 @@ function Message(props: {
 	}
 
 	function getData() {
-		if (!data) return null;
-
+		if (input.status === 'loading') return <p role="status">{`${language.loading}...`}</p>;
+		if (input.status === 'error') {
+			return (
+				<>
+					<p role="alert">{language.errorFetchingMessageData}</p>
+					<Button type="alt3" label={language.retry} onPress={() => setInput({ status: 'loading' })} />
+				</>
+			);
+		}
+		const data = input.data;
+		if (data === null || data === '' || (typeof data === 'object' && Object.keys(data).length === 0)) {
+			return <p>{language.noData}</p>;
+		}
 		if (typeof data === 'object') {
-			return <JSONReader data={data} header={language.data} maxHeight={600} noFullScreen />;
+			return <JSONReader data={data} noWrapper hideHeader noFullScreen />;
 		}
 
-		return (
-			<Editor initialData={data} header={language.data} language={'lua'} readOnly loading={false} fixedHeight={450} />
-		);
+		return <Editor initialData={String(data)} language={'lua'} readOnly loading={false} useFixedHeight noWrapper />;
 	}
 
 	const OverlayLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
@@ -687,7 +677,6 @@ function Message(props: {
 						address={v}
 						tooltipPosition={'top-right'}
 						onPress={() => {
-							setShowViewData(false);
 							setShowViewResult(false);
 						}}
 					/>
@@ -701,7 +690,7 @@ function Message(props: {
 		return (
 			<S.OverlayLine>
 				<span>{label}</span>
-				{value ? renderContent(value) : <p>-</p>}
+				{value !== null && value !== undefined && value !== '' ? renderContent(value) : <p>-</p>}
 			</S.OverlayLine>
 		);
 	};
@@ -762,28 +751,10 @@ function Message(props: {
 	const renderOverlayTagValue = (value: any) => <OverlayTagValue value={value} />;
 
 	function getMessageOverlay() {
-		let open = false;
-		let header = null;
-		let handleClose = () => {};
-		let content = null;
-		let loading = true;
+		const handleClose = () => setShowViewResult(false);
 
-		if (showViewData) {
-			open = true;
-			header = language.input;
-			handleClose = () => setShowViewData(false);
-			content = getData();
-			if (data) loading = false;
-		} else if (showViewResult) {
-			open = true;
-			header = language.result;
-			handleClose = () => setShowViewResult(false);
-			content = <JSONReader data={result} header={language.output} noWrapper noFullScreen />;
-			if (result) loading = false;
-		}
-
-		return open ? (
-			<Modal type="panel" width={750} header={header} onClose={handleClose}>
+		return showViewResult ? (
+			<Modal type="panel" width={750} header={language.result} onClose={handleClose}>
 				<S.OverlayWrapper>
 					<S.OverlayInfo>
 						<S.OverlayInfoLine>
@@ -794,7 +765,6 @@ function Message(props: {
 								address={props.element.node.id}
 								tooltipPosition={'bottom-right'}
 								onPress={() => {
-									setShowViewData(false);
 									setShowViewResult(false);
 								}}
 							/>
@@ -807,7 +777,6 @@ function Message(props: {
 								address={props.element.node.owner?.address ?? '-'}
 								tooltipPosition={'bottom-right'}
 								onPress={() => {
-									setShowViewData(false);
 									setShowViewResult(false);
 								}}
 							/>
@@ -816,18 +785,14 @@ function Message(props: {
 						{props.element.display?.details?.map((detail) => (
 							<OverlayLine key={detail.name} label={detail.name} value={detail.value} />
 						))}
-						{showViewData && (
-							<S.OverlayTagsWrapper>
-								<S.OverlayTagsHeader>
-									<p>{language.tags}</p>
-								</S.OverlayTagsHeader>
-								{filteredTags.map((tag: { name: string; value: string }, index: number) => (
-									<OverlayLine key={index} label={tag.name} value={tag.value} render={renderOverlayTagValue} />
-								))}
-							</S.OverlayTagsWrapper>
-						)}
 					</S.OverlayInfo>
-					<S.OverlayOutput>{loading ? <p>{`${language.loading}...`}</p> : <>{content}</>}</S.OverlayOutput>
+					<S.OverlayOutput>
+						{result ? (
+							<JSONReader data={result} header={language.output} noWrapper noFullScreen />
+						) : (
+							<p role="status">{`${language.loading}...`}</p>
+						)}
+					</S.OverlayOutput>
 					<S.OverlayActions>
 						<Button type={'primary'} label={language.close} onPress={handleClose} />
 					</S.OverlayActions>
@@ -892,14 +857,7 @@ function Message(props: {
 	const rowClickable = Boolean(props.element.node.id);
 
 	function handleRowClick() {
-		if (!props.element.node.id) return;
-
-		if (canFetchAoResult) {
-			setOpen((prev) => !prev);
-			return;
-		}
-
-		navigate(`${URLS.explorer}${props.element.node.id}`);
+		if (rowClickable) setOpen((prev) => !prev);
 	}
 
 	return (
@@ -910,7 +868,7 @@ function Message(props: {
 				onClick={rowClickable ? handleRowClick : undefined}
 				disabled={!props.element.node.id}
 				clickable={rowClickable}
-				open={open && canFetchAoResult}
+				open={open}
 				lastChild={props.lastChild}
 				childList={props.childList}
 				$nestingLevel={(props.nestingLevel ?? 0) + 1}
@@ -923,22 +881,6 @@ function Message(props: {
 				{getAction(true)}
 				{getFrom()}
 				{getTo()}
-				<S.Input>
-					<Button
-						type={'alt3'}
-						label={language.input}
-						onPress={(e) => handleShowViewData(e)}
-						disabled={!props.element.node.id}
-					/>
-				</S.Input>
-				<S.Output>
-					<Button
-						type={'alt3'}
-						label={language.output}
-						onPress={(e) => handleShowViewResult(e)}
-						disabled={!props.element.node.id || !canFetchAoResult}
-					/>
-				</S.Output>
 				<S.Time>
 					{props.element.display?.time ?? (
 						<p>
@@ -948,28 +890,71 @@ function Message(props: {
 						</p>
 					)}
 				</S.Time>
-				<S.Results open={open}>{canFetchAoResult ? <ReactSVG src={ASSETS.arrow} /> : <p>None</p>}</S.Results>
+				<S.Results open={open}>
+					<S.ExpandAction
+						type="button"
+						aria-label={`${language.details}: ${props.element.node.id}`}
+						aria-expanded={open}
+						aria-controls={open ? detailsId : undefined}
+						disabled={!rowClickable}
+						onClick={(event) => {
+							event.stopPropagation();
+							handleRowClick();
+						}}
+					>
+						<ReactSVG src={ASSETS.arrow} />
+					</S.ExpandAction>
+				</S.Results>
 			</S.ElementWrapper>
-			{open && canFetchAoResult && (
-				<MessageList
-					txId={props.element.node.id}
-					variant={props.variant}
-					type={props.type}
-					currentFilter={props.currentFilter}
-					recipient={props.element.node.recipient}
-					parentId={props.parentId}
-					result={result}
-					willHaveResult={false}
-					timestamp={props.element?.node?.block?.timestamp}
-					authority={getTagValue(props.element.node.tags, 'Authority')}
-					showFilteredMessages
-					hydrateAoTransferNotices={hydrateNestedAoTransferNotices}
-					showResultMessageLabel={true}
-					onMessageOpen={props.onOpen ? (id: string) => props.onOpen(id) : null}
-					childList
-					nestingLevel={(props.nestingLevel ?? 0) + 1}
-					isOverallLast={props.isOverallLast && props.lastChild}
-				/>
+			{open && (
+				<S.ExpandedContent id={detailsId} $nestingLevel={(props.nestingLevel ?? 0) + 1} $childList={props.childList}>
+					<S.InlineInput aria-label={language.inputTagsAndData}>
+						<S.OverlayTagsHeader>
+							<p>{language.inputTagsAndData}</p>
+						</S.OverlayTagsHeader>
+						<S.InputColumns>
+							<S.InputTags>
+								{props.element.display?.details?.map((detail) => (
+									<OverlayLine key={detail.name} label={detail.name} value={detail.value} />
+								))}
+								{filteredTags.map((tag, index) => (
+									<OverlayLine key={index} label={tag.name} value={tag.value} render={renderOverlayTagValue} />
+								))}
+							</S.InputTags>
+							<S.InputData>{getData()}</S.InputData>
+						</S.InputColumns>
+					</S.InlineInput>
+					{canFetchAoResult && (
+						<>
+							{result && (
+								<S.OutputHeader>
+									<p>{language.output}</p>
+									<Button type="alt3" label={language.viewRawOutput} onPress={handleShowViewResult} />
+								</S.OutputHeader>
+							)}
+							<MessageList
+								txId={props.element.node.id}
+								variant={props.variant}
+								type={props.type}
+								currentFilter={props.currentFilter}
+								recipient={props.element.node.recipient}
+								parentId={props.parentId}
+								result={result}
+								willHaveResult={!result}
+								skipResultFetch
+								timestamp={props.element?.node?.block?.timestamp}
+								authority={getTagValue(props.element.node.tags, 'Authority')}
+								showFilteredMessages
+								hydrateAoTransferNotices={hydrateNestedAoTransferNotices}
+								showResultMessageLabel={true}
+								onMessageOpen={props.onOpen ? (id: string) => props.onOpen(id) : null}
+								childList
+								nestingLevel={(props.nestingLevel ?? 0) + 1}
+								isOverallLast={props.isOverallLast && props.lastChild}
+							/>
+						</>
+					)}
+				</S.ExpandedContent>
 			)}
 			{getMessageOverlay()}
 		</>
@@ -1104,6 +1089,8 @@ function shouldSyncMessageQueryParams(args: {
 export default function MessageList(props: {
 	header?: string;
 	headerCount?: number | null;
+	pageSize?: number;
+	preview?: boolean;
 	txId?: string;
 	variant: MessageVariantEnum;
 	type?: TransactionType;
@@ -1136,6 +1123,7 @@ export default function MessageList(props: {
 
 	const tableContainerRef = React.useRef(null);
 	const syncQueryParams =
+		!props.preview &&
 		!hasSource &&
 		shouldSyncMessageQueryParams({
 			pathname: location.pathname,
@@ -1157,10 +1145,10 @@ export default function MessageList(props: {
 
 	const [showFilters, setShowFilters] = React.useState<boolean>(false);
 	const filterStorageKey = React.useMemo(() => {
-		if (hasSource || props.childList || props.result) return null;
+		if (props.preview || hasSource || props.childList || props.result) return null;
 
 		return STORAGE.messageFilter(props.txId || 'global');
-	}, [hasSource, props.txId, props.childList, props.result]);
+	}, [props.preview, hasSource, props.txId, props.childList, props.result]);
 
 	const loadedFilterState = React.useMemo(() => {
 		if (filterStorageKey) {
@@ -1243,7 +1231,10 @@ export default function MessageList(props: {
 
 	const [loadedData, setCurrentData] = React.useState<any[] | null>(null);
 	const [internalLoading, setLoadingMessages] = React.useState<boolean>(false);
-	const currentData = props.source?.edges ?? loadedData;
+	const availableData = props.source?.edges ?? loadedData;
+	const currentData = props.preview
+		? availableData?.slice(0, props.pageSize ?? DEFAULT_RESULTS_PER_PAGE)
+		: availableData;
 	const loadingMessages = props.source?.loading ?? internalLoading;
 	const [schedulerFallbackActive, setSchedulerFallbackActive] = React.useState<boolean>(false);
 
@@ -1258,10 +1249,10 @@ export default function MessageList(props: {
 	const pageNumber = props.source ? props.source.page + 1 : internalPageNumber;
 	const [pageInput, setPageInput] = React.useState<string>((queryFilterState?.page ?? 1).toString());
 	const [perPage, setPerPage] = React.useState<string>(
-		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+		initialFilterState?.perPage ?? (props.pageSize ?? DEFAULT_RESULTS_PER_PAGE).toString()
 	);
 	const [perPageInput, setPerPageInput] = React.useState<string>(
-		initialFilterState?.perPage ?? DEFAULT_RESULTS_PER_PAGE.toString()
+		initialFilterState?.perPage ?? (props.pageSize ?? DEFAULT_RESULTS_PER_PAGE).toString()
 	);
 	const [recipient, setRecipient] = React.useState<string>(initialFilterState?.recipient ?? '');
 	const [fromAddress, setFromAddress] = React.useState<string>(initialFilterState?.fromAddress ?? '');
@@ -2158,6 +2149,7 @@ export default function MessageList(props: {
 
 				let globalQueryArgs: any = {
 					...getQueryTagsArg(tags),
+					...(props.preview ? { sort: 'descending' } : {}),
 					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
 				};
@@ -2207,6 +2199,7 @@ export default function MessageList(props: {
 		pageNumber,
 		permawebProvider.legacyApi,
 		permawebProvider.mainnetApi,
+		props.preview,
 		schedulerCandidateForCurrentFilters,
 		hasSchedulerVariant,
 		useSchedulerForProcessMessages,
@@ -2614,7 +2607,7 @@ export default function MessageList(props: {
 								</div>
 							)}
 						</S.HeaderMain>
-						{props.source && (
+						{!props.preview && props.source && (
 							<S.HeaderActions className={'scroll-wrapper-hidden'}>
 								<Button
 									type={'alt3'}
@@ -2638,7 +2631,7 @@ export default function MessageList(props: {
 								{getPaginator(false)}
 							</S.HeaderActions>
 						)}
-						{!hasSource && !props.result && (
+						{!props.preview && !hasSource && !props.result && (
 							<S.HeaderActions className={'scroll-wrapper-hidden'}>
 								{props.type && props.type !== 'message' && (
 									<>
@@ -2846,7 +2839,7 @@ export default function MessageList(props: {
 					</S.UpdateWrapper>
 				)}
 				{currentData?.length > 0 ? (
-					<S.Wrapper childList={props.childList}>
+					<S.Wrapper childList={props.childList} $preview={props.preview}>
 						{!props.childList && (
 							<S.HeaderWrapper className={'fade-in'}>
 								<S.ID>
@@ -2865,18 +2858,12 @@ export default function MessageList(props: {
 									<p>{language.to}</p>
 								</S.To>
 
-								<S.Input>
-									<p>{language.input}</p>
-								</S.Input>
-								<S.Output>
-									<p>{language.output}</p>
-								</S.Output>
 								<S.Time>
 									<p>{props.source?.timeLabel ?? language.time}</p>
 								</S.Time>
 
 								<S.Results>
-									<p>{language.results}</p>
+									<p>{language.details}</p>
 								</S.Results>
 							</S.HeaderWrapper>
 						)}
@@ -2884,6 +2871,7 @@ export default function MessageList(props: {
 							childList={props.childList}
 							isOverallLast={props.isOverallLast}
 							$nestingLevel={props.nestingLevel}
+							$preview={props.preview}
 							className={'fade-in'}
 						>
 							{currentData.map((element: any, index: number) => {
@@ -2913,9 +2901,9 @@ export default function MessageList(props: {
 				) : (
 					getMessage()
 				)}
-				{!props.childList && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
+				{!props.preview && !props.childList && <S.FooterWrapper>{getPaginator(true)}</S.FooterWrapper>}
 			</S.Container>
-			{!hasSource && !props.childList && showFilters && (
+			{!props.preview && !hasSource && !props.childList && showFilters && (
 				<Modal
 					type="panel"
 					width={515}

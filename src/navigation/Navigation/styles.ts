@@ -1,6 +1,7 @@
 import styled, { css } from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
+import { open } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
 export const Header = styled.header<{ navigationOpen: boolean }>`
@@ -179,7 +180,7 @@ export const InfoWrapper = styled.div`
 	}
 `;
 
-export const DNavWrapper = styled.div`
+export const DNavWrapper = styled.nav`
 	display: flex;
 	align-items: center;
 	gap: 30px;
@@ -221,6 +222,11 @@ export const PriceWrapper = styled.div`
 	align-items: center;
 	gap: 35px;
 	margin: 0 15px 0 0;
+	animation: ${open} 100ms ease-out;
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
 
 	a {
 		&:hover {
@@ -270,6 +276,7 @@ export const PriceItem = styled.div`
 	}
 
 	p {
+		width: max-content;
 		font-size: ${(props) => props.theme.typography.size.xxSmall};
 		font-family: ${(props) => props.theme.typography.family.alt1};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -348,19 +355,32 @@ export const MWrapper = styled.div`
 	}
 `;
 
+const mobileNavItem = css`
+	color: ${(props) => props.theme.colors.font.primary};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-size: ${(props) => props.theme.typography.size.small};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	padding: 15px 20px;
+	&:hover {
+		color: ${(props) => props.theme.colors.font.primary};
+		background: ${(props) => props.theme.colors.container.primary.active};
+	}
+`;
+
+export const MobileAction = styled(PrimitiveButton)`
+	${mobileNavItem}
+	width: 100%;
+	text-align: left;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+`;
+
 export const MNavWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
 	a {
-		color: ${(props) => props.theme.colors.font.primary};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-size: ${(props) => props.theme.typography.size.small};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		padding: 15px 20px;
-		&:hover {
-			color: ${(props) => props.theme.colors.font.primary};
-			background: ${(props) => props.theme.colors.container.primary.active};
-		}
+		${mobileNavItem}
 	}
 	> * {
 		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
@@ -383,5 +403,18 @@ export const LoadingWrapper = styled.div`
 		white-space: nowrap;
 		text-overflow: ellipsis;
 		overflow: hidden;
+	}
+`;
+
+export const MobileGroup = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 20px 0;
+	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
+	h2 {
+		padding: 0 20px;
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		color: ${(props) => props.theme.colors.font.alt1};
 	}
 `;

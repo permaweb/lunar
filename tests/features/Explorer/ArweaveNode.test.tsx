@@ -560,8 +560,11 @@ it('shows all inline miner blocks with column headers, no table actions or pagin
 	expect(arweaveNodeApi.getBlocks).toHaveBeenCalledTimes(2);
 	const lastBlockLink = rows[49].querySelector<HTMLAnchorElement>('a');
 	expect(lastBlockLink.getAttribute('href')).toBe(`#/explorer/${nodeBlock(51).hash}`);
+	const open = vi.spyOn(window, 'open').mockReturnValue(null);
 	await React.act(async () => lastBlockLink.click());
+	expect(open).not.toHaveBeenCalled();
 	expect(currentPath).toBe(`/explorer/${nodeBlock(51).hash}`);
+	open.mockRestore();
 });
 
 it('leaves unsupported pending rewards unavailable while showing balances and indexed totals', async () => {
