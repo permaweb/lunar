@@ -66,7 +66,6 @@ export default function App() {
 
 	const [isNodeOnline, setIsNodeOnline] = React.useState<boolean>(false);
 	const [isNodeStatusLoading, setIsNodeStatusLoading] = React.useState<boolean>(true);
-	const [_isScrolledToPageBottom, setIsScrolledToPageBottom] = React.useState<boolean>(false);
 	const [hasScrolledPastHomePrices, setHasScrolledPastHomePrices] = React.useState(false);
 
 	React.useEffect(() => {
@@ -102,44 +101,6 @@ export default function App() {
 			}
 		}
 	}, [settings]);
-
-	React.useEffect(() => {
-		let frame: number | null = null;
-
-		function updateScrollState() {
-			frame = null;
-			const documentElement = document.documentElement;
-			const pageHeight = Math.max(documentElement.scrollHeight, document.body?.scrollHeight ?? 0);
-			const scrollPosition = window.scrollY + window.innerHeight;
-			const isPageScrollable = pageHeight - window.innerHeight > 2;
-
-			setIsScrolledToPageBottom(isPageScrollable && pageHeight - scrollPosition <= 2);
-		}
-
-		function scheduleUpdate() {
-			if (frame !== null) return;
-
-			frame = window.requestAnimationFrame(updateScrollState);
-		}
-
-		updateScrollState();
-
-		window.addEventListener('scroll', scheduleUpdate, { passive: true });
-		window.addEventListener('resize', scheduleUpdate);
-
-		const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleUpdate) : null;
-		if (observer) {
-			observer.observe(document.body);
-			observer.observe(document.documentElement);
-		}
-
-		return () => {
-			if (frame !== null) window.cancelAnimationFrame(frame);
-			if (observer) observer.disconnect();
-			window.removeEventListener('scroll', scheduleUpdate);
-			window.removeEventListener('resize', scheduleUpdate);
-		};
-	}, []);
 
 	React.useEffect(() => {
 		let cancelled = false;

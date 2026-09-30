@@ -508,10 +508,14 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		updateSettings('inAppTabs', { ...settings.inAppTabs, [props.type]: enabled });
 	};
 
-	const handleMessageOpen = (id: string) => {
-		if (isInAppTabsEnabled) handleAddTab(id);
-		else openExplorer(`${URLS.explorer}${id}`);
-	};
+	// Transaction tab views depend on this callback; shell updates must not recreate them.
+	const handleMessageOpen = React.useCallback(
+		(id: string) => {
+			if (isInAppTabsEnabled) handleAddTab(id);
+			else openExplorer(`${URLS.explorer}${id}`);
+		},
+		[isInAppTabsEnabled, handleAddTab, openExplorer]
+	);
 
 	const handleDeleteTab = (deletedIndex: number) => {
 		isDeletingRef.current = true;
