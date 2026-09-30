@@ -11,9 +11,11 @@ export function colorWithOpacity(red: number, green: number, blue: number, opaci
 
 const common = {
 	positive1: '#42A392',
+	positive2: '#287C66',
 	caution1: '#D2934E',
 	negative1: '#B95B80',
 	negative2: '#B13D6C',
+	negative3: '#CC7096',
 	dark1: '#151515',
 	dark2: '#333333',
 	light1: '#FFFFFF',
@@ -323,6 +325,15 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 	id,
 	scheme: currentTheme.scheme,
 	colors: {
+		priceChange: {
+			positive: currentTheme.scheme === 'light' ? currentTheme.positive2 : currentTheme.positive1,
+			negative: currentTheme.scheme === 'light' ? currentTheme.negative2 : currentTheme.negative3,
+		},
+		lunar: {
+			background: currentTheme.neutral1,
+			light: currentTheme.neutralA2,
+			accent: currentTheme.scheme === 'light' ? currentTheme.neutral5 : currentTheme.neutral2,
+		},
 		accordion: {
 			background: currentTheme.neutral1,
 			hover: currentTheme.neutral2,

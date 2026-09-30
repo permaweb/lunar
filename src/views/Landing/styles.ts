@@ -6,140 +6,38 @@ export const Wrapper = styled.div`
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 25px;
+	gap: 44px;
+	padding-bottom: 25px;
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		gap: 32px;
+	}
 `;
-
-export const NetworkWrapper = styled.div`
-	width: 100%;
+export const Section = styled.section`
 	display: flex;
 	flex-direction: column;
+	gap: 24px;
 `;
-
-export const MessagesWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	margin: 15px 0 0 0;
-`;
-
-export const HeaderWrapper = styled.div``;
-
-export const Subheader = styled.div`
-	width: fit-content;
-	padding: 4.5px 15px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: ${(props) => props.theme.colors.container.alt8.background};
-	border: 1px solid ${(props) => props.theme.colors.container.alt8.background};
-	border-radius: ${STYLING.dimensions.radius.alt2};
-	span {
-		font-size: ${(props) => props.theme.typography.size.xxxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.light1};
-		text-align: center;
-	}
-`;
-
-export const BodyWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	gap: 40px;
-`;
-
-export const BodyFlexWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	gap: 25px;
-	margin: 0 0 30px 0;
-
-	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		flex-direction: column;
-	}
-`;
-
-export const BodyFlexMetrics = styled.div`
-	width: calc(100% - 450px);
-
-	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		width: 100%;
-	}
-`;
-
-export const BodyFlexConnection = styled.div`
-	width: 450px;
-
-	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		width: 100%;
-	}
-`;
-
-export const SectionMain = styled.div`
-	width: 100%;
+export const NetworkSection = styled.section`
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
-`;
-
-export const SectionHeader = styled.div`
-	p {
-		font-size: ${(props) => props.theme.typography.size.xLg};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
+	& + & {
+		margin-top: 16px;
 	}
 `;
-
-export const NodesWrapper = styled.div`
-	margin: 0 0 30px 0;
-`;
-
-export const MetricsSectionWrapper = styled.div`
-	margin: 0 0 30px 0;
+export const Status = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 15px;
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	color: ${(props) => props.theme.colors.font.alt1};
 `;
 
 export const TablesWrapper = styled.div`
-	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	align-items: stretch;
-	gap: 25px;
-	margin: 0 0 30px 0;
-
-	@media (max-width: ${STYLING.cutoffs.desktop}) {
-		grid-template-columns: minmax(0, 1fr);
-	}
-`;
-
-export const TablePanel = styled.div`
-	min-width: 0;
-	display: flex;
-
-	> div {
-		width: 100%;
-	}
-`;
-
-export const DividerWrapper = styled.div`
-	width: 100%;
-	display: flex;
-	align-items: center;
 	gap: 20px;
-	margin: 0 0 30px 0;
-
-	.landing-divider {
-		height: 1px;
-		flex: 1;
-		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
-	}
-
-	span {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
-		font-family: ${(props) => props.theme.typography.family.alt1};
-		font-weight: ${(props) => props.theme.typography.weight.bold};
-		color: ${(props) => props.theme.colors.font.primary};
-		text-align: center;
+	@media (max-width: ${STYLING.cutoffs.tablet}) {
+		grid-template-columns: minmax(0, 1fr);
 	}
 `;

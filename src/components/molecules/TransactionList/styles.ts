@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { BlockListStyles } from 'components/molecules/BlockList';
 import { STYLING } from 'helpers/config';
@@ -36,10 +36,23 @@ export const Divider = BlockListStyles.Divider;
 
 export const Wrapper = BlockListStyles.Wrapper;
 
-export const HeaderWrapper = BlockListStyles.HeaderWrapper;
+const previewWithDetail = css<{ $preview?: boolean; $hasDetail?: boolean }>`
+	${(props) =>
+		props.$preview &&
+		props.$hasDetail &&
+		css`
+			min-width: max(100%, 600px);
+			grid-template-columns: repeat(5, minmax(0, 1fr));
+		`}
+`;
 
-export const BodyWrapper = styled.div<{ $preview?: boolean }>`
+export const HeaderWrapper = styled(BlockListStyles.HeaderWrapper)<{ $hasDetail?: boolean }>`
+	${previewWithDetail}
+`;
+
+export const BodyWrapper = styled.div<{ $preview?: boolean; $hasDetail?: boolean }>`
 	width: 100%;
+	min-width: ${(props) => (props.$preview && props.$hasDetail ? '600px' : '0')};
 	overflow: ${(props) => (props.$preview ? 'hidden' : 'visible')};
 
 	> *:last-child {
@@ -59,7 +72,8 @@ export const BodyWrapper = styled.div<{ $preview?: boolean }>`
 	}
 `;
 
-export const ElementWrapper = styled(BlockListStyles.ElementWrapper)`
+export const ElementWrapper = styled(BlockListStyles.ElementWrapper)<{ $hasDetail?: boolean }>`
+	${previewWithDetail}
 	&:focus-visible {
 		background: ${(props) => props.theme.colors.container.primary.active};
 		border-left: 1px solid ${(props) => props.theme.colors.border.alt4} !important;
