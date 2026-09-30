@@ -7,6 +7,7 @@ export default defineConfig({
 			app: path.resolve(__dirname, 'src/app'),
 			api: path.resolve(__dirname, 'src/api'),
 			components: path.resolve(__dirname, 'src/components'),
+			navigation: path.resolve(__dirname, 'src/navigation'),
 			features: path.resolve(__dirname, 'src/features'),
 			helpers: path.resolve(__dirname, 'src/helpers'),
 			providers: path.resolve(__dirname, 'src/providers'),
@@ -18,5 +19,6 @@ export default defineConfig({
 	},
 	test: {
 		environment: 'node',
+		include: ['tests/**/*.{test,spec}.{ts,tsx}'],
 	},
 });
