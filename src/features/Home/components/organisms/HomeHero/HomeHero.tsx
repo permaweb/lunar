@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
