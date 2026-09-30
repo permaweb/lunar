@@ -1,10 +1,11 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 
 import { getArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
 import { checkValidAddress, checkValidEthereumAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { store } from 'store';
 import { selectTransaction } from 'store/transactions/reducer';
@@ -13,7 +14,7 @@ import * as S from './styles';
 import { ExplorerLinkProps } from './types';
 
 export default function ExplorerLink(props: ExplorerLinkProps) {
-	const navigate = useNavigate();
+	const { isInAppTabsEnabled, openExplorer } = useExplorerNavigation();
 	const location = useLocation();
 
 	const languageProvider = useLanguageProvider();
@@ -36,9 +37,15 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 	// Check if the current value is already in the URL (already on this explorer tab)
 	const route = props.type === 'arweave-node' ? getArweaveNodeRoute(value) : `${URLS.explorer}${value}`;
 	const isCurrentTab = location.pathname === route || location.pathname.startsWith(`${route}/`);
+	const isBrowserTabShortcut = !isInAppTabsEnabled && isModifierKeyPressed;
+	const actionLabel = isBrowserTabShortcut
+		? language.openInNewTab
+		: isCurrentTab || isModifierKeyPressed
+		? language.copy
+		: language.inspect;
 
 	const copyValue = React.useCallback(
-		async (e: any) => {
+		async (e: React.MouseEvent) => {
 			if (value.length > 0) {
 				e.stopPropagation();
 				await navigator.clipboard.writeText(value);
@@ -84,9 +91,10 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 	}, []);
 
 	const handleClick = React.useCallback(
-		(e: any) => {
-			e.preventDefault();
+		(e: React.MouseEvent) => {
 			e.stopPropagation();
+			if (!isInAppTabsEnabled && (e.metaKey || e.ctrlKey)) return;
+			e.preventDefault();
 			if (value && !copied) {
 				// If already on current tab, only allow copy
 				if (isCurrentTab) {
@@ -95,11 +103,11 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 					copyValue(e);
 				} else {
 					if (props.onPress) props.onPress();
-					navigate(route);
+					openExplorer(route);
 				}
 			}
 		},
-		[value, copied, copyValue, navigate, props.onPress, isCurrentTab, route]
+		[value, copied, copyValue, openExplorer, props.onPress, isCurrentTab, isInAppTabsEnabled, route]
 	);
 
 	function getLabel() {
@@ -135,10 +143,13 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 				<S.IconWrapper>
 					{!copied && (
 						<S.Tooltip className={'info'} position={props.tooltipPosition ?? 'top-right'}>
-							<span>{isCurrentTab ? language.copy : isModifierKeyPressed ? language.copy : language.inspect}</span>
+							<span>{actionLabel}</span>
 						</S.Tooltip>
 					)}
-					<ReactSVG src={isCurrentTab ? ASSETS.copy : props.viewIcon ?? ASSETS.newTab} onClick={handleClick} />
+					<ReactSVG
+						src={isCurrentTab && !isBrowserTabShortcut ? ASSETS.copy : props.viewIcon ?? ASSETS.newTab}
+						onClick={handleClick}
+					/>
 				</S.IconWrapper>
 			)}
 		</S.Wrapper>

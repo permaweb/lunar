@@ -149,8 +149,17 @@ function getDirectLookupTags(headers: Headers) {
 	const signatureInput = headers.get('signature-input');
 	const originalTags = parseOriginalTags(signatureInput);
 	const headerTags = getDirectLookupHeaderTags(headers, signatureInput);
+	const tags = mergeDirectLookupTags(originalTags, headerTags);
+	if (!signatureInput || !BUNDLE_PARAM_PATTERN.test(signatureInput)) return tags;
 
-	return mergeDirectLookupTags(originalTags, headerTags);
+	// HyperBEAM moves the bundle tags into signature parameters when unpacking a bundle into item links.
+	const bundleTags: TagType[] = [];
+	for (const name of ['bundle-format', 'bundle-version']) {
+		const value = getSignatureInputParam(signatureInput, name);
+		if (value) bundleTags.push({ name, value });
+	}
+
+	return mergeDirectLookupTags(tags, bundleTags);
 }
 
 async function getOwnerAddressFromSignatureInput(signatureInput: string | null) {

@@ -5,6 +5,7 @@ import { ASSETS } from 'helpers/config';
 import { GRAPHQL_TABS_STORAGE_KEY } from 'helpers/graphql';
 import { BaseTabType } from 'helpers/types';
 import { useLanguageProvider } from 'providers/LanguageProvider';
+import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import { GraphQLPlayground } from '../GraphQLPlayground';
 
@@ -14,6 +15,8 @@ type GraphQLTabType = BaseTabType & {
 };
 
 export default function GraphQLTabs() {
+	const { settings, updateSettings } = useSettingsProvider();
+	const isInAppTabsEnabled = settings.inAppTabs?.graphql ?? false;
 	const storageKey = GRAPHQL_TABS_STORAGE_KEY;
 	const activeTabStorageKey = 'graphql-active-tab';
 	const visitedTabsStorageKey = 'graphql-visited-tabs';
@@ -23,16 +26,25 @@ export default function GraphQLTabs() {
 	const language = languageProvider.object[languageProvider.current];
 
 	const [tabs, setTabs] = React.useState<GraphQLTabType[]>(() => {
-		const stored = localStorage.getItem(storageKey);
-		if (stored) {
-			const parsed = JSON.parse(stored);
-			return parsed.length > 0
-				? parsed.map((tab: any) => ({
-						...tab,
-						tabKey: tab.tabKey || `tab-${Date.now()}-${Math.random()}`,
-						gateway: tab.gateway || undefined,
-				  }))
-				: [{ id: `playground-${Date.now()}`, label: 'Transactions', tabKey: `tab-${Date.now()}-${Math.random()}` }];
+		try {
+			const parsed: unknown = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
+			if (Array.isArray(parsed)) {
+				const restored = parsed
+					.filter(
+						(tab): tab is GraphQLTabType =>
+							tab &&
+							typeof tab === 'object' &&
+							typeof tab.id === 'string' &&
+							typeof tab.label === 'string' &&
+							(tab.tabKey === undefined || typeof tab.tabKey === 'string') &&
+							(tab.query === undefined || typeof tab.query === 'string') &&
+							(tab.gateway === undefined || typeof tab.gateway === 'string')
+					)
+					.map((tab) => ({ ...tab, tabKey: tab.tabKey || `tab-${Date.now()}-${Math.random()}` }));
+				if (restored.length) return restored;
+			}
+		} catch {
+			// A corrupt workspace must not prevent opening the playground.
 		}
 		return [{ id: `playground-${Date.now()}`, label: 'Transactions', tabKey: `tab-${Date.now()}-${Math.random()}` }];
 	});
@@ -41,7 +53,7 @@ export default function GraphQLTabs() {
 		const stored = localStorage.getItem(activeTabStorageKey);
 		if (stored) {
 			const index = parseInt(stored, 10);
-			return isNaN(index) ? 0 : index;
+			return Number.isInteger(index) && index >= 0 && index < tabs.length ? index : 0;
 		}
 		return 0;
 	});
@@ -60,7 +72,7 @@ export default function GraphQLTabs() {
 			const storedActive = localStorage.getItem(activeTabStorageKey);
 			if (storedActive) {
 				const index = parseInt(storedActive, 10);
-				return isNaN(index) ? 0 : index;
+				return Number.isInteger(index) && index >= 0 && index < tabs.length ? index : 0;
 			}
 			return 0;
 		})();
@@ -145,6 +157,8 @@ export default function GraphQLTabs() {
 	return (
 		<ViewTabs<GraphQLTabType>
 			type="graphql"
+			isInAppTabsEnabled={isInAppTabsEnabled}
+			onInAppTabsChange={(enabled) => updateSettings('inAppTabs', { ...settings.inAppTabs, graphql: enabled })}
 			header="GraphQL"
 			defaultTab={defaultTab}
 			tabs={tabs}
@@ -168,6 +182,8 @@ export default function GraphQLTabs() {
 			)}
 			languageLabels={{
 				tabActions: language.tabActions,
+				enableInAppTabs: language.enableInAppTabs,
+				disableInAppTabs: language.disableInAppTabs,
 				newTab: language.new,
 				newTabTooltip: language.createNewTab,
 				clearTabs: language.clear,

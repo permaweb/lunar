@@ -10,11 +10,17 @@ import { ExplorerLink } from '../../../src/components/atoms/TxAddress';
 import { AddressList } from '../../../src/features/Addresses';
 import { darkTheme, theme } from '../../../src/helpers/themes';
 
+let isInAppTabsEnabled = false;
+vi.mock('providers/SettingsProvider', () => ({
+	useSettingsProvider: () => ({ settings: { inAppTabs: { explorer: isInAppTabsEnabled } } }),
+}));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden="true" /> }));
 vi.mock('store', () => ({ store: { getState: () => ({}) } }));
 vi.mock('store/transactions/reducer', () => ({ selectTransaction: () => null }));
 
-it('opens addresses from row clicks and Enter while preserving links to other values', async () => {
+it.each([false, true])('opens addresses and nested links with in-app tabs set to %s', async (enabled) => {
+	isInAppTabsEnabled = enabled;
+	const open = vi.spyOn(window, 'open').mockReturnValue(null);
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	const address = 'a'.repeat(43);
 	const transaction = 't'.repeat(43);
@@ -59,11 +65,13 @@ it('opens addresses from row clicks and Enter while preserving links to other va
 			row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		});
 		expect(path).toBe(`/explorer/${address}`);
+		expect(open).not.toHaveBeenCalled();
 		expect(row.querySelector(`a[href="#/explorer/${address}"]`)).not.toBeNull();
 		expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
 	} finally {
 		await React.act(async () => root.unmount());
 		container.remove();
 		vi.unstubAllGlobals();
+		open.mockRestore();
 	}
 });

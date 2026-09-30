@@ -16,6 +16,7 @@ export default function _Editor(props: {
 	language: string;
 	readOnly?: boolean;
 	noFullScreen?: boolean;
+	noWrapper?: boolean;
 	setEditorData?: (data: string) => void;
 	onSubmit?: (currentValue?: string) => void;
 	/** Shows the Run button for `onSubmit`. Set false to keep only the Cmd/Ctrl+Enter shortcut. Defaults to true. */
@@ -30,9 +31,9 @@ export default function _Editor(props: {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const editorRef = React.useRef(null);
+	const editorRef = React.useRef<HTMLDivElement>(null);
 	const monacoRef = React.useRef<typeof import('monaco-editor') | null>(null);
-	const editorInstanceRef = React.useRef<any>(null);
+	const editorInstanceRef = React.useRef<Parameters<OnMount>[0] | null>(null);
 	// Monaco registers the submit shortcut once on mount, so it reads the latest handler through this ref.
 	const onSubmitRef = React.useRef(props.onSubmit);
 	const themeName = getMonacoThemeName(theme);
@@ -115,7 +116,7 @@ export default function _Editor(props: {
 		editorInstanceRef.current = editor;
 
 		// Add keyboard shortcut for submit (Cmd+Enter or Ctrl+Enter)
-		editor.onKeyDown((e) => {
+		const keydownSubscription = editor.onKeyDown((e) => {
 			const onSubmit = onSubmitRef.current;
 			if (!onSubmit || !(e.metaKey || e.ctrlKey) || e.keyCode !== monaco.KeyCode.Enter) return;
 
@@ -127,51 +128,42 @@ export default function _Editor(props: {
 			onSubmit(editor.getValue());
 		});
 
-		// Handle content size changes for dynamic height
-		if (!props.useFixedHeight && !props.fixedHeight) {
-			const disp = editor.onDidContentSizeChange((e) => {
-				setHeight(e.contentHeight);
-			});
-			// Force initial layout to ensure content is visible
-			requestAnimationFrame(() => {
-				editor.layout();
-			});
-			return () => disp.dispose();
-		} else {
-			// Force initial layout for fixed height editors
-			requestAnimationFrame(() => {
-				editor.layout();
-			});
-			// Use ResizeObserver to handle layout when container becomes visible
-			const editorContainer = editorRef.current;
-			if (editorContainer) {
-				const resizeObserver = new ResizeObserver(() => {
-					editor.layout();
-				});
-				resizeObserver.observe(editorContainer);
-				return () => resizeObserver.disconnect();
-			}
-		}
+		const hasFixedHeight = props.useFixedHeight || !!props.fixedHeight;
+		const contentSizeSubscription = !hasFixedHeight
+			? editor.onDidContentSizeChange((e) => setHeight(e.contentHeight))
+			: undefined;
+		const resizeObserver = hasFixedHeight ? new ResizeObserver(() => editor.layout()) : undefined;
+		if (editorRef.current) resizeObserver?.observe(editorRef.current);
+		const layoutFrame = requestAnimationFrame(() => editor.layout());
+
+		// Monaco's onMount ignores returned cleanup functions. Tie cleanup to the editor's disposal instead.
+		editor.onDidDispose(() => {
+			cancelAnimationFrame(layoutFrame);
+			resizeObserver?.disconnect();
+			contentSizeSubscription?.dispose();
+			keydownSubscription.dispose();
+			if (editorInstanceRef.current === editor) editorInstanceRef.current = null;
+		});
 	};
 
 	return data !== null ? (
 		<S.Wrapper>
 			<S.EditorWrapper
 				ref={editorRef}
-				style={{
-					width: '100%',
-					height: props.useFixedHeight ? '100%' : props.fixedHeight ? `${props.fixedHeight}px` : `${height}px`,
-					overflow: 'hidden',
-				}}
-				useFixedHeight={props.useFixedHeight}
-				className={'border-wrapper-alt3 scroll-wrapper'}
+				$useFixedHeight={props.useFixedHeight}
+				$height={props.fixedHeight ?? height}
+				$noWrapper={props.noWrapper && !fullScreenMode}
+				className={props.noWrapper && !fullScreenMode ? 'scroll-wrapper' : 'border-wrapper-alt3 scroll-wrapper'}
 			>
 				{props.header && (
 					<S.Header>
 						<p>{props.header}</p>
 					</S.Header>
 				)}
-				<S.Editor $hasHeader={props.header !== null && props.header !== undefined}>
+				<S.Editor
+					$hasHeader={props.header !== null && props.header !== undefined}
+					$noWrapper={props.noWrapper && !fullScreenMode}
+				>
 					<Editor
 						height={'100%'}
 						defaultLanguage={props.language}

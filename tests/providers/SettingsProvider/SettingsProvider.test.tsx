@@ -193,3 +193,24 @@ describe('adding an AOS node', () => {
 		expect(current.settings.nodes.find((node) => node.active).url).toBe('https://new-aos.example');
 	});
 });
+
+it('defaults all tab modes off and validates saved booleans independently', async () => {
+	localStorage.setItem('settings', JSON.stringify({ inAppTabs: { explorer: true, aos: 'true', graphql: null } }));
+	await render();
+	expect(current.settings.inAppTabs).toEqual({ explorer: true, aos: false, graphql: false });
+	await React.act(async () => current.updateSettings('inAppTabs', { ...current.settings.inAppTabs, graphql: true }));
+	await new Promise((resolve) => setTimeout(resolve, 5));
+	await React.act(async () => root.unmount());
+	root = createRoot(container);
+	await render();
+	expect(current.settings.inAppTabs).toEqual({ explorer: true, aos: false, graphql: true });
+});
+
+it.each([undefined, null, 'true', {}, { explorer: false }])(
+	'keeps missing or invalid tab modes disabled: %j',
+	async (inAppTabs) => {
+		localStorage.setItem('settings', JSON.stringify({ inAppTabs }));
+		await render();
+		expect(current.settings.inAppTabs).toEqual({ explorer: false, aos: false, graphql: false });
+	}
+);
