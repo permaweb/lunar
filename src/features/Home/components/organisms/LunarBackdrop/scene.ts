@@ -18,8 +18,9 @@ const RIPPLE_SHADER = `
 	}
 	float scan(vec2 uv, float width) {
 		// Launch each illumination wave at the center and let it travel out through the particles.
-		return ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065), width)
-			+ ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.5), width);
+		// Start with a visible ring, including when reduced motion freezes the first frame.
+		return ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.1), width)
+			+ ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.6), width);
 	}
 	float fieldFade(vec2 uv) {
 		float vertical = smoothstep(0.0, 0.55, uv.y) * (1.0 - smoothstep(0.78, 1.0, uv.y));
@@ -74,6 +75,7 @@ const RIPPLE_VERTEX = `
 `;
 const RIPPLE_FRAGMENT = `
 	uniform vec3 accent;
+	uniform vec3 light;
 	uniform vec3 background;
 	uniform float hazeStrength;
 	varying vec2 fieldUv;
@@ -82,11 +84,15 @@ const RIPPLE_FRAGMENT = `
 		float rings = scan(fieldUv, 0.008) * 0.075 + scan(fieldUv, 0.07) * 0.018;
 		vec2 offset = (fieldUv - vec2(0.5, 0.55)) * vec2(0.8, 2.0);
 		float haze = exp(-dot(offset, offset) * 2.0) * hazeStrength;
-		float blend = (haze + rings) * fieldFade(fieldUv);
+		float fade = fieldFade(fieldUv);
+		float blend = (haze + rings) * fade;
 		gl_FragColor = vec4(background, 1.0);
 		#include <colorspace_fragment>
 		vec3 tint = linearToOutputTexel(vec4(accent, 1.0)).rgb;
-		gl_FragColor.rgb = mix(gl_FragColor.rgb, tint, blend);
+		vec3 ringTint = linearToOutputTexel(vec4(light, 1.0)).rgb;
+		// Keep the rings legible independently of the low-contrast background haze.
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, tint, haze * fade);
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, ringTint, rings * fade);
 		// Dither the final opaque color, rather than quantizing several low-alpha layers.
 		// Keep this grain static and below one display level so it does not shimmer.
 		float grain = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5;

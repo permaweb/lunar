@@ -97,7 +97,7 @@ export default function NetworkCards(props: {
 						))}
 					</S.Stats>
 					<S.Actions>
-						<ExternalLink href={card.href} label={card.visitLabel} />
+						<ExternalLink href={card.href} label={card.visitLabel} size="small" tone="muted" />
 					</S.Actions>
 				</S.Card>
 			))}

@@ -5,7 +5,7 @@ import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { NetworkCards } from '../../../../../../src/features/Home';
-import { darkTheme, theme } from '../../../../../../src/helpers/themes';
+import { darkTheme, lightTheme, theme } from '../../../../../../src/helpers/themes';
 
 vi.mock('api/prices', () => ({ getTokenPriceQuote: async () => null }));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden="true" /> }));
@@ -53,15 +53,24 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-async function render() {
+async function render(palette = darkTheme) {
 	await React.act(async () =>
 		root.render(
-			<ThemeProvider theme={theme(darkTheme)}>
+			<ThemeProvider theme={theme(palette)}>
 				<NetworkCards snapshot={null} isLoading={false} onPricesScrollChange={onPricesScrollChange} />
 			</ThemeProvider>
 		)
 	);
 }
+
+it('keeps the network divider in sync with the border after switching themes and back', async () => {
+	for (const palette of [darkTheme, lightTheme, darkTheme]) {
+		await render(palette);
+		const wrapper = container.querySelector('section')!;
+		const secondCard = container.querySelectorAll('article')[1];
+		expect(getComputedStyle(secondCard).borderLeftColor).toBe(getComputedStyle(wrapper).borderTopColor);
+	}
+});
 
 async function scroll() {
 	await React.act(async () => {

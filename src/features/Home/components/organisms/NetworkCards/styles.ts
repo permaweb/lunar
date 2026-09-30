@@ -9,7 +9,7 @@ export const Wrapper = styled.section`
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt1};
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	background: color-mix(in srgb, ${(props) => props.theme.colors.container.alt1.background} 82%, transparent);
+	background: color-mix(in srgb, ${(props) => props.theme.colors.container.alt1.background} 65%, transparent);
 	backdrop-filter: blur(2px);
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		grid-template-columns: minmax(0, 1fr);
@@ -18,11 +18,11 @@ export const Wrapper = styled.section`
 export const Card = styled.article`
 	min-width: 0;
 	padding: 14px;
-	& + & {
+	&:not(:first-child) {
 		border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 	}
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		& + & {
+		&:not(:first-child) {
 			border-left: 0;
 			border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 		}

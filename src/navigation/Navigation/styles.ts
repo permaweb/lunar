@@ -1,6 +1,7 @@
 import styled, { css } from 'styled-components';
 
 import { PrimitiveButton } from 'components/atoms/PrimitiveButton';
+import { open } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
 export const Header = styled.header<{ navigationOpen: boolean }>`
@@ -215,6 +216,11 @@ export const PriceWrapper = styled.div`
 	align-items: center;
 	gap: 35px;
 	margin: 0 15px 0 0;
+	animation: ${open} 100ms ease-out;
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
 
 	a {
 		&:hover {
