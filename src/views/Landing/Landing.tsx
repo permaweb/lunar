@@ -38,16 +38,17 @@ export default function Landing(props: { onPricesScrollChange?: (hasScrolledPast
 						<ViewTitle
 							id="statistics-title"
 							header={language.landing.statisticsTitle}
-							headingLevel="h2"
+							headingLevel="h3"
 							layout="section"
+							variant="subsection"
 						/>
 						<S.NetworkSection aria-labelledby="arweave-statistics-title">
 							<ViewTitle
 								id="arweave-statistics-title"
 								header={language.landing.arweaveNetwork}
-								headingLevel="h3"
+								headingLevel="h4"
 								layout="section"
-								variant="subsection"
+								variant="small"
 							/>
 							{metrics.status !== 'error' && (
 								<>
@@ -64,9 +65,9 @@ export default function Landing(props: { onPricesScrollChange?: (hasScrolledPast
 							<ViewTitle
 								id="ao-statistics-title"
 								header={language.landing.aoNetwork}
-								headingLevel="h3"
+								headingLevel="h4"
 								layout="section"
-								variant="subsection"
+								variant="small"
 							/>
 							{metrics.status !== 'error' && (
 								<>
@@ -88,7 +89,7 @@ export default function Landing(props: { onPricesScrollChange?: (hasScrolledPast
 							header={language.landing.connectionTitle}
 							headingLevel="h4"
 							layout="section"
-							variant="subsection"
+							variant="small"
 						/>
 						<NodeConnection />
 						{FLAGS.SHOW_AVAILABLE_NODES && <Nodes />}

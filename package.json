@@ -27,6 +27,7 @@
 		"@hello-pangea/dnd": "^17.0.0",
 		"@monaco-editor/react": "^4.7.0",
 		"@noble/curves": "2.2.0",
+		"@noble/hashes": "^2.2.0",
 		"@permaweb/aoconnect": "0.0.97",
 		"@permaweb/libs": "0.0.94",
 		"@xyflow/react": "12.12.0",

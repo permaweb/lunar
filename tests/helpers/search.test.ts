@@ -63,3 +63,13 @@ describe('transaction GraphQL lookup', () => {
 		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }]]);
 	});
 });
+
+it('opens an Ethereum AO account without transaction or AR balance probes', async () => {
+	const address = '0xEe38888888888888888888888888888888888888';
+	const getGQLData = vi.fn();
+	const response = await searchTxById({ txId: address, getGQLData, readProcess: vi.fn() });
+	expect(response.node.id).toBe(address);
+	expect(response.node.tags).toEqual([{ name: 'Type', value: 'Wallet' }]);
+	expect(getGQLData).not.toHaveBeenCalled();
+	expect(fetch).not.toHaveBeenCalled();
+});

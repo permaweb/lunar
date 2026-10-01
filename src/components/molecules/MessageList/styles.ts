@@ -254,7 +254,7 @@ export const BodyWrapper = styled.div<{
 			${(props) =>
 				props.childList && !props.isOverallLast
 					? getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)
-					: props.theme.colors.border.primary} !important;
+					: props.theme.colors.border.primary};
 	}
 
 	> .message-list-element {
@@ -533,7 +533,7 @@ export const ExpandAction = styled(PrimitiveButton)`
 	}
 `;
 
-export const ExpandedContent = styled.div<{ $nestingLevel: number; $childList?: boolean }>`
+export const ExpandedContent = styled.div<{ $nestingLevel: number; $childList?: boolean; $isTransaction?: boolean }>`
 	min-width: 0;
 	border-left: ${(props) =>
 		props.$childList
@@ -543,6 +543,10 @@ export const ExpandedContent = styled.div<{ $nestingLevel: number; $childList?: 
 		props.$childList
 			? 'none'
 			: `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`};
+	border-bottom: ${(props) =>
+		props.$isTransaction
+			? `1px solid ${getNestedBorderColor(props.theme.colors.border.alt4, props.$nestingLevel)}`
+			: 'none'};
 `;
 
 export const InlineInput = styled.section`
@@ -552,7 +556,7 @@ export const InlineInput = styled.section`
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr);
 	gap: 15px;
-	padding: 15px 0;
+	padding: 10px 0 5px 0;
 	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
 `;
 
@@ -597,6 +601,21 @@ export const OverlayTagsHeader = styled.div`
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
+	}
+`;
+
+export const InputHeader = styled(OverlayTagsHeader)`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 15px;
+
+	span {
+		font-size: ${(props) => props.theme.typography.size.xxSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.medium};
+		color: ${(props) => props.theme.colors.font.alt1};
+		text-align: right;
 	}
 `;
 
@@ -744,6 +763,13 @@ export const OverlayOutput = styled.div`
 		font-weight: ${(props) => props.theme.typography.weight.bold};
 		color: ${(props) => props.theme.colors.font.primary};
 	}
+`;
+
+export const InputError = styled.div`
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 15px;
 `;
 
 export const InputData = styled(OverlayOutput)`

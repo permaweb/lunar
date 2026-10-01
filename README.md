@@ -72,8 +72,8 @@ registry configuration is required.
 npm run start:development
 ```
 
-Vite serves the application at [http://localhost:3000](http://localhost:3000) with `strictPort` enabled, so the
-port is not silently reassigned. Change it in `vite.config.ts` if 3000 is already in use.
+Vite serves the application at [http://localhost:4000](http://localhost:4000) with `strictPort` enabled, so the
+port is not silently reassigned. Change it in `vite.config.ts` if 4000 is already in use.
 
 Lunar uses hash routing (`/#/explorer/...`), which lets the same build run from a gateway path, an ArNS name, or
 the local file system without server-side rewrites. Service worker registration is skipped on `localhost`, so a
@@ -83,7 +83,7 @@ development session never serves a cached shell.
 
 | Script                          | Description                                                                |
 | ------------------------------- | -------------------------------------------------------------------------- |
-| `npm run start:development`     | Start the Vite development server on port 3000                             |
+| `npm run start:development`     | Start the Vite development server on port 4000                             |
 | `npm run start:staging`         | Start the same server under the staging name                               |
 | `npm run build`                 | Produce the production bundle in `dist/`                                   |
 | `npm run typecheck`             | Run the TypeScript compiler with `--noEmit`                                |

@@ -34,6 +34,7 @@ import { ProcessRead } from 'components/molecules/ProcessRead';
 import { TagsSection } from 'components/molecules/TagsSection';
 import { TransactionList } from 'components/molecules/TransactionList';
 import { useWalletMining, WalletMiningInfo, WalletMiningTabs } from 'features/Mining';
+import { checkValidAoAccount, getAoSender } from 'helpers/aoAccounts';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
@@ -205,7 +206,7 @@ function WalletTransactions(props: { onMessageOpen: (id: string) => void }) {
 	const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
 	const provider = useLanguageProvider();
 	const language = provider.object[provider.current];
-	if (!checkValidAddress(inputTxId)) return null;
+	if (!checkValidAoAccount(inputTxId)) return null;
 	return (
 		<MessageList
 			key={refreshKey}
@@ -377,7 +378,7 @@ function Transaction(props: {
 			case 'bundle':
 				return checkValidAddress(value);
 			default:
-				return checkValidAddress(value);
+				return checkValidAoAccount(value);
 		}
 	}
 
@@ -701,7 +702,8 @@ function Transaction(props: {
 			const currentWalletRef = React.useRef<string>('');
 
 			const fetchBalance = React.useCallback(async () => {
-				if (!walletId || !checkValidAddress(walletId)) return;
+				if (!walletId || !(balanceSource === 'arweave' ? checkValidAddress(walletId) : checkValidAoAccount(walletId)))
+					return;
 
 				setLoadingBalance(true);
 				setWalletBalance(null);
@@ -741,7 +743,12 @@ function Transaction(props: {
 					hasFetchedRef.current = false;
 				}
 
-				if (!hasFetchedRef.current && shouldFetch && walletId && checkValidAddress(walletId)) {
+				if (
+					!hasFetchedRef.current &&
+					shouldFetch &&
+					walletId &&
+					(balanceSource === 'arweave' ? checkValidAddress(walletId) : checkValidAoAccount(walletId))
+				) {
 					hasFetchedRef.current = true;
 					fetchBalance();
 				}
@@ -947,7 +954,7 @@ function Transaction(props: {
 
 		function renderAddress(address: string | null | undefined) {
 			if (!address) return <p>No Recipient</p>;
-			if (checkValidAddress(address)) return <TxAddress address={address} />;
+			if (checkValidAoAccount(address)) return <TxAddress address={address} />;
 
 			return <p>{address}</p>;
 		}
@@ -1016,9 +1023,7 @@ function Transaction(props: {
 	const MessageTransferSection = () => {
 		const { txResponse } = React.useContext(TxResponseContext);
 
-		const from = txResponse
-			? getTagValue(txResponse.node.tags, 'From-Process') ?? txResponse?.node?.owner?.address
-			: undefined;
+		const from = txResponse ? getAoSender(txResponse.node) : undefined;
 		const target = txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target');
 		const isTransfer = isTransferAction(getTagValue(txResponse?.node?.tags, 'Action'));
 
@@ -1773,7 +1778,7 @@ function Transaction(props: {
 					shouldFetch={shouldFetch}
 					useNaOnError={useNaOnError}
 				/>
-				{resolvedType === 'wallet' && (
+				{resolvedType === 'wallet' && checkValidAddress(inputTxId) && (
 					<WalletBalanceSection
 						balanceSource={'arweave'}
 						tokenName={'AR'}

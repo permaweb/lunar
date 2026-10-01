@@ -1,5 +1,5 @@
+import { checkValidAoAccount } from './aoAccounts';
 import { normalizeArweaveNode } from './arweaveNode';
-import { checkValidAddress } from './utils';
 
 export function checkValidBlockId(value: string): boolean {
 	return /^[a-z0-9_-]{64}$/i.test(value);
@@ -13,7 +13,7 @@ export function isValidSearchInput(value: string): boolean {
 	const input = value.trim();
 	return (
 		normalizeArweaveNode(input) !== null ||
-		checkValidAddress(input) ||
+		checkValidAoAccount(input) ||
 		checkValidBlockHeight(input) ||
 		checkValidBlockId(input)
 	);
