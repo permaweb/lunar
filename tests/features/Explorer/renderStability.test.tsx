@@ -24,9 +24,19 @@ vi.mock('helpers/search', () => ({
 }));
 vi.mock('api/balances', () => ({ readAoBalance: async () => '0', readArBalance: async () => '0' }));
 vi.mock('api/http', () => ({ requestRemote: async () => new Response(null, { status: 404 }) }));
-vi.mock('api/aoNetwork', () => {
+vi.mock('api/aoNetwork', async (original) => {
+	const actual = await original<typeof import('../../../src/api/aoNetwork')>();
 	const status = { source: 'peers' };
-	return { getAoReadTransport: () => ({ getStatus: () => status, subscribe: () => () => {} }) };
+	const transport = {
+		getStatus: () => status,
+		subscribe: () => () => {},
+		readResponse: async (_path: string, parse: (response: Response) => Promise<unknown>) => ({
+			data: await parse(new Response('{}', { headers: { 'content-type': 'application/json' } })),
+			provider: 'https://ao.example',
+			source: 'peers',
+		}),
+	};
+	return { ...actual, getAoReadTransport: () => transport };
 });
 vi.mock('providers/PermawebProvider', () => ({ usePermawebProvider: () => permaweb }));
 vi.mock('providers/ArweaveProvider', () => ({ useArweaveProvider: () => ({ walletAddress: null }) }));

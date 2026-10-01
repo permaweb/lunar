@@ -31,9 +31,19 @@ vi.mock('components/organisms/AOS', () => ({
 		</div>
 	),
 }));
-vi.mock('api/aoNetwork', () => {
+vi.mock('api/aoNetwork', async (original) => {
+	const actual = await original<typeof import('../../../src/api/aoNetwork')>();
 	const status = { source: 'peers' };
-	return { getAoReadTransport: () => ({ getStatus: () => status, subscribe: () => () => {} }) };
+	const transport = {
+		getStatus: () => status,
+		subscribe: () => () => {},
+		readResponse: async (_path: string, parse: (response: Response) => Promise<unknown>) => ({
+			data: await parse(new Response('{}', { headers: { 'content-type': 'application/json' } })),
+			provider: 'https://ao.example',
+			source: 'peers',
+		}),
+	};
+	return { ...actual, getAoReadTransport: () => transport };
 });
 vi.mock('components/organisms/Transaction', () => ({
 	Transaction: (props) => {

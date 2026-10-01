@@ -162,6 +162,7 @@ export function createAoReadTransport(
 
 	updateStatus();
 	return {
+		readResponse: read,
 		readHeaders: <T>(path: string, init: ReadOptions, parse: (headers: Headers) => T) =>
 			read(path, async (response) => parse(response.headers), { ...init, method: 'HEAD' }),
 		readJson: <T = unknown>(path: string, init?: ReadOptions, parse?: (value: unknown) => T) =>

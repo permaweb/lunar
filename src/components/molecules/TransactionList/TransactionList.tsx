@@ -10,6 +10,7 @@ import {
 	GQLEdge,
 	isBundleTransaction,
 	TransactionNode,
+	type TransactionTag,
 	TransactionTypeFilter,
 } from 'api/blocks';
 
@@ -350,6 +351,7 @@ export default function TransactionList(props: {
 	blockHeight?: number;
 	blockId?: string;
 	bundleId?: string;
+	bundleTags?: TransactionTag[];
 	header?: string;
 	count?: number;
 	onTotalCountChange?: (count: number | null) => void;
@@ -450,7 +452,7 @@ export default function TransactionList(props: {
 		(props.mode === 'block' ? props.blockHeight !== undefined || !!props.blockId : !!props.bundleId);
 
 	const fetchTransactionsPage = React.useCallback(
-		async (after: string | null) => {
+		async (after: string | null, signal?: AbortSignal) => {
 			if (props.mode === 'recent') {
 				return await getTransactions({
 					first: perPage,
@@ -470,6 +472,8 @@ export default function TransactionList(props: {
 				  })
 				: await getTransactionsByBundle({
 						bundleId: props.bundleId,
+						bundleTags: props.bundleTags,
+						signal,
 						first: perPage,
 						after: after,
 						typeFilter: activeTypeFilter,
@@ -481,6 +485,7 @@ export default function TransactionList(props: {
 			props.blockHeight,
 			props.blockId,
 			props.bundleId,
+			props.bundleTags,
 			props.onTotalCountChange,
 			props.preview,
 			perPage,
@@ -568,6 +573,7 @@ export default function TransactionList(props: {
 	React.useEffect(() => {
 		if (hasSource) return;
 		let cancelled = false;
+		const controller = new AbortController();
 
 		(async function () {
 			if (!canLoad) {
@@ -580,7 +586,7 @@ export default function TransactionList(props: {
 			setLoading(true);
 
 			try {
-				const response = await fetchTransactionsPage(pageCursor);
+				const response = await fetchTransactionsPage(pageCursor, controller.signal);
 
 				if (!cancelled) {
 					let edges = response.transactions.edges;
@@ -625,6 +631,7 @@ export default function TransactionList(props: {
 					setError(null);
 				}
 			} catch (e: any) {
+				if (cancelled) return;
 				console.error(e);
 
 				if (!cancelled) {
@@ -643,6 +650,7 @@ export default function TransactionList(props: {
 
 		return () => {
 			cancelled = true;
+			controller.abort();
 		};
 	}, [
 		hasSource,

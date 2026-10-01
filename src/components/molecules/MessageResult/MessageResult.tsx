@@ -108,7 +108,7 @@ export default function MessageResult(props: {
 						message: messageId,
 					});
 
-					setResult(removeCommitments(messageResult));
+					setResult(messageResult);
 				} catch (e: any) {
 					console.error(e);
 					setResult({ Response: e.message ?? language.errorFetchingResult });
@@ -225,10 +225,12 @@ export default function MessageResult(props: {
 		);
 	}
 
+	const displayResult = React.useMemo(() => removeCommitments(result), [result]);
+
 	function getResult() {
 		return (
 			<JSONReader
-				data={result}
+				data={displayResult}
 				placeholder={'Loading Result…'}
 				header={language.result}
 				fixedHeight={WRAPPER_HEIGHT}

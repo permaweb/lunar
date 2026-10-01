@@ -61,7 +61,7 @@ export const SearchOutputWrapper = styled.div`
 export const SearchOutputPlaceholder = styled.div`
 	padding: 20px 15px;
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	border-radius: ${STYLING.dimensions.radius.primary};
+	border-radius: ${STYLING.dimensions.radius.alt1};
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	p {
 		color: ${(props) => props.theme.colors.font.alt1};
@@ -80,7 +80,7 @@ export const SearchResult = styled.div`
 		justify-content: space-between;
 		padding: 15px;
 		background: ${(props) => props.theme.colors.container.alt1.background};
-		border-radius: ${STYLING.dimensions.radius.primary};
+		border-radius: ${STYLING.dimensions.radius.alt1};
 		border: 1px solid ${(props) => props.theme.colors.border.primary};
 
 		font-size: ${(props) => props.theme.typography.size.xSmall} !important;
@@ -95,14 +95,20 @@ export const SearchResult = styled.div`
 			fill: ${(props) => props.theme.colors.link.color};
 		}
 
-		&:hover {
+		&:hover,
+		&:focus-visible {
 			background: ${(props) => props.theme.colors.container.alt3.background};
-			border: 1px solid ${(props) => props.theme.colors.border.alt4};
+			border: 1px solid ${(props) => props.theme.colors.border.alt2};
 
 			svg {
 				color: ${(props) => props.theme.colors.link.active};
 				fill: ${(props) => props.theme.colors.link.active};
 			}
+		}
+
+		&:focus-visible {
+			outline: 2px solid ${(props) => props.theme.colors.border.alt1};
+			outline-offset: -2px;
 		}
 	}
 `;

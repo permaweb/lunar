@@ -271,6 +271,102 @@ it('continues to support block heights and transaction IDs', async () => {
 	expect(arweaveNodeApi.getInfo).not.toHaveBeenCalled();
 });
 
+it('opens the only result with Enter from the search input and clears the search', async () => {
+	await enter(NODE_URL);
+	const event = await pressKey('Enter', overlay.querySelector('input'));
+	expect(event.defaultPrevented).toBe(true);
+	expect(path).toBe(getArweaveNodeRoute(NODE_URL));
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+	await pressKey('/');
+	expect(overlay.querySelector('input').value).toBe('');
+});
+
+it.each(['ArrowDown', 'ArrowUp'])('focuses a result with %s and opens it with Enter', async (key) => {
+	await enter(NODE_URL);
+	const input = overlay.querySelector('input');
+	const link = overlay.querySelector('a');
+	expect((await pressKey(key, input)).defaultPrevented).toBe(true);
+	expect(document.activeElement).toBe(link);
+	await pressKey('Enter', link);
+	expect(path).toBe(getArweaveNodeRoute(NODE_URL));
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it('navigates multiple result links in both directions and opens only the focused result', async () => {
+	await enter(NODE_URL);
+	const input = overlay.querySelector('input');
+	const first = overlay.querySelector('a');
+	// Lookups currently return one result; include another rendered link to exercise a larger result list.
+	const second = document.createElement('a');
+	second.href = '/explorer/100';
+	second.textContent = 'Block 100';
+	const selectSecond = vi.fn((event: MouseEvent) => event.preventDefault());
+	second.addEventListener('click', selectSecond);
+	first.parentElement.append(second);
+
+	expect((await pressKey('Enter', input)).defaultPrevented).toBe(false);
+	expect(path).toBe('/');
+	expect(selectSecond).not.toHaveBeenCalled();
+	await pressKey('ArrowDown', input);
+	expect(document.activeElement).toBe(first);
+	await pressKey('ArrowDown', first);
+	expect(document.activeElement).toBe(second);
+	await pressKey('ArrowDown', second);
+	expect(document.activeElement).toBe(first);
+	await pressKey('ArrowUp', first);
+	expect(document.activeElement).toBe(second);
+	await pressKey('ArrowUp', second);
+	expect(document.activeElement).toBe(first);
+	await React.act(async () => input.focus());
+	await pressKey('ArrowUp', input);
+	expect(document.activeElement).toBe(second);
+	await pressKey('Enter', second);
+	expect(selectSecond).toHaveBeenCalledOnce();
+	expect(path).toBe('/');
+	await pressKey('Escape', second);
+	expect(overlay.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it('does not submit empty, loading, failed, or newly edited searches', async () => {
+	const input = overlay.querySelector('input');
+	expect((await pressKey('Enter', input)).defaultPrevented).toBe(false);
+	vi.mocked(arweaveNodeApi.getInfo).mockImplementationOnce(() => new Promise(() => {}));
+	await enter(NODE_URL);
+	for (const key of ['Enter', 'ArrowDown', 'ArrowUp']) {
+		expect((await pressKey(key, input)).defaultPrevented).toBe(false);
+		expect(document.activeElement).toBe(input);
+	}
+	vi.mocked(arweaveNodeApi.getInfo).mockRejectedValueOnce(new ArweaveNodeError('timeout'));
+	await enter('https://failed.node');
+	expect((await pressKey('Enter', input)).defaultPrevented).toBe(false);
+	await enter('https://ready.node');
+	expect(overlay.querySelector('a')).not.toBeNull();
+	await enter('invalid');
+	expect(overlay.querySelector('a')).toBeNull();
+	expect((await pressKey('Enter', input)).defaultPrevented).toBe(false);
+	expect(path).toBe('/');
+});
+
+it.each([{ ctrlKey: true }, { metaKey: true }, { altKey: true }, { isComposing: true }, { repeat: true }])(
+	'does not submit modified, composed, or repeated Enter: %j',
+	async (options) => {
+		await enter(NODE_URL);
+		expect((await pressKey('Enter', overlay.querySelector('input'), options)).defaultPrevented).toBe(false);
+		expect(path).toBe('/');
+		expect(overlay.querySelector('[role="dialog"]')).not.toBeNull();
+	}
+);
+
+it('keeps result shortcuts away from the close button', async () => {
+	await enter(NODE_URL);
+	const close = overlay.querySelector<HTMLButtonElement>('button[aria-label="Close"]');
+	close.focus();
+	expect((await pressKey('ArrowDown', close)).defaultPrevented).toBe(false);
+	expect(document.activeElement).toBe(close);
+	expect((await pressKey('Enter', close)).defaultPrevented).toBe(false);
+	expect(path).toBe('/');
+});
+
 it('groups network navigation and opens the AO process activity view', async () => {
 	await pressKey('Escape');
 	const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="AO"]');

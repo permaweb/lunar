@@ -66,7 +66,7 @@ it('adds peer defaults to existing settings while preserving the AOS node', asyn
 	expect(current.settings.nodes[0].url).toBe('https://old-aos.example');
 	expect(current.settings.aoNetwork).toEqual(DEFAULT_AO_NETWORK);
 	await React.act(async () => current.setShowNodeSettings(true));
-	expect(container.textContent).toContain('AOS Node');
+	expect(Array.from(container.querySelectorAll('p'), (element) => element.textContent)).toContain('Compute Node');
 	expect(container.textContent).toContain('alpha.neo.zephyrdev.xyz');
 	expect(container.querySelector('input[aria-label="AO peers"]')).not.toBeNull();
 });

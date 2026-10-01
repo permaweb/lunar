@@ -1,6 +1,7 @@
 import { getGraphQLEndpoint } from 'api/graphql';
 
 import { FLAGS } from 'helpers/config';
+import { checkValidAddress } from 'helpers/utils';
 
 export type BlockNode = {
 	id: string;
@@ -113,10 +114,12 @@ export type GetTransactionsByBlockArgs = {
 
 export type GetTransactionsByBundleArgs = {
 	bundleId: string;
+	bundleTags?: TransactionTag[];
 	first?: number;
 	after?: string | null;
 	typeFilter?: TransactionTypeFilter | null;
 	includeCount?: boolean;
+	signal?: AbortSignal;
 };
 
 export type GetTransactionByIdArgs = {
@@ -151,7 +154,9 @@ const BLOCK_FIELDS = `
 	}
 `;
 
-const TRANSACTION_FIELDS = `
+function getTransactionFields(includeCount = false) {
+	return `
+	${includeCount ? 'count' : ''}
 	pageInfo {
 		hasNextPage
 	}
@@ -179,9 +184,7 @@ const TRANSACTION_FIELDS = `
 				height
 				timestamp
 			}
-			bundledIn {
-				id
-			}
+			${FLAGS.USE_GQL_BUNDLED_IN ? 'bundledIn { id }' : ''}
 			data {
 				size
 				type
@@ -189,19 +192,7 @@ const TRANSACTION_FIELDS = `
 		}
 	}
 `;
-
-const TRANSACTION_FIELDS_WITH_COUNT = `
-	count
-	${TRANSACTION_FIELDS}
-`;
-
-const TRANSACTION_BY_ID_QUERY = `
-	query TransactionById($ids: [ID!]) {
-		transactions(ids: $ids, first: 1) {
-			${TRANSACTION_FIELDS}
-		}
-	}
-`;
+}
 
 const BLOCKS_QUERY = `
 	query Blocks($first: Int, $after: String) {
@@ -239,22 +230,6 @@ const TRANSACTION_COUNT_BY_BLOCK_QUERY = `
 	query TransactionCountByBlock($minBlock: Int, $maxBlock: Int, $first: Int) {
 		transactions(block: { min: $minBlock, max: $maxBlock }, first: $first) {
 			count
-		}
-	}
-`;
-
-const TRANSACTIONS_BY_BUNDLE_QUERY = `
-	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
-		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
-			${TRANSACTION_FIELDS_WITH_COUNT}
-		}
-	}
-`;
-
-const TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY = `
-	query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
-		transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
-			${TRANSACTION_FIELDS}
 		}
 	}
 `;
@@ -304,7 +279,7 @@ function getTransactionsQuery(args: { includeCount: boolean; typeFilter?: Transa
 				after: $after
 				sort: HEIGHT_DESC
 			) {
-				${args.includeCount ? TRANSACTION_FIELDS_WITH_COUNT : TRANSACTION_FIELDS}
+				${getTransactionFields(args.includeCount)}
 			}
 		}
 	`;
@@ -320,7 +295,7 @@ function getTransactionsByBlockQuery(args: { includeCount: boolean; typeFilter?:
 				after: $after
 				sort: HEIGHT_DESC
 			) {
-				${args.includeCount ? TRANSACTION_FIELDS_WITH_COUNT : TRANSACTION_FIELDS}
+				${getTransactionFields(args.includeCount)}
 			}
 		}
 	`;
@@ -377,9 +352,14 @@ export function isBundleTransaction(transaction: TransactionNode) {
 	);
 }
 
-async function queryGraphQL<T>(args: { query: string; variables: Record<string, any> }): Promise<T> {
+async function queryGraphQL<T>(args: {
+	query: string;
+	variables: Record<string, unknown>;
+	signal?: AbortSignal;
+}): Promise<T> {
 	const response = await fetch(getGraphQLEndpoint(), {
 		method: 'POST',
+		signal: args.signal,
 		headers: {
 			'Content-Type': 'application/json',
 		},
@@ -413,10 +393,19 @@ async function getBlockHeightById(blockId: string) {
 }
 
 const bundleTransactionIdsCache = new Map<string, string[]>();
+const BUNDLE_CACHE_LIMIT = 50;
 const BUNDLE_CURSOR_PREFIX = 'bundle-tx:';
 
-function isArweaveId(value: unknown) {
-	return typeof value === 'string' && /^[a-z0-9_-]{43}$/i.test(value);
+function isArweaveId(value: unknown): value is string {
+	return typeof value === 'string' && checkValidAddress(value);
+}
+
+function getBundleLinkIds(entries: [string, unknown][]): string[] {
+	const links = entries
+		.filter((entry): entry is [string, string] => /^\d+\+link$/i.test(entry[0]) && isArweaveId(entry[1]))
+		.sort(([a], [b]) => Number(a.split('+')[0]) - Number(b.split('+')[0]));
+
+	return [...new Set(links.map(([, id]) => id))];
 }
 
 function getBundleCursor(index: number) {
@@ -454,10 +443,7 @@ function getBundleTransactionIdsFromResponse(value: unknown) {
 	if (!value || typeof value !== 'object') return [];
 
 	const response = value as Record<string, unknown>;
-	const linkedIds = Object.entries(response)
-		.filter(([key, entry]) => /^\d+\+link$/i.test(key) && isArweaveId(entry))
-		.sort(([a], [b]) => Number(a.split('+')[0]) - Number(b.split('+')[0]))
-		.map(([, entry]) => entry as string);
+	const linkedIds = getBundleLinkIds(Object.entries(response));
 
 	if (linkedIds.length > 0) return linkedIds;
 
@@ -471,6 +457,9 @@ function getBundleTransactionIdsFromResponse(value: unknown) {
 }
 
 async function getBundleTransactionIds(args: GetTransactionsByBundleArgs) {
+	const taggedIds = getBundleLinkIds((args.bundleTags ?? []).map((tag) => [tag.name, tag.value]));
+	if (taggedIds.length) return taggedIds;
+
 	const cached = bundleTransactionIdsCache.get(args.bundleId);
 
 	if (cached) return cached;
@@ -479,6 +468,7 @@ async function getBundleTransactionIds(args: GetTransactionsByBundleArgs) {
 	const response = await fetch(
 		`${DEFAULT_ARWEAVE_ENDPOINT}/${bundlePath}?require-codec=application/json&accept-bundle=false`,
 		{
+			signal: args.signal,
 			headers: {
 				Accept: 'application/json',
 			},
@@ -489,10 +479,16 @@ async function getBundleTransactionIds(args: GetTransactionsByBundleArgs) {
 		throw new Error(`Bundle request failed with status ${response.status}`);
 	}
 
-	const parsed = await response.json();
-	const ids = getBundleTransactionIdsFromResponse(parsed);
+	const headerEntries: [string, string][] = [];
+	response.headers.forEach((value, name) => headerEntries.push([name, value]));
+	const headerIds = getBundleLinkIds(headerEntries);
+	// HyperBEAM may serve its own HTML page as the body; bundle membership is in the headers.
+	const ids = headerIds.length ? headerIds : [...new Set(getBundleTransactionIdsFromResponse(await response.json()))];
 
 	bundleTransactionIdsCache.set(args.bundleId, ids);
+	if (bundleTransactionIdsCache.size > BUNDLE_CACHE_LIMIT) {
+		bundleTransactionIdsCache.delete(bundleTransactionIdsCache.keys().next().value);
+	}
 
 	return ids;
 }
@@ -636,10 +632,18 @@ export async function getTransactionsByBlock(
 }
 
 export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs): Promise<TransactionsQueryResponse> {
-	if (!FLAGS.USE_GATEWAY_BUNDLE_REQUEST) {
+	if (!isArweaveId(args.bundleId)) throw new Error('Invalid bundle id');
+	if (FLAGS.USE_GQL_BUNDLED_IN) {
 		const includeCount = args.includeCount ?? !args.after;
 		const response = await queryGraphQL<TransactionsQueryResponse>({
-			query: includeCount ? TRANSACTIONS_BY_BUNDLE_QUERY : TRANSACTIONS_BY_BUNDLE_PAGINATED_QUERY,
+			query: `
+				query TransactionsByBundle($bundleId: [ID!], $first: Int, $after: String) {
+					transactions(bundledIn: $bundleId, first: $first, after: $after, sort: HEIGHT_DESC) {
+						${getTransactionFields(includeCount)}
+					}
+				}
+			`,
+			signal: args.signal,
 			variables: {
 				bundleId: [args.bundleId],
 				first: getFirst(args.first),
@@ -675,7 +679,13 @@ export async function getTransactionsByBundle(args: GetTransactionsByBundleArgs)
 
 export async function getTransactionById(args: GetTransactionByIdArgs): Promise<TransactionNode | null> {
 	const response = await queryGraphQL<TransactionsQueryResponse>({
-		query: TRANSACTION_BY_ID_QUERY,
+		query: `
+			query TransactionById($ids: [ID!]) {
+				transactions(ids: $ids, first: 1) {
+					${getTransactionFields()}
+				}
+			}
+		`,
 		variables: {
 			ids: [args.id],
 		},

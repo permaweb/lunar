@@ -1,5 +1,6 @@
 import styled, { DefaultTheme } from 'styled-components';
 
+import { transition1 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
 function getDesktopLastRowBorderStyles(props: {
@@ -191,5 +192,80 @@ export const MessageInfoID = styled(MessageInfoLine)`
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		flex-direction: row;
 		align-items: flex-start;
+	}
+`;
+
+export const TagList = styled.div<{ $fixedHeight?: number; $hasOverflow?: boolean }>`
+	height: ${(props) => (props.$fixedHeight ? `calc(${props.$fixedHeight}px - 80px)` : 'fit-content')};
+	max-height: 526.5px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-right: ${(props) => (props.$hasOverflow ? '-15px' : '0')};
+	padding-right: 0;
+	transition: padding-right ${transition1};
+
+	&:hover {
+		padding-right: ${(props) => (props.$hasOverflow ? '12.5px' : '0')};
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
+
+	> * {
+		&:not(:last-child) {
+			padding: 0 0 10px 0;
+			border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
+		}
+	}
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		gap: 20px;
+	}
+`;
+
+export const TagRow = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	max-height: 30px;
+
+	p,
+	span {
+		font-size: ${(props) => props.theme.typography.size.xSmall};
+		font-family: ${(props) => props.theme.typography.family.primary};
+		font-weight: ${(props) => props.theme.typography.weight.bold};
+		white-space: nowrap;
+		line-height: 1.05;
+	}
+
+	p {
+		color: ${(props) => props.theme.colors.font.primary};
+		text-align: right;
+		text-align: right;
+		max-width: 45%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	span {
+		color: ${(props) => props.theme.colors.font.alt1};
+		max-width: 45%;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	@media (max-width: ${STYLING.cutoffs.secondary}) {
+		flex-direction: column;
+		align-items: flex-start;
+		justify-content: flex-start;
+		gap: 5px;
+
+		p {
+			text-align: left;
+		}
 	}
 `;
