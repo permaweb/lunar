@@ -83,8 +83,9 @@ export default function NetworkActivity() {
 			<ViewTitle
 				id="activity-title"
 				header={language.landing.activityTitle}
-				headingLevel="h2"
+				headingLevel="h3"
 				layout="section"
+				variant="subsection"
 				actions={[
 					<Toggle
 						key="network-filter"

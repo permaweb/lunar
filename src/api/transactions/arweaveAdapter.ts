@@ -1,5 +1,6 @@
 import { requestRemote } from 'api/http';
 
+import { getEthereumOwnerAddress } from 'helpers/aoAccounts';
 import { getTxEndpoint } from 'helpers/endpoints';
 import type { GQLNodeResponseType, TagType } from 'helpers/types';
 import { checkValidAddress, getTagValue } from 'helpers/utils';
@@ -164,9 +165,12 @@ function getDirectLookupTags(headers: Headers) {
 
 async function getOwnerAddressFromSignatureInput(signatureInput: string | null) {
 	const publicKey = getPublicKeyFromSignatureInput(signatureInput);
-	if (!publicKey || !globalThis.crypto?.subtle) return null;
+	if (!publicKey) return null;
 
 	try {
+		const ethereumAddress = getEthereumOwnerAddress(publicKey);
+		if (ethereumAddress) return ethereumAddress;
+		if (!globalThis.crypto?.subtle) return null;
 		const digest = await globalThis.crypto.subtle.digest('SHA-256', base64UrlToBytes(publicKey));
 
 		return bytesToBase64Url(new Uint8Array(digest));
@@ -256,6 +260,7 @@ async function buildDirectLookupResponse(txId: string, directLookup: Response): 
 			},
 			owner: {
 				address: ownerAddress,
+				key: getPublicKeyFromSignatureInput(signatureInput) ?? undefined,
 			},
 			block:
 				blockHeight !== null || blockTimestamp !== null

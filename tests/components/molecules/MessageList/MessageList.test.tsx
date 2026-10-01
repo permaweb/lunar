@@ -117,6 +117,8 @@ it('expands input above existing results and opens full output in a panel', asyn
 	await React.act(async () => row().click());
 	const input = container.querySelector('section[aria-label^="Input"]');
 	expect(input.getAttribute('aria-label')).toBe('Input (Tags + Data)');
+	expect(input.firstElementChild.querySelector('p').textContent).toBe('Input');
+	expect(input.firstElementChild.querySelector('span').textContent).toBe('(Tags + Data)');
 	expect(input.textContent).toContain('ActionEval');
 	expect(input.textContent).toContain('print("input-value")');
 	const resultRow = container.querySelectorAll('.message-list-element')[1];

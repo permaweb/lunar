@@ -9,7 +9,7 @@ export const Wrapper = styled.section`
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-radius: ${STYLING.dimensions.radius.alt1};
 	background: ${(props) => props.theme.colors.container.alt1.background};
-	background: color-mix(in srgb, ${(props) => props.theme.colors.container.alt1.background} 75%, transparent);
+	background: color-mix(in srgb, ${(props) => props.theme.colors.container.alt1.background} 80%, transparent);
 	backdrop-filter: blur(2px);
 	@media (max-width: ${STYLING.cutoffs.secondary}) {
 		grid-template-columns: minmax(0, 1fr);

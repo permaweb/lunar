@@ -7,7 +7,13 @@ import { addTransaction, selectTransaction, touchTransaction } from 'store/trans
 import { DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint } from './endpoints';
 import { GQLNodeResponseType, MessageVariantEnum, SearchTxArgs, TagType } from './types';
-import { getTagValue, isNumeric, isTrustedLegacyAuthority, normalizeGqlResponse } from './utils';
+import {
+	checkValidEthereumAddress,
+	getTagValue,
+	isNumeric,
+	isTrustedLegacyAuthority,
+	normalizeGqlResponse,
+} from './utils';
 
 const MAX_DEPTH = 10;
 const MAINNET_SCHEDULE_LOOKUP_PAGE_SIZE = 1000;
@@ -396,13 +402,26 @@ async function addressHasAoBalance(args: SearchTxArgs) {
 /* An address is a wallet if it has transaction activity or any AR / AO balance */
 async function isWalletAddress(args: SearchTxArgs) {
 	if (await addressHasTransactions(args)) return true;
-	if (await addressHasArBalance(args.txId)) return true;
+	if (!checkValidEthereumAddress(args.txId) && (await addressHasArBalance(args.txId))) return true;
 	if (await addressHasAoBalance(args)) return true;
 
 	return false;
 }
 
 export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<GQLNodeResponseType> {
+	if (checkValidEthereumAddress(args.txId)) {
+		return {
+			cursor: null,
+			node: {
+				id: args.txId,
+				data: null,
+				tags: [{ name: 'Type', value: 'Wallet' }],
+				owner: { address: null },
+				block: { height: null, timestamp: null },
+			},
+		};
+	}
+
 	if (FLAGS.USE_TX_CACHE && args.store) {
 		const cached = selectTransaction(args.store.getState(), args.txId);
 		if (cached && shouldUseCachedTransaction(cached)) {
@@ -443,7 +462,7 @@ export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promi
 
 		if (!responseData) {
 			/* Check if this is a wallet based on activity or AR / AO balance */
-			if (await isWalletAddress(args)) {
+			if (checkValidEthereumAddress(args.txId) || (await isWalletAddress(args))) {
 				const walletResponse = {
 					cursor: null,
 					node: {

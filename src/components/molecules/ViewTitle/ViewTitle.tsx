@@ -10,7 +10,7 @@ export default function ViewTitle(props: {
 	headingLevel?: 'h1' | 'h2' | 'h3' | 'h4';
 	id?: string;
 	layout?: 'page' | 'section';
-	variant?: 'default' | 'subsection';
+	variant?: 'default' | 'subsection' | 'small';
 }) {
 	const Heading = props.headingLevel ?? 'h4';
 	const content = (

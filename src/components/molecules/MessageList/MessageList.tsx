@@ -652,10 +652,10 @@ function Message(props: {
 		if (input.status === 'loading') return <p role="status">{`${language.loading}...`}</p>;
 		if (input.status === 'error') {
 			return (
-				<>
+				<S.InputError>
 					<p role="alert">{language.errorFetchingMessageData}</p>
 					<Button type="alt3" label={language.retry} onPress={() => setInput({ status: 'loading' })} />
-				</>
+				</S.InputError>
 			);
 		}
 		const data = input.data;
@@ -907,11 +907,17 @@ function Message(props: {
 				</S.Results>
 			</S.ElementWrapper>
 			{open && (
-				<S.ExpandedContent id={detailsId} $nestingLevel={(props.nestingLevel ?? 0) + 1} $childList={props.childList}>
+				<S.ExpandedContent
+					id={detailsId}
+					$isTransaction={!isAoMessage}
+					$nestingLevel={(props.nestingLevel ?? 0) + 1}
+					$childList={props.childList}
+				>
 					<S.InlineInput aria-label={language.inputTagsAndData}>
-						<S.OverlayTagsHeader>
-							<p>{language.inputTagsAndData}</p>
-						</S.OverlayTagsHeader>
+						<S.InputHeader>
+							<p>{language.input}</p>
+							<span>{language.inputTagsAndDataSubtitle}</span>
+						</S.InputHeader>
 						<S.InputColumns>
 							<S.InputTags>
 								{props.element.display?.details?.map((detail) => (

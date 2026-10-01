@@ -9,18 +9,30 @@ const RIPPLE_SHADER = `
 	uniform float elapsed;
 	uniform float aspect;
 	uniform float strength;
-	float ripple(vec2 uv, vec2 origin, float phase, float width) {
-		float radius = phase * 3.2;
+	float ripple(vec2 uv, vec2 origin, float phase, float width, float reach) {
+		float radius = phase * reach;
 		float distance = length((uv - origin) * vec2(aspect, 1.0));
 		float offset = (distance - radius) / width;
 		float envelope = smoothstep(0.0, 0.12, phase) * (1.0 - smoothstep(0.65, 1.0, phase));
 		return exp(-offset * offset) * envelope;
 	}
+	float smallRipple(vec2 uv, vec2 origin, float delay, float reach, float width) {
+		// Stagger overlapping bursts at 85% of the original frequency.
+		// Keep each small ring's 4.5-second lifetime as the interval grows to 9 seconds.
+		float phase = min(fract(elapsed * 0.1105 + 0.2 - delay) / 0.49725, 1.0);
+		return ripple(uv, origin, phase, width * 0.65, reach) * 0.65;
+	}
 	float scan(vec2 uv, float width) {
 		// Launch each illumination wave at the center and let it travel out through the particles.
 		// Start with a visible ring, including when reduced motion freezes the first frame.
-		return ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.1), width)
-			+ ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.6), width);
+		return ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.1), width, 3.2)
+			+ ripple(uv, vec2(0.5, 0.5), fract(elapsed * 0.065 + 0.6), width, 3.2)
+			+ smallRipple(uv, vec2(0.08, 0.2), 0.12, 0.38, width)
+			+ smallRipple(uv, vec2(0.9, 0.78), 0.45, 0.3, width)
+			+ smallRipple(uv, vec2(0.12, 0.8), 0.77, 0.32, width)
+			+ smallRipple(uv, vec2(0.88, 0.22), 0.93, 0.42, width)
+			+ smallRipple(uv, vec2(0.34, 0.62), 0.28, 0.26, width)
+			+ smallRipple(uv, vec2(0.7, 0.4), 0.61, 0.28, width);
 	}
 	float fieldFade(vec2 uv) {
 		float vertical = smoothstep(0.0, 0.55, uv.y) * (1.0 - smoothstep(0.78, 1.0, uv.y));

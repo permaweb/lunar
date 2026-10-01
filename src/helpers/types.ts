@@ -49,6 +49,7 @@ export type GQLNodeResponseType = {
 			timestamp: number;
 		};
 		owner?: {
+			key?: string;
 			address: string;
 		};
 		address?: string;

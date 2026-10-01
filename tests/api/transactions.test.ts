@@ -36,6 +36,25 @@ describe('transaction body classification', () => {
 });
 
 describe('direct transaction lookup', () => {
+	it('resolves an Ethereum signing key to its execution address', async () => {
+		const key = btoa(
+			String.fromCharCode(
+				...Uint8Array.from(
+					'0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8'.match(
+						/../g
+					)!,
+					(byte) => parseInt(byte, 16)
+				)
+			)
+		)
+			.replace(/\+/g, '-')
+			.replace(/\//g, '_')
+			.replace(/=+$/, '');
+		respond(null, { 'signature-input': `sig=("target");keyid="publickey:${key}"`, target: TOKEN_PROCESS_ID });
+		const response = await lookupTransaction(MESSAGE_ID);
+		expect(response.node.owner).toEqual({ key, address: '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf' });
+	});
+
 	it('records a 0-byte transaction as empty instead of adopting the node page metadata', async () => {
 		respond(HYPERBUDDY_HTML, EMPTY_TRANSFER_HEADERS);
 

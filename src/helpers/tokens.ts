@@ -1,3 +1,4 @@
+import { getAoSender } from './aoAccounts';
 import { PROCESSES, TOKEN_DENOMINATIONS } from './config';
 import { TagType } from './types';
 import { formatUnits, getTagValue, isTransferAction } from './utils';
@@ -103,7 +104,7 @@ export function getTokenTransfer(
 	transaction:
 		| {
 				recipient?: string | null;
-				owner?: { address?: string | null } | null;
+				owner?: { address?: string | null; key?: string | null } | null;
 				tags?: TagType[] | null;
 		  }
 		| null
@@ -119,7 +120,7 @@ export function getTokenTransfer(
 
 	return {
 		token: token,
-		from: getTagValue(tags, 'From-Process') ?? transaction?.owner?.address ?? null,
+		from: getAoSender(transaction),
 		recipient: recipient,
 		quantity: quantity,
 	};

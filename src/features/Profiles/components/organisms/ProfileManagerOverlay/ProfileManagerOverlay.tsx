@@ -7,6 +7,8 @@ import { useProfileProvider } from 'providers/ProfileProvider';
 
 import { ProfileManager } from '../ProfileManager';
 
+import * as S from './styles';
+
 export default function ProfileManagerOverlay() {
 	const arProvider = useArweaveProvider();
 	const languageProvider = useLanguageProvider();
@@ -27,10 +29,10 @@ export default function ProfileManagerOverlay() {
 				{profileProvider.state.status === 'loading' ? (
 					<Loader relative message={language.profileLoading} />
 				) : profileProvider.state.status === 'error' ? (
-					<>
+					<S.ErrorState>
 						<p role={'alert'}>{language.profileErrors[profileProvider.state.error]}</p>
 						<Button type={'alt1'} label={language.refresh} onPress={profileProvider.refreshProfile} />
-					</>
+					</S.ErrorState>
 				) : (
 					<ProfileManager
 						key={arProvider.walletAddress}
