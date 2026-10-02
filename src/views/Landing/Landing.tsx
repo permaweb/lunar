@@ -57,8 +57,8 @@ export default function Landing(props: { onPricesScrollChange?: (hasScrolledPast
 								</>
 							)}
 							<S.TablesWrapper>
-								<TransactionList mode="recent" header={language.recentTransactions} pageSize={10} preview />
-								<BlockList header={language.recentBlocks} pageSize={10} preview />
+								<TransactionList mode="recent" header={language.recentTransactions} pageSize={12} preview />
+								<BlockList header={language.recentBlocks} pageSize={12} preview />
 							</S.TablesWrapper>
 						</S.NetworkSection>
 						<S.NetworkSection aria-labelledby="ao-statistics-title">

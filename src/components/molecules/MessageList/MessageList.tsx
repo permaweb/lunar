@@ -5,6 +5,7 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import { ReactSVG } from 'react-svg';
 import { useTheme } from 'styled-components';
 
+import { getTransactions } from 'api/blocks';
 import { requestRemote } from 'api/http';
 import type { PeerApi } from 'api/permaweb';
 
@@ -17,6 +18,7 @@ import { TransferAmount } from 'components/atoms/TransferAmount';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { Editor } from 'components/molecules/Editor';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { MessageInput } from 'components/molecules/MessageInput';
 import { PaginationControls } from 'components/molecules/PaginationControls';
 import {
 	ASSETS,
@@ -913,23 +915,19 @@ function Message(props: {
 					$nestingLevel={(props.nestingLevel ?? 0) + 1}
 					$childList={props.childList}
 				>
-					<S.InlineInput aria-label={language.inputTagsAndData}>
-						<S.InputHeader>
-							<p>{language.input}</p>
-							<span>{language.inputTagsAndDataSubtitle}</span>
-						</S.InputHeader>
-						<S.InputColumns>
-							<S.InputTags>
+					<MessageInput
+						tags={
+							<>
 								{props.element.display?.details?.map((detail) => (
 									<OverlayLine key={detail.name} label={detail.name} value={detail.value} />
 								))}
 								{filteredTags.map((tag, index) => (
 									<OverlayLine key={index} label={tag.name} value={tag.value} render={renderOverlayTagValue} />
 								))}
-							</S.InputTags>
-							<S.InputData>{getData()}</S.InputData>
-						</S.InputColumns>
-					</S.InlineInput>
+							</>
+						}
+						data={getData()}
+					/>
 					{canFetchAoResult && (
 						<>
 							{result && (
@@ -1713,12 +1711,33 @@ export default function MessageList(props: {
 		let count: number | null = null;
 
 		while (rows.length < amount) {
-			const response = await permawebProvider.legacyApi.getGQLData({
+			const pageArgs = {
 				...baseArgs,
 				paginator: Math.min(GQL_PAGE_CHUNK_SIZE, amount - rows.length),
 				...(cursor ? { cursor } : {}),
-			});
-			const pageRows = response?.data ?? [];
+			};
+			// The SDK adds count to first-page queries; use the shared adapter when directional counts are disabled.
+			const response =
+				props.txId && !FLAGS.ENABLE_MESSAGE_COUNTS
+					? await getTransactions({
+							first: pageArgs.paginator,
+							after: cursor,
+							tags: pageArgs.tags,
+							owners: pageArgs.owners,
+							recipients: pageArgs.recipients,
+							minBlock: pageArgs.minBlock,
+							maxBlock: pageArgs.maxBlock,
+							sort: pageArgs.sort,
+							includeCount: false,
+					  }).then(({ transactions }) => ({
+							data: transactions.edges,
+							count: null,
+							nextCursor: transactions.pageInfo.hasNextPage
+								? transactions.edges[transactions.edges.length - 1]?.cursor ?? null
+								: null,
+					  }))
+					: await permawebProvider.legacyApi.getGQLData(pageArgs);
+			const pageRows = [...(response?.data ?? [])];
 			const matchingRows = pageRows.filter((row: any) => {
 				if (excludeAoMessages && isAoMessageTransaction(row?.node?.tags)) return false;
 
@@ -1876,7 +1895,7 @@ export default function MessageList(props: {
 	]);
 
 	React.useEffect(() => {
-		if (hasSource) return;
+		if (hasSource || !FLAGS.ENABLE_MESSAGE_COUNTS) return;
 		let cancelled = false;
 
 		(async function () {
@@ -2215,7 +2234,7 @@ export default function MessageList(props: {
 	const scrollToTop = () => {
 		if (tableContainerRef.current) {
 			setTimeout(() => {
-				tableContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				tableContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			}, 10);
 		}
 	};
@@ -2644,7 +2663,9 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`${language.outgoing}${
-												outgoingCount ? ` (${formatCount(outgoingCount.toString())})` : ''
+												FLAGS.ENABLE_MESSAGE_COUNTS && outgoingCount
+													? ` (${formatCount(outgoingCount.toString())})`
+													: ''
 											}`}
 											onPress={() => handleFilterChange('outgoing')}
 											active={currentFilter === 'outgoing'}
@@ -2653,7 +2674,9 @@ export default function MessageList(props: {
 										<Button
 											type={'alt3'}
 											label={`${language.incoming}${
-												incomingCount ? ` (${formatCount(incomingCount.toString())})` : ''
+												FLAGS.ENABLE_MESSAGE_COUNTS && incomingCount
+													? ` (${formatCount(incomingCount.toString())})`
+													: ''
 											}`}
 											onPress={() => handleFilterChange('incoming')}
 											active={currentFilter === 'incoming'}

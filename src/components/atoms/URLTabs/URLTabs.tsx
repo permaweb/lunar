@@ -35,7 +35,7 @@ function Tab(props: ITProps) {
 				iconLeftAlign
 				height={30}
 			/>
-			{/* <S.ActiveIndicator $active={props.active} aria-hidden={'true'} /> */}
+			<S.ActiveIndicator $active={props.active} aria-hidden={'true'} />
 		</S.Tab>
 	);
 }
@@ -88,7 +88,7 @@ export default function URLTabs(props: IUProps) {
 	return (
 		<S.Wrapper>
 			{props.tabs?.length > 1 && (
-				<S.TabsHeader useFixed={props.useFixed ? props.useFixed : false} className={'scroll-wrapper'}>
+				<S.TabsHeader className={'scroll-wrapper'}>
 					<S.Tabs>
 						{props.tabs.map((elem, index) => {
 							const url = resolveTabUrl(elem, id);

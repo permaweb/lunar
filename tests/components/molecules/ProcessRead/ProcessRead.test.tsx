@@ -26,6 +26,13 @@ vi.mock('providers/LanguageProvider', () => ({
 		current: 'en',
 		object: {
 			en: {
+				read: 'Read',
+				readFrom: 'Read From',
+				readLog: 'Read Log',
+				error: 'Error',
+				errorLog: 'Error Log',
+				roundtripLogEntry: (index: number, time: string, startTime: string) =>
+					`(${index + 1}) Roundtrip Time (${time}), Started at ${startTime}`,
 				run: 'Run',
 				running: 'Running',
 				loadingLinkedState: 'Loading linked values…',
@@ -38,6 +45,7 @@ vi.mock('providers/LanguageProvider', () => ({
 	}),
 }));
 vi.mock('components/atoms/Loader', () => ({ Loader: () => null }));
+vi.mock('components/atoms/Icon', () => ({ Icon: () => null }));
 vi.mock('components/molecules/JSONReader', () => ({
 	JSONReader: (props) => (
 		<>
@@ -227,6 +235,37 @@ it('ignores progress and completion from a previous process after navigation', a
 
 const loadMoreButton = () =>
 	Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Load more data');
+
+it('keeps read history collapsed and preserves an expanded log while rerunning from the status row', async () => {
+	await render(MessageVariantEnum.Mainnet);
+	const history = container.querySelector('details');
+	expect(history.open).toBe(false);
+	expect(history.querySelector('summary').textContent).toBe('Read Log');
+	expect(container.textContent).toMatch(/Read · \d+ms ·/);
+	await React.act(async () => history.querySelector('summary').click());
+	expect(history.open).toBe(true);
+	expect(history.textContent).toContain('(1) Roundtrip Time');
+
+	let finish: (value: unknown) => void;
+	mocks.readState.mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			})
+	);
+	const runButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Run');
+	await React.act(async () => runButton.click());
+	expect(mocks.readState).toHaveBeenCalledTimes(2);
+	expect(runButton.disabled).toBe(true);
+	expect(runButton.textContent).toBe('Running...');
+	expect(history.open).toBe(true);
+	await React.act(async () => finish({ data: { name: 'Updated state' }, provider: 'https://delta.example' }));
+	expect(runButton.disabled).toBe(false);
+	expect(runButton.textContent).toBe('Run');
+	expect(history.open).toBe(true);
+	expect(history.textContent).toContain('(2) Roundtrip Time');
+	expect(container.textContent).toContain('delta.example');
+});
 
 it('loads further state only on click, retaining the current data and disabling duplicate clicks', async () => {
 	let finish: (value: unknown) => void;

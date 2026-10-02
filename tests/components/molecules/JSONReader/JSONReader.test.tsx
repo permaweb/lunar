@@ -9,7 +9,12 @@ import { JSONReader } from '../../../../src/components/molecules/JSONReader';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 
 vi.mock('providers/LanguageProvider', () => ({
-	useLanguageProvider: () => ({ current: 'en', object: { en: { collapseExpandAll: 'Toggle all' } } }),
+	useLanguageProvider: () => ({
+		current: 'en',
+		object: {
+			en: { collapseExpandAll: 'Toggle all', enterFullScreen: 'Enter Full Screen', exitFullScreen: 'Exit Full Screen' },
+		},
+	}),
 }));
 vi.mock('components/atoms/Button', () => ({
 	Button: (props) => (
@@ -33,17 +38,71 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-async function render(data: unknown, preserveViewState = true, footer?: React.ReactNode) {
+async function render(
+	data: unknown,
+	preserveViewState = true,
+	footer?: React.ReactNode,
+	options?: { hideHeader?: boolean; noFullScreen?: boolean; noWrapper?: boolean }
+) {
 	await React.act(async () =>
 		root.render(
 			<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
 				<ThemeProvider theme={theme(darkTheme)}>
-					<JSONReader data={data} preserveViewState={preserveViewState} footer={footer} />
+					<JSONReader {...options} data={data} preserveViewState={preserveViewState} footer={footer} />
 				</ThemeProvider>
 			</MemoryRouter>
 		)
 	);
 }
+
+it('can enter and exit fullscreen without showing a separate reader header', async () => {
+	await render({ note: 'Message input' }, true, undefined, { hideHeader: true, noWrapper: true });
+	const reader = container.firstElementChild as HTMLDivElement;
+	const button = reader.querySelector('button')!;
+	const fullscreenDescriptor = Object.getOwnPropertyDescriptor(document, 'fullscreenElement');
+	const exitDescriptor = Object.getOwnPropertyDescriptor(document, 'exitFullscreen');
+	let fullscreenElement: Element | null = null;
+	Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => fullscreenElement });
+	reader.requestFullscreen = vi.fn(async () => {
+		fullscreenElement = reader;
+		document.dispatchEvent(new Event('fullscreenchange'));
+	});
+	const exitFullscreen = vi.fn(async () => {
+		fullscreenElement = null;
+		document.dispatchEvent(new Event('fullscreenchange'));
+	});
+	Object.defineProperty(document, 'exitFullscreen', { configurable: true, value: exitFullscreen });
+
+	try {
+		expect(reader.querySelectorAll('button')).toHaveLength(1);
+		expect(button.textContent).toBe('Enter Full Screen');
+		expect(reader.classList.contains('border-wrapper-alt3')).toBe(false);
+		await React.act(async () => button.click());
+		expect(reader.requestFullscreen).toHaveBeenCalledTimes(1);
+		expect(document.fullscreenElement).toBe(reader);
+		expect(button.textContent).toBe('Exit Full Screen');
+		expect(reader.textContent).toContain('Message input');
+		await React.act(async () => button.click());
+		expect(exitFullscreen).toHaveBeenCalledTimes(1);
+		expect(document.fullscreenElement).toBeNull();
+		expect(button.textContent).toBe('Enter Full Screen');
+		await React.act(async () => button.click());
+		await React.act(async () => exitFullscreen());
+		expect(button.textContent).toBe('Enter Full Screen');
+		expect(reader.classList.contains('border-wrapper-alt3')).toBe(false);
+	} finally {
+		if (fullscreenDescriptor) Object.defineProperty(document, 'fullscreenElement', fullscreenDescriptor);
+		else Reflect.deleteProperty(document, 'fullscreenElement');
+		if (exitDescriptor) Object.defineProperty(document, 'exitFullscreen', exitDescriptor);
+		else Reflect.deleteProperty(document, 'exitFullscreen');
+	}
+});
+
+it('keeps headerless readers without controls when fullscreen is disabled', async () => {
+	await render({ note: 'Drawer input' }, true, undefined, { hideHeader: true, noFullScreen: true });
+	expect(container.querySelector('button')).toBeNull();
+	expect(container.textContent).toContain('Drawer input');
+});
 
 it('preserves loaded rows, collapsed sections, and the scroll container during progressive updates', async () => {
 	const data = {

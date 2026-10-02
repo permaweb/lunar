@@ -1,128 +1,83 @@
 import React from 'react';
-import { ReactSVG } from 'react-svg';
-import PropTypes from 'prop-types';
-
-import { Button } from 'components/atoms/Button';
-import { TabType } from 'helpers/types';
 
 import * as S from './styles';
 
-class Tab extends React.Component<any, any> {
-	static propTypes = {
-		activeTab: PropTypes.string.isRequired,
-		label: PropTypes.string.isRequired,
-		onClick: PropTypes.func.isRequired,
-		type: PropTypes.string.isRequired,
-	};
+export default function Tabs(props: {
+	label: string;
+	tabs: { id: string; label: string; content: React.ReactNode; disabled?: boolean }[];
+}) {
+	const id = React.useId();
+	const tabRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
+	const [selectedId, setSelectedId] = React.useState(() => props.tabs.find((tab) => !tab.disabled)?.id);
+	const enabledTabs = props.tabs.filter((tab) => !tab.disabled);
+	const activeId = enabledTabs.some((tab) => tab.id === selectedId) ? selectedId : enabledTabs[0]?.id;
 
-	onPress = () => {
-		const { label, onClick } = this.props as any;
-		onClick(label);
-	};
+	function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, tabId: string) {
+		const index = enabledTabs.findIndex((tab) => tab.id === tabId);
+		let nextIndex: number;
 
-	render() {
-		const {
-			onPress,
-			props: { activeTab, label, icon, type },
-		} = this;
-
-		function getTab() {
-			switch (type) {
-				case 'primary':
-					return (
-						<S.Tab tabIndex={-1}>
-							<Button
-								type={'primary'}
-								label={label}
-								active={activeTab === label}
-								onPress={onPress}
-								icon={icon}
-								iconLeftAlign
-								noFocus
-							/>
-						</S.Tab>
-					);
-				case 'alt1':
-					return (
-						<S.AltTab>
-							<S.AltTabAction active={activeTab === label} onClick={onPress} icon={icon !== null} tabIndex={-1}>
-								{icon && (
-									<S.Icon active={activeTab === label}>
-										<ReactSVG src={icon} />
-									</S.Icon>
-								)}
-								{label}
-							</S.AltTabAction>
-						</S.AltTab>
-					);
-			}
+		switch (event.key) {
+			case 'ArrowRight':
+				nextIndex = (index + 1) % enabledTabs.length;
+				break;
+			case 'ArrowLeft':
+				nextIndex = (index - 1 + enabledTabs.length) % enabledTabs.length;
+				break;
+			case 'Home':
+				nextIndex = 0;
+				break;
+			case 'End':
+				nextIndex = enabledTabs.length - 1;
+				break;
+			default:
+				return;
 		}
 
-		return getTab();
-	}
-}
-
-export default class Tabs extends React.Component<{ children: any; onTabPropClick: any; type: TabType }, any> {
-	constructor(props: any) {
-		super(props);
-		this.state = {
-			activeTab: Array.isArray(this.props.children)
-				? this.props.children[0].props.label
-				: this.props.children!.props.label,
-		};
+		event.preventDefault();
+		const nextTab = enabledTabs[nextIndex];
+		if (!nextTab) return;
+		setSelectedId(nextTab.id);
+		tabRefs.current.get(nextTab.id)?.focus();
 	}
 
-	onClickTabItem = (tab: any) => {
-		this.setState({ activeTab: tab });
-		this.props.onTabPropClick(tab);
-	};
-
-	render() {
-		const singleChild = !Array.isArray(this.props.children);
-
-		const {
-			onClickTabItem,
-			props: { children },
-			state: { activeTab },
-		} = this;
-
-		return singleChild ? (
-			<S.Container>
-				<S.List>
-					<Tab
-						activeTab={activeTab}
-						key={this.props.children!.props.label}
-						label={this.props.children!.props.label}
-						onClick={onClickTabItem}
-						type={this.props.type}
-					/>
-				</S.List>
-				<S.Content>{this.props.children!.props.children}</S.Content>
-			</S.Container>
-		) : (
-			<S.Container>
-				<S.List>
-					{children!.map((child: any) => {
-						const { label, icon } = child.props;
-						return (
-							<Tab
-								activeTab={activeTab}
-								key={label}
-								icon={icon}
-								label={label}
-								onClick={onClickTabItem}
-								type={this.props.type}
-							/>
-						);
-					})}
-				</S.List>
-				<S.Content>
-					{children!.map((child: any) => {
-						if (child.props.label !== activeTab) return undefined;
-						return child.props.children;
-					})}
-				</S.Content>
-			</S.Container>
-		);
-	}
+	return (
+		<S.Wrapper>
+			<S.List role="tablist" aria-label={props.label}>
+				{props.tabs.map((tab) => (
+					<S.Tab
+						key={tab.id}
+						ref={(element) => {
+							if (element) tabRefs.current.set(tab.id, element);
+							else tabRefs.current.delete(tab.id);
+						}}
+						id={`${id}-tab-${tab.id}`}
+						type="button"
+						role="tab"
+						aria-selected={tab.id === activeId}
+						aria-controls={`${id}-panel-${tab.id}`}
+						tabIndex={tab.id === activeId ? 0 : -1}
+						disabled={tab.disabled}
+						onClick={() => setSelectedId(tab.id)}
+						onKeyDown={(event) => handleKeyDown(event, tab.id)}
+					>
+						{tab.label}
+					</S.Tab>
+				))}
+			</S.List>
+			<S.Content className="scroll-wrapper">
+				{props.tabs.map((tab) => (
+					<S.Panel
+						key={tab.id}
+						id={`${id}-panel-${tab.id}`}
+						role="tabpanel"
+						aria-labelledby={`${id}-tab-${tab.id}`}
+						hidden={tab.id !== activeId}
+						tabIndex={0}
+					>
+						{tab.content}
+					</S.Panel>
+				))}
+			</S.Content>
+		</S.Wrapper>
+	);
 }

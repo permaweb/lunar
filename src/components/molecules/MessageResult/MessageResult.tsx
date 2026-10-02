@@ -5,6 +5,7 @@ import { requestRemote } from 'api/http';
 
 import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { MessageInput } from 'components/molecules/MessageInput';
 import { getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TagType } from 'helpers/types';
 import { checkValidAddress, getTagValue, removeCommitments, resolveMessageId, resolvePermawebApi } from 'helpers/utils';
@@ -14,8 +15,6 @@ import { usePermawebProvider } from 'providers/PermawebProvider';
 import { Editor } from '../Editor';
 
 import * as S from './styles';
-
-const WRAPPER_HEIGHT = 600;
 
 export default function MessageResult(props: {
 	processId: string;
@@ -182,47 +181,30 @@ export default function MessageResult(props: {
 	function getTags() {
 		if (!props.tags || props.tags?.length <= 0) return null;
 
-		return (
-			<S.TagsBody>
-				{props.tags.map((tag: { name: string; value: string }, index: number) => (
-					<TagLine key={index} label={tag.name} value={tag.value} />
-				))}
-			</S.TagsBody>
-		);
+		return props.tags.map((tag: { name: string; value: string }, index: number) => (
+			<TagLine key={index} label={tag.name} value={tag.value} />
+		));
 	}
 
 	function getData() {
 		if (!data) {
 			return (
-				<S.Editor>
-					<Editor
-						initialData={language.noDataToDisplay}
-						header={'Data'}
-						language={'lua'}
-						readOnly
-						loading={false}
-						fixedHeight={WRAPPER_HEIGHT / 2}
-					/>
-				</S.Editor>
+				<Editor
+					initialData={language.noDataToDisplay}
+					language={'lua'}
+					readOnly
+					loading={false}
+					useFixedHeight
+					noWrapper
+				/>
 			);
 		}
 
 		if (typeof data === 'object') {
-			return <JSONReader data={data} header={null} maxHeight={WRAPPER_HEIGHT / 2} filename={props.messageId} />;
+			return <JSONReader data={data} noWrapper hideHeader filename={props.messageId} />;
 		}
 
-		return (
-			<S.Editor>
-				<Editor
-					initialData={data}
-					header={'Data'}
-					language={'lua'}
-					readOnly
-					loading={false}
-					fixedHeight={WRAPPER_HEIGHT / 2}
-				/>
-			</S.Editor>
-		);
+		return <Editor initialData={String(data)} language={'lua'} readOnly loading={false} useFixedHeight noWrapper />;
 	}
 
 	const displayResult = React.useMemo(() => removeCommitments(result), [result]);
@@ -233,7 +215,7 @@ export default function MessageResult(props: {
 				data={displayResult}
 				placeholder={'Loading Result…'}
 				header={language.result}
-				fixedHeight={WRAPPER_HEIGHT}
+				maxHeight={500}
 				filename={`${props.messageId}-result`}
 			/>
 		);
@@ -241,16 +223,7 @@ export default function MessageResult(props: {
 
 	return (
 		<S.Wrapper>
-			<S.InputWrapper>
-				<S.TagsWrapper className={'border-wrapper-alt3'}>
-					<S.TagsHeader>
-						<p>{language.input}</p>
-						<span>(Tags)</span>
-					</S.TagsHeader>
-					{getTags()}
-				</S.TagsWrapper>
-				<S.DataWrapper>{getData()}</S.DataWrapper>
-			</S.InputWrapper>
+			<MessageInput className={'border-wrapper-alt3'} headerVariant="section" tags={getTags()} data={getData()} />
 			<S.ResultWrapper>{getResult()}</S.ResultWrapper>
 		</S.Wrapper>
 	);

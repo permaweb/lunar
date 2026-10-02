@@ -456,7 +456,7 @@ export const View = styled.main<{ navigationOpen: boolean }>`
 	min-height: calc(100vh - ${STYLING.dimensions.nav.height});
 	width: 100%;
 	position: relative;
-	padding: 0 0 20px 0;
+	padding: 0;
 	margin: 0 auto;
 	display: flex;
 	flex-direction: column;

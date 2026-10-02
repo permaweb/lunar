@@ -183,14 +183,14 @@ it('presents a hero with search and network summaries, then activity and detaile
 	expect(getMetricsSnapshot).toHaveBeenCalledOnce();
 	expect(container.querySelectorAll('#network-activity .transaction-list-element')).toHaveLength(4);
 });
-it('restores 10 recent transactions and blocks below Arweave metrics and 20 messages below AO metrics', () => {
+it('shows 12 recent transactions and blocks, 20 recent messages, and up to 20 latest activity results', async () => {
 	const arweave = container.querySelector('[aria-labelledby="arweave-statistics-title"]');
 	const ao = container.querySelector('[aria-labelledby="ao-statistics-title"]');
-	expect(arweave.querySelectorAll('.transaction-list-element')).toHaveLength(10);
-	expect(arweave.querySelectorAll('.block-list-element')).toHaveLength(10);
+	expect(arweave.querySelectorAll('.transaction-list-element')).toHaveLength(12);
+	expect(arweave.querySelectorAll('.block-list-element')).toHaveLength(12);
 	expect(ao.querySelectorAll('.message-list-element')).toHaveLength(20);
-	expect(mocks.transactions).toHaveBeenCalledWith(expect.objectContaining({ first: 10, after: null }));
-	expect(mocks.blocks).toHaveBeenCalledWith(expect.objectContaining({ first: 10, after: null }));
+	expect(mocks.transactions).toHaveBeenCalledWith(expect.objectContaining({ first: 12, after: null }));
+	expect(mocks.blocks).toHaveBeenCalledWith(expect.objectContaining({ first: 12, after: null }));
 	expect(mocks.messages).toHaveBeenCalledWith(expect.objectContaining({ paginator: 20, sort: 'descending' }));
 	expect(mocks.messages.mock.calls[0][0]).not.toHaveProperty('recipients');
 	expect(mocks.messages.mock.calls[0][0].tags).not.toContainEqual({ name: 'Action', values: ['Eval'] });
@@ -202,6 +202,11 @@ it('restores 10 recent transactions and blocks below Arweave metrics and 20 mess
 		expect(section.textContent).not.toContain('Page 1');
 	}
 	expect(ao.querySelector('.message-list-element').textContent).toContain('Message');
+	vi.mocked(getNetworkActivity).mockResolvedValueOnce(
+		Array.from({ length: 25 }, (_, index) => ({ ...HOME_ACTIVITY[1], id: String(index).padStart(43, 't') }))
+	);
+	await click(button('Refresh'));
+	expect(container.querySelectorAll('#network-activity .transaction-list-element')).toHaveLength(20);
 });
 
 it('includes Size beside Network in Latest Activity without changing the recent transaction columns', () => {

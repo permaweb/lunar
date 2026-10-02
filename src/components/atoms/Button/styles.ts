@@ -568,6 +568,7 @@ export const Alt2 = styled(Alt1)`
 export const IconAlt2 = styled(IconAlt1)`
 	svg {
 		margin: ${(props) => (props.noLabel ? '0' : props.leftAlign ? `3.5px 3.5px 0 0` : `3.5px 0 0 3.5px`)};
+		fill: currentColor;
 		color: ${(props) =>
 			props.disabled
 				? props.theme.colors.button.alt2.disabled.color
@@ -758,7 +759,7 @@ export const IconAlt4 = styled(IconPrimary)`
 		margin: ${(props) => (props.noLabel ? '0' : props.leftAlign ? `2.5px 6.5px 0 0` : `2.5px 0 0 6.5px`)};
 		color: ${(props) =>
 			props.disabled
-				? props.theme.colors.button.alt2.disabled.color
+				? props.theme.colors.button.primary.disabled.color
 				: props.warning
 				? props.theme.colors.font.light1
 				: props.active
@@ -766,7 +767,7 @@ export const IconAlt4 = styled(IconPrimary)`
 				: props.theme.colors.button.primary.color};
 		fill: ${(props) =>
 			props.disabled
-				? props.theme.colors.button.alt2.disabled.color
+				? props.theme.colors.button.primary.disabled.color
 				: props.warning
 				? props.theme.colors.font.light1
 				: props.active

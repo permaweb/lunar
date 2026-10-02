@@ -212,6 +212,8 @@ export const NODE_INFO_CONCURRENCY = 8;
 
 export const FLAGS = {
 	ENABLE_AO_CORE: false,
+	// Re-enable incoming/outgoing message count queries and their button labels together.
+	ENABLE_MESSAGE_COUNTS: false,
 	CLIENT_SIDE_PAGINATION: false,
 	CONTROL_PAGINATION: false,
 	// Enable when the GraphQL gateway supports both the bundledIn field and filter again.

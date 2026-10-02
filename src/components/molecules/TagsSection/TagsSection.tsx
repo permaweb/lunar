@@ -13,6 +13,7 @@ export default function TagsSection(props: {
 	fixedHeight?: number;
 	showCount?: boolean;
 	compact?: boolean;
+	embedded?: boolean;
 }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -31,8 +32,9 @@ export default function TagsSection(props: {
 	React.useEffect(() => {
 		const element = listRef.current;
 		if (!element) return;
+		const scrollElement = element.closest<HTMLElement>('.scroll-wrapper') ?? element;
 		function updateOverflowState() {
-			setHasOverflow(element.scrollHeight > element.clientHeight);
+			setHasOverflow(scrollElement.scrollHeight > scrollElement.clientHeight);
 		}
 		updateOverflowState();
 		if (typeof ResizeObserver === 'undefined') {
@@ -41,20 +43,31 @@ export default function TagsSection(props: {
 		}
 		const observer = new ResizeObserver(updateOverflowState);
 		observer.observe(element);
+		if (scrollElement !== element) observer.observe(scrollElement);
 		return () => observer.disconnect();
-	}, [props.fixedHeight, tags]);
+	}, [props.fixedHeight, props.embedded, tags]);
 
 	return (
 		<S.Wrapper
-			className="border-wrapper-alt3"
+			className={props.embedded ? undefined : 'border-wrapper-alt3'}
 			$fixedHeight={props.fixedHeight}
+			$embedded={props.embedded}
 			aria-label={props.title ?? language.tags}
 		>
-			<S.Header $compact={props.compact}>
-				<h3>{props.title ?? language.tags}</h3>
-				{props.showCount !== false && <span>({props.tags ? tags.length : '-'})</span>}
-			</S.Header>
-			<S.List ref={listRef} $fixedHeight={props.fixedHeight} $hasOverflow={hasOverflow} className="scroll-wrapper">
+			{!props.embedded && (
+				<S.Header $compact={props.compact}>
+					<h3>{props.title ?? language.tags}</h3>
+					{props.showCount !== false && <span>({props.tags ? tags.length : '-'})</span>}
+				</S.Header>
+			)}
+			<S.List
+				ref={listRef}
+				$fixedHeight={props.fixedHeight}
+				$hasOverflow={hasOverflow}
+				$hasDividers={!props.embedded}
+				$embedded={props.embedded}
+				className={props.embedded ? undefined : 'scroll-wrapper'}
+			>
 				{props.tags ? (
 					tags.length ? (
 						tags.map((tag, index) => (

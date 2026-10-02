@@ -5,8 +5,10 @@ import { AoReadError } from 'api/aoNetwork';
 import type { ProcessStateLoadOptions, ProcessStateResult } from 'api/permaweb';
 
 import { Button } from 'components/atoms/Button';
-import { Loader } from 'components/atoms/Loader';
+import { Disclosure } from 'components/atoms/Disclosure';
+import { Icon } from 'components/atoms/Icon';
 import { JSONReader } from 'components/molecules/JSONReader';
+import { ASSETS } from 'helpers/config';
 import { legacyCuEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatMs, removeCommitments, stripUrlProtocol } from 'helpers/utils';
@@ -34,9 +36,9 @@ export default function ProcessRead(props: {
 	const languageProvider = useLanguageProvider();
 	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
 
-	const [cuLocation, setCuLocation] = React.useState(null);
-	const [startTime, setStartTime] = React.useState(null);
-	const [roundtripTime, setRoundtripTime] = React.useState(null);
+	const [cuLocation, setCuLocation] = React.useState<string | null>(null);
+	const [startTime, setStartTime] = React.useState<number | null>(null);
+	const [roundtripTime, setRoundtripTime] = React.useState<number | null>(null);
 	const [elapsed, setElapsed] = React.useState(0);
 	const [readState, setReadState] = React.useState<
 		| { status: 'idle' }
@@ -47,8 +49,16 @@ export default function ProcessRead(props: {
 	const isFetching = readState.status === 'loading';
 	const currentOutput = 'data' in readState ? readState.data : null;
 	const [toggleRead, setToggleRead] = React.useState(false);
-	const [readLog, setReadLog] = React.useState([]);
-	const [errorLog, setErrorLog] = React.useState([]);
+	const [readLog, setReadLog] = React.useState<{ startTime: number; roundtripTime: number; node: string }[]>([]);
+	const [errorLog, setErrorLog] = React.useState<{ time: number; message: string }[]>([]);
+	const duration = isFetching || readState.status === 'error' ? elapsed : roundtripTime;
+	const runSummary = [
+		isFetching ? language.running : readState.status === 'error' ? language.error : language.read,
+		readState.status !== 'idle' && duration !== null ? formatMs(duration) : null,
+		readState.status !== 'idle' && startTime !== null ? new Date(startTime).toLocaleTimeString() : null,
+	]
+		.filter(Boolean)
+		.join(' · ');
 
 	const safelyParseNestedJSON = (input) => {
 		if (typeof input === 'string') {
@@ -185,6 +195,11 @@ export default function ProcessRead(props: {
 		if (readState.status !== 'idle' && !isFetching) readState.loadMore?.();
 	}
 
+	function handleRun() {
+		setHasRun(true);
+		setToggleRead((previous) => !previous);
+	}
+
 	return (
 		<S.Wrapper>
 			{!props.hideOutput && (
@@ -208,104 +223,69 @@ export default function ProcessRead(props: {
 					/>
 				</S.OutputWrapper>
 			)}
-			<S.SectionWrapper className={'border-wrapper-alt3'}>
-				<S.Header>
-					<S.HeaderMain>
-						<p>{`${language.readFrom}: ${cuLocation ?? '-'}`}</p>
-					</S.HeaderMain>
-					<Button
-						type={'alt3'}
-						label={isFetching ? `${language.running}...` : language.run}
-						disabled={isFetching || !readApi}
-						onPress={() => {
-							setHasRun(true);
-							setToggleRead((prev) => !prev);
-						}}
-					/>
-				</S.Header>
-				<S.Body>
-					<S.Section>
-						<S.SectionHeader>
-							<p>{language.currentRun}</p>
-						</S.SectionHeader>
-						<S.SectionBody>
-							<S.Line>
-								<span>
-									{startTime
-										? `${language.startTime}: ${new Date(startTime).toLocaleTimeString()}`
-										: `${language.starting}...`}
-								</span>
-							</S.Line>
-							<S.Line>
-								<span>
-									{isFetching
-										? `${language.elapsed}: ${formatMs(elapsed)}`
-										: `${language.roundtripTime}: ${roundtripTime ? formatMs(roundtripTime) : '-'}`}
-								</span>
-							</S.Line>
-							{readState.status === 'loading' && readState.progress && (
-								<S.Line role="status">
-									<span>{`${language.loadingLinkedState} (${readState.progress.completed}/${readState.progress.total})`}</span>
-								</S.Line>
-							)}
-							{readState.status === 'error' && readState.partial && (
-								<S.Error role="status">
-									<span>{language.aoReadPartial}</span>
-								</S.Error>
-							)}
-						</S.SectionBody>
-					</S.Section>
-					{readLog.length > 0 && (
-						<S.Section>
-							<S.SectionHeader>
-								<p>{language.readLog}</p>
-							</S.SectionHeader>
-							<S.SectionBody>
-								{readLog.length === 0 ? (
-									<S.Line>
-										<span>{language.noReadsYet}</span>
-									</S.Line>
-								) : (
-									readLog.map((log, index) => (
-										<S.Line key={index}>
-											<span>
-												{`(${index + 1}) Roundtrip Time (${formatMs(log.roundtripTime)}), Started at ${new Date(
-													log.startTime
-												).toLocaleTimeString()} · ${log.node}`}
-											</span>
-										</S.Line>
-									))
-								)}
-							</S.SectionBody>
-						</S.Section>
-					)}
-					{errorLog.length > 0 && (
-						<S.Section>
-							<S.SectionHeader>
-								<p>{language.errorLog}</p>
-							</S.SectionHeader>
-							<S.SectionBody>
-								{errorLog.length === 0 ? (
-									<S.Line>
-										<span>{language.noErrors}</span>
-									</S.Line>
-								) : (
-									errorLog.map((err, index) => (
-										<S.Error key={index}>
-											<span>{`Error ${index + 1} at ${new Date(err.time).toLocaleTimeString()}: ${err.message}`}</span>
-										</S.Error>
-									))
-								)}
-							</S.SectionBody>
-						</S.Section>
-					)}
-				</S.Body>
-				{isFetching && (
-					<S.LoadingWrapper>
-						<Loader xSm relative />
-					</S.LoadingWrapper>
+			<S.ReadDetails>
+				<S.RunRow>
+					<S.RunStatus $status={readState.status}>
+						{isFetching ? null : (
+							<Icon
+								src={
+									readState.status === 'success'
+										? ASSETS.checkmark
+										: readState.status === 'error'
+										? ASSETS.warning
+										: ASSETS.read
+								}
+							/>
+						)}
+						<span>{runSummary}</span>
+					</S.RunStatus>
+					<S.Actions>
+						<S.Provider title={`${language.readFrom}: ${cuLocation ?? '-'}`}>
+							{cuLocation ? stripUrlProtocol(cuLocation) : `${language.checkingNode}...`}
+						</S.Provider>
+						<S.Divider>·</S.Divider>
+						<Button type={'alt2'} label={language.run} disabled={isFetching || !readApi} onPress={handleRun} />
+					</S.Actions>
+				</S.RunRow>
+				{readState.status === 'loading' && readState.progress && (
+					<S.Line role="status">
+						<span>{`${language.loadingLinkedState} (${readState.progress.completed}/${readState.progress.total})`}</span>
+					</S.Line>
 				)}
-			</S.SectionWrapper>
+				{readState.status === 'error' && readState.partial && (
+					<S.Error role="status">
+						<span>{language.aoReadPartial}</span>
+					</S.Error>
+				)}
+				{readLog.length > 0 && (
+					<Disclosure label={language.readLog}>
+						<S.LogEntries>
+							{readLog.map((log, index) => (
+								<S.Line key={index}>
+									<span>
+										{`${language.roundtripLogEntry(
+											index,
+											formatMs(log.roundtripTime),
+											new Date(log.startTime).toLocaleTimeString()
+										)} · ${log.node}`}
+									</span>
+								</S.Line>
+							))}
+						</S.LogEntries>
+					</Disclosure>
+				)}
+				{errorLog.length > 0 && (
+					<S.LogEntries aria-label={language.errorLog}>
+						{errorLog.map((err, index) => (
+							<S.Error key={index}>
+								<span>{`${language.error} ${index + 1} · ${new Date(err.time).toLocaleTimeString()}: ${
+									err.message
+								}`}</span>
+							</S.Error>
+						))}
+					</S.LogEntries>
+				)}
+			</S.ReadDetails>
 		</S.Wrapper>
 	);
 }

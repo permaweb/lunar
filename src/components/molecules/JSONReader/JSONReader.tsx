@@ -82,7 +82,7 @@ export default function _JSONTree(props: {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
-	const readerRef = React.useRef(null);
+	const readerRef = React.useRef<HTMLDivElement>(null);
 
 	const [data, setData] = React.useState<object | null>(null);
 	const [copied, setCopied] = React.useState<boolean>(false);
@@ -90,7 +90,8 @@ export default function _JSONTree(props: {
 	const parsedDataRef = React.useRef<{ input: any; output: any }>({ input: null, output: null });
 
 	const toggleFullscreen = React.useCallback(async () => {
-		const el = readerRef.current!;
+		const el = readerRef.current;
+		if (!el) return;
 		if (document.fullscreenElement !== el) {
 			// Exit current fullscreen first if needed, then enter fullscreen for this element
 			if (document.fullscreenElement) {
@@ -201,9 +202,31 @@ export default function _JSONTree(props: {
 		}
 	}, []);
 
+	function getFullscreenButton() {
+		if (props.noFullScreen) return null;
+
+		return (
+			<Button
+				type={'primary'}
+				icon={ASSETS.fullscreen}
+				onPress={toggleFullscreen}
+				height={25}
+				width={25}
+				noMinWidth
+				iconSize={11}
+				padding={'3px 0 0 0'}
+				tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
+				tooltipPosition={props.hideHeader ? 'top-right' : 'bottom-right'}
+				stopPropagation
+				preventDefault
+			/>
+		);
+	}
+
 	return (
 		<S.Wrapper
 			$textStyle={props.textStyle}
+			$hasStandaloneFullscreen={props.hideHeader && !props.noFullScreen}
 			className={`${props.noWrapper && !fullScreenMode ? '' : 'border-wrapper-alt3 '}`}
 			noWrapper={props.noWrapper && !fullScreenMode}
 			fixedHeight={!fullScreenMode ? props.fixedHeight : undefined}
@@ -230,22 +253,7 @@ export default function _JSONTree(props: {
 							stopPropagation
 							preventDefault
 						/>
-						{!props.noFullScreen && (
-							<Button
-								type={'primary'}
-								icon={ASSETS.fullscreen}
-								onPress={toggleFullscreen}
-								height={25}
-								width={25}
-								noMinWidth
-								iconSize={11}
-								padding={`3px 0 0 0`}
-								tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
-								tooltipPosition={'bottom-right'}
-								stopPropagation
-								preventDefault
-							/>
-						)}
+						{getFullscreenButton()}
 						<Button
 							type={'primary'}
 							icon={ASSETS.save}
@@ -295,6 +303,7 @@ export default function _JSONTree(props: {
 					<p>{props.placeholder ?? language.noDataToDisplay}</p>
 				</S.Placeholder>
 			)}
+			{props.hideHeader && !props.noFullScreen && <S.FullscreenActions>{getFullscreenButton()}</S.FullscreenActions>}
 			{props.footer}
 		</S.Wrapper>
 	);

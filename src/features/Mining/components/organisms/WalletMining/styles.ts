@@ -3,8 +3,7 @@ import styled from 'styled-components';
 export const Section = styled.section`
 	display: flex;
 	flex-direction: column;
-	gap: 15px;
-	margin-bottom: 20px;
+	gap: 25px;
 `;
 export const Source = styled.div`
 	display: flex;

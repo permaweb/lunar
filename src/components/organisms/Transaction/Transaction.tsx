@@ -19,6 +19,7 @@ import { readTransactionData, type TransactionData } from 'api/transactions';
 
 import { Button } from 'components/atoms/Button';
 import { StatusIndicator } from 'components/atoms/StatusIndicator';
+import { Tabs } from 'components/atoms/Tabs';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { CSVViewer } from 'components/molecules/CSVViewer';
@@ -36,7 +37,7 @@ import { TransactionList } from 'components/molecules/TransactionList';
 import { useWalletMining, WalletMiningInfo, WalletMiningTabs } from 'features/Mining';
 import { checkValidAoAccount, getAoSender } from 'helpers/aoAccounts';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
-import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
+import { ASSETS, PROCESSES, STYLING, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
 import type { PinTarget } from 'helpers/pinnedTabs';
 import { getAoProcessSummary } from 'helpers/processes';
@@ -77,6 +78,7 @@ import { TokenTransfer, TokenTransferStatus } from '../TokenTransfer';
 
 import * as S from './styles';
 import type { ProcessMessagesViewProps } from './types';
+import useDetailsPanelHeight from './useDetailsPanelHeight';
 
 const TX_FINALITY_CONFIRMATIONS = 15;
 const ARWEAVE_BLOCK_TIME_SECONDS = 120;
@@ -329,7 +331,7 @@ function Transaction(props: {
 }) {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
-	const { openExplorer } = useExplorerNavigation();
+	const { openExplorer, isInAppTabsEnabled } = useExplorerNavigation();
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
@@ -348,6 +350,8 @@ function Transaction(props: {
 		}
 	}, [loadingTx, props.onLoadingChange]);
 	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
+	const stickyTop = isFullscreen || isInAppTabsEnabled ? 0 : parseFloat(STYLING.dimensions.nav.height);
+	const detailsPanelRef = useDetailsPanelHeight(props.active, stickyTop);
 
 	// Memoize owner address to prevent unnecessary TABS recreation
 	const ownerAddress = React.useMemo(() => txResponse?.node?.owner?.address, [txResponse?.node?.owner?.address]);
@@ -827,29 +831,25 @@ function Transaction(props: {
 		}
 	);
 
-	const TxOverviewValue = ({
-		primary,
-		secondary,
-		indicator,
-	}: {
+	const TxOverviewValue = (props: {
 		primary: React.ReactNode;
 		secondary?: React.ReactNode;
 		indicator?: React.ReactNode;
 	}) => {
 		return (
 			<O.TxOverviewValue>
-				<p>{primary}</p>
-				{indicator}
-				{secondary && <small>({secondary})</small>}
+				<p>{props.primary}</p>
+				{props.indicator}
+				{props.secondary && <small>({props.secondary})</small>}
 			</O.TxOverviewValue>
 		);
 	};
 
-	const TxOverviewLine = ({ label, children }: { label: string; children: React.ReactNode }) => {
+	const TxOverviewLine = (props: { label: string; children: React.ReactNode }) => {
 		return (
 			<O.MessageInfoLine>
-				<span>{`${label}: `}</span>
-				{children}
+				<span>{`${props.label}: `}</span>
+				{props.children}
 			</O.MessageInfoLine>
 		);
 	};
@@ -881,7 +881,7 @@ function Transaction(props: {
 		);
 	};
 
-	const TransactionOverviewSection = () => {
+	const TransactionOverviewSection = (props: { compact?: boolean } = {}) => {
 		const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
 		const isBundle = resolvedType === 'bundle';
 
@@ -959,21 +959,28 @@ function Transaction(props: {
 			return <p>{address}</p>;
 		}
 
+		const statusValue = (
+			<TxOverviewValue
+				primary={props.compact ? statusLabel : `${language.status}: ${statusLabel}`}
+				secondary={statusEta}
+				indicator={statusLoading || notYetFound ? null : <StatusIndicator status={pending ? 'pending' : 'success'} />}
+			/>
+		);
+
 		return (
-			<O.MessageInfo className={'border-wrapper-primary'}>
-				<O.MessageInfoHeader>
-					<p>{isBundle ? language.bundleOverview : language.transactionOverview}</p>
-					<O.MessageInfoID>
-						<TxOverviewValue
-							primary={`Status: ${statusLabel}`}
-							secondary={statusEta}
-							indicator={
-								statusLoading || notYetFound ? null : <StatusIndicator status={pending ? 'pending' : 'success'} />
-							}
-						/>
-					</O.MessageInfoID>
-				</O.MessageInfoHeader>
-				<O.MessageInfoBody $desktopItemCount={9}>
+			<O.MessageInfo className={props.compact ? undefined : 'border-wrapper-primary'}>
+				{!props.compact && (
+					<O.MessageInfoHeader>
+						<p>{isBundle ? language.bundleOverview : language.transactionOverview}</p>
+						<O.MessageInfoID>{statusValue}</O.MessageInfoID>
+					</O.MessageInfoHeader>
+				)}
+				<O.MessageInfoBody
+					$desktopItemCount={props.compact ? 10 : 9}
+					$columns={props.compact ? 1 : undefined}
+					$compact={props.compact}
+				>
+					{props.compact && <TxOverviewLine label={language.status}>{statusValue}</TxOverviewLine>}
 					<TxOverviewLine label={language.value}>
 						<TxOverviewValue primary={formatArDisplay(quantity?.ar, quantity?.winston)} secondary={quantityUsd} />
 					</TxOverviewLine>
@@ -1239,7 +1246,7 @@ function Transaction(props: {
 		return <TagsSection tags={tags} showCount={false} />;
 	};
 
-	const TransactionTagsSection = (props: { fixedHeight?: number } = {}) => {
+	const TransactionTagsSection = (props: { fixedHeight?: number; embedded?: boolean } = {}) => {
 		const { txResponse } = React.useContext(TxResponseContext);
 		const tags = txResponse
 			? [
@@ -1249,7 +1256,9 @@ function Transaction(props: {
 					...(txResponse.node?.tags ?? []),
 			  ]
 			: null;
-		return <TagsSection tags={tags} fixedHeight={props.fixedHeight} />;
+		return (
+			<TagsSection tags={tags} fixedHeight={props.fixedHeight} embedded={props.embedded} compact={props.embedded} />
+		);
 	};
 
 	const DataSection = (props: { dataHeader?: string; fixedHeight?: number }) => {
@@ -1491,11 +1500,6 @@ function Transaction(props: {
 	const TABS = React.useMemo(() => {
 		if (!inputTxId) return null;
 
-		const showOverview = resolvedType === 'message';
-		const showMessages = resolvedType === 'message';
-		const showTags = resolvedType === 'process';
-		const showRead = resolvedType === 'process' || resolvedType === 'message';
-
 		const tabs: React.ComponentProps<typeof URLTabs>['tabs'] = [
 			{
 				label: language.overview,
@@ -1546,66 +1550,60 @@ function Transaction(props: {
 								</S.ColumnFlexWrapper>
 							);
 						case 'process':
+							return (
+								<S.DetailsLayout>
+									<S.DetailsMain>
+										<S.ColumnFlexWrapper>
+											{txResponse && <AoProcess process={getAoProcessSummary(txResponse.node)} />}
+											<ProcessRead key={refreshKey} processId={inputTxId} variant={variant} autoRun={true} />
+										</S.ColumnFlexWrapper>
+									</S.DetailsMain>
+									{getDetailsPanel()}
+								</S.DetailsLayout>
+							);
 						case 'message':
 							return (
 								<S.ColumnFlexWrapper>
-									{resolvedType === 'process' && txResponse && (
-										<AoProcess process={getAoProcessSummary(txResponse.node)} />
-									)}
-									{resolvedType === 'message' && <MessageTransferSection />}
-									<TransactionOverviewSection />
-									{showOverview && <MessageInfoSection />}
-									{showRead && (
-										<S.InfoWrapper>
-											{showTags && (
-												<S.TagsWrapper>
-													<TransactionTagsSection />
-												</S.TagsWrapper>
-											)}
-											<S.ReadWrapper fullWidth={!showTags}>
-												{resolvedType === 'process' && (
-													<>
-														<ProcessRead key={refreshKey} processId={inputTxId} variant={variant} autoRun={true} />
-													</>
-												)}
-												{resolvedType === 'message' && (
-													<MessageResult
-														key={refreshKey}
-														processId={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
-														messageId={inputTxId}
-														variant={variant}
-														tags={txResponse?.node?.tags ?? null}
-														result={messageResult}
-														skipResultFetch={true}
-														active={props.active}
-													/>
-												)}
-											</S.ReadWrapper>
-										</S.InfoWrapper>
-									)}
-									{showMessages && (
-										<S.MessageHeaderWrapper ref={messageListRef}>
-											{checkValidAddress(inputTxId) && (
-												<MessageList
+									<S.DetailsLayout>
+										<S.DetailsMain>
+											<S.ColumnFlexWrapper>
+												<MessageTransferSection />
+												<MessageInfoSection />
+												<MessageResult
 													key={refreshKey}
-													header={language.resultingMessages}
-													txId={inputTxId}
+													processId={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
+													messageId={inputTxId}
 													variant={variant}
-													type={resolvedType}
-													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
-													parentId={inputTxId}
-													authority={getTagValue(txResponse?.node?.tags, 'Authority')}
-													onMessageOpen={(id: string) => props.onMessageOpen(id)}
+													tags={txResponse?.node?.tags ?? null}
 													result={messageResult}
-													timestamp={txResponse?.node?.block?.timestamp}
 													skipResultFetch={true}
-													showFilteredMessages={true}
-													hydrateAoTransferNotices={hydrateAoTransferNotices}
-													showResultMessageLabel={true}
+													active={props.active}
 												/>
-											)}
-										</S.MessageHeaderWrapper>
-									)}
+											</S.ColumnFlexWrapper>
+										</S.DetailsMain>
+										{getDetailsPanel()}
+									</S.DetailsLayout>
+									<S.MessageHeaderWrapper ref={messageListRef}>
+										{checkValidAddress(inputTxId) && (
+											<MessageList
+												key={refreshKey}
+												header={language.resultingMessages}
+												txId={inputTxId}
+												variant={variant}
+												type={resolvedType}
+												recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
+												parentId={inputTxId}
+												authority={getTagValue(txResponse?.node?.tags, 'Authority')}
+												onMessageOpen={(id: string) => props.onMessageOpen(id)}
+												result={messageResult}
+												timestamp={txResponse?.node?.block?.timestamp}
+												skipResultFetch={true}
+												showFilteredMessages={true}
+												hydrateAoTransferNotices={hydrateAoTransferNotices}
+												showResultMessageLabel={true}
+											/>
+										)}
+									</S.MessageHeaderWrapper>
 								</S.ColumnFlexWrapper>
 							);
 						case 'wallet':
@@ -1808,6 +1806,27 @@ function Transaction(props: {
 		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
 		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy isParentActive={props.active} />;
 	})();
+
+	function getDetailsPanel() {
+		return (
+			<S.DetailsPanel ref={detailsPanelRef} $stickyTop={stickyTop} aria-label={language.transactionOverview}>
+				<Tabs
+					key={inputTxId}
+					label={language.transactionOverview}
+					tabs={[
+						...(resolvedType === 'process'
+							? [{ id: 'tags', label: language.tags, content: <TransactionTagsSection embedded /> }]
+							: []),
+						{
+							id: 'overview',
+							label: language.transactionOverview,
+							content: <TransactionOverviewSection compact />,
+						},
+					]}
+				/>
+			</S.DetailsPanel>
+		);
+	}
 
 	function getTransaction() {
 		const showPlaceholder = !inputTxId || (!txResponse && props.inspector?.id !== inputTxId);
