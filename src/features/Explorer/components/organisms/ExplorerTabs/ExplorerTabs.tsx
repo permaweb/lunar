@@ -13,6 +13,7 @@ import {
 	formatAddress,
 	formatBlockId,
 	getTagValue,
+	getTransactionIcon,
 	getTransactionTypeFromTags,
 } from 'helpers/utils';
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
@@ -38,6 +39,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	const { openExplorer } = useExplorerNavigation();
 	const isInAppTabsEnabled = settings.inAppTabs?.[props.type] ?? false;
 
+	const transactionIconsRef = React.useRef<Map<string, string>>(new Map());
 	const tabIndexMapRef = React.useRef<Map<string, number>>(new Map());
 	const callbacksRef = React.useRef<Map<string, (newTx: GQLNodeResponseType) => void>>(new Map());
 	const loadingCallbacksRef = React.useRef<Map<string, (loading: boolean) => void>>(new Map());
@@ -377,6 +379,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			const tabIndex = tabIndexMapRef.current.get(tabKey);
 			if (tabIndex === undefined) return;
 
+			transactionIconsRef.current.set(newTx.node.id, getTransactionIcon(newTx.node));
 			const name = getTagValue(newTx.node.tags, 'Name');
 			const type = getTransactionTypeFromTags(newTx.node.tags);
 
@@ -587,7 +590,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 	}, []);
 
 	const renderTabIcon = (tab: ExplorerTabType) => {
-		return ASSETS[tab.type] ?? ASSETS.transaction;
+		return transactionIconsRef.current.get(tab.id) ?? ASSETS[tab.type] ?? ASSETS.transaction;
 	};
 
 	const renderContent = (tab: ExplorerTabType, index: number, isActive: boolean) => {

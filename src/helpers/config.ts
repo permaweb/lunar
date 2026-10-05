@@ -157,6 +157,7 @@ export const ASSETS = {
 	time: getAssetEndpoint('time.svg'),
 	tools: getAssetEndpoint('tools.svg'),
 	transaction: getAssetEndpoint('transaction.svg'),
+	transfer: getAssetEndpoint('transfer.svg'),
 	upload: getAssetEndpoint('upload.svg'),
 	url: getAssetEndpoint('url.svg'),
 	user: getAssetEndpoint('user.svg'),
@@ -212,6 +213,10 @@ export const NODE_INFO_CONCURRENCY = 8;
 
 export const FLAGS = {
 	ENABLE_AO_CORE: false,
+	// Re-enable incoming/outgoing message count queries and their button labels together.
+	ENABLE_MESSAGE_COUNTS: false,
+	// Hide Result and Current State panels until their responses succeed.
+	HIDE_UNSUCCESSFUL_TX_OUTPUT: false,
 	CLIENT_SIDE_PAGINATION: false,
 	CONTROL_PAGINATION: false,
 	// Enable when the GraphQL gateway supports both the bundledIn field and filter again.

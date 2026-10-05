@@ -549,43 +549,6 @@ export const ExpandedContent = styled.div<{ $nestingLevel: number; $childList?: 
 			: 'none'};
 `;
 
-export const InlineInput = styled.section`
-	box-sizing: border-box;
-	height: 350px;
-	max-height: 350px;
-	display: grid;
-	grid-template-rows: auto minmax(0, 1fr);
-	gap: 15px;
-	padding: 10px 0 5px 0;
-	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-`;
-
-export const InputColumns = styled.div`
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-	min-height: 0;
-	margin: 0 15px;
-
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		grid-template-columns: minmax(0, 1fr);
-		grid-template-rows: repeat(2, minmax(0, 1fr));
-	}
-`;
-
-export const InputTags = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 7.5px;
-	min-width: 0;
-	min-height: 0;
-	padding-right: 15px;
-	overflow: auto;
-
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		padding: 0 0 15px;
-	}
-`;
-
 export const OverlayWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -601,21 +564,6 @@ export const OverlayTagsHeader = styled.div`
 		font-size: ${(props) => props.theme.typography.size.small};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
-	}
-`;
-
-export const InputHeader = styled(OverlayTagsHeader)`
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 15px;
-
-	span {
-		font-size: ${(props) => props.theme.typography.size.xxSmall};
-		font-family: ${(props) => props.theme.typography.family.primary};
-		font-weight: ${(props) => props.theme.typography.weight.medium};
-		color: ${(props) => props.theme.colors.font.alt1};
-		text-align: right;
 	}
 `;
 
@@ -772,20 +720,6 @@ export const InputError = styled.div`
 	gap: 15px;
 `;
 
-export const InputData = styled(OverlayOutput)`
-	min-width: 0;
-	min-height: 0;
-	padding-left: 15px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
-	overflow: auto;
-
-	@media (max-width: ${STYLING.cutoffs.secondary}) {
-		padding: 15px 0 0;
-		border-left: none;
-		border-top: 1px solid ${(props) => props.theme.colors.border.primary};
-	}
-`;
-
 export const OverlayActions = styled.div`
 	width: fit-content;
 	display: flex;
@@ -855,6 +789,11 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 		${(props) => (props.childList ? props.theme.colors.border.alt4 : props.theme.colors.border.primary)} !important;
 	background: ${(props) =>
 		props.childList ? props.theme.colors.container.alt2.background : props.theme.colors.container.primary.background};
+
+	&:last-child {
+		border-bottom-left-radius: ${(props) => (props.childList ? '0' : STYLING.dimensions.radius.alt1)};
+		border-bottom-right-radius: ${(props) => (props.childList ? '0' : STYLING.dimensions.radius.alt1)};
+	}
 
 	p {
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};

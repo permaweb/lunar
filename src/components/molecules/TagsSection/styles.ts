@@ -4,14 +4,14 @@ import { STYLING } from 'helpers/config';
 
 import { OverviewStyles } from '../Overview';
 
-export const Wrapper = styled.section<{ $fixedHeight?: number }>`
+export const Wrapper = styled.section<{ $fixedHeight?: number; $embedded?: boolean }>`
 	height: ${(props) => (props.$fixedHeight ? `${props.$fixedHeight}px` : 'fit-content')};
-	max-height: 600px;
+	max-height: ${(props) => (props.$embedded ? 'none' : '600px')};
 	min-width: 0;
 	flex: 1;
 	display: flex;
 	flex-direction: column;
-	padding: 15px;
+	padding: ${(props) => (props.$embedded ? '0' : '15px')};
 	overflow: hidden;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
@@ -42,9 +42,10 @@ export const Header = styled.div<{ $compact?: boolean }>`
 	}
 `;
 
-export const List = styled(OverviewStyles.TagList)`
+export const List = styled(OverviewStyles.TagList)<{ $embedded?: boolean }>`
 	max-height: none;
 	min-height: 0;
+	${(props) => props.$embedded && 'margin-right: 0;'}
 
 	> * {
 		flex-shrink: 0;

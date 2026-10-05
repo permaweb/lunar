@@ -26,7 +26,6 @@ export interface ICProps {
 export interface IUProps {
 	tabs: URLViewType[];
 	activeUrl: string;
-	useFixed?: boolean;
 	noUrlCopy?: boolean;
 	endComponent?: React.ReactNode;
 	isParentActive?: boolean;

@@ -80,6 +80,13 @@ export const GlobalStyle = createGlobalStyle`
     background: ${(props) => props.theme.colors.view.background};
   }
 
+	/* The fullscreen element owns scrolling while the document stays in place. */
+	html:has(:fullscreen),
+	html:has(:fullscreen) body {
+		height: 100%;
+		overflow: hidden !important;
+	}
+
   ol, ul {
     list-style: none;
   }
@@ -456,7 +463,7 @@ export const View = styled.main<{ navigationOpen: boolean }>`
 	min-height: calc(100vh - ${STYLING.dimensions.nav.height});
 	width: 100%;
 	position: relative;
-	padding: 0 0 20px 0;
+	padding: 0;
 	margin: 0 auto;
 	display: flex;
 	flex-direction: column;

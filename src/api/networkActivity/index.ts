@@ -13,12 +13,12 @@ export type NetworkActivityEntry = {
 
 const TRANSACTION_FIELDS = 'edges { node { id tags { name value } data { size } block { timestamp } } }';
 const QUERY = `query HomeNetworkActivity {
-	blocks(first: 6, sort: HEIGHT_DESC) { edges { node { id height timestamp } } }
-	transactions(first: 6, sort: HEIGHT_DESC) { ${TRANSACTION_FIELDS} }
-	messages: transactions(first: 6, sort: HEIGHT_DESC, tags: [
+	blocks(first: 20, sort: HEIGHT_DESC) { edges { node { id height timestamp } } }
+	transactions(first: 20, sort: HEIGHT_DESC) { ${TRANSACTION_FIELDS} }
+	messages: transactions(first: 20, sort: HEIGHT_DESC, tags: [
 		{ name: "Data-Protocol", values: ["ao"] }, { name: "Type", values: ["Message"] }
 	]) { ${TRANSACTION_FIELDS} }
-	processes: transactions(first: 6, sort: HEIGHT_DESC, tags: [
+	processes: transactions(first: 20, sort: HEIGHT_DESC, tags: [
 		{ name: "Data-Protocol", values: ["ao"] }, { name: "Type", values: ["Process"] }
 	]) { ${TRANSACTION_FIELDS} }
 }`;

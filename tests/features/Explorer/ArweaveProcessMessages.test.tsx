@@ -174,7 +174,7 @@ it.each([MessageVariantEnum.Mainnet, MessageVariantEnum.Legacynet])(
 		expect(mocks.read).not.toHaveBeenCalled();
 		expect(mocks.messages.mock.calls[0][0]).toMatchObject({ txId: PROCESS_ID, type: 'process', variant });
 		expect(mocks.messages.mock.calls[0][0].source).toBeUndefined();
-		expect(mocks.gql).toHaveBeenCalled();
+		expect(mocks.gql).not.toHaveBeenCalled();
 	}
 );
 

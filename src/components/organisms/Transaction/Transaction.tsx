@@ -19,6 +19,7 @@ import { readTransactionData, type TransactionData } from 'api/transactions';
 
 import { Button } from 'components/atoms/Button';
 import { StatusIndicator } from 'components/atoms/StatusIndicator';
+import { Tabs } from 'components/atoms/Tabs';
 import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { URLTabs } from 'components/atoms/URLTabs';
 import { CSVViewer } from 'components/molecules/CSVViewer';
@@ -36,7 +37,7 @@ import { TransactionList } from 'components/molecules/TransactionList';
 import { useWalletMining, WalletMiningInfo, WalletMiningTabs } from 'features/Mining';
 import { checkValidAoAccount, getAoSender } from 'helpers/aoAccounts';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
-import { ASSETS, PROCESSES, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
+import { ASSETS, PROCESSES, STYLING, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
 import type { PinTarget } from 'helpers/pinnedTabs';
 import { getAoProcessSummary } from 'helpers/processes';
@@ -54,6 +55,7 @@ import {
 	getByteSizeDisplay,
 	getRelativeDate,
 	getTagValue,
+	getTransactionIcon,
 	getTransactionTypeFromTags,
 	isLegacyMessageSpam,
 	isNumeric,
@@ -77,6 +79,7 @@ import { TokenTransfer, TokenTransferStatus } from '../TokenTransfer';
 
 import * as S from './styles';
 import type { ProcessMessagesViewProps } from './types';
+import useDetailsPanelHeight from './useDetailsPanelHeight';
 
 const TX_FINALITY_CONFIRMATIONS = 15;
 const ARWEAVE_BLOCK_TIME_SECONDS = 120;
@@ -306,6 +309,838 @@ function formatStatusEta(confirmations: number | null) {
 	return minutes ? `~${hours}h ${minutes}m` : `~${hours}h`;
 }
 
+const WalletBalanceSection = React.memo(
+	(props: {
+		balanceSource?: 'process' | 'arweave';
+		processId?: string;
+		tokenName: string;
+		denomination: number;
+		walletId: string;
+		shouldFetch: boolean;
+		useNaOnError?: boolean;
+	}) => {
+		const languageProvider = useLanguageProvider();
+		const language = languageProvider.object[languageProvider.current];
+
+		const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
+		const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
+
+		const hasFetchedRef = React.useRef(false);
+		const currentWalletRef = React.useRef<string>('');
+
+		const fetchBalance = React.useCallback(async () => {
+			if (
+				!props.walletId ||
+				!((props.balanceSource ?? 'process') === 'arweave'
+					? checkValidAddress(props.walletId)
+					: checkValidAoAccount(props.walletId))
+			)
+				return;
+
+			setLoadingBalance(true);
+			setWalletBalance(null);
+
+			try {
+				let response: any = null;
+
+				if ((props.balanceSource ?? 'process') === 'arweave') {
+					response = await readArBalance(props.walletId);
+				} else {
+					if (!props.processId) {
+						setWalletBalance(props.useNaOnError ? 'N/A' : 'Error');
+						return;
+					}
+					response = await readAoBalance(props.walletId);
+				}
+
+				if (!isNumeric(response)) {
+					setWalletBalance(props.useNaOnError ? 'N/A' : 'Error');
+					return;
+				}
+
+				setWalletBalance(((response ?? 0) / Math.pow(10, props.denomination)).toFixed(props.denomination));
+			} catch (e: any) {
+				console.error(e);
+				const showZeroBalance = e.toString().includes('Failed to fetch');
+				setWalletBalance(props.useNaOnError ? 'N/A' : showZeroBalance ? '0' : language.errorFetching);
+			} finally {
+				setLoadingBalance(false);
+			}
+		}, [
+			props.walletId,
+			props.balanceSource ?? 'process',
+			props.processId,
+			props.denomination,
+			props.useNaOnError,
+			language.errorFetching,
+		]);
+
+		React.useEffect(() => {
+			// Reset when wallet changes
+			if (currentWalletRef.current !== props.walletId) {
+				currentWalletRef.current = props.walletId;
+				hasFetchedRef.current = false;
+			}
+
+			if (
+				!hasFetchedRef.current &&
+				props.shouldFetch &&
+				props.walletId &&
+				((props.balanceSource ?? 'process') === 'arweave'
+					? checkValidAddress(props.walletId)
+					: checkValidAoAccount(props.walletId))
+			) {
+				hasFetchedRef.current = true;
+				fetchBalance();
+			}
+		}, [props.walletId, props.shouldFetch, fetchBalance]);
+
+		let icon = null;
+		let dimensions = 15;
+		let margin = '0';
+		switch (props.processId) {
+			case PROCESSES.ao:
+				icon = ASSETS.ao;
+				dimensions = 17.5;
+				break;
+			case PROCESSES.pi:
+				dimensions = 10.5;
+				margin = `0 0 6.5px 0`;
+				icon = ASSETS.pi;
+				break;
+		}
+
+		if ((props.balanceSource ?? 'process') === 'arweave') {
+			dimensions = 12.5;
+			margin = `0 0 4.95px 0`;
+			icon = ASSETS.arweave;
+		}
+
+		const getBalanceDisplay = () => {
+			if (!walletBalance) return 'Loading...';
+			return isNumeric(walletBalance) ? formatCount(walletBalance.toString()) : walletBalance;
+		};
+
+		return (
+			<S.BalanceWrapper isNumber={isNumeric(walletBalance)}>
+				<p>{getBalanceDisplay()}</p>
+				{icon && (
+					<>
+						<S.Logo dimensions={dimensions} margin={margin}>
+							<ReactSVG src={icon} />
+						</S.Logo>
+					</>
+				)}
+				{!icon && <span>{props.tokenName}</span>}
+				<S.Refresh>
+					<Button
+						type={'primary'}
+						onPress={() => {
+							hasFetchedRef.current = false;
+							fetchBalance();
+						}}
+						icon={ASSETS.refresh}
+						height={20}
+						width={20}
+						noMinWidth
+						iconSize={11}
+						disabled={loadingBalance}
+						tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
+						tooltipPosition={'bottom-right'}
+						stopPropagation
+						preventDefault
+					/>
+				</S.Refresh>
+			</S.BalanceWrapper>
+		);
+	},
+	(prevProps, nextProps) => {
+		// Only re-render if these props actually change
+		return (
+			prevProps.balanceSource === nextProps.balanceSource &&
+			prevProps.processId === nextProps.processId &&
+			prevProps.tokenName === nextProps.tokenName &&
+			prevProps.denomination === nextProps.denomination &&
+			prevProps.walletId === nextProps.walletId &&
+			prevProps.shouldFetch === nextProps.shouldFetch &&
+			prevProps.useNaOnError === nextProps.useNaOnError
+		);
+	}
+);
+
+const TxOverviewValue = (props: {
+	primary: React.ReactNode;
+	secondary?: React.ReactNode;
+	indicator?: React.ReactNode;
+}) => {
+	return (
+		<O.TxOverviewValue>
+			<p>{props.primary}</p>
+			{props.indicator}
+			{props.secondary && <small>({props.secondary})</small>}
+		</O.TxOverviewValue>
+	);
+};
+
+const TxOverviewLine = (props: { label: string; children: React.ReactNode }) => {
+	return (
+		<O.MessageInfoLine>
+			<span>{`${props.label}: `}</span>
+			{props.children}
+		</O.MessageInfoLine>
+	);
+};
+
+const CopyableValue = (props: { value: string | null | undefined; label: string }) => {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+
+	const [copied, setCopied] = React.useState<boolean>(false);
+
+	const handleCopy = React.useCallback(
+		async (e: React.MouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!props.value) return;
+
+			await navigator.clipboard.writeText(props.value);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		},
+		[props.value]
+	);
+
+	if (!props.value) return <p>-</p>;
+
+	return (
+		<S.CopyableValue type={'button'} title={props.value} onClick={handleCopy}>
+			<p>{copied ? `${language.copied}!` : props.label}</p>
+			<ReactSVG src={ASSETS.copy} />
+		</S.CopyableValue>
+	);
+};
+
+const TransactionOverviewSection = (props: { compact?: boolean; bundleTransactionCount?: number | null }) => {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+	const { txResponse, inputTxId, refreshKey, type: resolvedType } = React.useContext(TxResponseContext);
+	const isBundle = resolvedType === 'bundle';
+
+	const [txMetadata, setTxMetadata] = React.useState<any | null>(null);
+	const [currentBlockHeight, setCurrentBlockHeight] = React.useState<number | null>(null);
+	const [arUsdPrice, setArUsdPrice] = React.useState<number | null>(null);
+	const [overviewLoading, setOverviewLoading] = React.useState<boolean>(true);
+
+	React.useEffect(() => {
+		if (!inputTxId || !checkValidAddress(inputTxId)) return;
+
+		let active = true;
+
+		setTxMetadata(null);
+		setCurrentBlockHeight(null);
+		setArUsdPrice(null);
+		setOverviewLoading(true);
+
+		(async () => {
+			const overview = await fetchTransactionOverview(inputTxId, refreshKey);
+
+			if (!active) return;
+
+			setTxMetadata(overview.metadata);
+			setCurrentBlockHeight(overview.currentBlockHeight);
+			setArUsdPrice(overview.arUsdPrice);
+			setOverviewLoading(false);
+		})();
+
+		return () => {
+			active = false;
+		};
+	}, [inputTxId, refreshKey]);
+
+	const node = txMetadata ?? txResponse?.node;
+	const tags = node?.tags ?? txResponse?.node?.tags ?? [];
+	const from = node?.owner?.address ?? txResponse?.node?.owner?.address;
+	const to = node?.recipient || txResponse?.node?.recipient || getTagValue(tags, 'Target') || null;
+	const blockHeight = node?.block?.height ?? txResponse?.node?.block?.height ?? null;
+	const timestamp = node?.block?.timestamp ?? txResponse?.node?.block?.timestamp ?? null;
+	const confirmations =
+		currentBlockHeight !== null && blockHeight !== null ? Math.max(currentBlockHeight - blockHeight, 0) : null;
+	const notYetFound = !overviewLoading && !txMetadata && blockHeight === null;
+	const statusLoading = overviewLoading || (blockHeight !== null && confirmations === null);
+	const pending =
+		!statusLoading &&
+		!notYetFound &&
+		(confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : blockHeight === null);
+	const statusLabel = statusLoading
+		? `${language.loading}...`
+		: notYetFound
+		? language.notYetFound
+		: pending
+		? language.pending
+		: language.confirmed;
+	const statusEta = pending ? formatStatusEta(confirmations) : null;
+	const fee = node?.fee;
+	const quantity = node?.quantity;
+	const getArUsdValue = (ar?: string | number | null, winston?: string | number | null) => {
+		const rawAr = ar !== null && ar !== undefined ? ar.toString() : winstonToArString(winston);
+		if (!rawAr || arUsdPrice === null) return null;
+
+		const parsedAr = Number(rawAr);
+
+		return Number.isFinite(parsedAr) ? formatUsdDisplay(parsedAr * arUsdPrice) : null;
+	};
+	const quantityUsd = getArUsdValue(quantity?.ar, quantity?.winston);
+	const feeUsd = getArUsdValue(fee?.ar, fee?.winston);
+	const size = node?.data?.size ?? txResponse?.node?.data?.size ?? null;
+
+	function renderAddress(address: string | null | undefined) {
+		if (!address) return <p>No Recipient</p>;
+		if (checkValidAoAccount(address)) return <TxAddress address={address} />;
+
+		return <p>{address}</p>;
+	}
+
+	const statusValue = (
+		<TxOverviewValue
+			primary={props.compact ? statusLabel : `${language.status}: ${statusLabel}`}
+			secondary={statusEta}
+			indicator={statusLoading || notYetFound ? null : <StatusIndicator status={pending ? 'pending' : 'success'} />}
+		/>
+	);
+
+	return (
+		<O.MessageInfo className={props.compact ? undefined : 'border-wrapper-primary'}>
+			{!props.compact && (
+				<O.MessageInfoHeader>
+					<p>{isBundle ? language.bundleOverview : language.transactionOverview}</p>
+					<O.MessageInfoID>{statusValue}</O.MessageInfoID>
+				</O.MessageInfoHeader>
+			)}
+			<O.MessageInfoBody
+				$desktopItemCount={props.compact ? 10 : 9}
+				$columns={props.compact ? 1 : undefined}
+				$compact={props.compact}
+			>
+				{props.compact && <TxOverviewLine label={language.status}>{statusValue}</TxOverviewLine>}
+				<TxOverviewLine label={language.value}>
+					<TxOverviewValue primary={formatArDisplay(quantity?.ar, quantity?.winston)} secondary={quantityUsd} />
+				</TxOverviewLine>
+				<TxOverviewLine label={isBundle ? language.bundler : language.from}>{renderAddress(from)}</TxOverviewLine>
+				{isBundle ? (
+					<TxOverviewLine label={language.transactions}>
+						<TxOverviewValue
+							primary={
+								props.bundleTransactionCount != null
+									? formatCount(props.bundleTransactionCount.toString())
+									: `${language.loading}...`
+							}
+						/>
+					</TxOverviewLine>
+				) : (
+					<TxOverviewLine label={language.to}>{renderAddress(to)}</TxOverviewLine>
+				)}
+				<TxOverviewLine label={language.fee}>
+					<TxOverviewValue primary={formatArDisplay(fee?.ar, fee?.winston)} secondary={feeUsd} />
+				</TxOverviewLine>
+				<TxOverviewLine label={language.date}>
+					<TxOverviewValue primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'} />
+				</TxOverviewLine>
+				<TxOverviewLine label={language.age}>
+					<TxOverviewValue
+						primary={timestamp ? `~${getRelativeDate(timestamp * 1000).replace(/ ago$/, '')}` : 'Not Yet Available'}
+					/>
+				</TxOverviewLine>
+				<TxOverviewLine label={language.blockHeightActual}>
+					<S.Height>
+						<ExplorerLink value={blockHeight} type={'block'} />
+					</S.Height>
+				</TxOverviewLine>
+				<TxOverviewLine label={language.confirmations}>
+					<TxOverviewValue
+						primary={confirmations !== null ? formatCount(confirmations.toString()) : 'Not Yet Available'}
+					/>
+				</TxOverviewLine>
+				<TxOverviewLine label={language.size}>
+					<TxOverviewValue primary={formatCompactByteSize(size !== null ? Number(size) : null)} />
+				</TxOverviewLine>
+			</O.MessageInfoBody>
+		</O.MessageInfo>
+	);
+};
+
+const MessageTransferSection = (props: { result: any; onResultsOpen: () => void }) => {
+	const { txResponse } = React.useContext(TxResponseContext);
+
+	const from = txResponse ? getAoSender(txResponse.node) : undefined;
+	const target = txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target');
+	const isTransfer = isTransferAction(getTagValue(txResponse?.node?.tags, 'Action'));
+
+	const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+
+	React.useEffect(() => {
+		if (props.result?.Response?.includes('Failed to fetch')) {
+			setStatusMessage('Failed To Fetch');
+		}
+	}, [props.result]);
+
+	function getTransferStatus(): TokenTransferStatus {
+		if (props.result?.message?.includes('Compute in progress')) return { state: 'computing' };
+		if (!props.result) return { state: 'loading' };
+
+		const actions = {
+			'Debit-Notice': false,
+			'Credit-Notice': false,
+		};
+
+		for (const message of props.result.Messages ?? []) {
+			const action = getTagValue(message.Tags, 'Action');
+			if (action && actions.hasOwnProperty(action)) actions[action] = true;
+		}
+
+		if (actions['Debit-Notice'] && actions['Credit-Notice']) return { state: 'success' };
+
+		return { state: 'failure', message: statusMessage };
+	}
+
+	if (!isTransfer) return null;
+
+	return (
+		<TokenTransfer
+			token={target ?? null}
+			from={from ?? null}
+			recipient={getTagValue(txResponse?.node?.tags, 'Recipient')}
+			quantity={getTagValue(txResponse?.node?.tags, 'Quantity')}
+			status={getTransferStatus()}
+			onResultsOpen={props.onResultsOpen}
+		/>
+	);
+};
+
+const MessageInfoSection = () => {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+	const { txResponse } = React.useContext(TxResponseContext);
+
+	const action = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || 'None' : 'None';
+	const scheduledBlockHeight = txResponse?.node?.block?.height;
+	const scheduledSlot = txResponse?.node?.slot;
+	const isSpamMessage = isLegacyMessageSpam({
+		variant: getTagValue(txResponse?.node?.tags, TAGS.keys.variant),
+		tags: txResponse?.node?.tags,
+		ownerAddress: txResponse?.node?.owner?.address,
+		blockHeight: scheduledBlockHeight,
+	});
+
+	return (
+		<>
+			<O.MessageInfo className={'border-wrapper-primary'}>
+				<O.MessageInfoHeader>
+					<p>
+						{language.messageInfo}
+						{isSpamMessage && <span> ({language.markedAsSpam})</span>}
+					</p>
+					<O.MessageInfoID>
+						<span>{`${language.id}: `}</span>
+						<TxAddress address={txResponse?.node?.id} />
+					</O.MessageInfoID>
+				</O.MessageInfoHeader>
+				<O.MessageInfoBody $desktopItemCount={6}>
+					<O.MessageInfoLine>
+						<span>{`${language.action}: `}</span>
+						<p>{action}</p>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
+						<span>{`${language.variant}: `}</span>
+						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
+						<span>{`${language.dataProtocol}: `}</span>
+						<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
+						<span>{`${language.date}: `}</span>
+						<p>
+							{txResponse?.node?.block?.timestamp
+								? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
+								: 'Not Found'}
+						</p>
+					</O.MessageInfoLine>
+					<O.MessageInfoLine>
+						<span>{`${language.blockHeight}: `}</span>
+						{scheduledBlockHeight !== null && scheduledBlockHeight !== undefined ? (
+							<S.Height>
+								<ExplorerLink value={scheduledBlockHeight} type={'block'} />
+							</S.Height>
+						) : (
+							<p>None</p>
+						)}
+					</O.MessageInfoLine>
+					{scheduledSlot !== null && scheduledSlot !== undefined ? (
+						<O.MessageInfoLine>
+							<span>{`${language.slot}: `}</span>
+							<p>{formatCount(scheduledSlot.toString())}</p>
+						</O.MessageInfoLine>
+					) : (
+						<O.MessageInfoLine>
+							<span>{`${language.size}: `}</span>
+							<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
+						</O.MessageInfoLine>
+					)}
+				</O.MessageInfoBody>
+			</O.MessageInfo>
+		</>
+	);
+};
+
+const BlockInfoSection = () => {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+	const { txResponse } = React.useContext(TxResponseContext);
+	const node: any = txResponse?.node;
+	const blockId = node?.blockId;
+	const previous = node?.previous;
+	const txRoot = node?.txRoot;
+	const blockSizeValue = node?.blockSize?.toString?.() ?? null;
+	const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
+	const txCount = typeof node?.txCount === 'number' ? node.txCount : null;
+	const miner = node?.miner ?? null;
+	const minerReward = node?.minerReward ?? null;
+	const confirmations = typeof node?.confirmations === 'number' ? node.confirmations : null;
+	const timestamp = txResponse?.node?.block?.timestamp ?? null;
+
+	return (
+		<O.MessageInfo className={'border-wrapper-primary'}>
+			<O.MessageInfoHeader>
+				<p>{language.blockOverview}</p>
+				<O.MessageInfoID>
+					<span>{`${language.height}: `}</span>
+					{txResponse?.node?.block?.height ? (
+						<S.Height>
+							<ExplorerLink value={txResponse.node.block.height} type={'block'} />
+						</S.Height>
+					) : (
+						<p>-</p>
+					)}
+				</O.MessageInfoID>
+			</O.MessageInfoHeader>
+			<O.MessageInfoBody $desktopItemCount={9}>
+				<O.MessageInfoLine>
+					<span>{`${language.blockId}: `}</span>
+					{blockId ? (
+						<S.HashLink>
+							<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} />
+						</S.HashLink>
+					) : (
+						<p>-</p>
+					)}
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.previousBlock}: `}</span>
+					{previous ? (
+						<S.HashLink>
+							<ExplorerLink value={previous} label={formatBlockId(previous, false)} />
+						</S.HashLink>
+					) : (
+						<p>-</p>
+					)}
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.txRoot}: `}</span>
+					<CopyableValue value={txRoot} label={txRoot ? formatMetadataHash(txRoot) : '-'} />
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.miner}: `}</span>
+					{miner ? checkValidAddress(miner) ? <TxAddress address={miner} /> : <p>{miner}</p> : <p>-</p>}
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.minerReward}: `}</span>
+					<p>{formatArDisplay(null, minerReward)}</p>
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.transactions}: `}</span>
+					<p>{txCount !== null ? formatCount(txCount.toString()) : '-'}</p>
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.date}: `}</span>
+					<TxOverviewValue
+						primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'}
+						secondary={timestamp ? `${getRelativeDate(timestamp * 1000)}` : null}
+					/>
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.confirmations}: `}</span>
+					<p>{confirmations !== null ? formatCount(confirmations.toString()) : '-'}</p>
+				</O.MessageInfoLine>
+				<O.MessageInfoLine>
+					<span>{`${language.blockSize}: `}</span>
+					<p title={blockSizeValue ?? undefined}>
+						{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : blockSizeValue ?? '-'}
+					</p>
+				</O.MessageInfoLine>
+			</O.MessageInfoBody>
+		</O.MessageInfo>
+	);
+};
+
+const BundleTagsSection = () => {
+	const { txResponse } = React.useContext(TxResponseContext);
+	const tags = (txResponse?.node?.tags ?? []).filter(
+		(tag) => !['type', 'name'].includes(tag.name.toLowerCase()) && !tag.name.toLowerCase().endsWith('+link')
+	);
+	if (!tags.length) return null;
+	return <TagsSection tags={tags} showCount={false} />;
+};
+
+const TransactionTagsSection = (props: { fixedHeight?: number; embedded?: boolean }) => {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+	const { txResponse, type: resolvedType } = React.useContext(TxResponseContext);
+	const tags = txResponse
+		? [
+				...(resolvedType === 'process' ? [{ name: language.owner, value: txResponse.node?.owner?.address ?? '' }] : []),
+				...(txResponse.node?.tags ?? []),
+		  ]
+		: null;
+	return <TagsSection tags={tags} fixedHeight={props.fixedHeight} embedded={props.embedded} compact={props.embedded} />;
+};
+
+const DataSection = (props: { dataHeader?: string; fixedHeight?: number }) => {
+	const languageProvider = useLanguageProvider();
+	const language = languageProvider.object[languageProvider.current];
+	const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
+	const [transactionData, setTransactionData] = React.useState<TransactionData | null>(null);
+	const [htmlPreviewReady, setHtmlPreviewReady] = React.useState<boolean>(false);
+
+	const hasTransaction = !!txResponse;
+	const knownDataSize = txResponse?.node?.data?.size ?? null;
+	const declaredContentType =
+		(txResponse?.node?.tags ? getTagValue(txResponse.node.tags, 'Content-Type') : null) ??
+		txResponse?.node?.data?.type ??
+		null;
+	// Render with the content type the adapter returned alongside a validated body.
+	const contentType = transactionData?.status === 'content' ? transactionData.contentType : declaredContentType;
+	const normalizedContentType = contentType?.split(';')[0].trim().toLowerCase();
+
+	// Check for video and audio content types
+	const isVideo = normalizedContentType?.startsWith('video/');
+	const isAudio = normalizedContentType?.startsWith('audio/');
+
+	// Unsupported binary content types that can't be rendered
+	const unsupportedContentTypes = [
+		'application/beam-archive',
+		'application/octet-stream',
+		'application/zip',
+		'application/x-tar',
+		'application/x-gzip',
+		'application/x-bzip2',
+		'application/x-rar-compressed',
+		'application/x-7z-compressed',
+		'application/pdf',
+		'application/vnd.ms-excel',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'application/msword',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'application/vnd.ms-powerpoint',
+		'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		'application/x-shockwave-flash',
+		'application/x-executable',
+		'application/x-deb',
+		'application/x-rpm',
+		'font/', // Any font type
+		'model/', // Any 3D model type
+	];
+
+	const isUnsupported =
+		normalizedContentType &&
+		unsupportedContentTypes.some((unsupportedType) => normalizedContentType.startsWith(unsupportedType));
+
+	const isMarkdown = ['text/markdown', 'text/x-markdown', 'application/markdown'].includes(normalizedContentType ?? '');
+	const isCSV = ['text/csv', 'application/csv', 'text/comma-separated-values'].includes(normalizedContentType ?? '');
+	const isHTML = ['text/html', 'application/xhtml+xml'].includes(normalizedContentType ?? '');
+
+	const data = React.useMemo(
+		() =>
+			transactionData?.status === 'content'
+				? parseTransactionDataValue(transactionData.text, isMarkdown || isCSV || isHTML)
+				: null,
+		[transactionData, isMarkdown, isCSV, isHTML]
+	);
+
+	React.useEffect(() => {
+		// Wait for the lookup so the recorded data size and content type are known before reading the body.
+		if (!hasTransaction || !checkValidAddress(inputTxId)) return;
+
+		const controller = new AbortController();
+		setTransactionData(null);
+		setHtmlPreviewReady(false);
+
+		(async function () {
+			const result = await readTransactionData({
+				txId: inputTxId,
+				knownSize: knownDataSize,
+				contentType: declaredContentType,
+				signal: controller.signal,
+			});
+
+			if (controller.signal.aborted) return;
+			if (result.status === 'error') console.error(`Transaction data unavailable: ${result.code}`);
+			setTransactionData(result);
+		})();
+
+		return () => controller.abort();
+	}, [hasTransaction, inputTxId, knownDataSize, declaredContentType, refreshKey]);
+
+	function getDataText(text: string) {
+		return (
+			<Editor
+				initialData={text}
+				header={'Data'}
+				language={'lua'}
+				readOnly
+				loading={false}
+				fixedHeight={props.fixedHeight ?? 600}
+			/>
+		);
+	}
+
+	function getDataContent() {
+		if (!transactionData) {
+			return props.fixedHeight ? (
+				<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight} />
+			) : null;
+		}
+
+		if (transactionData.status === 'error') return getDataText(language.errorFetchingData || 'Error Fetching Data');
+		if (transactionData.status === 'empty' || data === null) return getDataText(language.noData);
+
+		// Check for unsupported content types
+		if (isUnsupported) {
+			return (
+				<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
+					<S.UnsupportedContent>
+						<p>Unsupported Content Type</p>
+						<span>{contentType || 'Unknown'}</span>
+						<small>This format cannot be rendered</small>
+						<a href={`https://arweave.net/${inputTxId}`} target="_blank" rel="noopener noreferrer">
+							See on Arweave
+						</a>
+					</S.UnsupportedContent>
+				</S.DataSection>
+			);
+		}
+
+		// Render video
+		if (isVideo) {
+			return (
+				<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
+					<S.MediaWrapper>
+						<video controls style={{ maxWidth: '100%', height: 'auto' }} preload="metadata">
+							<source src={getTxEndpoint(inputTxId)} type={contentType || undefined} />
+							Your browser does not support the video tag.
+						</video>
+					</S.MediaWrapper>
+				</S.DataSection>
+			);
+		}
+
+		// Render audio
+		if (isAudio) {
+			return (
+				<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
+					<S.MediaWrapper>
+						<audio controls style={{ width: '100%' }} preload="metadata">
+							<source src={getTxEndpoint(inputTxId)} type={contentType || undefined} />
+							Your browser does not support the audio tag.
+						</audio>
+					</S.MediaWrapper>
+				</S.DataSection>
+			);
+		}
+
+		// Render images
+		if (normalizedContentType?.startsWith('image/')) {
+			return (
+				<S.DataSection $fixedHeight={props.fixedHeight}>
+					<img
+						src={getTxEndpoint(inputTxId)}
+						alt={language.transactionData}
+						style={{ maxWidth: '100%', height: 'auto' }}
+					/>
+				</S.DataSection>
+			);
+		}
+
+		if (isHTML && typeof data === 'string') {
+			return (
+				<S.HTMLDataPreviewContainer>
+					<S.HTMLPreviewProbe $visible={htmlPreviewReady} aria-hidden={!htmlPreviewReady}>
+						<HTMLViewer
+							html={data}
+							baseUrl={getTxEndpoint(inputTxId)}
+							header={props.dataHeader ?? language.data}
+							fixedHeight={props.fixedHeight ?? 600}
+							className={'border-wrapper-primary'}
+							title={language.transactionData}
+							onPreviewReady={() => setHtmlPreviewReady(true)}
+							onPreviewError={() => setHtmlPreviewReady(false)}
+						/>
+					</S.HTMLPreviewProbe>
+					{!htmlPreviewReady && (
+						<Editor
+							initialData={data}
+							header={props.dataHeader ?? language.data}
+							language={'html'}
+							readOnly
+							loading={false}
+							fixedHeight={props.fixedHeight ?? 600}
+						/>
+					)}
+				</S.HTMLDataPreviewContainer>
+			);
+		}
+
+		if (isCSV && typeof data === 'string') {
+			return (
+				<CSVViewer
+					csv={data}
+					header={props.dataHeader ?? language.data}
+					fixedHeight={props.fixedHeight ?? 600}
+					filename={inputTxId}
+				/>
+			);
+		}
+
+		if (isMarkdown && typeof data === 'string') {
+			return (
+				<MarkdownViewer
+					markdown={data}
+					header={props.dataHeader ?? language.data}
+					fixedHeight={props.fixedHeight ?? 600}
+					embedded
+					compact
+					className={'border-wrapper-primary'}
+				/>
+			);
+		}
+
+		if (typeof data === 'object') {
+			return (
+				<JSONReader
+					data={data}
+					header={props.dataHeader ?? null}
+					maxHeight={props.fixedHeight ?? 600}
+					fixedHeight={props.fixedHeight}
+				/>
+			);
+		}
+
+		return getDataText(String(data));
+	}
+
+	return <>{getDataContent()}</>;
+};
+
 function Transaction(props: {
 	pinTarget?: PinTarget;
 	txId: string;
@@ -329,7 +1164,7 @@ function Transaction(props: {
 }) {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
-	const { openExplorer } = useExplorerNavigation();
+	const { openExplorer, isInAppTabsEnabled } = useExplorerNavigation();
 	const arProvider = useArweaveProvider();
 	const permawebProvider = usePermawebProvider();
 	const languageProvider = useLanguageProvider();
@@ -348,6 +1183,8 @@ function Transaction(props: {
 		}
 	}, [loadingTx, props.onLoadingChange]);
 	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
+	const stickyTop = isFullscreen || isInAppTabsEnabled ? 0 : parseFloat(STYLING.dimensions.nav.height);
+	const detailsPanelRef = useDetailsPanelHeight(props.active, stickyTop);
 
 	// Memoize owner address to prevent unnecessary TABS recreation
 	const ownerAddress = React.useMemo(() => txResponse?.node?.owner?.address, [txResponse?.node?.owner?.address]);
@@ -677,824 +1514,9 @@ function Transaction(props: {
 		}
 	}, []);
 
-	const WalletBalanceSection = React.memo(
-		({
-			balanceSource = 'process',
-			processId,
-			tokenName,
-			denomination,
-			walletId,
-			shouldFetch,
-			useNaOnError = false,
-		}: {
-			balanceSource?: 'process' | 'arweave';
-			processId?: string;
-			tokenName: string;
-			denomination: number;
-			walletId: string;
-			shouldFetch: boolean;
-			useNaOnError?: boolean;
-		}) => {
-			const [walletBalance, setWalletBalance] = React.useState<number | string | null>(null);
-			const [loadingBalance, setLoadingBalance] = React.useState<boolean>(false);
-
-			const hasFetchedRef = React.useRef(false);
-			const currentWalletRef = React.useRef<string>('');
-
-			const fetchBalance = React.useCallback(async () => {
-				if (!walletId || !(balanceSource === 'arweave' ? checkValidAddress(walletId) : checkValidAoAccount(walletId)))
-					return;
-
-				setLoadingBalance(true);
-				setWalletBalance(null);
-
-				try {
-					let response: any = null;
-
-					if (balanceSource === 'arweave') {
-						response = await readArBalance(walletId);
-					} else {
-						if (!processId) {
-							setWalletBalance(useNaOnError ? 'N/A' : 'Error');
-							return;
-						}
-						response = await readAoBalance(walletId);
-					}
-
-					if (!isNumeric(response)) {
-						setWalletBalance(useNaOnError ? 'N/A' : 'Error');
-						return;
-					}
-
-					setWalletBalance(((response ?? 0) / Math.pow(10, denomination)).toFixed(denomination));
-				} catch (e: any) {
-					console.error(e);
-					const showZeroBalance = e.toString().includes('Failed to fetch');
-					setWalletBalance(useNaOnError ? 'N/A' : showZeroBalance ? '0' : language.errorFetching);
-				} finally {
-					setLoadingBalance(false);
-				}
-			}, [walletId, balanceSource, processId, denomination, useNaOnError, language.errorFetching]);
-
-			React.useEffect(() => {
-				// Reset when wallet changes
-				if (currentWalletRef.current !== walletId) {
-					currentWalletRef.current = walletId;
-					hasFetchedRef.current = false;
-				}
-
-				if (
-					!hasFetchedRef.current &&
-					shouldFetch &&
-					walletId &&
-					(balanceSource === 'arweave' ? checkValidAddress(walletId) : checkValidAoAccount(walletId))
-				) {
-					hasFetchedRef.current = true;
-					fetchBalance();
-				}
-			}, [walletId, shouldFetch, fetchBalance]);
-
-			let icon = null;
-			let dimensions = 15;
-			let margin = '0';
-			switch (processId) {
-				case PROCESSES.ao:
-					icon = ASSETS.ao;
-					dimensions = 17.5;
-					break;
-				case PROCESSES.pi:
-					dimensions = 10.5;
-					margin = `0 0 6.5px 0`;
-					icon = ASSETS.pi;
-					break;
-			}
-
-			if (balanceSource === 'arweave') {
-				dimensions = 12.5;
-				margin = `0 0 4.95px 0`;
-				icon = ASSETS.arweave;
-			}
-
-			const getBalanceDisplay = () => {
-				if (!walletBalance) return 'Loading...';
-				return isNumeric(walletBalance) ? formatCount(walletBalance.toString()) : walletBalance;
-			};
-
-			return (
-				<S.BalanceWrapper isNumber={isNumeric(walletBalance)}>
-					<p>{getBalanceDisplay()}</p>
-					{icon && (
-						<>
-							<S.Logo dimensions={dimensions} margin={margin}>
-								<ReactSVG src={icon} />
-							</S.Logo>
-						</>
-					)}
-					{!icon && <span>{tokenName}</span>}
-					<S.Refresh>
-						<Button
-							type={'primary'}
-							onPress={() => {
-								hasFetchedRef.current = false;
-								fetchBalance();
-							}}
-							icon={ASSETS.refresh}
-							height={20}
-							width={20}
-							noMinWidth
-							iconSize={11}
-							disabled={loadingBalance}
-							tooltip={loadingBalance ? `${language.loading}...` : language.refresh}
-							tooltipPosition={'bottom-right'}
-							stopPropagation
-							preventDefault
-						/>
-					</S.Refresh>
-				</S.BalanceWrapper>
-			);
-		},
-		(prevProps, nextProps) => {
-			// Only re-render if these props actually change
-			return (
-				prevProps.balanceSource === nextProps.balanceSource &&
-				prevProps.processId === nextProps.processId &&
-				prevProps.tokenName === nextProps.tokenName &&
-				prevProps.denomination === nextProps.denomination &&
-				prevProps.walletId === nextProps.walletId &&
-				prevProps.shouldFetch === nextProps.shouldFetch &&
-				prevProps.useNaOnError === nextProps.useNaOnError
-			);
-		}
-	);
-
-	const TxOverviewValue = ({
-		primary,
-		secondary,
-		indicator,
-	}: {
-		primary: React.ReactNode;
-		secondary?: React.ReactNode;
-		indicator?: React.ReactNode;
-	}) => {
-		return (
-			<O.TxOverviewValue>
-				<p>{primary}</p>
-				{indicator}
-				{secondary && <small>({secondary})</small>}
-			</O.TxOverviewValue>
-		);
-	};
-
-	const TxOverviewLine = ({ label, children }: { label: string; children: React.ReactNode }) => {
-		return (
-			<O.MessageInfoLine>
-				<span>{`${label}: `}</span>
-				{children}
-			</O.MessageInfoLine>
-		);
-	};
-
-	const CopyableValue = ({ value, label }: { value: string | null | undefined; label: string }) => {
-		const [copied, setCopied] = React.useState<boolean>(false);
-
-		const handleCopy = React.useCallback(
-			async (e: React.MouseEvent) => {
-				e.preventDefault();
-				e.stopPropagation();
-
-				if (!value) return;
-
-				await navigator.clipboard.writeText(value);
-				setCopied(true);
-				setTimeout(() => setCopied(false), 2000);
-			},
-			[value]
-		);
-
-		if (!value) return <p>-</p>;
-
-		return (
-			<S.CopyableValue type={'button'} title={value} onClick={handleCopy}>
-				<p>{copied ? `${language.copied}!` : label}</p>
-				<ReactSVG src={ASSETS.copy} />
-			</S.CopyableValue>
-		);
-	};
-
-	const TransactionOverviewSection = () => {
-		const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
-		const isBundle = resolvedType === 'bundle';
-
-		const [txMetadata, setTxMetadata] = React.useState<any | null>(null);
-		const [currentBlockHeight, setCurrentBlockHeight] = React.useState<number | null>(null);
-		const [arUsdPrice, setArUsdPrice] = React.useState<number | null>(null);
-		const [overviewLoading, setOverviewLoading] = React.useState<boolean>(true);
-
-		React.useEffect(() => {
-			if (!inputTxId || !checkValidAddress(inputTxId)) return;
-
-			let active = true;
-
-			setTxMetadata(null);
-			setCurrentBlockHeight(null);
-			setArUsdPrice(null);
-			setOverviewLoading(true);
-
-			(async () => {
-				const overview = await fetchTransactionOverview(inputTxId, refreshKey);
-
-				if (!active) return;
-
-				setTxMetadata(overview.metadata);
-				setCurrentBlockHeight(overview.currentBlockHeight);
-				setArUsdPrice(overview.arUsdPrice);
-				setOverviewLoading(false);
-			})();
-
-			return () => {
-				active = false;
-			};
-		}, [inputTxId, refreshKey]);
-
-		const node = txMetadata ?? txResponse?.node;
-		const tags = node?.tags ?? txResponse?.node?.tags ?? [];
-		const from = node?.owner?.address ?? txResponse?.node?.owner?.address;
-		const to = node?.recipient || txResponse?.node?.recipient || getTagValue(tags, 'Target') || null;
-		const blockHeight = node?.block?.height ?? txResponse?.node?.block?.height ?? null;
-		const timestamp = node?.block?.timestamp ?? txResponse?.node?.block?.timestamp ?? null;
-		const confirmations =
-			currentBlockHeight !== null && blockHeight !== null ? Math.max(currentBlockHeight - blockHeight, 0) : null;
-		const notYetFound = !overviewLoading && !txMetadata && blockHeight === null;
-		const statusLoading = overviewLoading || (blockHeight !== null && confirmations === null);
-		const pending =
-			!statusLoading &&
-			!notYetFound &&
-			(confirmations !== null ? confirmations < TX_FINALITY_CONFIRMATIONS : blockHeight === null);
-		const statusLabel = statusLoading
-			? `${language.loading}...`
-			: notYetFound
-			? language.notYetFound
-			: pending
-			? language.pending
-			: language.confirmed;
-		const statusEta = pending ? formatStatusEta(confirmations) : null;
-		const fee = node?.fee;
-		const quantity = node?.quantity;
-		const getArUsdValue = (ar?: string | number | null, winston?: string | number | null) => {
-			const rawAr = ar !== null && ar !== undefined ? ar.toString() : winstonToArString(winston);
-			if (!rawAr || arUsdPrice === null) return null;
-
-			const parsedAr = Number(rawAr);
-
-			return Number.isFinite(parsedAr) ? formatUsdDisplay(parsedAr * arUsdPrice) : null;
-		};
-		const quantityUsd = getArUsdValue(quantity?.ar, quantity?.winston);
-		const feeUsd = getArUsdValue(fee?.ar, fee?.winston);
-		const size = node?.data?.size ?? txResponse?.node?.data?.size ?? null;
-
-		function renderAddress(address: string | null | undefined) {
-			if (!address) return <p>No Recipient</p>;
-			if (checkValidAoAccount(address)) return <TxAddress address={address} />;
-
-			return <p>{address}</p>;
-		}
-
-		return (
-			<O.MessageInfo className={'border-wrapper-primary'}>
-				<O.MessageInfoHeader>
-					<p>{isBundle ? language.bundleOverview : language.transactionOverview}</p>
-					<O.MessageInfoID>
-						<TxOverviewValue
-							primary={`Status: ${statusLabel}`}
-							secondary={statusEta}
-							indicator={
-								statusLoading || notYetFound ? null : <StatusIndicator status={pending ? 'pending' : 'success'} />
-							}
-						/>
-					</O.MessageInfoID>
-				</O.MessageInfoHeader>
-				<O.MessageInfoBody $desktopItemCount={9}>
-					<TxOverviewLine label={language.value}>
-						<TxOverviewValue primary={formatArDisplay(quantity?.ar, quantity?.winston)} secondary={quantityUsd} />
-					</TxOverviewLine>
-					<TxOverviewLine label={isBundle ? language.bundler : language.from}>{renderAddress(from)}</TxOverviewLine>
-					{isBundle ? (
-						<TxOverviewLine label={language.transactions}>
-							<TxOverviewValue
-								primary={
-									bundleTransactionCount !== null
-										? formatCount(bundleTransactionCount.toString())
-										: `${language.loading}...`
-								}
-							/>
-						</TxOverviewLine>
-					) : (
-						<TxOverviewLine label={language.to}>{renderAddress(to)}</TxOverviewLine>
-					)}
-					<TxOverviewLine label={language.fee}>
-						<TxOverviewValue primary={formatArDisplay(fee?.ar, fee?.winston)} secondary={feeUsd} />
-					</TxOverviewLine>
-					<TxOverviewLine label={language.date}>
-						<TxOverviewValue primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'} />
-					</TxOverviewLine>
-					<TxOverviewLine label={language.age}>
-						<TxOverviewValue
-							primary={timestamp ? `~${getRelativeDate(timestamp * 1000).replace(/ ago$/, '')}` : 'Not Yet Available'}
-						/>
-					</TxOverviewLine>
-					<TxOverviewLine label={language.blockHeightActual}>
-						<S.Height>
-							<ExplorerLink value={blockHeight} type={'block'} />
-						</S.Height>
-					</TxOverviewLine>
-					<TxOverviewLine label={language.confirmations}>
-						<TxOverviewValue
-							primary={confirmations !== null ? formatCount(confirmations.toString()) : 'Not Yet Available'}
-						/>
-					</TxOverviewLine>
-					<TxOverviewLine label={language.size}>
-						<TxOverviewValue primary={formatCompactByteSize(size !== null ? Number(size) : null)} />
-					</TxOverviewLine>
-				</O.MessageInfoBody>
-			</O.MessageInfo>
-		);
-	};
-
-	const MessageTransferSection = () => {
-		const { txResponse } = React.useContext(TxResponseContext);
-
-		const from = txResponse ? getAoSender(txResponse.node) : undefined;
-		const target = txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target');
-		const isTransfer = isTransferAction(getTagValue(txResponse?.node?.tags, 'Action'));
-
-		const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
-
-		React.useEffect(() => {
-			if (messageResult?.Response?.includes('Failed to fetch')) {
-				setStatusMessage('Failed To Fetch');
-			}
-		}, [messageResult]);
-
-		function getTransferStatus(): TokenTransferStatus {
-			if (messageResult?.message?.includes('Compute in progress')) return { state: 'computing' };
-			if (!messageResult) return { state: 'loading' };
-
-			const actions = {
-				'Debit-Notice': false,
-				'Credit-Notice': false,
-			};
-
-			for (const message of messageResult.Messages ?? []) {
-				const action = getTagValue(message.Tags, 'Action');
-				if (action && actions.hasOwnProperty(action)) actions[action] = true;
-			}
-
-			if (actions['Debit-Notice'] && actions['Credit-Notice']) return { state: 'success' };
-
-			return { state: 'failure', message: statusMessage };
-		}
-
-		if (!isTransfer) return null;
-
-		return (
-			<TokenTransfer
-				token={target ?? null}
-				from={from ?? null}
-				recipient={getTagValue(txResponse?.node?.tags, 'Recipient')}
-				quantity={getTagValue(txResponse?.node?.tags, 'Quantity')}
-				status={getTransferStatus()}
-				onResultsOpen={scrollToMessageList}
-			/>
-		);
-	};
-
-	const MessageInfoSection = () => {
-		const { txResponse } = React.useContext(TxResponseContext);
-
-		const action = txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Action') || 'None' : 'None';
-		const scheduledBlockHeight = txResponse?.node?.block?.height;
-		const scheduledSlot = txResponse?.node?.slot;
-		const isSpamMessage = isLegacyMessageSpam({
-			variant: getTagValue(txResponse?.node?.tags, TAGS.keys.variant),
-			tags: txResponse?.node?.tags,
-			ownerAddress: txResponse?.node?.owner?.address,
-			blockHeight: scheduledBlockHeight,
-		});
-
-		return (
-			<>
-				<O.MessageInfo className={'border-wrapper-primary'}>
-					<O.MessageInfoHeader>
-						<p>
-							{language.messageInfo}
-							{isSpamMessage && <span> ({language.markedAsSpam})</span>}
-						</p>
-						<O.MessageInfoID>
-							<span>{`${language.id}: `}</span>
-							<TxAddress address={txResponse?.node?.id} />
-						</O.MessageInfoID>
-					</O.MessageInfoHeader>
-					<O.MessageInfoBody $desktopItemCount={6}>
-						<O.MessageInfoLine>
-							<span>{`${language.action}: `}</span>
-							<p>{action}</p>
-						</O.MessageInfoLine>
-						<O.MessageInfoLine>
-							<span>{`${language.variant}: `}</span>
-							<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Variant') : '-'}</p>
-						</O.MessageInfoLine>
-						<O.MessageInfoLine>
-							<span>{`${language.dataProtocol}: `}</span>
-							<p>{txResponse?.node?.tags ? getTagValue(txResponse?.node?.tags, 'Data-Protocol') : '-'}</p>
-						</O.MessageInfoLine>
-						<O.MessageInfoLine>
-							<span>{`${language.date}: `}</span>
-							<p>
-								{txResponse?.node?.block?.timestamp
-									? formatDate(txResponse.node.block.timestamp * 1000, 'timestamp', true)
-									: 'Not Found'}
-							</p>
-						</O.MessageInfoLine>
-						<O.MessageInfoLine>
-							<span>{`${language.blockHeight}: `}</span>
-							{scheduledBlockHeight !== null && scheduledBlockHeight !== undefined ? (
-								<S.Height>
-									<ExplorerLink value={scheduledBlockHeight} type={'block'} />
-								</S.Height>
-							) : (
-								<p>None</p>
-							)}
-						</O.MessageInfoLine>
-						{scheduledSlot !== null && scheduledSlot !== undefined ? (
-							<O.MessageInfoLine>
-								<span>{`${language.slot}: `}</span>
-								<p>{formatCount(scheduledSlot.toString())}</p>
-							</O.MessageInfoLine>
-						) : (
-							<O.MessageInfoLine>
-								<span>{`${language.size}: `}</span>
-								<p>{getByteSizeDisplay(Number(txResponse?.node?.data?.size) ?? 0)}</p>
-							</O.MessageInfoLine>
-						)}
-					</O.MessageInfoBody>
-				</O.MessageInfo>
-			</>
-		);
-	};
-
-	const BlockInfoSection = () => {
-		const { txResponse } = React.useContext(TxResponseContext);
-		const node: any = txResponse?.node;
-		const blockId = node?.blockId;
-		const previous = node?.previous;
-		const txRoot = node?.txRoot;
-		const blockSizeValue = node?.blockSize?.toString?.() ?? null;
-		const blockSize = blockSizeValue ? Number(blockSizeValue) : null;
-		const txCount = typeof node?.txCount === 'number' ? node.txCount : null;
-		const miner = node?.miner ?? null;
-		const minerReward = node?.minerReward ?? null;
-		const confirmations = typeof node?.confirmations === 'number' ? node.confirmations : null;
-		const timestamp = txResponse?.node?.block?.timestamp ?? null;
-
-		return (
-			<O.MessageInfo className={'border-wrapper-primary'}>
-				<O.MessageInfoHeader>
-					<p>{language.blockOverview}</p>
-					<O.MessageInfoID>
-						<span>{`${language.height}: `}</span>
-						{txResponse?.node?.block?.height ? (
-							<S.Height>
-								<ExplorerLink value={txResponse.node.block.height} type={'block'} />
-							</S.Height>
-						) : (
-							<p>-</p>
-						)}
-					</O.MessageInfoID>
-				</O.MessageInfoHeader>
-				<O.MessageInfoBody $desktopItemCount={9}>
-					<O.MessageInfoLine>
-						<span>{`${language.blockId}: `}</span>
-						{blockId ? (
-							<S.HashLink>
-								<ExplorerLink value={blockId} label={formatBlockId(blockId, false)} />
-							</S.HashLink>
-						) : (
-							<p>-</p>
-						)}
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.previousBlock}: `}</span>
-						{previous ? (
-							<S.HashLink>
-								<ExplorerLink value={previous} label={formatBlockId(previous, false)} />
-							</S.HashLink>
-						) : (
-							<p>-</p>
-						)}
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.txRoot}: `}</span>
-						<CopyableValue value={txRoot} label={txRoot ? formatMetadataHash(txRoot) : '-'} />
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.miner}: `}</span>
-						{miner ? checkValidAddress(miner) ? <TxAddress address={miner} /> : <p>{miner}</p> : <p>-</p>}
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.minerReward}: `}</span>
-						<p>{formatArDisplay(null, minerReward)}</p>
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.transactions}: `}</span>
-						<p>{txCount !== null ? formatCount(txCount.toString()) : '-'}</p>
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.date}: `}</span>
-						<TxOverviewValue
-							primary={timestamp ? formatDate(timestamp * 1000, 'timestamp', true) : '-'}
-							secondary={timestamp ? `${getRelativeDate(timestamp * 1000)}` : null}
-						/>
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.confirmations}: `}</span>
-						<p>{confirmations !== null ? formatCount(confirmations.toString()) : '-'}</p>
-					</O.MessageInfoLine>
-					<O.MessageInfoLine>
-						<span>{`${language.blockSize}: `}</span>
-						<p title={blockSizeValue ?? undefined}>
-							{blockSize !== null && Number.isFinite(blockSize) ? getByteSizeDisplay(blockSize) : blockSizeValue ?? '-'}
-						</p>
-					</O.MessageInfoLine>
-				</O.MessageInfoBody>
-			</O.MessageInfo>
-		);
-	};
-
-	const BundleTagsSection = () => {
-		const { txResponse } = React.useContext(TxResponseContext);
-		const tags = (txResponse?.node?.tags ?? []).filter(
-			(tag) => !['type', 'name'].includes(tag.name.toLowerCase()) && !tag.name.toLowerCase().endsWith('+link')
-		);
-		if (!tags.length) return null;
-		return <TagsSection tags={tags} showCount={false} />;
-	};
-
-	const TransactionTagsSection = (props: { fixedHeight?: number } = {}) => {
-		const { txResponse } = React.useContext(TxResponseContext);
-		const tags = txResponse
-			? [
-					...(resolvedType === 'process'
-						? [{ name: language.owner, value: txResponse.node?.owner?.address ?? '' }]
-						: []),
-					...(txResponse.node?.tags ?? []),
-			  ]
-			: null;
-		return <TagsSection tags={tags} fixedHeight={props.fixedHeight} />;
-	};
-
-	const DataSection = (props: { dataHeader?: string; fixedHeight?: number }) => {
-		const { txResponse, inputTxId } = React.useContext(TxResponseContext);
-		const [transactionData, setTransactionData] = React.useState<TransactionData | null>(null);
-		const [htmlPreviewReady, setHtmlPreviewReady] = React.useState<boolean>(false);
-
-		const hasTransaction = !!txResponse;
-		const knownDataSize = txResponse?.node?.data?.size ?? null;
-		const declaredContentType =
-			(txResponse?.node?.tags ? getTagValue(txResponse.node.tags, 'Content-Type') : null) ??
-			txResponse?.node?.data?.type ??
-			null;
-		// Render with the content type the adapter returned alongside a validated body.
-		const contentType = transactionData?.status === 'content' ? transactionData.contentType : declaredContentType;
-		const normalizedContentType = contentType?.split(';')[0].trim().toLowerCase();
-
-		// Check for video and audio content types
-		const isVideo = normalizedContentType?.startsWith('video/');
-		const isAudio = normalizedContentType?.startsWith('audio/');
-
-		// Unsupported binary content types that can't be rendered
-		const unsupportedContentTypes = [
-			'application/beam-archive',
-			'application/octet-stream',
-			'application/zip',
-			'application/x-tar',
-			'application/x-gzip',
-			'application/x-bzip2',
-			'application/x-rar-compressed',
-			'application/x-7z-compressed',
-			'application/pdf',
-			'application/vnd.ms-excel',
-			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-			'application/msword',
-			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-			'application/vnd.ms-powerpoint',
-			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-			'application/x-shockwave-flash',
-			'application/x-executable',
-			'application/x-deb',
-			'application/x-rpm',
-			'font/', // Any font type
-			'model/', // Any 3D model type
-		];
-
-		const isUnsupported =
-			normalizedContentType &&
-			unsupportedContentTypes.some((unsupportedType) => normalizedContentType.startsWith(unsupportedType));
-
-		const isMarkdown = ['text/markdown', 'text/x-markdown', 'application/markdown'].includes(
-			normalizedContentType ?? ''
-		);
-		const isCSV = ['text/csv', 'application/csv', 'text/comma-separated-values'].includes(normalizedContentType ?? '');
-		const isHTML = ['text/html', 'application/xhtml+xml'].includes(normalizedContentType ?? '');
-
-		const data = React.useMemo(
-			() =>
-				transactionData?.status === 'content'
-					? parseTransactionDataValue(transactionData.text, isMarkdown || isCSV || isHTML)
-					: null,
-			[transactionData, isMarkdown, isCSV, isHTML]
-		);
-
-		React.useEffect(() => {
-			// Wait for the lookup so the recorded data size and content type are known before reading the body.
-			if (!hasTransaction || !checkValidAddress(inputTxId)) return;
-
-			const controller = new AbortController();
-			setTransactionData(null);
-			setHtmlPreviewReady(false);
-
-			(async function () {
-				const result = await readTransactionData({
-					txId: inputTxId,
-					knownSize: knownDataSize,
-					contentType: declaredContentType,
-					signal: controller.signal,
-				});
-
-				if (controller.signal.aborted) return;
-				if (result.status === 'error') console.error(`Transaction data unavailable: ${result.code}`);
-				setTransactionData(result);
-			})();
-
-			return () => controller.abort();
-		}, [hasTransaction, inputTxId, knownDataSize, declaredContentType]);
-
-		function getDataText(text: string) {
-			return (
-				<Editor
-					initialData={text}
-					header={'Data'}
-					language={'lua'}
-					readOnly
-					loading={false}
-					fixedHeight={props.fixedHeight ?? 600}
-				/>
-			);
-		}
-
-		function getDataContent() {
-			if (!transactionData) {
-				return props.fixedHeight ? (
-					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight} />
-				) : null;
-			}
-
-			if (transactionData.status === 'error') return getDataText(language.errorFetchingData || 'Error Fetching Data');
-			if (transactionData.status === 'empty' || data === null) return getDataText(language.noData);
-
-			// Check for unsupported content types
-			if (isUnsupported) {
-				return (
-					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
-						<S.UnsupportedContent>
-							<p>Unsupported Content Type</p>
-							<span>{contentType || 'Unknown'}</span>
-							<small>This format cannot be rendered</small>
-							<a href={`https://arweave.net/${inputTxId}`} target="_blank" rel="noopener noreferrer">
-								See on Arweave
-							</a>
-						</S.UnsupportedContent>
-					</S.DataSection>
-				);
-			}
-
-			// Render video
-			if (isVideo) {
-				return (
-					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
-						<S.MediaWrapper>
-							<video controls style={{ maxWidth: '100%', height: 'auto' }} preload="metadata">
-								<source src={getTxEndpoint(inputTxId)} type={contentType || undefined} />
-								Your browser does not support the video tag.
-							</video>
-						</S.MediaWrapper>
-					</S.DataSection>
-				);
-			}
-
-			// Render audio
-			if (isAudio) {
-				return (
-					<S.DataSection className={'border-wrapper-alt3'} $fixedHeight={props.fixedHeight}>
-						<S.MediaWrapper>
-							<audio controls style={{ width: '100%' }} preload="metadata">
-								<source src={getTxEndpoint(inputTxId)} type={contentType || undefined} />
-								Your browser does not support the audio tag.
-							</audio>
-						</S.MediaWrapper>
-					</S.DataSection>
-				);
-			}
-
-			// Render images
-			if (normalizedContentType?.startsWith('image/')) {
-				return (
-					<S.DataSection $fixedHeight={props.fixedHeight}>
-						<img
-							src={getTxEndpoint(inputTxId)}
-							alt={language.transactionData}
-							style={{ maxWidth: '100%', height: 'auto' }}
-						/>
-					</S.DataSection>
-				);
-			}
-
-			if (isHTML && typeof data === 'string') {
-				return (
-					<S.HTMLDataPreviewContainer>
-						<S.HTMLPreviewProbe $visible={htmlPreviewReady} aria-hidden={!htmlPreviewReady}>
-							<HTMLViewer
-								html={data}
-								baseUrl={getTxEndpoint(inputTxId)}
-								header={props.dataHeader ?? language.data}
-								fixedHeight={props.fixedHeight ?? 600}
-								className={'border-wrapper-primary'}
-								title={language.transactionData}
-								onPreviewReady={() => setHtmlPreviewReady(true)}
-								onPreviewError={() => setHtmlPreviewReady(false)}
-							/>
-						</S.HTMLPreviewProbe>
-						{!htmlPreviewReady && (
-							<Editor
-								initialData={data}
-								header={props.dataHeader ?? language.data}
-								language={'html'}
-								readOnly
-								loading={false}
-								fixedHeight={props.fixedHeight ?? 600}
-							/>
-						)}
-					</S.HTMLDataPreviewContainer>
-				);
-			}
-
-			if (isCSV && typeof data === 'string') {
-				return (
-					<CSVViewer
-						csv={data}
-						header={props.dataHeader ?? language.data}
-						fixedHeight={props.fixedHeight ?? 600}
-						filename={inputTxId}
-					/>
-				);
-			}
-
-			if (isMarkdown && typeof data === 'string') {
-				return (
-					<MarkdownViewer
-						markdown={data}
-						header={props.dataHeader ?? language.data}
-						fixedHeight={props.fixedHeight ?? 600}
-						embedded
-						compact
-						className={'border-wrapper-primary'}
-					/>
-				);
-			}
-
-			if (typeof data === 'object') {
-				return (
-					<JSONReader
-						data={data}
-						header={props.dataHeader ?? null}
-						maxHeight={props.fixedHeight ?? 600}
-						fixedHeight={props.fixedHeight}
-					/>
-				);
-			}
-
-			return getDataText(String(data));
-		}
-
-		return <>{getDataContent()}</>;
-	};
-
-	const TABS = React.useMemo(() => {
+	// Updating tab descriptors must preserve the component types and loaded state inside each URL pane.
+	const TABS = (() => {
 		if (!inputTxId) return null;
-
-		const showOverview = resolvedType === 'message';
-		const showMessages = resolvedType === 'message';
-		const showTags = resolvedType === 'process';
-		const showRead = resolvedType === 'process' || resolvedType === 'message';
 
 		const tabs: React.ComponentProps<typeof URLTabs>['tabs'] = [
 			{
@@ -1502,8 +1524,7 @@ function Transaction(props: {
 				icon: ASSETS.overview,
 				disabled: false,
 				url: URLS.explorerInfo(inputTxId),
-				view: () => {
-					const { txResponse, refreshKey } = React.useContext(TxResponseContext);
+				content: (() => {
 					if (!txResponse && props.inspector?.id === inputTxId) return <>{props.inspector.fallback}</>;
 
 					const variant = getAoVariantFromTags(txResponse?.node?.tags);
@@ -1531,7 +1552,7 @@ function Transaction(props: {
 						case 'bundle':
 							return (
 								<S.ColumnFlexWrapper>
-									<TransactionOverviewSection />
+									<TransactionOverviewSection bundleTransactionCount={bundleTransactionCount} />
 									<BundleTagsSection />
 									{txResponse?.node?.id === inputTxId && (
 										<TransactionList
@@ -1546,66 +1567,60 @@ function Transaction(props: {
 								</S.ColumnFlexWrapper>
 							);
 						case 'process':
+							return (
+								<S.DetailsLayout>
+									<S.DetailsMain>
+										<S.ColumnFlexWrapper>
+											{txResponse && <AoProcess process={getAoProcessSummary(txResponse.node)} />}
+											<ProcessRead key={refreshKey} processId={inputTxId} variant={variant} autoRun={true} />
+										</S.ColumnFlexWrapper>
+									</S.DetailsMain>
+									{getDetailsPanel()}
+								</S.DetailsLayout>
+							);
 						case 'message':
 							return (
 								<S.ColumnFlexWrapper>
-									{resolvedType === 'process' && txResponse && (
-										<AoProcess process={getAoProcessSummary(txResponse.node)} />
-									)}
-									{resolvedType === 'message' && <MessageTransferSection />}
-									<TransactionOverviewSection />
-									{showOverview && <MessageInfoSection />}
-									{showRead && (
-										<S.InfoWrapper>
-											{showTags && (
-												<S.TagsWrapper>
-													<TransactionTagsSection />
-												</S.TagsWrapper>
-											)}
-											<S.ReadWrapper fullWidth={!showTags}>
-												{resolvedType === 'process' && (
-													<>
-														<ProcessRead key={refreshKey} processId={inputTxId} variant={variant} autoRun={true} />
-													</>
-												)}
-												{resolvedType === 'message' && (
-													<MessageResult
-														key={refreshKey}
-														processId={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
-														messageId={inputTxId}
-														variant={variant}
-														tags={txResponse?.node?.tags ?? null}
-														result={messageResult}
-														skipResultFetch={true}
-														active={props.active}
-													/>
-												)}
-											</S.ReadWrapper>
-										</S.InfoWrapper>
-									)}
-									{showMessages && (
-										<S.MessageHeaderWrapper ref={messageListRef}>
-											{checkValidAddress(inputTxId) && (
-												<MessageList
+									<S.DetailsLayout>
+										<S.DetailsMain>
+											<S.ColumnFlexWrapper>
+												<MessageTransferSection result={messageResult} onResultsOpen={scrollToMessageList} />
+												<MessageInfoSection />
+												<MessageResult
 													key={refreshKey}
-													header={language.resultingMessages}
-													txId={inputTxId}
+													processId={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
+													messageId={inputTxId}
 													variant={variant}
-													type={resolvedType}
-													recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
-													parentId={inputTxId}
-													authority={getTagValue(txResponse?.node?.tags, 'Authority')}
-													onMessageOpen={(id: string) => props.onMessageOpen(id)}
+													tags={txResponse?.node?.tags ?? null}
 													result={messageResult}
-													timestamp={txResponse?.node?.block?.timestamp}
 													skipResultFetch={true}
-													showFilteredMessages={true}
-													hydrateAoTransferNotices={hydrateAoTransferNotices}
-													showResultMessageLabel={true}
+													active={props.active}
 												/>
-											)}
-										</S.MessageHeaderWrapper>
-									)}
+											</S.ColumnFlexWrapper>
+										</S.DetailsMain>
+										{getDetailsPanel()}
+									</S.DetailsLayout>
+									<S.MessageHeaderWrapper ref={messageListRef}>
+										{checkValidAddress(inputTxId) && (
+											<MessageList
+												key={refreshKey}
+												header={language.resultingMessages}
+												txId={inputTxId}
+												variant={variant}
+												type={resolvedType}
+												recipient={txResponse?.node?.recipient ?? getTagValue(txResponse?.node?.tags, 'Target')}
+												parentId={inputTxId}
+												authority={getTagValue(txResponse?.node?.tags, 'Authority')}
+												onMessageOpen={(id: string) => props.onMessageOpen(id)}
+												result={messageResult}
+												timestamp={txResponse?.node?.block?.timestamp}
+												skipResultFetch={true}
+												showFilteredMessages={true}
+												hydrateAoTransferNotices={hydrateAoTransferNotices}
+												showResultMessageLabel={true}
+											/>
+										)}
+									</S.MessageHeaderWrapper>
 								</S.ColumnFlexWrapper>
 							);
 						case 'wallet':
@@ -1621,7 +1636,7 @@ function Transaction(props: {
 											quantity={tokenTransfer.quantity}
 										/>
 									)}
-									<TransactionOverviewSection />
+									<TransactionOverviewSection bundleTransactionCount={bundleTransactionCount} />
 									<S.InfoWrapper>
 										<S.SectionWrapperFlex>
 											<TransactionTagsSection />
@@ -1633,7 +1648,7 @@ function Transaction(props: {
 								</S.ColumnFlexWrapper>
 							);
 					}
-				},
+				})(),
 			},
 		];
 
@@ -1654,9 +1669,7 @@ function Transaction(props: {
 					icon: ASSETS.message,
 					disabled: false,
 					url: URLS.explorerMessages(inputTxId),
-					view: () => {
-						const { txResponse, refreshKey } = React.useContext(TxResponseContext);
-
+					content: (() => {
 						return (
 							<S.MessagesWrapper>
 								<S.MessagesSection>
@@ -1672,55 +1685,50 @@ function Transaction(props: {
 								</S.MessagesSection>
 							</S.MessagesWrapper>
 						);
-					},
+					})(),
 				},
 				{
 					label: language.read,
 					icon: ASSETS.read,
 					disabled: false,
 					url: URLS.explorerRead(inputTxId),
-					view: () => {
-						const { txResponse } = React.useContext(TxResponseContext);
-
+					content: (() => {
 						const variant = getAoVariantFromTags(txResponse?.node?.tags);
 						return <ProcessEditor processId={inputTxId} variant={variant} type={'read'} isFullscreen={isFullscreen} />;
-					},
+					})(),
 				},
 				{
 					label: language.write,
 					icon: ASSETS.write,
 					disabled: false,
 					url: URLS.explorerWrite(inputTxId),
-					view: () => {
-						const { txResponse } = React.useContext(TxResponseContext);
-
+					content: (() => {
 						const variant = getAoVariantFromTags(txResponse?.node?.tags);
 						return <ProcessEditor processId={inputTxId} variant={variant} type={'write'} isFullscreen={isFullscreen} />;
-					},
+					})(),
 				},
 				{
 					label: language.data || 'Data',
 					icon: ASSETS.data,
 					disabled: false,
 					url: URLS.explorerData(inputTxId),
-					view: () => {
+					content: (() => {
 						return <DataSection />;
-					},
+					})(),
 				},
 				{
 					label: language.source,
 					icon: ASSETS.code,
 					disabled: false,
 					url: URLS.explorerSource(inputTxId),
-					view: () => {
-						const { txResponse } = React.useContext(TxResponseContext);
+					content: (() => {
 						return (
 							<ProcessSource
 								processId={inputTxId}
 								onBoot={txResponse?.node?.tags ? getTagValue(txResponse.node.tags, TAGS.keys.onBoot) : undefined}
 							/>
 						);
-					},
+					})(),
 				}
 			);
 
@@ -1730,30 +1738,16 @@ function Transaction(props: {
 					icon: ASSETS.console,
 					disabled: false,
 					url: URLS.explorerAOS(inputTxId),
-					view: () => {
+					content: (() => {
 						const hash = window.location.hash.replace('#', '');
 						return <AOS processId={inputTxId} active={hash === URLS.explorerAOS(inputTxId)} />;
-					},
+					})(),
 				});
 			}
 		}
 
 		return tabs;
-	}, [
-		props.type,
-		props.active,
-		props.processMessagesView,
-		props.inspector,
-		props.onMessageOpen,
-		resolvedType,
-		inputTxId,
-		arProvider.walletAddress,
-		ownerAddress,
-		language,
-		messageResult,
-		isFullscreen,
-		bundleTransactionCount,
-	]);
+	})();
 
 	const contextValue = React.useMemo(
 		() => ({ txResponse, inputTxId, type: resolvedType, refreshKey }),
@@ -1808,6 +1802,27 @@ function Transaction(props: {
 		const activeUrl = matchingTab ? matchingTab.url : TABS[0]?.url;
 		return <URLTabs key={props.tabKey} tabs={TABS} activeUrl={activeUrl} noUrlCopy isParentActive={props.active} />;
 	})();
+
+	function getDetailsPanel() {
+		return (
+			<S.DetailsPanel ref={detailsPanelRef} $stickyTop={stickyTop} aria-label={language.transactionOverview}>
+				<Tabs
+					key={inputTxId}
+					label={language.transactionOverview}
+					tabs={[
+						...(resolvedType === 'process'
+							? [{ id: 'tags', label: language.tags, content: <TransactionTagsSection embedded /> }]
+							: []),
+						{
+							id: 'overview',
+							label: language.transactionOverview,
+							content: <TransactionOverviewSection compact bundleTransactionCount={bundleTransactionCount} />,
+						},
+					]}
+				/>
+			</S.DetailsPanel>
+		);
+	}
 
 	function getTransaction() {
 		const showPlaceholder = !inputTxId || (!txResponse && props.inspector?.id !== inputTxId);
@@ -1962,7 +1977,7 @@ function Transaction(props: {
 									{resolvedType && txResponse && (
 										<>
 											<C.UpdateWrapperType>
-												<ReactSVG src={ASSETS[resolvedType] ?? ASSETS.transaction} />
+												<ReactSVG src={getTransactionIcon(txResponse.node, resolvedType)} />
 												<span>{capitalize(resolvedType)}</span>
 											</C.UpdateWrapperType>
 											{isMiner && (

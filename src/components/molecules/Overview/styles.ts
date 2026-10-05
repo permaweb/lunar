@@ -4,7 +4,7 @@ import { transition1 } from 'helpers/animations';
 import { STYLING } from 'helpers/config';
 
 function getDesktopLastRowBorderStyles(props: {
-	$columns?: 2 | 3;
+	$columns?: 1 | 2 | 3;
 	$desktopItemCount?: number;
 	$hideDesktopLastRowBorder?: boolean;
 	theme: DefaultTheme;
@@ -87,7 +87,8 @@ export const MessageInfoHeader = styled.div`
 export const MessageInfoBody = styled.div<{
 	$desktopItemCount?: number;
 	$hideDesktopLastRowBorder?: boolean;
-	$columns?: 2 | 3;
+	$columns?: 1 | 2 | 3;
+	$compact?: boolean;
 }>`
 	display: grid;
 	grid-template-columns: repeat(${(props) => props.$columns ?? 3}, 1fr);
@@ -130,6 +131,45 @@ export const MessageInfoBody = styled.div<{
 			border-bottom: none;
 		}
 	}
+
+	${(props) =>
+		props.$columns === 1 &&
+		`
+			> *, > *:last-child {
+				flex-direction: column;
+				align-items: flex-start;
+				justify-content: flex-start;
+				text-align: left;
+				border-right: none;
+			}
+		`}
+
+	${(props) =>
+		props.$compact &&
+		`
+			row-gap: 20px;
+
+			> *, > *:nth-child(n), > *:last-child {
+				min-height: 0;
+				flex-direction: row;
+				flex-wrap: wrap;
+				align-items: center;
+				justify-content: flex-start;
+				text-align: left;
+				padding: 0;
+				border: none;
+				row-gap: 2.5px;
+
+				> span {
+					flex-shrink: 0;
+				}
+
+				> div {
+					min-width: 0;
+					max-width: 100%;
+				}
+			}
+		`}
 `;
 
 export const TxOverviewValue = styled.div`
@@ -195,7 +235,7 @@ export const MessageInfoID = styled(MessageInfoLine)`
 	}
 `;
 
-export const TagList = styled.div<{ $fixedHeight?: number; $hasOverflow?: boolean }>`
+export const TagList = styled.div<{ $fixedHeight?: number; $hasOverflow?: boolean; $hasDividers?: boolean }>`
 	height: ${(props) => (props.$fixedHeight ? `calc(${props.$fixedHeight}px - 80px)` : 'fit-content')};
 	max-height: 526.5px;
 	display: flex;
@@ -216,7 +256,8 @@ export const TagList = styled.div<{ $fixedHeight?: number; $hasOverflow?: boolea
 	> * {
 		&:not(:last-child) {
 			padding: 0 0 10px 0;
-			border-bottom: 1px dotted ${(props) => props.theme.colors.border.primary};
+			border-bottom: ${(props) =>
+				props.$hasDividers === false ? 'none' : `1px dotted ${props.theme.colors.border.primary}`};
 		}
 	}
 
@@ -243,8 +284,7 @@ export const TagRow = styled.div`
 	p {
 		color: ${(props) => props.theme.colors.font.primary};
 		text-align: right;
-		text-align: right;
-		max-width: 45%;
+		max-width: 100%;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;

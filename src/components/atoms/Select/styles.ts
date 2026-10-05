@@ -151,7 +151,7 @@ export const dropdownItemStyles = css<{ $active?: boolean }>`
 	padding: 0 4px 0 10px;
 	text-align: left;
 	cursor: pointer;
-	color: ${(props) => (props.$active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
+	color: ${(props) => props.theme.colors.font.primary};
 	font-family: ${(props) => props.theme.typography.family.primary};
 	font-size: ${(props) => props.theme.typography.size.xxSmall};
 	font-weight: ${(props) => props.theme.typography.weight.bold};

@@ -63,6 +63,6 @@ it('uses the configured endpoint with one bounded request and propagates cancell
 	expect(fetch).toHaveBeenCalledOnce();
 	expect(fetch.mock.calls[0][0]).toBe('https://gateway.example/graphql');
 	expect(fetch.mock.calls[0][1].signal).toBe(controller.signal);
-	expect(JSON.parse(fetch.mock.calls[0][1].body).query).toContain('processes: transactions(first: 6');
+	expect(JSON.parse(fetch.mock.calls[0][1].body).query.match(/first: 20/g)).toHaveLength(4);
 	expect(JSON.parse(fetch.mock.calls[0][1].body).query).toContain('data { size }');
 });

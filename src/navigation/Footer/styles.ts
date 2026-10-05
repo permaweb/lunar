@@ -8,7 +8,7 @@ export const Wrapper = styled.footer`
 	flex-wrap: wrap;
 	gap: 15px;
 	justify-content: space-between;
-	margin: 20px 0 0 0;
+	margin: 25px 0 0 0;
 	padding: 30px 50px;
 	border-top: 1px solid ${(props) => props.theme.colors.border.primary};
 

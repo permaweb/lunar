@@ -87,4 +87,33 @@ describe('Arweave block API adapter', () => {
 
 		expect(fetchMock.mock.calls[0][0]).toBe('https://gateway.example/~query@1.0/graphql');
 	});
+
+	it('queries filtered message pages without count while retaining cursors and safely escaped tag values', async () => {
+		const edge = { cursor: 'next-page', node: { id: 'm'.repeat(43), tags: [] } };
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ data: { transactions: { edges: [edge], pageInfo: { hasNextPage: true } } } }),
+		});
+		vi.stubGlobal('fetch', fetchMock);
+		const tags = [{ name: 'action', values: ['A"B\\C'] }];
+		const response = await getTransactions({
+			first: 25,
+			after: 'current-page',
+			includeCount: false,
+			tags,
+			owners: ['o'.repeat(43)],
+			recipients: ['p'.repeat(43)],
+			minBlock: 100,
+			maxBlock: 200,
+		});
+		const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+		expect(body.query).not.toMatch(/\bcount\b/);
+		expect(body.query).toContain(`name: "action", values: ${JSON.stringify(tags[0].values)}`);
+		expect(body.query).toContain(`owners: ${JSON.stringify(['o'.repeat(43)])}`);
+		expect(body.query).toContain(`recipients: ${JSON.stringify(['p'.repeat(43)])}`);
+		expect(body.query).toContain('block: { min: 100, max: 200 }');
+		expect(body.variables).toEqual({ first: 25, after: 'current-page' });
+		expect(response.transactions.edges).toEqual([edge]);
+		expect(response.transactions.pageInfo.hasNextPage).toBe(true);
+	});
 });

@@ -1,6 +1,7 @@
 import { requestRemote } from 'api/http';
 
 import {
+	ASSETS,
 	DEFAULT_ACTIONS,
 	DEFAULT_AO_NODE,
 	DEFAULT_LEGACY_AUTHORITY,
@@ -121,6 +122,24 @@ export function isNativeArTransfer(transaction: {
 // HyperBEAM token messages send lowercase tag values (action: transfer), so match the action case-insensitively.
 export function isTransferAction(action: string | null | undefined) {
 	return matchesIgnoreCase(action, DEFAULT_ACTIONS.transfer.name);
+}
+
+export function getTransactionIcon(
+	transaction:
+		| {
+				tags?: TagType[] | null;
+				recipient?: string | null;
+				quantity?: { winston?: string | number | null; ar?: string | number | null } | null;
+		  }
+		| null
+		| undefined,
+	type?: string | null
+): string {
+	if (transaction && (isTransferAction(getTagValue(transaction.tags, 'Action')) || isNativeArTransfer(transaction))) {
+		return ASSETS.transfer;
+	}
+
+	return ASSETS[type?.toLowerCase() ?? getTransactionTypeFromTags(transaction?.tags)] ?? ASSETS.transaction;
 }
 
 export function formatCount(count: string): string {

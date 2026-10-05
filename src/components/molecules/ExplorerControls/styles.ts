@@ -11,9 +11,14 @@ export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	position: relative;
 
 	&:fullscreen {
+		--workspace-height-adjustment: 0px;
+		height: 100dvh;
+		max-height: 100dvh;
+		min-height: 0;
 		background: ${(props) => props.theme.colors.container.primary.background};
 		padding: 25px;
 		overflow: auto;
+		overscroll-behavior: contain;
 	}
 `;
 

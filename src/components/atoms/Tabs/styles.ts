@@ -2,69 +2,86 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-export const Container = styled.div`
-	height: fit-content;
-	margin: auto 0 0 0;
-	position: relative;
-	padding: 0 7.5px;
+export const Wrapper = styled.div`
+	min-width: 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
 `;
 
 export const List = styled.div`
 	display: flex;
 	flex-wrap: wrap;
-	gap: 15px;
+	align-items: center;
+	gap: 25px;
+	flex-shrink: 0;
+	padding: 0 0 12.5px;
+	margin: -2.5px 0 0 0;
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+`;
+
+export const Tab = styled.button`
+	position: relative;
+	/* min-height: 30px; */
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: ${(props) => props.theme.colors.font.alt1};
+	font-size: ${(props) => props.theme.typography.size.xxSmall};
+	font-family: ${(props) => props.theme.typography.family.primary};
+	font-weight: ${(props) => props.theme.typography.weight.bold};
+	cursor: pointer;
+
+	&[aria-selected='true'],
+	&:hover:not(:disabled) {
+		color: ${(props) => props.theme.colors.font.primary};
+	}
+
+	&::after {
+		content: '';
+		position: absolute;
+		bottom: -12.5px;
+		left: 0;
+		height: 2.5px;
+		width: 100%;
+		background: ${(props) => props.theme.colors.border.alt4};
+		border-radius: ${STYLING.dimensions.radius.primary};
+		pointer-events: none;
+		transform: scaleX(0);
+		transform-origin: center;
+		transition: transform 0.15s ease;
+	}
+
+	&[aria-selected='true']::after,
+	&:hover:not(:disabled)::after,
+	&:focus-visible:not(:disabled)::after {
+		transform: scaleX(1);
+	}
+
+	&:focus-visible {
+		outline: 2px solid ${(props) => props.theme.colors.border.alt4};
+		outline-offset: 1px;
+	}
+
+	&:disabled {
+		color: ${(props) => props.theme.colors.button.primary.disabled.color};
+		cursor: default;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		&::after {
+			transition: none;
+		}
+	}
 `;
 
 export const Content = styled.div`
-	height: calc(100% - 25px);
-	position: relative;
+	min-height: 0;
+	margin-top: 12.5px;
 `;
 
-export const Tab = styled.div``;
-
-export const AltTab = styled.div`
-	position: relative;
-	display: flex;
-	justify-content: center;
-`;
-
-export const AltTabAction = styled.button<{ active: boolean; icon: boolean }>`
-	font-size: ${(props) => props.theme.typography.size.xSmall};
-	font-weight: ${(props) => props.theme.typography.weight.bold};
-	font-family: ${(props) => props.theme.typography.family.primary};
-	color: ${(props) => (props.active ? props.theme.colors.font.primary : props.theme.colors.font.alt1)};
-	cursor: pointer;
-
-	&:hover {
-		color: ${(props) => props.theme.colors.font.primary};
-	}
-
-	display: flex;
-	justify-content: center;
-	align-items: center;
-
-	&:after {
-		display: block;
-		content: '';
-		position: absolute;
-		left: 50%;
-		transform: translate(-50%, 0);
-		bottom: -7.5px;
-		background: ${(props) =>
-			props.active ? props.theme.colors.tabs.active.background : props.theme.colors.transparent};
-		height: 3.5px;
-		border-radius: ${STYLING.dimensions.radius.primary};
-		width: 100%;
-		pointer-events: none;
-	}
-`;
-
-export const Icon = styled.div<{ active: boolean }>`
-	svg {
-		height: 23.5px;
-		width: 23.5px;
-		padding: 3.5px 0 0 0;
-		margin: 0 12.5px 0 0;
-		color: ${(props) => props.theme.colors.font.primary};
+export const Panel = styled.div`
+	&[hidden] {
+		display: none;
 	}
 `;

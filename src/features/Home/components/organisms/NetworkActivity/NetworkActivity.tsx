@@ -33,7 +33,7 @@ export default function NetworkActivity() {
 		network === 'ao' && ['message', 'process'].includes(params.get('activity')) ? params.get('activity') : null;
 	const entries = activity.entries
 		?.filter((entry) => (network === 'all' || entry.network === network) && (!kind || entry.kind === kind))
-		.slice(0, 12);
+		.slice(0, 20);
 	const rows: TransactionListEntry[] = (entries ?? []).map((entry) => ({
 		cursor: entry.id,
 		node: {

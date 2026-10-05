@@ -5,6 +5,7 @@ export const Wrapper = styled.div<{
 	fixedHeight?: number;
 	$maxHeight?: number;
 	$textStyle?: 'code' | 'body';
+	$hasStandaloneFullscreen?: boolean;
 }>`
 	padding: ${(props) => (props.noWrapper ? '0' : `15px`)};
 	font-family: ${(props) => props.theme.typography.family[props.$textStyle === 'body' ? 'primary' : 'alt2']};
@@ -20,6 +21,18 @@ export const Wrapper = styled.div<{
 			max-height: ${props.$maxHeight}px;
 			display: flex;
 			flex-direction: column;
+		`}
+	${(props) =>
+		props.$hasStandaloneFullscreen &&
+		`
+			${!props.fixedHeight ? 'height: 100%;' : ''}
+			display: flex;
+			flex-direction: column;
+
+			> .scroll-wrapper {
+				flex: 1;
+				height: auto;
+			}
 		`}
 
 	ul {
@@ -61,6 +74,13 @@ export const ActionsWrapper = styled.div`
 	width: fit-content;
 	display: flex;
 	gap: 15px;
+`;
+
+export const FullscreenActions = styled.div`
+	display: flex;
+	justify-content: flex-end;
+	flex-shrink: 0;
+	padding-top: 7.5px;
 `;
 
 export const JSONViewerRoot = styled.div<{

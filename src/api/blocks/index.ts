@@ -101,6 +101,12 @@ export type GetTransactionsArgs = {
 	after?: string | null;
 	typeFilter?: TransactionTypeFilter | null;
 	includeCount?: boolean;
+	tags?: { name: string; values: string[] }[];
+	owners?: string[];
+	recipients?: string[];
+	minBlock?: number;
+	maxBlock?: number;
+	sort?: 'ascending' | 'descending';
 };
 
 export type GetTransactionsByBlockArgs = {
@@ -256,28 +262,39 @@ function getTransactionTypeFilterTags(typeFilter: TransactionTypeFilter | null |
 	}
 }
 
-function getTransactionTagsArg(typeFilter: TransactionTypeFilter | null | undefined) {
-	const tags = getTransactionTypeFilterTags(typeFilter);
+function getTransactionTagsArg(
+	typeFilter: TransactionTypeFilter | null | undefined,
+	customTags?: GetTransactionsArgs['tags']
+) {
+	const tags = customTags ?? getTransactionTypeFilterTags(typeFilter);
 
 	return tags.length
 		? `
 			tags: [
-				${tags
-					.map((tag) => `{ name: "${tag.name}", values: [${tag.values.map((value) => `"${value}"`).join(', ')}] }`)
-					.join('\n')}
+				${tags.map((tag) => `{ name: ${JSON.stringify(tag.name)}, values: ${JSON.stringify(tag.values)} }`).join('\n')}
 			]
 		`
 		: '';
 }
 
-function getTransactionsQuery(args: { includeCount: boolean; typeFilter?: TransactionTypeFilter | null }) {
+function getTransactionsQuery(args: GetTransactionsArgs) {
+	const blockRange = [
+		args.minBlock !== undefined ? `min: ${args.minBlock}` : null,
+		args.maxBlock !== undefined ? `max: ${args.maxBlock}` : null,
+	].filter(Boolean);
+	const sort =
+		args.sort === 'ascending' ? 'INGESTED_AT_ASC' : args.sort === 'descending' ? 'INGESTED_AT_DESC' : 'HEIGHT_DESC';
+
 	return `
 		query Transactions($first: Int, $after: String) {
 			transactions(
-				${getTransactionTagsArg(args.typeFilter)}
+				${getTransactionTagsArg(args.typeFilter, args.tags)}
+				${args.owners ? `owners: ${JSON.stringify(args.owners)}` : ''}
+				${args.recipients ? `recipients: ${JSON.stringify(args.recipients)}` : ''}
+				${blockRange.length ? `block: { ${blockRange.join(', ')} }` : ''}
 				first: $first
 				after: $after
-				sort: HEIGHT_DESC
+				sort: ${sort}
 			) {
 				${getTransactionFields(args.includeCount)}
 			}
@@ -580,10 +597,7 @@ export async function getTransactionCountByBlock(
 
 export async function getTransactions(args: GetTransactionsArgs = {}): Promise<TransactionsQueryResponse> {
 	const response = await queryGraphQL<TransactionsQueryResponse>({
-		query: getTransactionsQuery({
-			includeCount: args.includeCount ?? false,
-			typeFilter: args.typeFilter,
-		}),
+		query: getTransactionsQuery(args),
 		variables: {
 			first: getFirst(args.first),
 			after: args.after ?? null,

@@ -208,12 +208,6 @@ export const Primary = styled.button<{
 					: props.theme.colors.button.primary.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning || props.success
-					? props.theme.colors.font.light1
-					: props.iconOnly
-					? props.theme.colors.button.primary.active.color
-					: props.theme.colors.button.primary.active.color} !important;
 			color: ${(props) =>
 				props.warning || props.success
 					? props.theme.colors.font.light1
@@ -247,12 +241,6 @@ export const Primary = styled.button<{
 					: props.theme.colors.button.primary.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning || props.success
-					? props.theme.colors.font.light1
-					: props.iconOnly
-					? props.theme.colors.button.primary.active.color
-					: props.theme.colors.button.primary.active.color} !important;
 			color: ${(props) =>
 				props.warning || props.success
 					? props.theme.colors.font.light1
@@ -275,7 +263,6 @@ export const Primary = styled.button<{
 			color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 			color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 		}
 	}
@@ -324,14 +311,6 @@ export const IconPrimary = styled.div<{
 		padding: ${(props) => (props.noLabel ? '0' : `2px 0 0 0`)};
 		margin: ${(props) => (props.noLabel ? '0' : props.leftAlign ? `2.5px 9.5px 0 0` : `2.5px 0 0 9.5px`)};
 		color: ${(props) =>
-			props.warning || props.success
-				? props.theme.colors.font.light1
-				: props.disabled
-				? props.theme.colors.button.primary.disabled.color
-				: props.active
-				? props.theme.colors.button.primary.active.color
-				: props.theme.colors.button.primary.color};
-		fill: ${(props) =>
 			props.warning || props.success
 				? props.theme.colors.font.light1
 				: props.disabled
@@ -405,14 +384,6 @@ export const Alt1 = styled(Primary)`
 					: props.theme.colors.button.alt1.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning || props.success
-					? props.theme.colors.font.light1
-					: props.disabled
-					? props.theme.colors.button.primary.disabled.color
-					: props.iconOnly
-					? props.theme.colors.button.primary.color
-					: props.theme.colors.button.alt1.active.color} !important;
 			color: ${(props) =>
 				props.warning || props.success
 					? props.theme.colors.font.light1
@@ -450,12 +421,6 @@ export const Alt1 = styled(Primary)`
 					: props.theme.colors.button.alt1.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning || props.success
-					? props.theme.colors.font.light1
-					: props.iconOnly
-					? props.theme.colors.font.primary
-					: props.theme.colors.button.alt1.active.color} !important;
 			color: ${(props) =>
 				props.warning || props.success
 					? props.theme.colors.font.light1
@@ -471,7 +436,6 @@ export const Alt1 = styled(Primary)`
 			color: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
 			color: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
 		}
 	}
@@ -490,16 +454,6 @@ export const Alt1 = styled(Primary)`
 export const IconAlt1 = styled(IconPrimary)`
 	svg {
 		color: ${(props) =>
-			props.disabled
-				? props.theme.colors.button.alt1.disabled.color
-				: props.warning || props.success
-				? props.theme.colors.font.light1
-				: props.active
-				? props.noLabel
-					? props.theme.colors.button.primary.active.color
-					: props.theme.colors.button.alt1.active.color
-				: props.theme.colors.button.primary.color};
-		fill: ${(props) =>
 			props.disabled
 				? props.theme.colors.button.alt1.disabled.color
 				: props.warning || props.success
@@ -528,7 +482,6 @@ export const Alt2 = styled(Alt1)`
 		}
 
 		svg {
-			fill: ${(props) => props.theme.colors.button.alt2.active.color} !important;
 			color: ${(props) => props.theme.colors.button.alt2.active.color} !important;
 		}
 	}
@@ -538,7 +491,6 @@ export const Alt2 = styled(Alt1)`
 		}
 
 		svg {
-			fill: ${(props) => props.theme.colors.button.alt2.active.color} !important;
 			color: ${(props) => props.theme.colors.button.alt2.active.color} !important;
 		}
 	}
@@ -549,7 +501,6 @@ export const Alt2 = styled(Alt1)`
 			color: ${(props) => props.theme.colors.button.alt2.disabled.color} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.button.alt2.disabled.color} !important;
 			color: ${(props) => props.theme.colors.button.alt2.disabled.color} !important;
 		}
 	}
@@ -616,8 +567,6 @@ export const Alt3 = styled(Primary)`
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 			color: ${(props) =>
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
@@ -633,8 +582,6 @@ export const Alt3 = styled(Primary)`
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 			color: ${(props) =>
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
@@ -647,7 +594,6 @@ export const Alt3 = styled(Primary)`
 			color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 			color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 		}
 	}
@@ -657,14 +603,6 @@ export const IconAlt3 = styled(IconPrimary)`
 	${smallIcon}
 	svg {
 		color: ${(props) =>
-			props.disabled
-				? props.theme.colors.button.primary.disabled.color
-				: props.warning
-				? props.theme.colors.font.light1
-				: props.active
-				? props.theme.colors.button.primary.active.color
-				: props.theme.colors.button.primary.color};
-		fill: ${(props) =>
 			props.disabled
 				? props.theme.colors.button.primary.disabled.color
 				: props.warning
@@ -716,8 +654,6 @@ export const Alt4 = styled(Primary)`
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 			color: ${(props) =>
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
@@ -732,8 +668,6 @@ export const Alt4 = styled(Primary)`
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
 		svg {
-			fill: ${(props) =>
-				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 			color: ${(props) =>
 				props.warning ? props.theme.colors.font.light1 : props.theme.colors.button.primary.active.color} !important;
 		}
@@ -745,7 +679,6 @@ export const Alt4 = styled(Primary)`
 			color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 			color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 		}
 	}
@@ -758,15 +691,7 @@ export const IconAlt4 = styled(IconPrimary)`
 		margin: ${(props) => (props.noLabel ? '0' : props.leftAlign ? `2.5px 6.5px 0 0` : `2.5px 0 0 6.5px`)};
 		color: ${(props) =>
 			props.disabled
-				? props.theme.colors.button.alt2.disabled.color
-				: props.warning
-				? props.theme.colors.font.light1
-				: props.active
-				? props.theme.colors.button.primary.active.color
-				: props.theme.colors.button.primary.color};
-		fill: ${(props) =>
-			props.disabled
-				? props.theme.colors.button.alt2.disabled.color
+				? props.theme.colors.button.primary.disabled.color
 				: props.warning
 				? props.theme.colors.font.light1
 				: props.active
@@ -785,7 +710,6 @@ export const Warning = styled(Alt1)`
 			color: ${(props) => props.theme.colors.font.light1} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.font.light1} !important;
 			color: ${(props) => props.theme.colors.font.light1} !important;
 		}
 	}
@@ -796,7 +720,6 @@ export const Warning = styled(Alt1)`
 			color: ${(props) => props.theme.colors.font.light1} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.font.light1} !important;
 			color: ${(props) => props.theme.colors.font.light1} !important;
 		}
 	}
@@ -807,7 +730,6 @@ export const Warning = styled(Alt1)`
 			color: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
 		}
 		svg {
-			fill: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
 			color: ${(props) => props.theme.colors.button.alt1.disabled.color} !important;
 		}
 	}
@@ -843,8 +765,6 @@ export const Success = styled(Alt1)`
 export const IconSuccess = styled(IconPrimary)`
 	svg {
 		color: ${(props) =>
-			props.disabled ? props.theme.colors.button.alt1.disabled.color : props.theme.colors.font.light1};
-		fill: ${(props) =>
 			props.disabled ? props.theme.colors.button.alt1.disabled.color : props.theme.colors.font.light1};
 	}
 `;

@@ -6,9 +6,45 @@ import { STYLING } from 'helpers/config';
 
 export const ColumnFlexWrapper = styled.div`
 	width: 100%;
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 25px;
+`;
+
+export const DetailsLayout = styled.div`
+	display: grid;
+	grid-template-columns: 1fr 330px;
+	align-items: start;
+	gap: 25px;
+
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		grid-template-columns: minmax(0, 1fr);
+	}
+`;
+
+export const DetailsMain = styled.div`
+	min-width: 0;
+`;
+
+export const DetailsPanel = styled.aside<{ $stickyTop: number }>`
+	position: sticky;
+	top: calc(${(props) => props.$stickyTop}px + 25px);
+	max-height: min(
+		calc(100dvh - ${(props) => props.$stickyTop}px - 50px),
+		var(--details-panel-available-height, 100dvh)
+	);
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	padding-left: 25px;
+	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
+	overflow: hidden;
+
+	@media (max-width: ${STYLING.cutoffs.initial}) {
+		position: static;
+		max-height: none;
+	}
 `;
 
 export const MessageHeaderWrapper = styled.div`
@@ -29,28 +65,9 @@ export const InfoWrapper = styled.div`
 	}
 `;
 
-export const TagsWrapper = styled.div`
-	width: 450px;
-
-	@media (max-width: ${STYLING.cutoffs.initial}) {
-		width: 100%;
-	}
-`;
-
 export const SectionWrapperFlex = styled.div`
 	width: calc(50% - 12.5px);
 	flex: 1;
-
-	@media (max-width: ${STYLING.cutoffs.initial}) {
-		width: 100%;
-	}
-`;
-
-export const ReadWrapper = styled.div<{ fullWidth: boolean }>`
-	width: ${(props) => (props.fullWidth ? '100%' : `calc(100% - 475px)`)};
-	display: flex;
-	flex-direction: column;
-	gap: 25px;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		width: 100%;
@@ -423,7 +440,6 @@ export const PlaceholderIcon = styled.div`
 		height: 55px;
 		width: 55px;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
-		fill: ${(props) => props.theme.colors.icon.primary.fill};
 		margin: 8.5px 0 0 0;
 	}
 `;

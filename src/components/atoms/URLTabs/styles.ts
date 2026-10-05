@@ -7,7 +7,7 @@ export const Wrapper = styled.div`
 	width: 100%;
 `;
 
-export const TabsHeader = styled.div<{ useFixed: boolean }>`
+export const TabsHeader = styled.div`
 	width: 100%;
 	display: flex;
 	gap: 20px;
@@ -26,9 +26,9 @@ export const Tabs = styled.div`
 	width: 100%;
 	display: flex;
 	align-items: center;
-	gap: 15px;
-	/* border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
-	padding: 0 0 5px 0; */
+	gap: 40px;
+	border-bottom: 1px solid ${(props) => props.theme.colors.border.primary};
+	padding: 0 0 7.5px 0;
 `;
 
 export const Content = styled.div``;
@@ -45,13 +45,13 @@ export const Tab = styled.div<{ active: boolean }>`
 		box-shadow: none !important;
 		padding: 0 13.5px 0 12.5px !important;
 
-		/* background: transparent !important;
-		border: none !important; */
-		/* padding: 0 !important; */
+		background: transparent !important;
+		border: none !important;
+		padding: 0 !important;
 
-		background: ${(props) => (props.active ? props.theme.colors.button.primary.background : 'transparent')};
+		/* background: ${(props) => (props.active ? props.theme.colors.button.primary.background : 'transparent')};
 		border: 1px solid
-			${(props) => (props.active ? props.theme.colors.button.primary.border : props.theme.colors.border.primary)};
+			${(props) => (props.active ? props.theme.colors.button.primary.border : props.theme.colors.border.primary)}; */
 
 		&:hover {
 			background: ${(props) => props.theme.colors.button.primary.background};
@@ -63,7 +63,7 @@ export const Tab = styled.div<{ active: boolean }>`
 		}
 
 		span {
-			font-size: ${(props) => props.theme.typography.size.xxxSmall} !important;
+			font-size: ${(props) => props.theme.typography.size.xxSmall} !important;
 		}
 
 		svg {
@@ -76,11 +76,11 @@ export const Tab = styled.div<{ active: boolean }>`
 `;
 
 export const ActiveIndicator = styled.div<{ $active: boolean }>`
-	height: 2.25px;
+	height: 2.5px;
 	width: 100%;
-	border-top: 2.25px solid ${(props) => props.theme.colors.border.alt5};
+	border-top: 2.5px solid ${(props) => props.theme.colors.border.alt4};
 	position: absolute;
-	bottom: -5px;
+	bottom: -7.5px;
 	pointer-events: none;
 	transform: scaleX(${(props) => (props.$active ? 1 : 0)});
 	transform-origin: center;

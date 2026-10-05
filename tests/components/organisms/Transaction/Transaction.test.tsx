@@ -26,7 +26,8 @@ const mocks = vi.hoisted(() => ({
 	legacyApi: { getGQLData: vi.fn() },
 	balance: vi.fn(),
 	arBalance: vi.fn(),
-	showFirstTab: false,
+	showTabContent: false,
+	activeTab: 'Overview',
 	tabLabels: [] as string[],
 }));
 vi.mock('helpers/search', () => ({ searchTxById: mocks.lookup }));
@@ -45,17 +46,22 @@ vi.mock('api/blocks', async (original) => ({
 	getTransactionById: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('components/atoms/URLTabs', () => ({
-	URLTabs: (props: { tabs: { view: React.ComponentType; label: string }[] }) => {
+	URLTabs: (props: { tabs: { view?: React.ComponentType; content?: React.ReactNode; label: string }[] }) => {
 		mocks.tabLabels = props.tabs.map((tab) => tab.label);
-		const View = props.tabs[0].view;
-		return mocks.showFirstTab ? <View /> : null;
+		const tab = props.tabs.find((tab) => tab.label === mocks.activeTab) ?? props.tabs[0];
+		const View = tab.view;
+		return mocks.showTabContent ? View ? <View /> : tab.content : null;
 	},
 }));
 vi.mock('components/molecules/Editor', () => ({
 	Editor: (props: { initialData: string }) => <pre data-testid={'editor'}>{props.initialData}</pre>,
 }));
-vi.mock('components/molecules/MessageList', () => ({ MessageList: () => null }));
-vi.mock('components/molecules/MessageResult', () => ({ MessageResult: () => null }));
+vi.mock('components/molecules/MessageList', () => ({
+	MessageList: (props: { header: string }) => <div data-testid="message-list">{props.header}</div>,
+}));
+vi.mock('components/molecules/MessageResult', () => ({
+	MessageResult: () => <div data-testid="message-result" />,
+}));
 vi.mock('components/molecules/ProcessRead', () => ({ ProcessRead: () => null }));
 vi.mock('components/molecules/HTMLViewer', () => ({
 	HTMLViewer: (props: { html: string }) => <iframe title={'html-viewer'} srcDoc={props.html} />,
@@ -76,7 +82,8 @@ let root: ReturnType<typeof createRoot>;
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mocks.showFirstTab = false;
+	mocks.showTabContent = false;
+	mocks.activeTab = 'Overview';
 	vi.mocked(requestRemote).mockResolvedValue(new Response(null, { status: 404 }));
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	mocks.balance.mockResolvedValue('0');
@@ -120,7 +127,7 @@ function transaction(tags: TagType[]): GQLNodeResponseType {
 }
 
 it('populates the bundle table by resolving each linked ID from its tags', async () => {
-	mocks.showFirstTab = true;
+	mocks.showTabContent = true;
 	const linkedIds = ['uX2tJrIgBgDTGvSU30Q16-TVZU1J3NXpflyDtu0kA5c', 'R39lRKpiIOzyggzGPttRhGMmVx_5AMbkupORp-XGnR0'];
 	const bundle = transaction([
 		{ name: 'Bundle-Format', value: 'binary' },
@@ -152,7 +159,7 @@ it('populates the bundle table by resolving each linked ID from its tags', async
 });
 
 it('opens the bundle overview and contents from a generic explorer link with signature-only bundle metadata', async () => {
-	mocks.showFirstTab = true;
+	mocks.showTabContent = true;
 	vi.mocked(requestRemote).mockResolvedValue(new Response(HYPERBUDDY_HTML, { headers: BUNDLE_HEADERS }));
 	mocks.lookup.mockImplementation((args: { txId: string }) =>
 		args.txId === BUNDLE_ID
@@ -167,7 +174,7 @@ it('opens the bundle overview and contents from a generic explorer link with sig
 	expect(container.textContent).toContain('Bundle Overview');
 	expect(container.textContent).toContain('bundle-formatbinary');
 	expect(container.textContent).toContain('bundle-version2.0.0');
-	expect(container.textContent).not.toContain('Transaction Overview');
+	expect(container.querySelector('aside[aria-label="Transaction"]')).toBeNull();
 	const rows = [...container.querySelectorAll('.transaction-list-element')];
 	expect(rows).toHaveLength(1);
 	expect(rows[0].getAttribute('aria-label')).toContain(BUNDLE_HEADERS['1+link']);
@@ -239,7 +246,7 @@ describe('transaction data', () => {
 	}
 
 	beforeEach(() => {
-		mocks.showFirstTab = true;
+		mocks.showTabContent = true;
 		vi.mocked(requestRemote).mockImplementation(async (url) =>
 			url === `https://arweave.net/${EMPTY_TRANSFER_ID}`
 				? new Response(HYPERBUDDY_HTML, { headers: EMPTY_TRANSFER_HEADERS })
@@ -279,13 +286,13 @@ describe('section order', () => {
 	}
 
 	function getSectionOrder(...titles: string[]) {
-		const text = container.textContent ?? '';
+		const headings = [...container.querySelectorAll('p, [role="tab"]')];
 
-		return titles.map((title) => text.indexOf(title));
+		return titles.map((title) => headings.findIndex((heading) => heading.textContent === title));
 	}
 
 	beforeEach(() => {
-		mocks.showFirstTab = true;
+		mocks.showTabContent = true;
 	});
 
 	it('leads a process page with its AO Process summary', async () => {
@@ -299,11 +306,48 @@ describe('section order', () => {
 		);
 		await render('process', TOKEN_PROCESS_ID);
 
-		const [process, overview] = getSectionOrder('AO Process', 'Transaction Overview');
+		const [process, overview] = getSectionOrder('AO Process', 'Transaction');
 
 		expect(process).toBeGreaterThanOrEqual(0);
 		expect(process).toBeLessThan(overview);
 		expect(container.textContent).toContain('Scheduler Type: arweave-scheduler@1.0');
+	});
+
+	it('puts process tags and transaction details in one locally tabbed region', async () => {
+		mocks.lookup.mockResolvedValue(
+			node(TOKEN_PROCESS_ID, [
+				{ name: 'Type', value: 'Process' },
+				{ name: 'Name', value: 'AO Test Token' },
+			])
+		);
+		await render('process', TOKEN_PROCESS_ID);
+		const panel = container.querySelector('aside[aria-label="Transaction"]');
+		expect(panel).not.toBeNull();
+		const tabs = [...panel.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+		expect(tabs.map((tab) => tab.textContent)).toEqual(['Tags', 'Transaction']);
+		expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+		expect(panel.querySelector('[role="tabpanel"]:not([hidden])').textContent).toContain('AO Test Token');
+		expect(panel.querySelector('[role="tabpanel"]:not([hidden])').textContent).toContain('Owner');
+		const requests = vi.mocked(requestRemote).mock.calls.length;
+		await React.act(async () => tabs[1].click());
+		expect(panel.querySelector('[role="tabpanel"]:not([hidden])').textContent).toContain('Confirmations');
+		expect(vi.mocked(requestRemote).mock.calls).toHaveLength(requests);
+		expect(container.querySelector('aside section')).not.toBeNull();
+		expect(container.querySelectorAll('section[aria-label="Tags"]')).toHaveLength(1);
+	});
+
+	it('shows the process details sidebar only in Overview', async () => {
+		mocks.lookup.mockResolvedValue(node(TOKEN_PROCESS_ID, [{ name: 'Type', value: 'Process' }]));
+		await render('process', TOKEN_PROCESS_ID);
+		expect(container.querySelector('aside[aria-label="Transaction"]')).not.toBeNull();
+
+		mocks.activeTab = 'Messages';
+		await render('process', TOKEN_PROCESS_ID);
+		expect(container.querySelector('aside[aria-label="Transaction"]')).toBeNull();
+
+		mocks.activeTab = 'Overview';
+		await render('process', TOKEN_PROCESS_ID);
+		expect(container.querySelector('aside[aria-label="Transaction"]')).not.toBeNull();
 	});
 
 	it('leads an AO transfer message with its token transfer', async () => {
@@ -322,12 +366,25 @@ describe('section order', () => {
 		);
 		await render('message');
 
-		const [transfer, overview, messageInfo] = getSectionOrder('Token Transfer', 'Transaction Overview', 'Message Info');
+		const [transfer, messageInfo] = getSectionOrder('Token Transfer', 'Message Info');
 
 		expect(transfer).toBeGreaterThanOrEqual(0);
-		expect(transfer).toBeLessThan(overview);
-		expect(overview).toBeLessThan(messageInfo);
+		expect(transfer).toBeLessThan(messageInfo);
 		expect(container.textContent).not.toContain('AO Process');
+		const panel = container.querySelector('aside[aria-label="Transaction"]');
+		expect(panel).not.toBeNull();
+		expect([...panel.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual(['Transaction']);
+		expect(panel.textContent).toContain('Confirmations');
+		const layout = panel.parentElement;
+		const main = layout.firstElementChild;
+		expect(main.textContent).toContain('Token Transfer');
+		expect(main.textContent).toContain('Message Info');
+		expect(main.querySelector('[data-testid="message-result"]')).not.toBeNull();
+		expect([...main.querySelectorAll('p')].some((element) => element.textContent === 'Transaction')).toBe(false);
+		const resultingMessages = container.querySelector('[data-testid="message-list"]');
+		expect(layout.contains(resultingMessages)).toBe(false);
+		expect(layout.nextElementSibling).toBe(resultingMessages.parentElement);
+		expect(resultingMessages.textContent).toBe('Resulting Messages');
 	});
 
 	it('leads an L1 token transfer with its token transfer', async () => {
@@ -344,7 +401,7 @@ describe('section order', () => {
 		);
 		await render('transaction', EMPTY_TRANSFER_ID);
 
-		const [transfer, overview] = getSectionOrder('Token Transfer', 'Transaction Overview');
+		const [transfer, overview] = getSectionOrder('Token Transfer', 'Transaction');
 
 		expect(transfer).toBeGreaterThanOrEqual(0);
 		expect(transfer).toBeLessThan(overview);
@@ -353,7 +410,7 @@ describe('section order', () => {
 
 it('keeps the inspector visible for an AO ID without indexed transaction data', async () => {
 	mocks.lookup.mockResolvedValue(null);
-	mocks.showFirstTab = true;
+	mocks.showTabContent = true;
 	await render('transaction', processId, {
 		id: processId,
 		label: 'AO Core Info',

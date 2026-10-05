@@ -12,9 +12,14 @@ export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	position: relative;
 
 	&:fullscreen {
+		--workspace-height-adjustment: 0px;
+		height: 100dvh;
+		max-height: 100dvh;
+		min-height: 0;
 		background: ${(props) => props.theme.colors.container.primary.background};
 		padding: 25px;
 		overflow: auto;
+		overscroll-behavior: contain;
 	}
 `;
 
@@ -70,7 +75,7 @@ export const ActionsWrapper = styled.div`
 `;
 
 export const Container = styled.div<{ isFullscreen?: boolean }>`
-	height: calc(100vh - 295px);
+	height: calc(100dvh - 295px + var(--workspace-height-adjustment, 0px));
 	width: 100%;
 	display: flex;
 	gap: 25px;
@@ -79,7 +84,7 @@ export const Container = styled.div<{ isFullscreen?: boolean }>`
 	${(props) =>
 		props.isFullscreen &&
 		`
-		height: calc(100vh - 112.5px);
+		height: calc(100dvh - 112.5px);
 	`}
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {
