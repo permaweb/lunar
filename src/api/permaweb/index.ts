@@ -72,6 +72,7 @@ export function createPermawebApis(args: {
 
 export type { ArweaveScheduleMessage, ArweaveSchedulePage, ArweaveSchedulePageArgs } from './arweaveSchedule';
 export { ARWEAVE_SCHEDULE_PAGE_SIZE } from './arweaveSchedule';
+export { isSuccessfulExecutionResult } from './executionResult';
 export type { PeerApi } from './peerApi';
 export { createPeerApi } from './peerApi';
 export type { ProcessStateLoadOptions, ProcessStateProgress, ProcessStateResult } from './processState';

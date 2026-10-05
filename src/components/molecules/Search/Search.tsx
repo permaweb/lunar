@@ -9,7 +9,7 @@ import { Button } from 'components/atoms/Button';
 import { FormField } from 'components/atoms/FormField';
 import { ASSETS, URLS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
-import { checkValidAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { checkValidAddress, formatAddress, formatCount, getTagValue, getTransactionIcon } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePermawebProvider } from 'providers/PermawebProvider';
 import { store } from 'store';
@@ -188,18 +188,7 @@ export default function Search(props: SearchProps) {
 			const name = getTagValue(searchResult.data.node.tags, 'Name');
 			const type = getTagValue(searchResult.data.node.tags, 'Type');
 
-			if (type) {
-				// Map type to correct icon
-				const typeIconMap: Record<string, string> = {
-					process: ASSETS.process,
-					message: ASSETS.message,
-					bundle: ASSETS.bundle,
-					wallet: ASSETS.wallet,
-					block: ASSETS.block,
-					transaction: ASSETS.transaction,
-				};
-				icon = typeIconMap[type.toLowerCase()] || ASSETS.transaction;
-			}
+			icon = getTransactionIcon(searchResult.data.node, type);
 
 			if (name) {
 				label = name;

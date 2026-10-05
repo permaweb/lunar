@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { STYLING } from 'helpers/config';
 
 export const Wrapper = styled.div<{ $isFullscreen?: boolean }>`
-	height: ${(props) => (props.$isFullscreen ? `calc(100dvh - 175px)` : `calc(100vh - 275px)`)};
+	height: ${(props) =>
+		props.$isFullscreen ? `calc(100dvh - 175px)` : `calc(100dvh - 275px + var(--workspace-height-adjustment, 0px))`};
 	width: 100%;
 	display: flex;
 	gap: 25px;

@@ -26,7 +26,8 @@ export const Header = styled.div<{ $textStyle?: 'code' | 'body' }>`
 export const EditorWrapper = styled.div<{ $useFixedHeight?: boolean; $height: number; $noWrapper?: boolean }>`
 	height: ${(props) => (props.$useFixedHeight ? '100%' : `${props.$height}px`)};
 	min-height: ${(props) => (props.$noWrapper ? '0' : '125px')};
-	max-height: ${(props) => (props.$useFixedHeight ? '100%' : `calc(100vh - 190px)`)};
+	max-height: ${(props) =>
+		props.$useFixedHeight ? '100%' : `calc(100dvh - 190px + var(--workspace-height-adjustment, 0px))`};
 	overflow: hidden;
 	width: 100%;
 	min-width: 0;

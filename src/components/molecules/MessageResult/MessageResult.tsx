@@ -2,10 +2,12 @@ import React from 'react';
 import JSONbig from 'json-bigint';
 
 import { requestRemote } from 'api/http';
+import { isSuccessfulExecutionResult } from 'api/permaweb';
 
 import { TxAddress } from 'components/atoms/TxAddress';
 import { JSONReader } from 'components/molecules/JSONReader';
 import { MessageInput } from 'components/molecules/MessageInput';
+import { FLAGS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum, TagType } from 'helpers/types';
 import { checkValidAddress, getTagValue, removeCommitments, resolveMessageId, resolvePermawebApi } from 'helpers/utils';
@@ -19,9 +21,9 @@ import * as S from './styles';
 export default function MessageResult(props: {
 	processId: string;
 	messageId: string;
-	variant: any;
+	variant: MessageVariantEnum | undefined;
 	tags: TagType[] | null;
-	result?: any;
+	result?: unknown;
 	skipResultFetch?: boolean;
 	active: boolean;
 }) {
@@ -31,18 +33,20 @@ export default function MessageResult(props: {
 	const language = languageProvider.object[languageProvider.current];
 
 	const [data, setData] = React.useState<any>(null);
-	const [result, setResult] = React.useState<any>(null);
+	const [fetchedResult, setFetchedResult] = React.useState<{
+		processId: string;
+		messageId: string;
+		variant: MessageVariantEnum | undefined;
+		result: unknown;
+	} | null>(null);
 
-	const resultFetchedRef = React.useRef<boolean>(false);
 	const dataFetchedRef = React.useRef<boolean>(false);
 	const prevProcessIdRef = React.useRef<string>(props.processId);
 	const prevMessageIdRef = React.useRef<string>(props.messageId);
 
-	// Reset refs when processId or messageId changes (for refresh)
-	// Don't clear the data/result state to avoid flicker - keep showing old data until new data arrives
+	// Reset input fetching when navigating to another message.
 	React.useEffect(() => {
 		if (prevProcessIdRef.current !== props.processId || prevMessageIdRef.current !== props.messageId) {
-			resultFetchedRef.current = false;
 			dataFetchedRef.current = false;
 			prevProcessIdRef.current = props.processId;
 			prevMessageIdRef.current = props.messageId;
@@ -50,27 +54,14 @@ export default function MessageResult(props: {
 	}, [props.processId, props.messageId]);
 
 	React.useEffect(() => {
-		if (resultFetchedRef.current) {
-			// If props.result changes and is different from current result, update it
-			if (props.result && props.result !== result) {
-				setResult(props.result);
-			}
+		if (props.skipResultFetch || props.result != null) {
 			return;
 		}
-
-		if (props.result) {
-			setResult(props.result);
-			resultFetchedRef.current = true;
-			return;
-		}
-
-		if (props.skipResultFetch) {
-			return;
-		}
+		setFetchedResult(null);
+		let isCancelled = false;
 
 		(async function () {
 			if (checkValidAddress(props.processId) && checkValidAddress(props.messageId)) {
-				resultFetchedRef.current = true;
 				try {
 					let variant = props.variant;
 
@@ -107,15 +98,39 @@ export default function MessageResult(props: {
 						message: messageId,
 					});
 
-					setResult(messageResult);
-				} catch (e: any) {
+					if (!isCancelled) {
+						setFetchedResult({
+							processId: props.processId,
+							messageId: props.messageId,
+							variant: props.variant,
+							result: messageResult,
+						});
+					}
+				} catch (e: unknown) {
 					console.error(e);
-					setResult({ Response: e.message ?? language.errorFetchingResult });
+					if (!isCancelled) {
+						setFetchedResult({
+							processId: props.processId,
+							messageId: props.messageId,
+							variant: props.variant,
+							result: { Response: e instanceof Error ? e.message : language.errorFetchingResult },
+						});
+					}
 				}
 			}
 		})();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [props.result, props.skipResultFetch, props.processId, props.messageId, result]);
+		return () => {
+			isCancelled = true;
+		};
+	}, [
+		props.result,
+		props.skipResultFetch,
+		props.processId,
+		props.messageId,
+		props.variant,
+		permawebProvider,
+		language.errorFetchingResult,
+	]);
 
 	React.useEffect(() => {
 		if (dataFetchedRef.current) {
@@ -160,7 +175,7 @@ export default function MessageResult(props: {
 		})();
 	}, [props.processId, props.messageId]);
 
-	const TagLine = ({ label, value, render }: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
+	const TagLine = (tagProps: { label: string; value: any; render?: (v: any) => JSX.Element }) => {
 		const defaultRender = (v: any) => {
 			if (typeof v === 'string' && checkValidAddress(v)) {
 				return <TxAddress address={v} />;
@@ -168,12 +183,12 @@ export default function MessageResult(props: {
 			return <p>{v}</p>;
 		};
 
-		const renderContent = render || defaultRender;
+		const renderContent = tagProps.render || defaultRender;
 
 		return (
 			<S.TagLine>
-				<span>{label}</span>
-				{value ? renderContent(value) : <p>-</p>}
+				<span>{tagProps.label}</span>
+				{tagProps.value ? renderContent(tagProps.value) : <p>-</p>}
 			</S.TagLine>
 		);
 	};
@@ -207,13 +222,22 @@ export default function MessageResult(props: {
 		return <Editor initialData={String(data)} language={'lua'} readOnly loading={false} useFixedHeight noWrapper />;
 	}
 
+	const result =
+		props.result ??
+		(!props.skipResultFetch &&
+		fetchedResult?.processId === props.processId &&
+		fetchedResult?.messageId === props.messageId &&
+		fetchedResult?.variant === props.variant
+			? fetchedResult.result
+			: null);
 	const displayResult = React.useMemo(() => removeCommitments(result), [result]);
+	const shouldShowResult = !FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT || isSuccessfulExecutionResult(result);
 
 	function getResult() {
 		return (
 			<JSONReader
 				data={displayResult}
-				placeholder={'Loading Result…'}
+				placeholder={`${language.loading} ${language.result}…`}
 				header={language.result}
 				maxHeight={500}
 				filename={`${props.messageId}-result`}
@@ -224,7 +248,7 @@ export default function MessageResult(props: {
 	return (
 		<S.Wrapper>
 			<MessageInput className={'border-wrapper-alt3'} headerVariant="section" tags={getTags()} data={getData()} />
-			<S.ResultWrapper>{getResult()}</S.ResultWrapper>
+			{shouldShowResult && <S.ResultWrapper>{getResult()}</S.ResultWrapper>}
 		</S.Wrapper>
 	);
 }

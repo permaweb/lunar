@@ -8,7 +8,7 @@ import { Button } from 'components/atoms/Button';
 import { Disclosure } from 'components/atoms/Disclosure';
 import { Icon } from 'components/atoms/Icon';
 import { JSONReader } from 'components/molecules/JSONReader';
-import { ASSETS } from 'helpers/config';
+import { ASSETS, FLAGS } from 'helpers/config';
 import { legacyCuEndpoint } from 'helpers/endpoints';
 import { MessageVariantEnum } from 'helpers/types';
 import { checkValidAddress, formatMs, removeCommitments, stripUrlProtocol } from 'helpers/utils';
@@ -37,7 +37,7 @@ export default function ProcessRead(props: {
 	const language = React.useMemo(() => languageProvider.object[languageProvider.current], [languageProvider.current]);
 
 	const [cuLocation, setCuLocation] = React.useState<string | null>(null);
-	const [startTime, setStartTime] = React.useState<number | null>(null);
+	const [_startTime, setStartTime] = React.useState<number | null>(null);
 	const [roundtripTime, setRoundtripTime] = React.useState<number | null>(null);
 	const [elapsed, setElapsed] = React.useState(0);
 	const [readState, setReadState] = React.useState<
@@ -48,6 +48,7 @@ export default function ProcessRead(props: {
 	>({ status: 'idle' });
 	const isFetching = readState.status === 'loading';
 	const currentOutput = 'data' in readState ? readState.data : null;
+	const shouldShowOutput = !props.hideOutput && (!FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT || readState.status === 'success');
 	const [toggleRead, setToggleRead] = React.useState(false);
 	const [readLog, setReadLog] = React.useState<{ startTime: number; roundtripTime: number; node: string }[]>([]);
 	const [errorLog, setErrorLog] = React.useState<{ time: number; message: string }[]>([]);
@@ -55,7 +56,6 @@ export default function ProcessRead(props: {
 	const runSummary = [
 		isFetching ? language.running : readState.status === 'error' ? language.error : language.read,
 		readState.status !== 'idle' && duration !== null ? formatMs(duration) : null,
-		readState.status !== 'idle' && startTime !== null ? new Date(startTime).toLocaleTimeString() : null,
 	]
 		.filter(Boolean)
 		.join(' · ');
@@ -200,30 +200,34 @@ export default function ProcessRead(props: {
 		setToggleRead((previous) => !previous);
 	}
 
+	function getLoadMoreControl() {
+		if (readState.status === 'idle' || !readState.loadMore) return null;
+		return (
+			<S.LoadMore>
+				<span role="status">{isFetching ? language.loadingLinkedState : language.moreStateAvailable}</span>
+				<Button type="alt3" label={language.loadMoreData} onPress={handleLoadMore} disabled={isFetching} />
+			</S.LoadMore>
+		);
+	}
+
 	return (
 		<S.Wrapper>
-			{!props.hideOutput && (
+			{shouldShowOutput && (
 				<S.OutputWrapper>
 					<JSONReader
 						data={
 							currentOutput ??
-							(isFetching ? { Status: `${language.loading}...` } : { Result: 'Current state can not be resolved' })
+							(isFetching ? { Status: `${language.loading}...` } : { Result: language.aoReadUnavailable })
 						}
 						header={language.currentState}
 						maxHeight={600}
 						preserveViewState
-						footer={
-							readState.status !== 'idle' && readState.loadMore ? (
-								<S.LoadMore>
-									<span role="status">{isFetching ? language.loadingLinkedState : language.moreStateAvailable}</span>
-									<Button type="alt3" label={language.loadMoreData} onPress={handleLoadMore} disabled={isFetching} />
-								</S.LoadMore>
-							) : undefined
-						}
+						footer={getLoadMoreControl()}
 					/>
 				</S.OutputWrapper>
 			)}
 			<S.ReadDetails>
+				{!shouldShowOutput && getLoadMoreControl()}
 				<S.RunRow>
 					<S.RunStatus $status={readState.status}>
 						{isFetching ? null : (
@@ -252,7 +256,7 @@ export default function ProcessRead(props: {
 						<span>{`${language.loadingLinkedState} (${readState.progress.completed}/${readState.progress.total})`}</span>
 					</S.Line>
 				)}
-				{readState.status === 'error' && readState.partial && (
+				{shouldShowOutput && readState.status === 'error' && readState.partial && (
 					<S.Error role="status">
 						<span>{language.aoReadPartial}</span>
 					</S.Error>

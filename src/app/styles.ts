@@ -80,6 +80,13 @@ export const GlobalStyle = createGlobalStyle`
     background: ${(props) => props.theme.colors.view.background};
   }
 
+	/* The fullscreen element owns scrolling while the document stays in place. */
+	html:has(:fullscreen),
+	html:has(:fullscreen) body {
+		height: 100%;
+		overflow: hidden !important;
+	}
+
   ol, ul {
     list-style: none;
   }

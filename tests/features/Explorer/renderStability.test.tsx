@@ -5,25 +5,51 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import App from '../../../src/app/App';
+import { getTxEndpoint } from '../../../src/helpers/endpoints';
+import { MessageVariantEnum } from '../../../src/helpers/types';
 import { PinnedTabsProvider } from '../../../src/providers/PinnedTabsProvider';
 import { SettingsProvider, useSettingsProvider } from '../../../src/providers/SettingsProvider';
 
-const mocks = vi.hoisted(() => ({ loadTable: vi.fn(), unmountTable: vi.fn(), commit: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+	loadTable: vi.fn(),
+	unmountTable: vi.fn(),
+	commit: vi.fn(),
+	resourceType: 'Wallet',
+	variant: 'ao.TN.1',
+	readState: vi.fn(),
+	readMainnetState: vi.fn(),
+	result: vi.fn(),
+	requestRemote: vi.fn(),
+}));
 vi.mock('react-redux', () => ({ useDispatch: () => dispatch }));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden="true" /> }));
 vi.mock('store', () => ({ store: { getState: () => ({ transactions: {} }) } }));
-vi.mock('store/transactions/reducer', () => ({ pruneTransactionCache: vi.fn() }));
+vi.mock('store/transactions/reducer', () => ({
+	pruneTransactionCache: vi.fn(),
+	selectTransaction: () => null,
+	addTransaction: vi.fn(),
+}));
 vi.mock('helpers/serviceWorkerManager', () => ({
 	serviceWorkerManager: { register: vi.fn(), checkArNSUpdate: vi.fn() },
 }));
 vi.mock('helpers/search', () => ({
 	searchTxById: async (args: { txId: string }) => ({
 		cursor: null,
-		node: { id: args.txId, tags: [{ name: 'Type', value: 'Wallet' }], owner: {}, data: null, block: null },
+		node: {
+			id: args.txId,
+			tags: [
+				{ name: 'Type', value: mocks.resourceType },
+				{ name: 'Variant', value: mocks.variant },
+			],
+			owner: {},
+			recipient: linkedId,
+			data: null,
+			block: null,
+		},
 	}),
 }));
 vi.mock('api/balances', () => ({ readAoBalance: async () => '0', readArBalance: async () => '0' }));
-vi.mock('api/http', () => ({ requestRemote: async () => new Response(null, { status: 404 }) }));
+vi.mock('api/http', () => ({ requestRemote: mocks.requestRemote }));
 vi.mock('api/aoNetwork', async (original) => {
 	const actual = await original<typeof import('../../../src/api/aoNetwork')>();
 	const status = { source: 'peers' };
@@ -48,6 +74,25 @@ vi.mock('features/Mining', () => ({ useWalletMining: () => ({ isMiner: false }) 
 vi.mock('features/Profiles', () => ({ ProfileManagerOverlay: () => null }));
 vi.mock('navigation/Navigation', () => ({ Navigation: () => null }));
 vi.mock('navigation/Footer', () => ({ Footer: () => null }));
+vi.mock('components/organisms/ProcessEditor', () => ({ ProcessEditor: () => null }));
+vi.mock('components/organisms/ProcessSource', () => ({ ProcessSource: () => null }));
+vi.mock('components/molecules/Editor', () => ({
+	Editor: (props) => <pre data-message-data>{props.initialData}</pre>,
+}));
+vi.mock('components/molecules/JSONReader', () => ({
+	JSONReader: (props) => {
+		const [expanded, setExpanded] = React.useState(false);
+		return (
+			<section aria-label={props.header}>
+				<pre>{JSON.stringify(props.data)}</pre>
+				<button aria-pressed={expanded} onClick={() => setExpanded((value) => !value)}>
+					Expand JSON
+				</button>
+				{props.footer}
+			</section>
+		);
+	},
+}));
 vi.mock('components/molecules/MessageList', () => ({
 	MessageList: (props: { txId: string; onMessageOpen: (id: string) => void }) => {
 		const [page, setPage] = React.useState(1);
@@ -66,7 +111,10 @@ vi.mock('components/molecules/MessageList', () => ({
 }));
 
 const dispatch = vi.fn();
-const permaweb = { legacyApi: {} };
+const permaweb = {
+	legacyApi: { readProcess: mocks.readState, getGQLData: async () => ({ data: [] }), ao: { result: mocks.result } },
+	mainnetApi: { readStateWithSource: mocks.readMainnetState },
+};
 const notifications = { addNotification: vi.fn(), removeNotification: vi.fn() };
 const walletId = 'a'.repeat(43);
 const linkedId = 'b'.repeat(43);
@@ -83,6 +131,15 @@ function Harness() {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	mocks.resourceType = 'Wallet';
+	mocks.variant = MessageVariantEnum.Legacynet;
+	mocks.readState.mockResolvedValue({ Name: 'Current process state' });
+	mocks.readMainnetState.mockResolvedValue({
+		data: { name: 'Current process state' },
+		provider: 'https://peer.example',
+	});
+	mocks.result.mockResolvedValue({ Output: { data: 'Message result' }, Messages: [] });
+	mocks.requestRemote.mockImplementation(async () => new Response(null, { status: 404 }));
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	vi.stubGlobal('matchMedia', (query: string) => ({
 		matches: query === '(prefers-reduced-motion: reduce)',
@@ -121,7 +178,8 @@ afterEach(async () => {
 	vi.unstubAllGlobals();
 });
 
-async function render(tabsEnabled: boolean) {
+async function render(tabsEnabled: boolean, resourceType = 'Wallet') {
+	mocks.resourceType = resourceType;
 	localStorage.setItem('settings', JSON.stringify({ inAppTabs: { explorer: tabsEnabled }, showNodeStatus: false }));
 	await React.act(async () => {
 		// Preload the route inside act so the initial Suspense resolution is included in the render.
@@ -141,8 +199,10 @@ async function render(tabsEnabled: boolean) {
 			</MemoryRouter>
 		);
 	});
-	expect(container.querySelector(`[data-table="${walletId}"]`)).not.toBeNull();
-	await React.act(async () => container.querySelector<HTMLButtonElement>('[data-table] button').click());
+	if (resourceType === 'Wallet') {
+		expect(container.querySelector(`[data-table="${walletId}"]`)).not.toBeNull();
+		await React.act(async () => container.querySelector<HTMLButtonElement>('[data-table] button').click());
+	}
 	return { table: container.querySelector('[data-table]'), loads: mocks.loadTable.mock.calls.length };
 }
 
@@ -189,6 +249,64 @@ it.each([false, true])('keeps table state when opening and closing panels (tabs:
 	expect(container.querySelector(`[data-table="${linkedId}"]`)).not.toBeNull();
 	expect(container.querySelectorAll('[data-tab-key]')).toHaveLength(tabsEnabled ? 2 : 1);
 });
+
+it.each([
+	{ resourceType: 'Process', variant: MessageVariantEnum.Legacynet },
+	{ resourceType: 'Process', variant: MessageVariantEnum.Mainnet },
+	{ resourceType: 'Message', variant: MessageVariantEnum.Legacynet },
+])(
+	'preserves loaded $resourceType ($variant) output and viewer state through pinning and tab mode changes',
+	async (testCase) => {
+		mocks.variant = testCase.variant;
+		mocks.requestRemote.mockImplementation(async (url: string) =>
+			url === getTxEndpoint(walletId) ? new Response('Message data') : new Response(null, { status: 404 })
+		);
+		await render(true, testCase.resourceType);
+		const header = testCase.resourceType === 'Process' ? 'Current State' : 'Result';
+		const output = container.querySelector(`section[aria-label="${header}"]`);
+		expect(output).not.toBeNull();
+		await React.act(async () => output.querySelector<HTMLButtonElement>('button').click());
+		const messageData = container.querySelector('[data-message-data]');
+		const initialReads = mocks.readState.mock.calls.length;
+		const initialMainnetReads = mocks.readMainnetState.mock.calls.length;
+		const initialResults = mocks.result.mock.calls.length;
+		const initialDataReads = mocks.requestRemote.mock.calls.filter(([url]) => url === getTxEndpoint(walletId)).length;
+
+		for (const action of ['pin', 'unpin', 'disable-tabs', 'enable-tabs']) {
+			await React.act(async () => {
+				if (action === 'pin' || action === 'unpin') {
+					container
+						.querySelector<HTMLButtonElement>(`button[aria-label="${action === 'pin' ? 'Pin' : 'Unpin'} Tab"]`)
+						.click();
+				} else {
+					settings.updateSettings('inAppTabs', { ...settings.settings.inAppTabs, explorer: action === 'enable-tabs' });
+				}
+			});
+			expect(container.querySelector(`section[aria-label="${header}"]`)).toBe(output);
+			expect(output.querySelector('button')?.getAttribute('aria-pressed')).toBe('true');
+			expect(container.querySelector('[data-message-data]')).toBe(messageData);
+			expect(mocks.readState).toHaveBeenCalledTimes(initialReads);
+			expect(mocks.readMainnetState).toHaveBeenCalledTimes(initialMainnetReads);
+			expect(mocks.result).toHaveBeenCalledTimes(initialResults);
+			expect(mocks.requestRemote.mock.calls.filter(([url]) => url === getTxEndpoint(walletId))).toHaveLength(
+				initialDataReads
+			);
+		}
+
+		await React.act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Refresh"]').click());
+		expect(container.querySelector(`section[aria-label="${header}"]`)).not.toBe(output);
+		if (testCase.resourceType === 'Process') {
+			expect(mocks.readState.mock.calls.length + mocks.readMainnetState.mock.calls.length).toBe(
+				initialReads + initialMainnetReads + 1
+			);
+		} else {
+			expect(mocks.result).toHaveBeenCalledTimes(initialResults + 1);
+		}
+		expect(mocks.requestRemote.mock.calls.filter(([url]) => url === getTxEndpoint(walletId))).toHaveLength(
+			initialDataReads + 1
+		);
+	}
+);
 
 it('keeps table state when opening and closing the pinned panel', async () => {
 	const { table, loads } = await render(true);

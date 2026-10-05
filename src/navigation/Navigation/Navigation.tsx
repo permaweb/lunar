@@ -17,7 +17,7 @@ import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, STYLING, URLS } from 'helpers/config';
 import { searchTxById } from 'helpers/search';
 import { checkValidBlockHeight, checkValidBlockId, isValidSearchInput } from 'helpers/searchInput';
-import { formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { formatAddress, formatCount, getTagValue, getTransactionIcon } from 'helpers/utils';
 import { checkWindowCutoff } from 'helpers/window';
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useTokenPrices } from 'hooks/useTokenPrices';
@@ -265,7 +265,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void; h
 						}}
 					>
 						<S.SearchResultInfo>
-							<ReactSVG src={ASSETS[type?.toLowerCase()] ?? ASSETS.transaction} />
+							<ReactSVG src={getTransactionIcon(txResponse.node, type)} />
 							{`${name || formatAddress(txResponse.node.id, false)}`}
 						</S.SearchResultInfo>
 						<ReactSVG src={ASSETS.go} />

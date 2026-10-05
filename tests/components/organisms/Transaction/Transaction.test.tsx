@@ -46,10 +46,11 @@ vi.mock('api/blocks', async (original) => ({
 	getTransactionById: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('components/atoms/URLTabs', () => ({
-	URLTabs: (props: { tabs: { view: React.ComponentType; label: string }[] }) => {
+	URLTabs: (props: { tabs: { view?: React.ComponentType; content?: React.ReactNode; label: string }[] }) => {
 		mocks.tabLabels = props.tabs.map((tab) => tab.label);
-		const View = (props.tabs.find((tab) => tab.label === mocks.activeTab) ?? props.tabs[0]).view;
-		return mocks.showTabContent ? <View /> : null;
+		const tab = props.tabs.find((tab) => tab.label === mocks.activeTab) ?? props.tabs[0];
+		const View = tab.view;
+		return mocks.showTabContent ? View ? <View /> : tab.content : null;
 	},
 }));
 vi.mock('components/molecules/Editor', () => ({

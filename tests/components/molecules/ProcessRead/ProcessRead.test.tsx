@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { AoReadError } from '../../../../src/api/aoNetwork';
 import { ProcessRead } from '../../../../src/components/molecules/ProcessRead';
+import { FLAGS } from '../../../../src/helpers/config';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
 import { getAoVariantFromTags } from '../../../../src/helpers/utils';
@@ -26,6 +27,8 @@ vi.mock('providers/LanguageProvider', () => ({
 		current: 'en',
 		object: {
 			en: {
+				currentState: 'Current State',
+				loading: 'Loading',
 				read: 'Read',
 				readFrom: 'Read From',
 				readLog: 'Read Log',
@@ -40,6 +43,7 @@ vi.mock('providers/LanguageProvider', () => ({
 				moreStateAvailable: 'More state is available to load.',
 				aoReadPartial: 'Showing partial state',
 				aoReadTimeout: 'Read timed out',
+				aoReadUnavailable: 'Current state is unavailable',
 			},
 		},
 	}),
@@ -48,20 +52,23 @@ vi.mock('components/atoms/Loader', () => ({ Loader: () => null }));
 vi.mock('components/atoms/Icon', () => ({ Icon: () => null }));
 vi.mock('components/molecules/JSONReader', () => ({
 	JSONReader: (props) => (
-		<>
+		<section aria-label={props.header}>
+			<h2>{props.header}</h2>
 			<pre>{JSON.stringify(props.data)}</pre>
 			{props.footer}
-		</>
+		</section>
 	),
 }));
 vi.mock('store', () => ({ store: { getState: () => ({}) } }));
 vi.mock('store/transactions/reducer', () => ({ selectTransaction: () => null, addTransaction: vi.fn() }));
 
 const processId = '_206v3RtEU-mvPIIu0gtPnBZ9SoS7MlxQn2Yk-kPzcU';
+const defaultHideUnsuccessfulOutput = FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT;
 let container: HTMLElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(() => {
+	FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT = defaultHideUnsuccessfulOutput;
 	vi.resetAllMocks();
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	mocks.readState.mockResolvedValue({
@@ -78,6 +85,7 @@ beforeEach(() => {
 
 afterEach(async () => {
 	await React.act(async () => root.unmount());
+	FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT = defaultHideUnsuccessfulOutput;
 	container.remove();
 	vi.unstubAllGlobals();
 });
@@ -91,6 +99,24 @@ async function render(variant: MessageVariantEnum | undefined, id = processId) {
 		);
 	});
 }
+
+it('keeps current state mounted while idle, loading, and failed by default', async () => {
+	expect(defaultHideUnsuccessfulOutput).toBe(false);
+	await render(undefined);
+	const panel = container.querySelector('section[aria-label="Current State"]');
+	expect(panel?.textContent).toContain('Current state is unavailable');
+	let fail: (error: unknown) => void;
+	mocks.readState.mockImplementationOnce(() => new Promise((_resolve, reject) => (fail = reject)));
+	await render(MessageVariantEnum.Mainnet);
+	expect(container.querySelector('section[aria-label="Current State"]')).toBe(panel);
+	expect(panel.querySelector('pre')?.textContent).toBe('{"Status":"Loading..."}');
+	await React.act(async () => fail(new AoReadError('unavailable')));
+	expect(container.querySelector('section[aria-label="Current State"]')).toBe(panel);
+	expect(panel.querySelector('pre')?.textContent).toBe('{"Error":"Current state is unavailable"}');
+	expect(mocks.readProcess).not.toHaveBeenCalled();
+	const runButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Run');
+	expect(runButton?.disabled).toBe(false);
+});
 
 it.each([[{ name: 'device', value: 'process@1.0' }], [{ name: 'Variant', value: MessageVariantEnum.Mainnet }]])(
 	'reads current HyperBEAM state for mainnet tags %j',
@@ -140,10 +166,19 @@ it.each([
 });
 
 it('does not fall back to a legacy dry-run when a mainnet state read fails', async () => {
+	FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT = true;
 	mocks.readState.mockRejectedValueOnce(new Error('Peers unavailable'));
 	await render(MessageVariantEnum.Mainnet);
 	expect(mocks.readProcess).not.toHaveBeenCalled();
 	expect(container.textContent).toContain('Peers unavailable');
+	expect(container.querySelector('section[aria-label="Current State"]')).toBeNull();
+	expect(container.querySelector('pre')).toBeNull();
+	expect(
+		Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Run')?.disabled
+	).toBe(false);
+	const runButton = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Run');
+	await React.act(async () => runButton.click());
+	expect(container.querySelector('section[aria-label="Current State"]')?.textContent).toContain('0x1');
 });
 
 it('starts a legacy read only after metadata identifies the legacy network', async () => {
@@ -155,7 +190,8 @@ it('starts a legacy read only after metadata identifies the legacy network', asy
 	expect(mocks.readState).not.toHaveBeenCalled();
 });
 
-it('shows headers and each linked value while the complete read is still pending', async () => {
+it('shows progress while pending and reveals current state only after the read succeeds', async () => {
+	FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT = true;
 	let finish: (value: unknown) => void;
 	mocks.readState.mockImplementationOnce(
 		() =>
@@ -169,20 +205,21 @@ it('shows headers and each linked value while the complete read is still pending
 	await React.act(async () =>
 		onProgress({ data: header, provider: 'https://peer.example', completedLinks: 0, totalLinks: 2 })
 	);
-	expect(container.querySelector('pre')?.textContent).toContain('Legacy wUSDC');
+	expect(container.querySelector('section[aria-label="Current State"]')).toBeNull();
 	expect(container.querySelector('[role="status"]')?.textContent).toContain('(0/2)');
 	expect(container.textContent).toContain('peer.example');
 	const data = { name: 'Legacy wUSDC', balances: { holder: '900719925474099312345' } };
 	await React.act(async () => onProgress({ data, provider: 'https://peer.example', completedLinks: 1, totalLinks: 2 }));
-	expect(container.querySelector('pre')?.textContent).toContain('900719925474099312345');
-	expect(container.querySelector('pre')?.textContent).not.toContain('balances+link');
+	expect(container.querySelector('pre')).toBeNull();
 	expect(container.querySelector('[role="status"]')?.textContent).toContain('(1/2)');
 	await React.act(async () => finish({ data: { ...data, orders: [] }, provider: 'https://peer.example' }));
 	expect(container.querySelector('pre')?.textContent).toContain('"orders":[]');
+	expect(container.querySelector('pre')?.textContent).toContain('900719925474099312345');
 	expect(container.querySelector('[role="status"]')).toBeNull();
 });
 
-it('retains partial state with an incomplete notice when a remaining value times out', async () => {
+it('hides current state when a remaining value times out', async () => {
+	FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT = true;
 	let fail: (error: unknown) => void;
 	mocks.readState.mockImplementationOnce(
 		() =>
@@ -200,9 +237,8 @@ it('retains partial state with an incomplete notice when a remaining value times
 		})
 	);
 	await React.act(async () => fail(new AoReadError('timeout')));
-	expect(container.querySelector('pre')?.textContent).toContain('Legacy wUSDC');
-	expect(container.querySelector('pre')?.textContent).toContain('balances+link');
-	expect(container.querySelector('[role="status"]')?.textContent).toBe('Showing partial state');
+	expect(container.querySelector('section[aria-label="Current State"]')).toBeNull();
+	expect(container.querySelector('pre')).toBeNull();
 	expect(container.textContent).toContain('Read timed out');
 	expect(mocks.readProcess).not.toHaveBeenCalled();
 });
@@ -236,12 +272,49 @@ it('ignores progress and completion from a previous process after navigation', a
 const loadMoreButton = () =>
 	Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Load more data');
 
+it('preserves partial state and a single continuation control after failure by default', async () => {
+	let fail: (error: unknown) => void;
+	const loadMore = vi
+		.fn()
+		.mockImplementationOnce(() => new Promise((_resolve, reject) => (fail = reject)))
+		.mockResolvedValueOnce({ data: { name: 'Recovered process' }, provider: 'https://peer.example' });
+	mocks.readState.mockResolvedValueOnce({ data: { name: 'Deep process' }, provider: 'https://peer.example', loadMore });
+	await render(MessageVariantEnum.Mainnet);
+	const panel = container.querySelector('section[aria-label="Current State"]');
+	await React.act(async () => loadMoreButton().click());
+	expect(container.querySelector('section[aria-label="Current State"]')).toBe(panel);
+	expect(panel.querySelector('pre')?.textContent).toContain('Deep process');
+	expect(loadMoreButton()?.disabled).toBe(true);
+	await React.act(async () =>
+		loadMore.mock.calls[0][0].onProgress({
+			data: { name: 'Deep process', next: { done: true } },
+			provider: 'https://peer.example',
+			completedLinks: 1,
+			totalLinks: 2,
+		})
+	);
+	await React.act(async () => fail(new AoReadError('timeout')));
+	expect(container.querySelector('section[aria-label="Current State"]')).toBe(panel);
+	expect(panel.querySelector('pre')?.textContent).toContain('"done":true');
+	expect(container.textContent).toContain('Showing partial state');
+	expect(container.textContent).toContain('Read timed out');
+	expect(loadMoreButton()?.disabled).toBe(false);
+	expect(panel.contains(loadMoreButton())).toBe(true);
+	expect(
+		Array.from(container.querySelectorAll('button')).filter((button) => button.textContent === 'Load more data')
+	).toHaveLength(1);
+	await React.act(async () => loadMoreButton().click());
+	expect(panel.querySelector('pre')?.textContent).toContain('Recovered process');
+	expect(loadMoreButton()).toBeUndefined();
+	expect(mocks.readState).toHaveBeenCalledTimes(1);
+});
+
 it('keeps read history collapsed and preserves an expanded log while rerunning from the status row', async () => {
 	await render(MessageVariantEnum.Mainnet);
 	const history = container.querySelector('details');
 	expect(history.open).toBe(false);
 	expect(history.querySelector('summary').textContent).toBe('Read Log');
-	expect(container.textContent).toMatch(/Read · \d+ms ·/);
+	expect(container.textContent).toMatch(/Read · \d+ms/);
 	await React.act(async () => history.querySelector('summary').click());
 	expect(history.open).toBe(true);
 	expect(history.textContent).toContain('(1) Roundtrip Time');
@@ -257,7 +330,7 @@ it('keeps read history collapsed and preserves an expanded log while rerunning f
 	await React.act(async () => runButton.click());
 	expect(mocks.readState).toHaveBeenCalledTimes(2);
 	expect(runButton.disabled).toBe(true);
-	expect(runButton.textContent).toBe('Running...');
+	expect(runButton.textContent).toBe('Run');
 	expect(history.open).toBe(true);
 	await React.act(async () => finish({ data: { name: 'Updated state' }, provider: 'https://delta.example' }));
 	expect(runButton.disabled).toBe(false);
@@ -267,7 +340,8 @@ it('keeps read history collapsed and preserves an expanded log while rerunning f
 	expect(container.textContent).toContain('delta.example');
 });
 
-it('loads further state only on click, retaining the current data and disabling duplicate clicks', async () => {
+it('loads further state only on click and disables duplicate clicks while output is hidden', async () => {
+	FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT = true;
 	let finish: (value: unknown) => void;
 	const loadMore = vi.fn(
 		() =>
@@ -291,7 +365,7 @@ it('loads further state only on click, retaining the current data and disabling 
 	});
 	expect(loadMore).toHaveBeenCalledTimes(1);
 	expect(loadMoreButton()?.disabled).toBe(true);
-	expect(container.querySelector('pre')?.textContent).toContain('Deep process');
+	expect(container.querySelector('pre')).toBeNull();
 	await React.act(async () =>
 		loadMore.mock.calls[0][0].onProgress({
 			data: { name: 'Deep process', next: { done: true } },
@@ -300,16 +374,18 @@ it('loads further state only on click, retaining the current data and disabling 
 			totalLinks: 65,
 		})
 	);
-	expect(container.querySelector('pre')?.textContent).toContain('"done":true');
+	expect(container.querySelector('pre')).toBeNull();
 	await React.act(async () =>
 		finish({ data: { name: 'Deep process', next: { done: true } }, provider: 'https://peer.example' })
 	);
+	expect(container.querySelector('pre')?.textContent).toContain('"done":true');
 	expect(loadMoreButton()).toBeUndefined();
 	expect(mocks.readState).toHaveBeenCalledTimes(1);
 	expect(mocks.readProcess).not.toHaveBeenCalled();
 });
 
-it('retains loaded data and offers the same continuation after a failed manual read', async () => {
+it('hides failed output and offers the same continuation to recover from a failed manual read', async () => {
+	FLAGS.HIDE_UNSUCCESSFUL_TX_OUTPUT = true;
 	const loadMore = vi
 		.fn()
 		.mockRejectedValueOnce(new AoReadError('timeout'))
@@ -317,7 +393,7 @@ it('retains loaded data and offers the same continuation after a failed manual r
 	mocks.readState.mockResolvedValueOnce({ data: { name: 'Deep process' }, provider: 'https://peer.example', loadMore });
 	await render(MessageVariantEnum.Mainnet);
 	await React.act(async () => loadMoreButton().click());
-	expect(container.querySelector('pre')?.textContent).toContain('Deep process');
+	expect(container.querySelector('pre')).toBeNull();
 	expect(container.textContent).toContain('Read timed out');
 	expect(loadMoreButton()?.disabled).toBe(false);
 	await React.act(async () => loadMoreButton().click());

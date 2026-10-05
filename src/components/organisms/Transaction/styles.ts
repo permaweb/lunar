@@ -440,7 +440,6 @@ export const PlaceholderIcon = styled.div`
 		height: 55px;
 		width: 55px;
 		color: ${(props) => props.theme.colors.icon.primary.fill};
-		fill: ${(props) => props.theme.colors.icon.primary.fill};
 		margin: 8.5px 0 0 0;
 	}
 `;

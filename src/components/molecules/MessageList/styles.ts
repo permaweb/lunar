@@ -790,6 +790,11 @@ export const UpdateWrapper = styled.div<{ childList?: boolean }>`
 	background: ${(props) =>
 		props.childList ? props.theme.colors.container.alt2.background : props.theme.colors.container.primary.background};
 
+	&:last-child {
+		border-bottom-left-radius: ${(props) => (props.childList ? '0' : STYLING.dimensions.radius.alt1)};
+		border-bottom-right-radius: ${(props) => (props.childList ? '0' : STYLING.dimensions.radius.alt1)};
+	}
+
 	p {
 		font-size: ${(props) => props.theme.typography.size.xxxSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};

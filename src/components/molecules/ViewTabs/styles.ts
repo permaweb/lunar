@@ -4,6 +4,7 @@ import { PrimitiveInput } from 'components/atoms/PrimitiveInput';
 import { STYLING } from 'helpers/config';
 
 export const Wrapper = styled.div<{ $isInAppTabsEnabled: boolean }>`
+	--workspace-height-adjustment: ${(props) => (props.$isInAppTabsEnabled ? '0px' : '75px')};
 	width: 100%;
 	display: flex;
 	flex-direction: column;
@@ -65,7 +66,6 @@ export const DeleteAction = styled.div`
 		}
 		svg {
 			color: ${(props) => props.theme.colors.warning.primary} !important;
-			fill: ${(props) => props.theme.colors.warning.primary} !important;
 		}
 	}
 `;
@@ -142,7 +142,6 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 			&:not(:disabled):hover {
 				svg {
 					color: ${(props) => props.theme.colors.warning.primary} !important;
-					fill: ${(props) => props.theme.colors.warning.primary} !important;
 				}
 			}
 
@@ -151,7 +150,6 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 
 				svg {
 					color: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
-					fill: ${(props) => props.theme.colors.button.primary.disabled.color} !important;
 				}
 			}
 		}
@@ -162,8 +160,6 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 		width: 12.5px;
 		color: ${(props) =>
 			props.active && !props.disabled ? props.theme.colors.font.primary : props.theme.colors.font.alt3};
-		fill: ${(props) =>
-			props.active && !props.disabled ? props.theme.colors.font.primary : props.theme.colors.font.alt3};
 	}
 
 	&:hover {
@@ -171,7 +167,6 @@ export const TabAction = styled.div<{ active: boolean; disabled?: boolean }>`
 
 		svg {
 			color: ${(props) => (props.disabled ? props.theme.colors.font.alt3 : props.theme.colors.font.primary)};
-			fill: ${(props) => (props.disabled ? props.theme.colors.font.alt3 : props.theme.colors.font.primary)};
 		}
 	}
 
