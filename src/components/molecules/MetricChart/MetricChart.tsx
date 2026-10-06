@@ -18,7 +18,7 @@ import iso from 'i18n-iso-countries';
 import { useTheme } from 'styled-components';
 import worldAtlas from 'world-atlas/countries-110m.json';
 
-import { MetricDataPoint } from 'helpers/types';
+import type { MetricDataPoint } from 'helpers/types';
 import { formatCount, formatDate, getTranslucentColor } from 'helpers/utils';
 
 import * as S from './styles';
@@ -185,7 +185,7 @@ function formatPercent(percent: number) {
 	return `${percent >= 10 ? Math.round(percent) : Math.round(percent * 10) / 10}%`;
 }
 
-type MetricChartProps = {
+function MetricChart(props: {
 	chartType?: 'horizontal-bar' | 'line' | 'map' | 'pie' | 'vertical-bar';
 	dataList: MetricDataPoint[];
 	metric: keyof MetricDataPoint;
@@ -210,9 +210,7 @@ type MetricChartProps = {
 	// when this chart hovers an item, so a sibling chart can highlight the same.
 	activeKey?: string | null;
 	onActiveChange?: (key: string | null) => void;
-};
-
-function MetricChart(props: MetricChartProps) {
+}) {
 	const theme = useTheme();
 	const chartRef = React.useRef<any>(null);
 	const chartType = props.chartType ?? 'line';
@@ -273,14 +271,18 @@ function MetricChart(props: MetricChartProps) {
 	// (effectiveActiveIndex) so the header agrees with the persistent highlight;
 	// for other charts, seed from the last data point as before.
 	React.useEffect(() => {
-		if (props.dataList.length === 0) return;
+		if (props.dataList.length === 0) {
+			setCurrentDate(null);
+			setCurrentValue(null);
+			return;
+		}
 		const index = isPie
 			? Math.min(Math.max(effectiveActiveIndex, 0), props.dataList.length - 1)
 			: props.dataList.length - 1;
 		const currentDataPoint = props.dataList[index];
 		if (!currentDataPoint) return;
 		setCurrentDate(currentDataPoint.day);
-		setCurrentValue(currentDataPoint[props.metric]);
+		setCurrentValue(currentDataPoint[props.metric] ?? null);
 	}, [props.dataList, props.metric, isPie, effectiveActiveIndex]);
 
 	// Keep the header in sync with an externally-set active item (e.g. when the
@@ -290,7 +292,7 @@ function MetricChart(props: MetricChartProps) {
 		const row = props.dataList.find((item) => String(item.day) === props.activeKey);
 		if (row) {
 			setCurrentDate(row.day);
-			setCurrentValue(row[props.metric]);
+			setCurrentValue(row[props.metric] ?? null);
 		}
 	}, [props.activeKey, props.dataList, props.metric]);
 
@@ -314,7 +316,8 @@ function MetricChart(props: MetricChartProps) {
 	}, [props.dataList, props.totalField, props.valueFormatter, props.totalValue]);
 
 	const datasetData = React.useMemo(() => {
-		return props.dataList.map((item) => item[props.metric]);
+		// Preserve unavailable readings as gaps rather than reporting zero activity.
+		return props.dataList.map((item) => item[props.metric] ?? null);
 	}, [props.dataList, props.metric]);
 
 	// Auto-compress a spiky line chart. On a linear axis a single outlier (e.g. a
@@ -325,7 +328,10 @@ function MetricChart(props: MetricChartProps) {
 	const useLogScale = React.useMemo(() => {
 		if (chartType !== 'line') return false;
 
-		const values = datasetData.map((value) => Number(value)).filter(Number.isFinite);
+		const values = datasetData
+			.filter((value) => value !== null)
+			.map(Number)
+			.filter(Number.isFinite);
 		if (values.length < 3) return false;
 
 		const max = Math.max(...values);
@@ -347,6 +353,7 @@ function MetricChart(props: MetricChartProps) {
 		if (!useLogScale) return datasetData;
 
 		return datasetData.map((value) => {
+			if (value === null) return null;
 			const numericValue = Number(value);
 			return Number.isFinite(numericValue) ? Math.log1p(Math.max(0, numericValue)) : value;
 		});
@@ -355,7 +362,10 @@ function MetricChart(props: MetricChartProps) {
 	const fittedValueScale = React.useMemo(() => {
 		if (props.valueScale !== 'fit') return {};
 
-		const values = datasetData.map((value) => Number(value)).filter(Number.isFinite);
+		const values = datasetData
+			.filter((value) => value !== null)
+			.map(Number)
+			.filter(Number.isFinite);
 		if (values.length < 2) return {};
 
 		const min = Math.min(...values);
@@ -541,7 +551,7 @@ function MetricChart(props: MetricChartProps) {
 					const element = props.dataList[dataIndex];
 					if (element) {
 						setCurrentDate(element.day);
-						setCurrentValue(element[props.metric]);
+						setCurrentValue(element[props.metric] ?? null);
 						if (isPie && props.onActiveChange) props.onActiveChange(String(element.day));
 					}
 				}
@@ -562,7 +572,7 @@ function MetricChart(props: MetricChartProps) {
 				const match = props.dataList.find((item) => dayToNumericIso(item.day) === numericId);
 				if (match) {
 					setCurrentDate(match.day);
-					setCurrentValue(match[props.metric]);
+					setCurrentValue(match[props.metric] ?? null);
 					if (props.onActiveChange) props.onActiveChange(String(match.day));
 				}
 			}
@@ -729,7 +739,7 @@ function MetricChart(props: MetricChartProps) {
 						</S.HeaderLabel>
 						<S.HeaderValue>
 							<p>
-								{currentValue !== null
+								{currentValue !== null && currentValue !== undefined
 									? props.valueFormatter
 										? props.valueFormatter(currentValue)
 										: formatCount(currentValue.toString())

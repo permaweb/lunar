@@ -126,7 +126,7 @@ export type TransactionTabType = {
 
 export type MetricDataPoint = {
 	day: string;
-	[key: string]: number | string;
+	[key: string]: number | string | null | undefined;
 };
 
 export type NetworkMetricValue = {

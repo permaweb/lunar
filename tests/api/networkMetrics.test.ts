@@ -30,6 +30,33 @@ it('normalizes AO envelope metadata and unavailable metrics without losing integ
 	expect(result.history).toEqual([{ day: HOME_METRICS.generatedAt, mainnet_messages_total: 90000 }]);
 });
 
+it('accepts partial history and nullable metrics while preserving real zero readings', () => {
+	const result = parseMetricsSnapshot({
+		...HOME_METRICS,
+		metrics: {
+			...HOME_METRICS.metrics,
+			'ao-mainnet-processes-rolling': null,
+			'ao-legacynet-messages-rolling': { value: null },
+		},
+		history: [
+			{
+				day: HOME_METRICS.generatedAt,
+				mainnet_messages_rolling: null,
+				mainnet_messages_total: null,
+				arweave_txs_rolling: 0,
+				arweave_txs_total: '9007199254740993',
+			},
+			{ day: HOME_METRICS.generatedAt },
+		],
+	});
+	expect(result.metrics['ao-mainnet-processes-rolling']).toBeUndefined();
+	expect(result.metrics['ao-legacynet-messages-rolling']).toEqual({});
+	expect(result.history).toEqual([
+		{ day: HOME_METRICS.generatedAt, arweave_txs_rolling: 0, arweave_txs_total: '9007199254740993' },
+		{ day: HOME_METRICS.generatedAt },
+	]);
+});
+
 it.each([
 	{ ...HOME_METRICS, generatedAt: 'invalid' },
 	{ ...HOME_METRICS, height: -1 },
