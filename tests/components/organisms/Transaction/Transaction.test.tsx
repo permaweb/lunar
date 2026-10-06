@@ -17,6 +17,9 @@ import {
 	EMPTY_TRANSFER_HEADERS,
 	EMPTY_TRANSFER_ID,
 	HYPERBUDDY_HTML,
+	PORTAL_RELEASE_DATA,
+	PORTAL_RELEASE_HEADERS,
+	PORTAL_RELEASE_ID,
 	TOKEN_PROCESS_ID,
 } from '../../../fixtures/transactionData';
 
@@ -272,6 +275,23 @@ describe('transaction data', () => {
 		expect(container.querySelector('[data-testid="editor"]')?.textContent).toBe('No Data');
 		expect(container.querySelector('iframe')).toBeNull();
 		expect(container.innerHTML).not.toContain('Hyperbuddy');
+	});
+
+	it('renders the portal release JSON from a gateway signature covering its original data field', async () => {
+		vi.mocked(requestRemote).mockImplementation(async (url) =>
+			url === `https://arweave.net/${PORTAL_RELEASE_ID}`
+				? new Response(PORTAL_RELEASE_DATA, { headers: PORTAL_RELEASE_HEADERS })
+				: new Response(null, { status: 404 })
+		);
+		mocks.lookup.mockImplementation(({ txId }: { txId: string }) => lookupTransaction(txId));
+
+		await render('transaction', PORTAL_RELEASE_ID);
+
+		expect(container.textContent).toContain('schemaVersion');
+		expect(container.textContent).toContain('2.1.0');
+		expect(container.textContent).toContain('portal-release');
+		expect(container.textContent).toContain('patches');
+		expect(container.textContent).not.toContain('No Data');
 	});
 });
 

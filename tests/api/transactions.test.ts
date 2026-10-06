@@ -12,6 +12,9 @@ import {
 	EMPTY_TRANSFER_OWNER,
 	HYPERBUDDY_HTML,
 	MESSAGE_ID,
+	PORTAL_RELEASE_DATA,
+	PORTAL_RELEASE_HEADERS,
+	PORTAL_RELEASE_ID,
 	TOKEN_PROCESS_ID,
 } from '../fixtures/transactionData';
 
@@ -28,6 +31,22 @@ describe('transaction body classification', () => {
 	it.each([
 		['an unsigned gateway response', { 'content-type': 'application/json' }, 'raw'],
 		['a signed message with a committed body', committedMessageHeaders(), 'committed'],
+		['a signed message covering its original body key', PORTAL_RELEASE_HEADERS, 'committed'],
+		[
+			'a signed message covering another original body key',
+			{ 'ao-body-key': 'Payload', 'signature-input': 'sig=("payload")' },
+			'committed',
+		],
+		[
+			'a signed message without a body key mapping',
+			{ 'signature-input': 'sig=("data")', 'content-digest': PORTAL_RELEASE_HEADERS['content-digest'] },
+			'none',
+		],
+		[
+			'a signed message with an unsigned body key',
+			{ ...EMPTY_TRANSFER_HEADERS, 'ao-body-key': 'data', 'content-digest': PORTAL_RELEASE_HEADERS['content-digest'] },
+			'none',
+		],
 		['a signed bundle', BUNDLE_HEADERS, 'bundle'],
 		['a signed message without data', EMPTY_TRANSFER_HEADERS, 'none'],
 	])('classifies %s', (_, headers, body) => {
@@ -81,6 +100,15 @@ describe('direct transaction lookup', () => {
 		respond('1984', committedMessageHeaders({ 'content-type': 'application/json', 'content-length': '4' }));
 
 		expect((await lookupTransaction(MESSAGE_ID)).node.data).toEqual({ size: '4', type: 'application/json' });
+	});
+
+	it('keeps the original signed body metadata without inferring a zero-byte size', async () => {
+		respond(PORTAL_RELEASE_DATA, PORTAL_RELEASE_HEADERS);
+
+		expect((await lookupTransaction(PORTAL_RELEASE_ID)).node.data).toEqual({
+			size: undefined,
+			type: 'application/json; charset=utf-8',
+		});
 	});
 
 	it('leaves the size and type of a bundle unknown', async () => {
@@ -170,6 +198,28 @@ describe('transaction data', () => {
 			contentType: 'application/json',
 		});
 		expect(vi.mocked(requestRemote).mock.calls[0][0]).toBe(`https://arweave.net/${MESSAGE_ID}`);
+	});
+
+	it.each([undefined, String(PORTAL_RELEASE_DATA.length)])(
+		'returns the original signed body with recorded size %s',
+		async (knownSize) => {
+			respond(PORTAL_RELEASE_DATA, PORTAL_RELEASE_HEADERS);
+
+			expect(await readTransactionData({ txId: PORTAL_RELEASE_ID, knownSize })).toEqual({
+				status: 'content',
+				text: PORTAL_RELEASE_DATA,
+				contentType: 'application/json; charset=utf-8',
+			});
+		}
+	);
+
+	it('rejects an original signed body whose length contradicts its recorded size', async () => {
+		respond(PORTAL_RELEASE_DATA, PORTAL_RELEASE_HEADERS);
+
+		expect(await readTransactionData({ txId: PORTAL_RELEASE_ID, knownSize: PORTAL_RELEASE_DATA.length + 1 })).toEqual({
+			status: 'error',
+			code: 'invalid-response',
+		});
 	});
 
 	it('falls back to the committed content type when the transaction declares none', async () => {

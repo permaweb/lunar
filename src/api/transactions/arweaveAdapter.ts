@@ -205,15 +205,18 @@ function dataError(code: TransactionDataErrorCode): TransactionData {
 
 /**
  * Classifies a transaction response body from its headers. HyperBEAM gateways answer with the signed message as
- * headers and commit a data body through a covered `content-digest`. A message without data has no digest, and the
- * node fills the body with its own web UI, so that body and its content type must never be read as the data.
+ * headers and commit a data body through a covered `content-digest` or the original field named by `ao-body-key`.
+ * A message without a covered body component can be served with the node's own web UI, which is not its data.
  */
 export function getTransactionBody(headers: Headers): TransactionBody {
 	const signatureInput = headers.get('signature-input');
 	if (!signatureInput) return 'raw';
 
 	const signedComponents = getSignatureInputHeaderNames(signatureInput).map((name) => name.toLowerCase());
-	if (signedComponents.includes('content-digest')) return 'committed';
+	const bodyKey = headers.get('ao-body-key')?.trim().toLowerCase();
+	if (signedComponents.includes('content-digest') || (bodyKey && signedComponents.includes(bodyKey))) {
+		return 'committed';
+	}
 
 	return BUNDLE_PARAM_PATTERN.test(signatureInput) ? 'bundle' : 'none';
 }

@@ -3,6 +3,24 @@ export const EMPTY_TRANSFER_OWNER = 'wCSXTL1g1Entfpv5iyPNHxJlk9N6MfhYve2reKFJWTg
 export const TOKEN_PROCESS_ID = 'suz9pH8HYQbmzhhU-UaudmHf2_9l4qiyStyrYWxNcMc';
 export const MESSAGE_ID = 'xoD4IhFzmFTsAaqJ3-S7_k6-SkfVJLNUBTBsfTunL-k';
 export const BUNDLE_ID = 'YOtNvBJNUYutcKFiICzbRNq_N7IHs0vFyiL4uTOfjpA';
+export const PORTAL_RELEASE_ID = 'Dwqr5ArAgjAteYr4EYS5E_k3tZLLBirvdEGVD5BjGTg';
+
+/** The gateway signs the original data field rather than its HTTP content-digest for this portal release. */
+export const PORTAL_RELEASE_HEADERS: Record<string, string> = {
+	'content-type': 'application/json; charset=utf-8',
+	'ao-body-key': 'data',
+	'content-digest': 'sha-256=:iXFqcHThnX+1ojS1luSqPfaMbvCjcKs1w30tiX+DhYE=:',
+	'app-name': 'Portal',
+	'app-version': '2.1.0',
+	'portal-mode': 'base',
+	type: 'portal-release',
+	'signature-input': `comm-${PORTAL_RELEASE_ID.toLowerCase()}=("data" "content-type" "app-name" "app-version" "portal-mode" "type" "portal-id" "portal-root" "previous-tx" "author" "anchor");alg="ans104@1.0/rsa-pss-sha256";keyid="publickey:${'k'.repeat(
+		683
+	)}";bundle="false"`,
+};
+
+export const PORTAL_RELEASE_DATA =
+	'{"schemaVersion":"2.1.0","type":"portal-release","mode":"base","portalId":"xq688x6oyBtrZTDCUPIlU9U2U-4j8u5pWpCfbAK4hrs","rootTxId":"QmcFF827fs52y2PYzrykiGAA-i0FZdChYoIEN35jL1Y","previousTxId":"XK54qIk88LNigJz0b4JoB5nf4DdjcIfgDu3FwoEPFSA","generatedAt":"2026-09-24T17:22:09.377Z","authorAddress":"wCSXTL1g1Entfpv5iyPNHxJlk9N6MfhYve2reKFJWTg","changes":{"patches":[["d",["users",["=","address","kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI"]]]]}}';
 
 /** The HyperBEAM node web UI a gateway serves as the body of a message that carries no data. */
 export const HYPERBUDDY_HTML = [
