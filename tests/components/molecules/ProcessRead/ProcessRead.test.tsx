@@ -125,6 +125,7 @@ it.each([[{ name: 'device', value: 'process@1.0' }], [{ name: 'Variant', value: 
 		expect(mocks.readState).toHaveBeenCalledWith({
 			processId,
 			hydrate: true,
+			lazy: true,
 			signal: expect.any(AbortSignal),
 			onProgress: expect.any(Function),
 		});
@@ -160,6 +161,7 @@ it.each([
 	expect(mocks.readState).toHaveBeenCalledWith({
 		processId,
 		hydrate: true,
+		lazy: true,
 		signal: expect.any(AbortSignal),
 		onProgress: expect.any(Function),
 	});

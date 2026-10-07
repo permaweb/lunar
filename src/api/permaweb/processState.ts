@@ -50,8 +50,8 @@ const TRANSPORT_HEADERS = new Set([
 
 export function linkedStatePath(id: string): string {
 	if (!checkValidAddress(id)) throw new AoReadError('invalid-input');
-	// The cache read preserves the linked message's device and avoids gateway ID redirects.
-	return `/~cache@1.0/read=${id}?require-codec=json%401.0&accept-bundle=true`;
+	// Leave nested links unresolved so the client controls when to fetch them.
+	return `/~cache@1.0/read=${id}?require-codec=json%401.0`;
 }
 
 /** HTTP-Sig puts scalar state in headers and nested messages in +link fields. */
@@ -67,7 +67,10 @@ export function parseStateHeaders(headers: Headers): StateRecord {
 		if (['__proto__', 'constructor', 'prototype'].includes(name)) throw new AoReadError('invalid-response');
 		if (!TRANSPORT_HEADERS.has(name.toLowerCase())) entries.push([name, value]);
 	});
-	if (!entries.some(([key]) => key !== 'content-type') || headers.get('content-type')?.startsWith('text/html'))
+	// Hyperbuddy can supply an HTML body while retaining the AO message in HEAD headers.
+	const isHtmlPage = headers.get('content-type')?.startsWith('text/html');
+	const hasAoMetadata = headers.has('device') || headers.has('ao-types');
+	if (!entries.some(([key]) => key !== 'content-type') || (isHtmlPage && !hasAoMetadata))
 		throw new AoReadError('invalid-response');
 	// Keep scalar strings intact, including token quantities larger than MAX_SAFE_INTEGER.
 	return Object.fromEntries(entries);
@@ -79,6 +82,7 @@ export async function readProcessState(
 	options: ProcessStateLoadOptions & {
 		field?: string;
 		timeoutMs: number;
+		lazy?: boolean;
 	}
 ): Promise<ProcessStateResult> {
 	const links: Link[] = [];
@@ -268,5 +272,6 @@ export async function readProcessState(
 			links.push(...failed);
 		}
 	}
-	return loadMore();
+	// Explorer can show the header snapshot first and read linked values only after user input.
+	return options.lazy ? readBatch({}) : loadMore();
 }

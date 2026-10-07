@@ -2,6 +2,7 @@ import React from 'react';
 import JSONbig from 'json-bigint';
 
 import { Button } from 'components/atoms/Button';
+import { JSONLinkedValue } from 'components/molecules/JSONLinkedValue';
 import { ASSETS, URLS } from 'helpers/config';
 import { checkValidAddress, stripAnsiChars } from 'helpers/utils';
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
@@ -10,6 +11,7 @@ import { useLanguageProvider } from 'providers/LanguageProvider';
 import * as S from './styles';
 
 const RANGE_SIZE = 2500;
+const MAX_LINK_DEPTH = 64;
 const AUTO_COLLAPSE_THRESHOLD = 2500;
 const INITIAL_RENDER_THRESHOLD = 25;
 
@@ -78,6 +80,7 @@ export default function _JSONTree(props: {
 	filename?: string;
 	preserveViewState?: boolean;
 	footer?: React.ReactNode;
+	onLoadLink?: (id: string, signal: AbortSignal) => Promise<unknown>;
 }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
@@ -297,6 +300,7 @@ export default function _JSONTree(props: {
 					maxHeight={props.maxHeight}
 					fixedHeight={props.fixedHeight}
 					preserveViewState={props.preserveViewState}
+					onLoadLink={props.onLoadLink}
 				/>
 			) : (
 				<S.Placeholder>
@@ -319,6 +323,7 @@ const CustomJSONViewer = React.memo(
 			maxHeight?: number;
 			fixedHeight?: number;
 			preserveViewState?: boolean;
+			onLoadLink?: (id: string, signal: AbortSignal) => Promise<unknown>;
 		}
 	>((props, ref) => {
 		const { openExplorer } = useExplorerNavigation();
@@ -501,7 +506,8 @@ const CustomJSONViewer = React.memo(
 			_key?: string,
 			isLast: boolean = false,
 			path: string = 'root',
-			collectPaths: boolean = false
+			collectPaths: boolean = false,
+			ancestors: readonly string[] = []
 		): JSX.Element => {
 			if (value === null) {
 				return (
@@ -560,6 +566,19 @@ const CustomJSONViewer = React.memo(
 			}
 			if (typeof value === 'string') {
 				const isValidId = checkValidAddress(value);
+				if (isValidId && _key?.endsWith('+link') && props.onLoadLink) {
+					return (
+						<>
+							<JSONLinkedValue
+								id={value}
+								onLoad={props.onLoadLink}
+								blocked={ancestors.includes(value) ? 'cycle' : ancestors.length >= MAX_LINK_DEPTH ? 'depth' : undefined}
+								onRender={(loaded) => renderValue(loaded, undefined, true, path, false, [...ancestors, value])}
+							/>
+							{!isLast && <S.JSONComma>,</S.JSONComma>}
+						</>
+					);
+				}
 				if (isValidId) {
 					return (
 						<>
@@ -609,7 +628,10 @@ const CustomJSONViewer = React.memo(
 				const isCollapsed = collapsed.has(path);
 
 				// Apply render limit to any large arrays
-				const currentLimit = renderLimits.get(path) ?? initialRenderLimits.get(path);
+				const currentLimit =
+					renderLimits.get(path) ??
+					initialRenderLimits.get(path) ??
+					(value.length > INITIAL_RENDER_THRESHOLD ? INITIAL_RENDER_THRESHOLD : undefined);
 				const shouldLimitRender = currentLimit !== undefined && value.length > currentLimit;
 				const itemsToRender = shouldLimitRender ? value.slice(0, currentLimit) : value;
 
@@ -643,7 +665,7 @@ const CustomJSONViewer = React.memo(
 														›
 													</S.CollapseArrow>
 												)}
-												{renderValue(item, undefined, index === value.length - 1, itemPath, collectPaths)}
+												{renderValue(item, undefined, index === value.length - 1, itemPath, collectPaths, ancestors)}
 											</S.JSONArrayItem>
 										);
 									})}
@@ -689,7 +711,10 @@ const CustomJSONViewer = React.memo(
 				const isCollapsed = collapsed.has(path);
 
 				// Apply render limit to any large objects
-				const currentLimit = renderLimits.get(path) ?? initialRenderLimits.get(path);
+				const currentLimit =
+					renderLimits.get(path) ??
+					initialRenderLimits.get(path) ??
+					(entries.length > INITIAL_RENDER_THRESHOLD ? INITIAL_RENDER_THRESHOLD : undefined);
 				const shouldLimitRender = currentLimit !== undefined && entries.length > currentLimit;
 				const entriesToRender = shouldLimitRender ? entries.slice(0, currentLimit) : entries;
 
@@ -760,7 +785,8 @@ const CustomJSONViewer = React.memo(
 																			k,
 																			start + index === entriesToRender.length - 1,
 																			propPath,
-																			collectPaths
+																			collectPaths,
+																			ancestors
 																		)}
 																	</S.JSONProperty>
 																);
@@ -793,7 +819,7 @@ const CustomJSONViewer = React.memo(
 														)}
 														<S.JSONKey>"{k}"</S.JSONKey>
 														<S.JSONColon>: </S.JSONColon>
-														{renderValue(v, k, index === entriesToRender.length - 1, propPath, collectPaths)}
+														{renderValue(v, k, index === entriesToRender.length - 1, propPath, collectPaths, ancestors)}
 													</S.JSONProperty>
 												);
 											})}

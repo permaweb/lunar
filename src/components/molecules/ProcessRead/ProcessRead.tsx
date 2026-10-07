@@ -84,6 +84,11 @@ export default function ProcessRead(props: {
 			? permawebProvider.legacyApi
 			: null;
 	const [hasRun, setHasRun] = React.useState(props.autoRun);
+	const handleLoadLink = React.useCallback(
+		async (id: string, signal: AbortSignal) =>
+			removeCommitments(safelyParseNestedJSON(await permawebProvider.mainnetApi.readLinkedState(id, signal))),
+		[permawebProvider.mainnetApi]
+	);
 
 	React.useEffect(() => {
 		setReadLog([]);
@@ -135,6 +140,7 @@ export default function ProcessRead(props: {
 						: permawebProvider.mainnetApi.readStateWithSource({
 								processId: props.processId,
 								hydrate: true,
+								lazy: true,
 								...readOptions,
 						  }));
 					response = result.data;
@@ -205,7 +211,7 @@ export default function ProcessRead(props: {
 		return (
 			<S.LoadMore>
 				<span role="status">{isFetching ? language.loadingLinkedState : language.moreStateAvailable}</span>
-				<Button type="alt3" label={language.loadMoreData} onPress={handleLoadMore} disabled={isFetching} />
+				<Button type="alt2" label={language.loadMoreData} onPress={handleLoadMore} disabled={isFetching} />
 			</S.LoadMore>
 		);
 	}
@@ -222,6 +228,7 @@ export default function ProcessRead(props: {
 						header={language.currentState}
 						maxHeight={600}
 						preserveViewState
+						onLoadLink={props.variant === MessageVariantEnum.Mainnet ? handleLoadLink : undefined}
 						footer={getLoadMoreControl()}
 					/>
 				</S.OutputWrapper>

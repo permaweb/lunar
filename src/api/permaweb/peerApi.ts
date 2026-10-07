@@ -16,6 +16,7 @@ type StateArgs = {
 	appendPath?: boolean;
 	signal?: AbortSignal;
 	onProgress?: (progress: ProcessStateProgress) => void;
+	lazy?: boolean;
 };
 type JsonRecord = Record<string, unknown>;
 
@@ -68,6 +69,7 @@ export function createPeerApi(settings: AoNetworkSettings, wallet: unknown): Pee
 			signal: args.signal,
 			onProgress: args.onProgress,
 			field: args.path && !args.appendPath ? args.path : undefined,
+			lazy: args.lazy,
 			// Bound the complete traversal while allowing an extension attempt and peer failover.
 			timeoutMs: AO_STATE_READ_TIMEOUT_MS * (settings.peers.length + 1),
 		});

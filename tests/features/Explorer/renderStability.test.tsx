@@ -325,3 +325,20 @@ it('keeps table state when opening and closing the pinned panel', async () => {
 	expect(container.querySelector('[data-table]')).toBe(table);
 	expect(mocks.loadTable).toHaveBeenCalledTimes(loads);
 });
+
+it('opens the process read settings from the toolbar without replacing loaded process output', async () => {
+	mocks.variant = MessageVariantEnum.Mainnet;
+	await render(true, 'Process');
+	const output = container.querySelector('section[aria-label="Current State"]');
+	const initialReads = mocks.readMainnetState.mock.calls.length;
+	const control = container.querySelector<HTMLButtonElement>('button[aria-label="Process Read Settings"]');
+	expect(control).not.toBeNull();
+	await React.act(async () => control.click());
+	const panel = document.querySelector('[role="dialog"]');
+	expect(panel.querySelector<HTMLInputElement>('input[aria-label="Use Global Read Settings"]').checked).toBe(true);
+	expect(panel.querySelector<HTMLInputElement>('input[aria-label="AO peers"]').disabled).toBe(true);
+	await React.act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+	expect(document.querySelector('[role="dialog"]')).toBeNull();
+	expect(container.querySelector('section[aria-label="Current State"]')).toBe(output);
+	expect(mocks.readMainnetState).toHaveBeenCalledTimes(initialReads);
+});

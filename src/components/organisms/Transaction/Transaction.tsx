@@ -1151,6 +1151,7 @@ function Transaction(props: {
 	tabKey?: string; // Stable key from TransactionTabs to maintain component identity
 	onLoadingChange?: (loading: boolean) => void;
 	processMessagesView: React.ComponentType<ProcessMessagesViewProps>;
+	processReadSettingsControl?: React.ReactNode;
 	inspector?: {
 		id: string;
 		label: string;
@@ -1925,6 +1926,9 @@ function Transaction(props: {
 					onFullscreen={toggleFullscreen}
 					actions={
 						<>
+							{resolvedType === 'process' && props.processReadSettingsControl && (
+								<C.SeparatedActions>{props.processReadSettingsControl}</C.SeparatedActions>
+							)}
 							{props.inspector?.id === inputTxId && props.inspector.actions && (
 								<C.SeparatedActions>{props.inspector.actions}</C.SeparatedActions>
 							)}

@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
+import axe from 'axe-core';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
@@ -12,7 +13,18 @@ vi.mock('providers/LanguageProvider', () => ({
 	useLanguageProvider: () => ({
 		current: 'en',
 		object: {
-			en: { collapseExpandAll: 'Toggle all', enterFullScreen: 'Enter Full Screen', exitFullScreen: 'Exit Full Screen' },
+			en: {
+				collapseExpandAll: 'Toggle all',
+				enterFullScreen: 'Enter Full Screen',
+				exitFullScreen: 'Exit Full Screen',
+				copyJSON: 'Copy JSON',
+				expandLinkedValue: 'Expand linked value',
+				loadingLinkedState: 'Loading linked values…',
+				aoReadUnavailable: 'Linked value is unavailable',
+				linkedStateCycle: 'This link points to a value already open in this branch.',
+				linkedStateDepth: 'The linked value nesting limit has been reached.',
+				retry: 'Retry',
+			},
 		},
 	}),
 }));
@@ -42,7 +54,12 @@ async function render(
 	data: unknown,
 	preserveViewState = true,
 	footer?: React.ReactNode,
-	options?: { hideHeader?: boolean; noFullScreen?: boolean; noWrapper?: boolean }
+	options?: {
+		hideHeader?: boolean;
+		noFullScreen?: boolean;
+		noWrapper?: boolean;
+		onLoadLink?: (id: string, signal: AbortSignal) => Promise<unknown>;
+	}
 ) {
 	await React.act(async () =>
 		root.render(
@@ -54,6 +71,91 @@ async function render(
 		)
 	);
 }
+
+async function toggleLink(details: HTMLDetailsElement, isOpen: boolean) {
+	await React.act(async () => {
+		details.open = isOpen;
+		details.dispatchEvent(new Event('toggle'));
+	});
+}
+
+it('fetches linked values only when expanded, leaves nested links lazy, and reuses loaded values', async () => {
+	const parent = 'p'.repeat(43);
+	const child = 'c'.repeat(43);
+	const onLoadLink = vi.fn(async (id) =>
+		id === parent ? { 'nested+link': child } : { quantity: '900719925474099312345' }
+	);
+	await render({ 'balances+link': parent }, true, undefined, { onLoadLink });
+	expect(onLoadLink).not.toHaveBeenCalled();
+	const details = container.querySelector('details');
+	await toggleLink(details, true);
+	expect(onLoadLink).toHaveBeenCalledExactlyOnceWith(parent, expect.any(AbortSignal));
+	expect(container.textContent).toContain('nested+link');
+	const nested = details.querySelector('details');
+	await toggleLink(nested, true);
+	expect(onLoadLink).toHaveBeenCalledTimes(2);
+	expect(onLoadLink.mock.calls[1][0]).toBe(child);
+	expect(container.textContent).toContain('900719925474099312345');
+	await toggleLink(nested, false);
+	await toggleLink(nested, true);
+	expect(onLoadLink).toHaveBeenCalledTimes(2);
+	expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
+});
+
+it('cancels collapsed linked reads, ignores their late results, and retries failed reads on demand', async () => {
+	const id = 'p'.repeat(43);
+	let resolve: (value: unknown) => void;
+	const onLoadLink = vi
+		.fn()
+		.mockImplementationOnce(
+			() =>
+				new Promise((finish) => {
+					resolve = finish;
+				})
+		)
+		.mockRejectedValueOnce(new Error('offline'))
+		.mockResolvedValueOnce({ name: 'Recovered value' });
+	await render({ 'value+link': id }, true, undefined, { onLoadLink });
+	const details = container.querySelector('details');
+	await toggleLink(details, true);
+	const signal = onLoadLink.mock.calls[0][1];
+	await toggleLink(details, false);
+	expect(signal.aborted).toBe(true);
+	await React.act(async () => resolve({ name: 'Stale value' }));
+	expect(container.textContent).not.toContain('Stale value');
+	await toggleLink(details, true);
+	expect(container.querySelector('[role="alert"]')?.textContent).toContain('Linked value is unavailable');
+	const retry = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Retry');
+	await React.act(async () => retry.click());
+	expect(container.textContent).toContain('Recovered value');
+	expect(onLoadLink).toHaveBeenCalledTimes(3);
+});
+
+it('blocks linked cycles and keeps ordinary IDs as regular values', async () => {
+	const id = 'p'.repeat(43);
+	const onLoadLink = vi.fn(async () => ({ 'cycle+link': id }));
+	await render({ id, 'value+link': id }, true, undefined, { onLoadLink });
+	expect(container.querySelectorAll('details')).toHaveLength(1);
+	const details = container.querySelector('details');
+	await toggleLink(details, true);
+	await toggleLink(details.querySelector('details'), true);
+	expect(onLoadLink).toHaveBeenCalledTimes(1);
+	expect(container.textContent).toContain('already open in this branch');
+});
+
+it('limits the initial rows of a lazily loaded collection', async () => {
+	const onLoadLink = vi.fn(async () => Array.from({ length: 100 }, (_, i) => `lazy-item-${i}`));
+	await render({ 'values+link': 'p'.repeat(43) }, true, undefined, { onLoadLink });
+	await toggleLink(container.querySelector('details'), true);
+	expect(container.textContent).toContain('lazy-item-24');
+	expect(container.textContent).not.toContain('lazy-item-25');
+	const more = Array.from(container.querySelectorAll('button')).find((button) =>
+		button.textContent.includes('Load 25')
+	);
+	await React.act(async () => more.click());
+	expect(container.textContent).toContain('lazy-item-30');
+	expect(onLoadLink).toHaveBeenCalledTimes(1);
+});
 
 it('can enter and exit fullscreen without showing a separate reader header', async () => {
 	await render({ note: 'Message input' }, true, undefined, { hideHeader: true, noWrapper: true });

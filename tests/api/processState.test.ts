@@ -9,7 +9,7 @@ const statePath = `/${'p'.repeat(43)}~process@1.0/now`;
 const balanceId = 'b'.repeat(43);
 const ordersId = 'o'.repeat(43);
 const orderId = 'r'.repeat(43);
-const linkPath = (id: string) => `/~cache@1.0/read=${id}?require-codec=json%401.0&accept-bundle=true`;
+const linkPath = (id: string) => `/~cache@1.0/read=${id}?require-codec=json%401.0`;
 const head = (headers: Record<string, string>) => new Response(null, { headers });
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const options = { timeoutMs: 90_000 };
@@ -17,6 +17,48 @@ const transportFor = (fetcher: typeof fetch) =>
 	createAoReadTransport({ ...DEFAULT_AO_NETWORK, fallbackToPeers: false }, { injected: () => fetcher });
 
 afterEach(() => vi.useRealTimers());
+
+it('returns scalar state and unresolved links without fetching them in lazy mode', async () => {
+	const fetcher = vi.fn(async (path) =>
+		path === statePath ? head({ name: 'Lazy process', 'balances+link': balanceId }) : json({ holder: '42' })
+	);
+	const result = await readProcessState(transportFor(fetcher), statePath, { ...options, lazy: true });
+	expect(result.data).toEqual({ name: 'Lazy process', 'balances+link': balanceId });
+	expect(fetcher).toHaveBeenCalledExactlyOnceWith(statePath, expect.objectContaining({ method: 'HEAD' }));
+	expect(result.loadMore).toBeTypeOf('function');
+	expect((await result.loadMore()).data).toEqual({ name: 'Lazy process', balances: { holder: '42' } });
+	expect(fetcher.mock.calls.map(([path]) => path)).toEqual([statePath, linkPath(balanceId)]);
+});
+
+it('hydrates HTTP peer state when Hyperbuddy labels HEAD responses as HTML', async () => {
+	const peer = 'http://173.255.230.49:10000';
+	const fetcher = vi.fn(async (input, init) => {
+		const relay = new URL(input);
+		if (init.method === 'HEAD') {
+			expect(relay.searchParams.get('relay-path')).toBe(`${peer}${statePath}`);
+			return head({
+				'content-type': 'text/html',
+				device: 'process@1.0',
+				name: 'AO PoT Integration Test',
+				'balances+link': balanceId,
+			});
+		}
+		expect(relay.searchParams.get('relay-path')).toBe(`${peer}${linkPath(balanceId)}`);
+		return relay.searchParams.get('require-codec') === 'json@1.0' && !relay.searchParams.has('accept-bundle')
+			? new Response('{"holder":10000000000000000000000}')
+			: new Response('<html>Hyperbuddy</html>');
+	});
+	const transport = createAoReadTransport(
+		{ ...DEFAULT_AO_NETWORK, peers: [peer], preferPermawebOS: false },
+		{ fetch: fetcher, injected: () => undefined }
+	);
+	expect(await readProcessState(transport, statePath, options)).toMatchObject({
+		data: { name: 'AO PoT Integration Test', balances: { holder: '10000000000000000000000' } },
+		provider: peer,
+		source: 'peers',
+	});
+	expect(fetcher).toHaveBeenCalledTimes(2);
+});
 
 it('publishes immutable header and linked snapshots, including nested values as they arrive', async () => {
 	vi.useFakeTimers();

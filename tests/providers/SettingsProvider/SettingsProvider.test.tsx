@@ -135,6 +135,24 @@ it('saves, rejects, and resets the GraphQL endpoint from the network settings', 
 	expect(input.value).toBe(DEFAULT_GRAPHQL_ENDPOINT);
 });
 
+it('accepts, saves, and restores a remote HTTP AO peer with a port and trailing slash', async () => {
+	await render();
+	await React.act(async () => current.setShowNodeSettings(true));
+	const input = container.querySelector<HTMLInputElement>('input[aria-label="AO peers"]');
+	await typeInto(input, 'http://173.255.230.49:10000/');
+	expect(getButton('Save peers').disabled).toBe(false);
+	expect(container.textContent).toContain('Remote HTTP peers are read through the arweave.net HTTPS relay.');
+
+	await React.act(async () => getButton('Save peers').click());
+	expect(current.settings.aoNetwork.peers).toEqual(['http://173.255.230.49:10000']);
+	expect(input.value).toBe('http://173.255.230.49:10000');
+	await new Promise((resolve) => setTimeout(resolve, 5));
+	await React.act(async () => root.unmount());
+	root = createRoot(container);
+	await render();
+	expect(current.settings.aoNetwork.peers).toEqual(['http://173.255.230.49:10000']);
+});
+
 it('keeps the network settings open after selecting an AOS node', async () => {
 	localStorage.setItem(
 		'settings',
