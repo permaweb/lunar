@@ -19,12 +19,14 @@ import {
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePinnedTabsProvider } from 'providers/PinnedTabsProvider';
+import { ProcessReadSettingsProvider } from 'providers/ProcessReadSettingsProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
 
 import type { ExplorerTab as ExplorerTabType } from '../../../model/tabs';
 import { parseExplorerTabs } from '../../../model/tabs';
 import { ArweaveNode } from '../ArweaveNode';
 import { ProcessMessages } from '../ProcessMessages';
+import { ProcessReadSettingsControl } from '../ProcessReadSettingsControl';
 
 function checkValidBlockId(id: string | null) {
 	if (!id) return false;
@@ -630,24 +632,27 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 		}
 
 		return props.type === 'explorer' ? (
-			<AoCoreTransaction
-				pinTarget={{
-					id: tab.id,
-					label: renderTabLabel(tab),
-					labelEdited: tab.labelEdited,
-					type: tab.type,
-					route: tab.lastRoute ?? getRouteForTab(tab),
-				}}
-				key={tab.tabKey}
-				txId={tab.id}
-				type={tab.type as any}
-				active={isActive}
-				onTxChange={onTxChange}
-				onMessageOpen={handleMessageOpen}
-				tabKey={tab.tabKey}
-				onLoadingChange={onLoadingChange}
-				processMessagesView={ProcessMessages}
-			/>
+			<ProcessReadSettingsProvider key={tab.tabKey} processId={tab.id} enabled={tab.type === 'process'}>
+				<AoCoreTransaction
+					pinTarget={{
+						id: tab.id,
+						label: renderTabLabel(tab),
+						labelEdited: tab.labelEdited,
+						type: tab.type,
+						route: tab.lastRoute ?? getRouteForTab(tab),
+					}}
+					key={tab.tabKey}
+					txId={tab.id}
+					type={tab.type as any}
+					active={isActive}
+					onTxChange={onTxChange}
+					onMessageOpen={handleMessageOpen}
+					tabKey={tab.tabKey}
+					onLoadingChange={onLoadingChange}
+					processMessagesView={ProcessMessages}
+					processReadSettingsControl={<ProcessReadSettingsControl key={tab.id} />}
+				/>
+			</ProcessReadSettingsProvider>
 		) : (
 			<AOS key={tab.tabKey} processId={tab.id} active={isActive} onTxChange={onTxChange} tabKey={tab.tabKey} />
 		);

@@ -29,9 +29,8 @@ export function parseAoPeers(value: unknown): string[] | null {
 		if (typeof entry !== 'string') return null;
 		try {
 			const url = new URL(entry);
-			const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
 			if (
-				(url.protocol !== 'https:' && !(local && url.protocol === 'http:')) ||
+				!['http:', 'https:'].includes(url.protocol) ||
 				url.username ||
 				url.password ||
 				url.search ||

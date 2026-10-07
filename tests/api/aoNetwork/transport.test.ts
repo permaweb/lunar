@@ -43,6 +43,105 @@ it.each([429, 502])('fails over between configured peers after HTTP %i', async (
 	expect(new Set(requests.map((url) => new URL(url).origin))).toEqual(new Set(peers));
 });
 
+it.each(['GET', 'HEAD'])('relays remote HTTP peer %s reads and reports the selected peer', async (method) => {
+	const peer = 'http://173.255.230.49:10000';
+	const readPath = `${path}?require-codec=application/json&accept-bundle=true`;
+	const response = json({ ready: true });
+	Object.defineProperty(response, 'url', { value: 'https://arweave.net/~relay@1.0/call' });
+	const direct = vi.fn(async () => response);
+	const transport = createAoReadTransport(
+		{ ...settings, peers: [peer], preferPermawebOS: false },
+		{ fetch: direct, injected: () => undefined }
+	);
+	const result =
+		method === 'HEAD'
+			? await transport.readHeaders(readPath, {}, (headers) => headers.get('content-type'))
+			: await transport.readJson(readPath);
+	expect(result).toMatchObject({ provider: peer, source: 'peers' });
+	expect(result.data).toEqual(method === 'HEAD' ? 'application/json' : { ready: true });
+	expect(direct).toHaveBeenCalledOnce();
+	const [url, init] = direct.mock.calls[0];
+	const relay = new URL(url);
+	expect(relay.origin + relay.pathname).toBe('https://arweave.net/~relay@1.0/call');
+	expect(relay.searchParams.get('relay-path')).toBe(`${peer}${readPath}`);
+	expect(relay.searchParams.get('relay-method')).toBe(method);
+	expect(relay.searchParams.get('require-codec')).toBe('application/json');
+	expect(relay.searchParams.get('accept-bundle')).toBe('true');
+	expect(init).toMatchObject({ signal: expect.any(AbortSignal), credentials: 'omit' });
+	expect(init.method ?? 'GET').toBe(method);
+});
+
+it('preserves the relay response format for linked reads and schedule reads', async () => {
+	const direct = vi.fn(async (input) => {
+		const relay = new URL(input);
+		return relay.searchParams.get('require-codec') === 'json@1.0' ||
+			relay.searchParams.get('accept') === 'application/aos-2'
+			? json({ ready: true })
+			: new Response('<html>Hyperbuddy</html>', { headers: { 'content-type': 'text/html' } });
+	});
+	const transport = createAoReadTransport(
+		{ ...settings, peers: ['http://173.255.230.49:10000'], preferPermawebOS: false },
+		{ fetch: direct, injected: () => undefined }
+	);
+	expect(
+		(await transport.readJson('/~cache@1.0/read=linked?require-codec=json%401.0&accept-bundle=false')).data
+	).toEqual({ ready: true });
+	expect((await transport.readJson(`${path}?accept=application/aos-2&from=0&to=3`)).data).toEqual({ ready: true });
+	const urls = direct.mock.calls.map(([input]) => new URL(input));
+	expect(urls[0].searchParams.get('accept-bundle')).toBe('false');
+	expect(urls[1].searchParams.has('from')).toBe(false);
+	expect(urls[1].searchParams.get('relay-path')).toContain('&from=0&to=3');
+});
+
+it.each(['http://localhost:8734', 'http://127.0.0.1:8734', 'http://[::1]:8734', 'https://secure.example'])(
+	'keeps local HTTP and HTTPS reads direct: %s',
+	async (peer) => {
+		const direct = vi.fn(async () => json({ ready: true }));
+		const transport = createAoReadTransport(
+			{ ...settings, peers: [peer], preferPermawebOS: false },
+			{ fetch: direct, injected: () => undefined }
+		);
+		expect(await transport.readJson(path)).toMatchObject({ data: { ready: true }, source: 'peers' });
+		expect(direct).toHaveBeenCalledWith(`${peer}${path}`, expect.any(Object));
+	}
+);
+
+it('fails over between HTTP and HTTPS peers after a failed read', async () => {
+	const direct = vi.fn(async (input) => {
+		const response = direct.mock.calls.length === 1 ? new Response('', { status: 502 }) : json({ ready: true });
+		Object.defineProperty(response, 'url', { value: String(input) });
+		return response;
+	});
+	const configuredPeers = ['http://173.255.230.49:10000', peers[0]];
+	const transport = createAoReadTransport(
+		{ ...settings, peers: configuredPeers, preferPermawebOS: false },
+		{ fetch: direct, injected: () => undefined }
+	);
+	const result = await transport.readJson(path);
+	expect(result).toMatchObject({ data: { ready: true }, source: 'peers' });
+	expect(direct).toHaveBeenCalledTimes(2);
+	const attemptedPeers = direct.mock.calls.map(([input]) => {
+		const url = new URL(input);
+		return new URL(url.searchParams.get('relay-path') ?? input).origin;
+	});
+	expect(new Set(attemptedPeers)).toEqual(new Set(configuredPeers));
+	expect(result.provider).toBe(attemptedPeers[1]);
+});
+
+it('cancels a relayed HTTP read through the existing abort signal', async () => {
+	const direct = vi.fn(() => new Promise<Response>(() => {}));
+	const controller = new AbortController();
+	const transport = createAoReadTransport(
+		{ ...settings, peers: ['http://173.255.230.49:10000'], preferPermawebOS: false },
+		{ fetch: direct, injected: () => undefined }
+	);
+	const pending = transport.readJson(path, { signal: controller.signal });
+	await vi.waitFor(() => expect(direct).toHaveBeenCalledOnce());
+	controller.abort();
+	await expect(pending).rejects.toMatchObject({ code: 'cancelled' });
+	expect(direct.mock.calls[0][1].signal.aborted).toBe(true);
+});
+
 it.each(['rejected', 'http', 'invalid-json'])('switches to peers when PermawebOS returns %s', async (failure) => {
 	const injected = vi.fn(async () => {
 		if (failure === 'rejected') throw new Error('extension unavailable');

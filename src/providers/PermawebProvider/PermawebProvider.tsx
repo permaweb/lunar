@@ -4,6 +4,7 @@ import { setGraphQLEndpoint } from 'api/graphql';
 import { createPeerApi, createPermawebApis, type PeerApi, type PermawebApi } from 'api/permaweb';
 
 import { useArweaveProvider } from 'providers/ArweaveProvider';
+import { useProcessReadSettingsProvider } from 'providers/ProcessReadSettingsProvider';
 import { useSettingsProvider } from 'providers/SettingsProvider';
 
 interface PermawebContextState {
@@ -21,7 +22,12 @@ const DEFAULT_CONTEXT = {
 const PermawebContext = React.createContext<PermawebContextState>(DEFAULT_CONTEXT);
 
 export function usePermawebProvider(): PermawebContextState {
-	return React.useContext(PermawebContext);
+	const global = React.useContext(PermawebContext);
+	const process = useProcessReadSettingsProvider();
+	return React.useMemo(
+		() => (process?.mainnetApi ? { ...global, mainnetApi: process.mainnetApi } : global),
+		[global, process?.mainnetApi]
+	);
 }
 
 export default function PermawebProvider(props: { children: React.ReactNode }) {

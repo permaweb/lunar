@@ -3,7 +3,7 @@ import React from 'react';
 import { type AoCoreReadState, type AoCoreState, readAoCoreMessage, readAoCoreValue } from 'api/aoCore';
 import { AoReadError, type AoReadResult, getAoReadTransport } from 'api/aoNetwork';
 
-import { useSettingsProvider } from 'providers/SettingsProvider';
+import { useAoReadNetwork } from 'hooks/useAoReadNetwork';
 
 function useAoCoreRead<T>(
 	id: string,
@@ -15,8 +15,8 @@ function useAoCoreRead<T>(
 		options: { signal: AbortSignal }
 	) => Promise<AoReadResult<T>>
 ): AoCoreReadState<T> {
-	const { settings } = useSettingsProvider();
-	const transport = React.useMemo(() => getAoReadTransport(settings.aoNetwork), [settings.aoNetwork]);
+	const network = useAoReadNetwork();
+	const transport = React.useMemo(() => getAoReadTransport(network), [network]);
 	const [snapshot, setSnapshot] = React.useState<{
 		key: string;
 		transport: typeof transport;

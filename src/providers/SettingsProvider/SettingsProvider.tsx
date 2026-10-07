@@ -2,7 +2,6 @@ import React from 'react';
 import { debounce } from 'lodash';
 import { ThemeProvider } from 'styled-components';
 
-import { getAoReadTransport } from 'api/aoNetwork';
 import { normalizeGraphQLEndpoint } from 'api/graphql';
 import { requestRemote } from 'api/http';
 
@@ -10,7 +9,8 @@ import { Button } from 'components/atoms/Button';
 import { Checkbox } from 'components/atoms/Checkbox';
 import { FormField } from 'components/atoms/FormField';
 import { Modal } from 'components/atoms/Modal';
-import { type AoNetworkSettings, DEFAULT_AO_NETWORK, parseAoPeers, restoreAoNetwork } from 'helpers/aoNetwork';
+import { AoReadSettings } from 'components/organisms/AoReadSettings';
+import { type AoNetworkSettings, DEFAULT_AO_NETWORK, restoreAoNetwork } from 'helpers/aoNetwork';
 import { ASSETS, DEFAULT_AO_NODE, DEFAULT_GRAPHQL_ENDPOINT, DEFAULT_LEGACY_CU_URL, STYLING } from 'helpers/config';
 import { language } from 'helpers/language';
 import { type InAppTabsSettings, restoreInAppTabs } from 'helpers/tabMode';
@@ -87,10 +87,6 @@ interface SettingsContextState {
 	setShowNodeSettings: (show: boolean) => void;
 }
 
-interface SettingsProviderProps {
-	children: React.ReactNode;
-}
-
 const defaultSettings: Settings = {
 	inAppTabs: restoreInAppTabs(null),
 	theme: window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark-primary' : 'light-primary',
@@ -130,7 +126,7 @@ export function useSettingsProvider(): SettingsContextState {
 	return React.useContext(SettingsContext);
 }
 
-export default function SettingsProvider(props: SettingsProviderProps) {
+export default function SettingsProvider(props: { children: React.ReactNode }) {
 	const loadStoredSettings = (): Settings => {
 		let parsedSettings: Partial<Settings>;
 		try {
@@ -182,10 +178,6 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 	const { addNotification, removeNotification } = useNotifications();
 
 	const [settings, setSettings] = React.useState<Settings>(loadStoredSettings);
-	const readTransport = React.useMemo(() => getAoReadTransport(settings.aoNetwork), [settings.aoNetwork]);
-	const networkStatus = React.useSyncExternalStore(readTransport.subscribe, readTransport.getStatus);
-	const [peersInput, setPeersInput] = React.useState(settings.aoNetwork.peers.join(', '));
-	const parsedPeers = React.useMemo(() => parseAoPeers(peersInput), [peersInput]);
 	const [showNodeSettings, setShowNodeSettings] = React.useState<boolean>(false);
 	const [newNodeUrl, setNewNodeUrl] = React.useState<string>('');
 	const [legacyComputeNodeInput, setLegacyComputeNodeInput] = React.useState<string>(settings.legacyComputeNode);
@@ -434,17 +426,6 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 		updateSettings('showNodeStatus', !settings.showNodeStatus);
 	}
 
-	function handleSavePeers() {
-		if (!parsedPeers) return;
-		updateSettings('aoNetwork', { ...settings.aoNetwork, peers: parsedPeers });
-		setPeersInput(parsedPeers.join(', '));
-	}
-
-	function handleResetPeers() {
-		updateSettings('aoNetwork', { ...settings.aoNetwork, peers: [...DEFAULT_AO_NETWORK.peers] });
-		setPeersInput(DEFAULT_AO_NETWORK.peers.join(', '));
-	}
-
 	function handleSaveGraphqlEndpoint() {
 		if (!parsedGraphqlEndpoint) return;
 		updateSettings('graphqlEndpoint', parsedGraphqlEndpoint);
@@ -516,87 +497,10 @@ export default function SettingsProvider(props: SettingsProviderProps) {
 							<S.NodeDivider>
 								<div className={'node-divider'} />
 							</S.NodeDivider>
-							<S.NodeSection>
-								<S.NodeSectionHeader>
-									<p>{language.en.aoReadNetwork}</p>
-								</S.NodeSectionHeader>
-								<S.NetworkDescription>{language.en.aoReadNetworkDescription}</S.NetworkDescription>
-								<S.NodeDisplayOption $active={settings.aoNetwork.preferPermawebOS}>
-									<Checkbox
-										checked={settings.aoNetwork.preferPermawebOS}
-										onSelect={() =>
-											updateSettings('aoNetwork', {
-												...settings.aoNetwork,
-												preferPermawebOS: !settings.aoNetwork.preferPermawebOS,
-											})
-										}
-										disabled={false}
-									/>
-									<S.NodeDisplayOptionText>
-										<span>{language.en.preferPermawebOS}</span>
-										<p>{language.en.preferPermawebOSDescription}</p>
-									</S.NodeDisplayOptionText>
-								</S.NodeDisplayOption>
-								<S.NodeDisplayOption
-									$active={settings.aoNetwork.fallbackToPeers}
-									$disabled={!settings.aoNetwork.preferPermawebOS}
-								>
-									<Checkbox
-										checked={settings.aoNetwork.fallbackToPeers}
-										onSelect={() =>
-											updateSettings('aoNetwork', {
-												...settings.aoNetwork,
-												fallbackToPeers: !settings.aoNetwork.fallbackToPeers,
-											})
-										}
-										disabled={!settings.aoNetwork.preferPermawebOS}
-									/>
-									<S.NodeDisplayOptionText>
-										<span>{language.en.fallbackToPeers}</span>
-										<p>{language.en.fallbackToPeersDescription}</p>
-									</S.NodeDisplayOptionText>
-								</S.NodeDisplayOption>
-								<S.NetworkDescription role="status" aria-live="polite">
-									{networkStatus.source === 'fallback'
-										? language.en.peerFallbackActive
-										: networkStatus.source === 'permawebos'
-										? language.en.permawebOSActive
-										: language.en.peersActive}
-								</S.NetworkDescription>
-								{networkStatus.source === 'permawebos' && (
-									<S.NetworkProviders>
-										{(['processPeers', 'schedulePeers', 'linkedStatePeers'] as const).map((role) => (
-											<div key={role}>
-												<strong>{language.en[role]}</strong>
-												<span>{networkStatus[role].join(', ') || language.en.managedByPermawebOS}</span>
-											</div>
-										))}
-									</S.NetworkProviders>
-								)}
-								<FormField
-									label={language.en.aoPeers}
-									value={peersInput}
-									onChange={(event) => setPeersInput(event.target.value)}
-									invalid={{ status: !parsedPeers, message: !parsedPeers ? language.en.invalidAoPeers : null }}
-									disabled={false}
-								/>
-								<S.NetworkDescription>{language.en.aoPeersDescription}</S.NetworkDescription>
-								<S.PeerList>
-									{settings.aoNetwork.peers.map((peer) => (
-										<li key={peer}>{peer}</li>
-									))}
-								</S.PeerList>
-								<S.SectionActions>
-									<Button
-										type="alt1"
-										size="small"
-										label={language.en.savePeers}
-										onPress={handleSavePeers}
-										disabled={!parsedPeers || JSON.stringify(parsedPeers) === JSON.stringify(settings.aoNetwork.peers)}
-									/>
-									<Button type="alt3" label={language.en.resetPeers} onPress={handleResetPeers} />
-								</S.SectionActions>
-							</S.NodeSection>
+							<AoReadSettings
+								settings={settings.aoNetwork}
+								onChange={(network) => updateSettings('aoNetwork', network)}
+							/>
 							<S.NodeDivider>
 								<div className={'node-divider'} />
 							</S.NodeDivider>

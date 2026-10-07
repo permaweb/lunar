@@ -7,6 +7,7 @@ import { AO_EXTENSION_RETRY_MS, AO_READ_TIMEOUT_MS } from 'helpers/config';
 import { type AoNetworkStatus, AoReadError, type AoReadResult, type InjectedAoFetch } from './types';
 
 const losslessJson = JSONbig({ storeAsString: true, protoAction: 'error', constructorAction: 'error' });
+const HTTP_RELAY_URL = 'https://arweave.net/~relay@1.0/call';
 type ReadOptions = RequestInit & { timeoutMs?: number };
 
 export function createAoReadTransport(
@@ -22,6 +23,25 @@ export function createAoReadTransport(
 	const timeoutMs = dependencies.timeoutMs ?? AO_READ_TIMEOUT_MS;
 	const now = dependencies.now ?? Date.now;
 	const injected = dependencies.injected ?? (() => (typeof window === 'undefined' ? undefined : window.aoFetch));
+	const relayedOrigins = new WeakMap<Response, string>();
+	const fetchPeer: typeof fetch = async (input, init) => {
+		const target = new URL(input instanceof Request ? input.url : input);
+		const fetcher = dependencies.fetch ?? fetch;
+		const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(target.hostname);
+		if (target.protocol !== 'http:' || isLoopback) return fetcher(input, init);
+		// HTTPS pages cannot fetch remote HTTP peers directly. Keep routing and rate limits scoped to the peer.
+		const relay = new URL(HTTP_RELAY_URL);
+		relay.searchParams.set('relay-path', target.href);
+		relay.searchParams.set('relay-method', init?.method ?? 'GET');
+		// The relay encodes its own response, independently of the target URL's codec negotiation.
+		for (const name of ['require-codec', 'accept-codec', 'accept', 'accept-bundle']) {
+			const value = target.searchParams.get(name);
+			if (value !== null) relay.searchParams.set(name, value);
+		}
+		const response = await fetcher(relay.href, init);
+		relayedOrigins.set(response, target.origin);
+		return response;
+	};
 	const nodes = config.peers.map((prefix) => ({
 		prefix,
 		'rate-limit': dependencies.fetch ? (false as const) : ('discover' as const),
@@ -44,7 +64,7 @@ export function createAoReadTransport(
 					'fallback-on-cooldown': true,
 				})),
 			},
-			dependencies.fetch
+			fetchPeer
 		);
 		clients.set(requestTimeoutMs, client);
 		return client;
@@ -148,7 +168,7 @@ export function createAoReadTransport(
 					if (!response.ok) throw new AoReadError('unavailable');
 					return {
 						data: await consume(response),
-						provider: responseOrigin(response) || cacheMetadata(response)?.origin || '',
+						provider: relayedOrigins.get(response) || cacheMetadata(response)?.origin || responseOrigin(response) || '',
 						source: extension ? ('fallback' as const) : ('peers' as const),
 					};
 				},

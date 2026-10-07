@@ -14,7 +14,7 @@ export const ColumnFlexWrapper = styled.div`
 
 export const DetailsLayout = styled.div`
 	display: grid;
-	grid-template-columns: 1fr 330px;
+	grid-template-columns: 1fr 350px;
 	align-items: start;
 	gap: 25px;
 

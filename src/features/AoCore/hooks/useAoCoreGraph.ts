@@ -3,17 +3,14 @@ import React from 'react';
 import { type MessageValue, readAoCoreValue } from 'api/aoCore';
 import { AoReadError, getAoReadTransport } from 'api/aoNetwork';
 
-import { useSettingsProvider } from 'providers/SettingsProvider';
+import { useAoReadNetwork } from 'hooks/useAoReadNetwork';
 
 import { getMessageFields, MAX_MESSAGE_EXPANSION_DEPTH } from '../model/fields';
 import { type GraphEntry, MAX_GRAPH_NODES, removeGraphBranch } from '../model/graph';
 
 export function useAoCoreGraph(value: MessageValue, rootId: string) {
-	const settingsProvider = useSettingsProvider();
-	const transport = React.useMemo(
-		() => getAoReadTransport(settingsProvider.settings.aoNetwork),
-		[settingsProvider.settings.aoNetwork]
-	);
+	const network = useAoReadNetwork();
+	const transport = React.useMemo(() => getAoReadTransport(network), [network]);
 	const scope = React.useMemo(() => ({ value, rootId, transport }), [value, rootId, transport]);
 	const initial = React.useMemo(
 		() => ({
