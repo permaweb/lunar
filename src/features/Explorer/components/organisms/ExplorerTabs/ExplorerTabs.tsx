@@ -27,6 +27,7 @@ import { parseExplorerTabs } from '../../../model/tabs';
 import { ArweaveNode } from '../ArweaveNode';
 import { ProcessMessages } from '../ProcessMessages';
 import { ProcessReadSettingsControl } from '../ProcessReadSettingsControl';
+import { TransactionGraphQL } from '../TransactionGraphQL';
 
 function checkValidBlockId(id: string | null) {
 	if (!id) return false;
@@ -651,6 +652,7 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 					onLoadingChange={onLoadingChange}
 					processMessagesView={ProcessMessages}
 					processReadSettingsControl={<ProcessReadSettingsControl key={tab.id} />}
+					graphqlView={TransactionGraphQL}
 				/>
 			</ProcessReadSettingsProvider>
 		) : (

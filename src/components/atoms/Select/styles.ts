@@ -2,11 +2,10 @@ import styled, { css } from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-export const Wrapper = styled.div<{ $plain?: boolean }>`
+export const Wrapper = styled.div<{ $plain?: boolean; $fullWidth?: boolean }>`
 	height: fit-content;
-	width: 100%;
 	position: relative;
-	width: ${(props) => (props.$plain ? 'fit-content' : '315px')};
+	width: ${(props) => (props.$fullWidth ? '100%' : props.$plain ? 'fit-content' : '315px')};
 	max-width: 90vw;
 `;
 

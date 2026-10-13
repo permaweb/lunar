@@ -174,6 +174,8 @@ function walk(directory, options = {}) {
 	return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
 		if (excluded.has(entry.name)) return [];
 		const entryPath = path.join(directory, entry.name);
+		// Nested checkouts and managed worktrees own their tests independently of this project.
+		if (options.excludeRepositories && entry.isDirectory() && fs.existsSync(path.join(entryPath, '.git'))) return [];
 		if (entry.isDirectory()) return walk(entryPath, options);
 		return [entryPath];
 	});
@@ -422,6 +424,7 @@ for (const [filePath, sourceText] of sourceTexts) {
 
 const projectFiles = walk(projectRoot, {
 	excluded: ['.agents', '.git', 'coverage', 'dist', 'node_modules'],
+	excludeRepositories: true,
 });
 for (const filePath of projectFiles) {
 	const isInsideTestRoot = filePath.startsWith(`${testRoot}${path.sep}`);

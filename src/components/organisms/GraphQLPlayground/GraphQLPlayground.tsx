@@ -265,16 +265,19 @@ async function fetchSchemaDocs(endpoint: string): Promise<GQLSchemaDocs> {
 export default function GraphQLPlayground(props: {
 	playgroundId: string;
 	active: boolean;
+	layout?: 'split' | 'stacked';
 	initialQuery?: string;
 	initialGateway?: string;
+	initialResult?: string;
 	onQueryChange?: (query: string, queryName?: string) => void;
 	onGatewayChange?: (gateway: string) => void;
+	onQueryExecuted?: () => void;
 }) {
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
 
 	const [query, setQuery] = React.useState<string>(props.initialQuery || DEFAULT_QUERY);
-	const [result, setResult] = React.useState<string | null>(null);
+	const [result, setResult] = React.useState<string | null>(props.initialResult ?? null);
 	const [loading, setLoading] = React.useState<boolean>(false);
 	const [gateways, setGateways] = React.useState<string[]>(() => {
 		try {
@@ -285,11 +288,11 @@ export default function GraphQLPlayground(props: {
 				new Set(gatewayList.map((gateway: string) => getGraphQLGatewayKey(gateway)).filter(Boolean))
 			) as string[];
 
-			return normalized.length > 0
-				? [DEFAULT_GATEWAY, ...normalized.filter((gateway) => gateway !== DEFAULT_GATEWAY)]
-				: DEFAULT_GATEWAYS;
+			if (props.initialGateway) normalized.push(getGraphQLGatewayKey(props.initialGateway));
+			return [DEFAULT_GATEWAY, ...new Set(normalized.filter((gateway) => gateway && gateway !== DEFAULT_GATEWAY))];
 		} catch {
-			return DEFAULT_GATEWAYS;
+			const initial = props.initialGateway ? getGraphQLGatewayKey(props.initialGateway) : DEFAULT_GATEWAY;
+			return initial === DEFAULT_GATEWAY ? DEFAULT_GATEWAYS : [...DEFAULT_GATEWAYS, initial];
 		}
 	});
 	const [selectedGateway, setSelectedGateway] = React.useState<string>(() => {
@@ -299,7 +302,7 @@ export default function GraphQLPlayground(props: {
 	const [inputGateway, setInputGateway] = React.useState<string>(() => {
 		const initial = props.initialGateway ? getGraphQLGatewayKey(props.initialGateway) : gateways[0];
 		const gateway = gateways.includes(initial) ? initial : gateways[0];
-		return getGatewayInputValue(gateway);
+		return getGatewayInputValue(props.initialGateway ?? gateway);
 	});
 	const [isFullscreen, setIsFullscreen] = React.useState<boolean>(false);
 	const [showVariables, setShowVariables] = React.useState<boolean>(() => {
@@ -326,7 +329,9 @@ export default function GraphQLPlayground(props: {
 	const docsId = React.useId();
 	const wrapperRef = React.useRef<HTMLDivElement>(null);
 	const layoutTimeoutRef = React.useRef<any | null>(null);
+	const queryRequestRef = React.useRef<AbortController | null>(null);
 	const schemaDocsEndpoint = React.useMemo(() => getGatewayGraphqlEndpoint(inputGateway.trim()), [inputGateway]);
+	React.useEffect(() => () => queryRequestRef.current?.abort(), []);
 
 	// Trigger layout recalculation when tab becomes active
 	React.useEffect(() => {
@@ -420,7 +425,7 @@ export default function GraphQLPlayground(props: {
 
 			if (gateways.includes(gateway)) {
 				setSelectedGateway(gateway);
-				setInputGateway(getGatewayInputValue(gateway));
+				setInputGateway(getGatewayInputValue(initialGatewayRef.current));
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -543,6 +548,9 @@ export default function GraphQLPlayground(props: {
 			const variablesToSend = typeof variablesOverride === 'string' ? variablesOverride : variables;
 
 			if (queryToExecute && typeof queryToExecute === 'string') {
+				queryRequestRef.current?.abort();
+				const controller = new AbortController();
+				queryRequestRef.current = controller;
 				setResult(null);
 				setLoading(true);
 				try {
@@ -577,18 +585,23 @@ export default function GraphQLPlayground(props: {
 							'Codec-Device': 'json@1.0',
 						},
 						body: JSON.stringify(body),
+						signal: controller.signal,
 					});
 
 					const data = await response.json();
+					if (controller.signal.aborted) return;
 					setResult(JSON.stringify(data, null, 2));
+					props.onQueryExecuted?.();
 				} catch (e: any) {
+					if (controller.signal.aborted) return;
 					console.error(e);
 					setResult(JSON.stringify({ error: e.message || language.failedToExecuteQuery }, null, 2));
+				} finally {
+					if (!controller.signal.aborted) setLoading(false);
 				}
-				setLoading(false);
 			}
 		},
-		[query, inputGateway, prepareQuery, showVariables, variables]
+		[query, inputGateway, prepareQuery, showVariables, variables, props.onQueryExecuted]
 	);
 
 	// Cmd/Ctrl+Enter in the variables editor runs the current query with the variables exactly as typed there.
@@ -932,9 +945,9 @@ export default function GraphQLPlayground(props: {
 
 	return (
 		<S.Wrapper ref={wrapperRef} style={{ display: props.active ? 'flex' : 'none' }} isFullscreen={isFullscreen}>
-			<S.HeaderWrapper>
-				<S.InputWrapper>
-					<S.InputFormWrapper>
+			<S.HeaderWrapper $stacked={props.layout === 'stacked'}>
+				<S.InputWrapper $stacked={props.layout === 'stacked'}>
+					<S.InputFormWrapper $stacked={props.layout === 'stacked'}>
 						<ReactSVG src={ASSETS.url} />
 						<FormField
 							value={inputGateway}
@@ -996,9 +1009,10 @@ export default function GraphQLPlayground(props: {
 						preventDefault
 					/>
 				</S.InputWrapper>
-				<S.ActionsWrapper>
+				<S.ActionsWrapper $stacked={props.layout === 'stacked'}>
 					<Select
 						label={''}
+						fullWidth={props.layout === 'stacked'}
 						activeOption={activeGatewayOption}
 						setActiveOption={(option) => {
 							setSelectedGateway(option.id);
@@ -1012,8 +1026,8 @@ export default function GraphQLPlayground(props: {
 					/>
 				</S.ActionsWrapper>
 			</S.HeaderWrapper>
-			<S.Container isFullscreen={isFullscreen}>
-				<S.EditorWrapper showVariables={showVariables}>
+			<S.Container isFullscreen={isFullscreen} $stacked={props.layout === 'stacked'}>
+				<S.EditorWrapper showVariables={showVariables} $stacked={props.layout === 'stacked'}>
 					<S.QueryEditorWrapper showVariables={showVariables}>
 						<Editor
 							initialData={query}
@@ -1040,7 +1054,7 @@ export default function GraphQLPlayground(props: {
 						</S.VariablesEditorWrapper>
 					)}
 				</S.EditorWrapper>
-				<S.ResultWrapper>
+				<S.ResultWrapper $stacked={props.layout === 'stacked'}>
 					<JSONReader
 						data={result}
 						header={language.response}

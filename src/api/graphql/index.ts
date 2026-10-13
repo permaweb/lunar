@@ -1,5 +1,8 @@
 import { DEFAULT_GRAPHQL_ENDPOINT } from 'helpers/config';
 
+export type { TransactionIndexResult } from './transactionIndex';
+export { getTransactionIndexQuery, readTransactionIndex } from './transactionIndex';
+
 let activeEndpoint = DEFAULT_GRAPHQL_ENDPOINT;
 
 /**
