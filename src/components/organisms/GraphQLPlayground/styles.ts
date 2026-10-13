@@ -23,15 +23,16 @@ export const Wrapper = styled.div<{ isFullscreen?: boolean }>`
 	}
 `;
 
-export const HeaderWrapper = styled.div`
+export const HeaderWrapper = styled.div<{ $stacked?: boolean }>`
 	width: 100%;
 	display: flex;
 	gap: 20px;
 	align-items: center;
 	justify-content: space-between;
+	${(props) => props.$stacked && 'flex-direction: column; align-items: flex-start;'}
 `;
 
-export const InputWrapper = styled.div`
+export const InputWrapper = styled.div<{ $stacked?: boolean }>`
 	height: 38.5px;
 	max-width: 100%;
 	display: flex;
@@ -40,16 +41,18 @@ export const InputWrapper = styled.div`
 	gap: 15px;
 	position: relative;
 	padding: 0 0 0 0.5px;
+	${(props) => props.$stacked && 'width: 100%; height: auto;'}
 
 	@media (max-width: ${STYLING.cutoffs.desktop}) {
 		height: auto;
 	}
 `;
 
-export const InputFormWrapper = styled.div`
+export const InputFormWrapper = styled.div<{ $stacked?: boolean }>`
 	width: 510px;
 	max-width: 100%;
 	position: relative;
+	${(props) => props.$stacked && 'width: auto; min-width: min(240px, 100%); flex: 1;'}
 
 	input {
 		max-width: 100%;
@@ -68,13 +71,14 @@ export const InputFormWrapper = styled.div`
 	}
 `;
 
-export const ActionsWrapper = styled.div`
+export const ActionsWrapper = styled.div<{ $stacked?: boolean }>`
 	display: flex;
 	gap: 10px;
 	align-items: center;
+	${(props) => props.$stacked && 'width: 100%;'}
 `;
 
-export const Container = styled.div<{ isFullscreen?: boolean }>`
+export const Container = styled.div<{ isFullscreen?: boolean; $stacked?: boolean }>`
 	height: calc(100dvh - 295px + var(--workspace-height-adjustment, 0px));
 	width: 100%;
 	display: flex;
@@ -90,11 +94,18 @@ export const Container = styled.div<{ isFullscreen?: boolean }>`
 	@media (max-width: ${STYLING.cutoffs.initial}) {
 		flex-direction: column;
 	}
+
+	${(props) =>
+		props.$stacked &&
+		`
+		height: auto;
+		flex-direction: column;
+	`}
 `;
 
-export const EditorWrapper = styled.div<{ showVariables?: boolean }>`
-	height: 100%;
-	flex: 1;
+export const EditorWrapper = styled.div<{ showVariables?: boolean; $stacked?: boolean }>`
+	height: ${(props) => (props.$stacked ? '360px' : '100%')};
+	flex: ${(props) => (props.$stacked ? 'none' : '1')};
 	min-width: 0;
 	position: relative;
 	overflow: hidden;
@@ -115,16 +126,16 @@ export const VariablesEditorWrapper = styled.div`
 	overflow: hidden;
 `;
 
-export const ResultWrapper = styled.div`
-	height: 100%;
-	flex: 1;
+export const ResultWrapper = styled.div<{ $stacked?: boolean }>`
+	height: ${(props) => (props.$stacked ? 'auto' : '100%')};
+	flex: ${(props) => (props.$stacked ? 'none' : '1')};
 	min-width: 0;
 	position: relative;
 	overflow: hidden;
 
 	> * {
 		&:first-child {
-			height: 100%;
+			height: ${(props) => (props.$stacked ? 'auto' : '100%')};
 		}
 	}
 `;

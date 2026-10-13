@@ -28,6 +28,21 @@ afterEach(() => {
 });
 
 describe('frontend architecture validator', () => {
+	it('ignores tests owned by nested worktrees while still rejecting misplaced project tests', () => {
+		const project = createFixture('export const value = 1;');
+		const worktree = join(project, '.claude', 'worktrees', 'example');
+		mkdirSync(join(worktree, 'tests'), { recursive: true });
+		writeFileSync(join(worktree, '.git'), 'gitdir: /tmp/worktree');
+		writeFileSync(join(worktree, 'tests', 'example.test.ts'), '');
+		const result = spawnSync(process.execPath, [validator, '--root', project], { encoding: 'utf8' });
+		expect(result.status).toBe(0);
+
+		writeFileSync(join(project, 'misplaced.test.ts'), '');
+		const misplaced = spawnSync(process.execPath, [validator, '--root', project], { encoding: 'utf8' });
+		expect(misplaced.status).toBe(1);
+		expect(misplaced.stderr).toContain('[test-placement] misplaced.test.ts');
+	});
+
 	it('rejects remote requests outside the API boundary', () => {
 		const project = createFixture(`export function load() { return fetch('/data'); }`);
 		const result = spawnSync(process.execPath, [validator, '--root', project], { encoding: 'utf8' });

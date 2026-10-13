@@ -3,18 +3,30 @@ import { ReactSVG } from 'react-svg';
 
 import { Chevron } from 'components/atoms/Chevron';
 import { ASSETS } from 'helpers/config';
-import { SelectOptionType } from 'helpers/types';
+import type { SelectOptionType } from 'helpers/types';
 import { CloseHandler } from 'wrappers/CloseHandler';
 
 import * as S from './styles';
-import { IProps } from './types';
 
-export default function Select(props: IProps) {
+export default function Select(props: {
+	label?: string;
+	activeOption: SelectOptionType;
+	setActiveOption: (option: SelectOptionType) => void;
+	options: SelectOptionType[];
+	disabled: boolean;
+	onRemoveOption?: (option: SelectOptionType) => void;
+	isOptionRemovable?: (option: SelectOptionType) => boolean;
+	removeOptionLabel?: string;
+	top?: number;
+	fullWidth?: boolean;
+	/** `plain` drops the trigger's background, border and padding, leaving only a hover color change. */
+	variant?: 'plain';
+}) {
 	const [active, setActive] = React.useState<boolean>(false);
 
 	return props.options && props.activeOption ? (
 		<CloseHandler active={active} disabled={!active || props.disabled} callback={() => setActive(false)}>
-			<S.Wrapper $plain={props.variant === 'plain'}>
+			<S.Wrapper $plain={props.variant === 'plain'} $fullWidth={props.fullWidth}>
 				{props.label && (
 					<S.Label disabled={props.disabled}>
 						<span>{props.label}</span>

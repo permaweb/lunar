@@ -1,5 +1,13 @@
 export const language = {
 	en: {
+		transactionGraphql: {
+			label: 'GQL',
+			title: 'Transaction GraphQL',
+			checking: 'Checking GraphQL availability...',
+			available: 'Available in GraphQL',
+			missing: 'Not available in GraphQL',
+			error: 'Unable to check GraphQL availability. Run the query to retry.',
+		},
 		aoCore: {
 			title: 'AO Core',
 			aboutMessage: 'AO Core Message Info',

@@ -11,11 +11,13 @@ const STATUS_ICONS = {
 	failure: ASSETS.warning,
 };
 
-// Decorative status dot. Pair it with visible status text; it carries no accessible name of its own.
-export default function StatusIndicator(props: { status: 'pending' | 'success' | 'failure' }): React.ReactElement {
+export default function StatusIndicator(props: {
+	status: 'pending' | 'success' | 'failure';
+	icon?: string;
+}): React.ReactElement {
 	return (
 		<S.Wrapper $status={props.status} aria-hidden={'true'}>
-			<ReactSVG src={STATUS_ICONS[props.status]} />
+			<ReactSVG src={props.icon ?? STATUS_ICONS[props.status]} />
 		</S.Wrapper>
 	);
 }

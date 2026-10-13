@@ -1152,6 +1152,7 @@ function Transaction(props: {
 	onLoadingChange?: (loading: boolean) => void;
 	processMessagesView: React.ComponentType<ProcessMessagesViewProps>;
 	processReadSettingsControl?: React.ReactNode;
+	graphqlView?: React.ComponentType<{ txId: string; active: boolean; refreshKey: number }>;
 	inspector?: {
 		id: string;
 		label: string;
@@ -1911,6 +1912,11 @@ function Transaction(props: {
 	const nextBlockHeight = hasBlockNavigation ? blockHeight + 1 : null;
 	const nextBlockDisabled = blockConfirmations === 0;
 	const inspectorBadges = props.inspector?.id === inputTxId ? props.inspector.badges ?? [] : [];
+	const hasGraphqlControl =
+		!!props.graphqlView &&
+		checkValidAddress(inputTxId) &&
+		!!(txResponse || hasFetched) &&
+		['process', 'message', 'transaction'].includes(resolvedType ?? 'transaction');
 
 	return (
 		<>
@@ -1976,7 +1982,7 @@ function Transaction(props: {
 					}
 					info={
 						<>
-							{((resolvedType && txResponse) || inspectorBadges.length > 0) && (
+							{((resolvedType && txResponse) || inspectorBadges.length > 0 || hasGraphqlControl) && (
 								<C.TxInfoWrapper>
 									{resolvedType && txResponse && (
 										<>
@@ -2007,6 +2013,9 @@ function Transaction(props: {
 											)}
 											{balanceSections}
 										</>
+									)}
+									{hasGraphqlControl && (
+										<props.graphqlView key={inputTxId} txId={inputTxId} active={props.active} refreshKey={refreshKey} />
 									)}
 									{inspectorBadges.map((badge) => (
 										<C.UpdateWrapper key={badge.label} title={badge.description}>

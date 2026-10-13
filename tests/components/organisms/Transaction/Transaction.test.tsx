@@ -118,6 +118,7 @@ async function render(
 						onMessageOpen={vi.fn()}
 						processMessagesView={() => null}
 						inspector={inspector}
+						graphqlView={(props) => <span data-testid="graphql-chip">{props.txId}</span>}
 					/>
 				</ThemeProvider>
 			</MemoryRouter>
@@ -128,6 +129,24 @@ async function render(
 function transaction(tags: TagType[]): GQLNodeResponseType {
 	return { cursor: null, node: { id: processId, tags, owner: { address: 'a'.repeat(43) }, data: null, block: null } };
 }
+
+it.each(['process', 'message', 'transaction'] as const)('includes the GQL control in the %s chip row', async (type) => {
+	mocks.lookup.mockResolvedValue(transaction([{ name: 'Type', value: type }]));
+	await render(type);
+	expect(container.querySelector('[data-testid="graphql-chip"]')?.textContent).toBe(processId);
+});
+
+it.each(['wallet', 'bundle'] as const)('omits the GQL control for a %s', async (type) => {
+	mocks.lookup.mockResolvedValue(transaction([{ name: 'Type', value: type }]));
+	await render(type);
+	expect(container.querySelector('[data-testid="graphql-chip"]')).toBeNull();
+});
+
+it('retains the GQL control when a transaction is not found', async () => {
+	mocks.lookup.mockResolvedValue(null);
+	await render('transaction');
+	expect(container.querySelector('[data-testid="graphql-chip"]')?.textContent).toBe(processId);
+});
 
 it('populates the bundle table by resolving each linked ID from its tags', async () => {
 	mocks.showTabContent = true;
