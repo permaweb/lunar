@@ -69,7 +69,7 @@ export default function Landing(props: { onPricesScrollChange?: (hasScrolledPast
 								layout="section"
 								variant="small"
 							/>
-							{metrics.status !== 'error' && (
+							{FLAGS.SHOW_HOME_AO_METRIC_CHARTS && metrics.status !== 'error' && (
 								<>
 									<Metrics section="mainnet" gridTemplate={2} snapshot={metrics.snapshot} />
 									<Metrics section="legacynet" gridTemplate={1} snapshot={metrics.snapshot} />

@@ -19,8 +19,9 @@ export default function NetworkActivity() {
 	const [params, setParams] = useSearchParams();
 	const languageProvider = useLanguageProvider();
 	const language = languageProvider.object[languageProvider.current];
-	const activity = useNetworkActivity();
-	const network = ['arweave', 'ao'].includes(params.get('network')) ? params.get('network') : 'all';
+	const requestedNetwork = params.get('network');
+	const network = requestedNetwork === 'arweave' || requestedNetwork === 'ao' ? requestedNetwork : 'all';
+	const activity = useNetworkActivity(network);
 	const networkOptions = React.useMemo(
 		() => [
 			{ value: 'all', label: language.all },

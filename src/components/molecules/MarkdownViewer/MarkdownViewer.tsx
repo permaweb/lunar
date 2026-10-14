@@ -232,7 +232,7 @@ export default function MarkdownViewer(props: {
 								height={25}
 								width={25}
 								noMinWidth
-								iconSize={12.5}
+								iconSize={11}
 								padding={`3.95px 0 0 0`}
 								tooltip={fullScreenMode ? language.exitFullScreen : language.enterFullScreen}
 								tooltipPosition={'bottom-right'}

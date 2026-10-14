@@ -104,7 +104,7 @@ export const Container = styled.div<{ isFullscreen?: boolean; $stacked?: boolean
 `;
 
 export const EditorWrapper = styled.div<{ showVariables?: boolean; $stacked?: boolean }>`
-	height: ${(props) => (props.$stacked ? '360px' : '100%')};
+	height: ${(props) => (props.$stacked ? 'auto' : '100%')};
 	flex: ${(props) => (props.$stacked ? 'none' : '1')};
 	min-width: 0;
 	position: relative;
@@ -114,14 +114,14 @@ export const EditorWrapper = styled.div<{ showVariables?: boolean; $stacked?: bo
 	gap: ${(props) => (props.showVariables ? `25px` : '0')};
 `;
 
-export const QueryEditorWrapper = styled.div<{ showVariables?: boolean }>`
-	height: ${(props) => (props.showVariables ? '65%' : '100%')};
+export const QueryEditorWrapper = styled.div<{ showVariables?: boolean; $stacked?: boolean }>`
+	height: ${(props) => (props.$stacked ? 'auto' : props.showVariables ? '65%' : '100%')};
 	position: relative;
 	overflow: hidden;
 `;
 
-export const VariablesEditorWrapper = styled.div`
-	height: 35%;
+export const VariablesEditorWrapper = styled.div<{ $stacked?: boolean }>`
+	height: ${(props) => (props.$stacked ? 'auto' : '35%')};
 	position: relative;
 	overflow: hidden;
 `;

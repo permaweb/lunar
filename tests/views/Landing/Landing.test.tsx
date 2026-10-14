@@ -6,7 +6,7 @@ import axe from 'axe-core';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
-import { getNetworkActivity } from '../../../src/api/networkActivity';
+import { getNetworkActivity, getNetworkActivityBlockSizes } from '../../../src/api/networkActivity';
 import { getMetricsSnapshot } from '../../../src/api/networkMetrics';
 import { getTokenPriceQuote } from '../../../src/api/prices';
 import { getArweaveNodeRoute } from '../../../src/helpers/arweaveNode';
@@ -38,7 +38,7 @@ vi.mock('components/molecules/Editor', () => ({ Editor: () => null }));
 
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden="true" /> }));
 vi.mock('api/prices', () => ({ getTokenPriceQuote: vi.fn() }));
-vi.mock('api/networkActivity', () => ({ getNetworkActivity: vi.fn() }));
+vi.mock('api/networkActivity', () => ({ getNetworkActivity: vi.fn(), getNetworkActivityBlockSizes: vi.fn() }));
 vi.mock('api/networkMetrics', () => ({ getMetricsSnapshot: vi.fn(), readMetricsSnapshot: () => null }));
 vi.mock('components/molecules/MetricChart', () => ({
 	MetricChart: (props: { totalLabel: string }) => <div>{props.totalLabel}</div>,
@@ -118,6 +118,9 @@ beforeEach(async () => {
 		requestSignal = signal;
 		return HOME_ACTIVITY;
 	});
+	vi.mocked(getNetworkActivityBlockSizes).mockImplementation(async (ids) =>
+		Object.fromEntries(ids.map((id) => [id, '5000000']))
+	);
 	container = document.createElement('main');
 	document.body.append(container);
 	root = createRoot(container);
@@ -213,11 +216,57 @@ it('includes Size beside Network in Latest Activity without changing the recent 
 	const activity = container.querySelector('#network-activity');
 	const rows = [...activity.querySelectorAll('.transaction-list-element')];
 	expect(rows[0].parentElement.previousElementSibling.textContent).toBe('IDTypeNetworkSizeTime');
-	expect(rows.map((row) => row.children[3].textContent)).toEqual(['-', '1 MB', '0 Bytes', '-']);
+	expect(rows.map((row) => row.children[3].textContent)).toEqual(['5 MB', '1 MB', '0 Bytes', '-']);
 	expect(rows.map((row) => row.children[2].textContent)).toEqual(['Arweave', 'Arweave', 'AO', 'AO']);
 	const recent = container.querySelector('[aria-labelledby="arweave-statistics-title"] .transaction-list-element');
 	expect(recent.children).toHaveLength(4);
 	expect(recent.children[2].textContent).toBe('100 Bytes');
+});
+it('keeps activity visible while block sizes load and fills in zero-sized blocks', async () => {
+	let resolve: (sizes: Record<string, string>) => void;
+	vi.mocked(getNetworkActivityBlockSizes).mockImplementationOnce(() => new Promise((done) => (resolve = done)));
+	const block = { ...HOME_ACTIVITY[0], id: 'c'.repeat(64) };
+	vi.mocked(getNetworkActivity).mockResolvedValueOnce([block, HOME_ACTIVITY[1]]);
+	await click(button('Refresh'));
+	const rows = [...container.querySelectorAll('#network-activity .transaction-list-element')];
+	expect(rows.map((row) => row.children[3].textContent)).toEqual(['-', '1 MB']);
+	await React.act(async () => resolve({ [block.id]: '0' }));
+	expect(rows[0].children[3].textContent).toBe('0 Bytes');
+});
+it('loads metadata only for displayed blocks and follows the active network filter', async () => {
+	vi.mocked(getNetworkActivityBlockSizes).mockClear();
+	vi.mocked(getNetworkActivity).mockResolvedValueOnce([
+		...Array.from({ length: 20 }, (_, i) => ({ ...HOME_ACTIVITY[2], id: String(i).padStart(43, 'm') })),
+		HOME_ACTIVITY[0],
+	]);
+	await click(button('Refresh'));
+	expect(getNetworkActivityBlockSizes).not.toHaveBeenCalled();
+	await click(container.querySelector<HTMLInputElement>('input[value="arweave"]'));
+	expect(getNetworkActivityBlockSizes).toHaveBeenCalledWith([HOME_ACTIVITY[0].id], expect.any(AbortSignal));
+	expect(container.querySelector('#network-activity .transaction-list-element').children[3].textContent).toBe('5 MB');
+});
+it('preserves known block sizes when a later metadata lookup fails', async () => {
+	vi.mocked(getNetworkActivityBlockSizes).mockResolvedValueOnce({});
+	vi.mocked(getNetworkActivity).mockResolvedValueOnce([...HOME_ACTIVITY]);
+	await click(button('Refresh'));
+	const rows = [...container.querySelectorAll('#network-activity .transaction-list-element')];
+	expect(rows).toHaveLength(4);
+	expect(rows[0].children[3].textContent).toBe('5 MB');
+});
+it('cancels pending size lookups when blocks are hidden by a network filter', async () => {
+	let sizeSignal: AbortSignal;
+	let resolve: (sizes: Record<string, string>) => void;
+	vi.mocked(getNetworkActivityBlockSizes).mockImplementationOnce((_ids, signal) => {
+		sizeSignal = signal;
+		return new Promise((done) => (resolve = done));
+	});
+	vi.mocked(getNetworkActivity).mockResolvedValueOnce([...HOME_ACTIVITY]);
+	await click(button('Refresh'));
+	await click(container.querySelector<HTMLInputElement>('input[value="ao"]'));
+	expect(sizeSignal.aborted).toBe(true);
+	await React.act(async () => resolve({ [HOME_ACTIVITY[0].id]: '9000000' }));
+	await click(container.querySelector<HTMLInputElement>('input[value="all"]'));
+	expect(container.querySelector('#network-activity .transaction-list-element').children[3].textContent).toBe('5 MB');
 });
 it('uses the transaction table renderer for activity and opens a block row by height with the keyboard', async () => {
 	const row = container.querySelector('#network-activity .transaction-list-element');

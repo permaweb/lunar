@@ -266,6 +266,7 @@ export default function GraphQLPlayground(props: {
 	playgroundId: string;
 	active: boolean;
 	layout?: 'split' | 'stacked';
+	noFullScreen?: boolean;
 	initialQuery?: string;
 	initialGateway?: string;
 	initialResult?: string;
@@ -996,18 +997,20 @@ export default function GraphQLPlayground(props: {
 						iconSize={14.5}
 						tooltip={language.docs}
 					/>
-					<Button
-						type={'primary'}
-						icon={ASSETS.fullscreen}
-						onPress={toggleFullscreen}
-						height={32.5}
-						width={32.5}
-						noMinWidth
-						iconSize={12.5}
-						tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
-						stopPropagation
-						preventDefault
-					/>
+					{!props.noFullScreen && (
+						<Button
+							type={'primary'}
+							icon={ASSETS.fullscreen}
+							onPress={toggleFullscreen}
+							height={32.5}
+							width={32.5}
+							noMinWidth
+							iconSize={12.5}
+							tooltip={isFullscreen ? language.exitFullScreen : language.enterFullScreen}
+							stopPropagation
+							preventDefault
+						/>
+					)}
 				</S.InputWrapper>
 				<S.ActionsWrapper $stacked={props.layout === 'stacked'}>
 					<Select
@@ -1028,19 +1031,20 @@ export default function GraphQLPlayground(props: {
 			</S.HeaderWrapper>
 			<S.Container isFullscreen={isFullscreen} $stacked={props.layout === 'stacked'}>
 				<S.EditorWrapper showVariables={showVariables} $stacked={props.layout === 'stacked'}>
-					<S.QueryEditorWrapper showVariables={showVariables}>
+					<S.QueryEditorWrapper showVariables={showVariables} $stacked={props.layout === 'stacked'}>
 						<Editor
 							initialData={query}
 							language={'graphql'}
 							setEditorData={setQuery}
 							onSubmit={executeQuery}
 							loading={loading}
-							useFixedHeight
+							useFixedHeight={props.layout !== 'stacked'}
+							fitContent={props.layout === 'stacked'}
 							noFullScreen
 						/>
 					</S.QueryEditorWrapper>
 					{showVariables && (
-						<S.VariablesEditorWrapper>
+						<S.VariablesEditorWrapper $stacked={props.layout === 'stacked'}>
 							<Editor
 								initialData={variables}
 								language={'json'}
@@ -1048,7 +1052,8 @@ export default function GraphQLPlayground(props: {
 								onSubmit={handleVariablesSubmit}
 								hasSubmitButton={false}
 								loading={false}
-								useFixedHeight
+								useFixedHeight={props.layout !== 'stacked'}
+								fitContent={props.layout === 'stacked'}
 								noFullScreen
 							/>
 						</S.VariablesEditorWrapper>

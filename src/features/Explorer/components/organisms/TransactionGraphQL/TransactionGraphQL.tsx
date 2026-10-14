@@ -87,6 +87,7 @@ export default function TransactionGraphQL(props: { txId: string; active: boolea
 							playgroundId={`explorer-${props.txId}`}
 							active
 							layout={'stacked'}
+							noFullScreen
 							initialGateway={endpoint}
 							initialQuery={getTransactionIndexQuery(props.txId)}
 							initialResult={result && result.status !== 'error' ? result.response : undefined}
