@@ -222,6 +222,7 @@ export const FLAGS = {
 	// Enable when the GraphQL gateway supports both the bundledIn field and filter again.
 	USE_GQL_BUNDLED_IN: false,
 	USE_TX_CACHE: true,
+	SHOW_HOME_AO_METRIC_CHARTS: false,
 	SHOW_AVAILABLE_NODES: false,
 	SHOW_NODES_LOADER: false,
 };

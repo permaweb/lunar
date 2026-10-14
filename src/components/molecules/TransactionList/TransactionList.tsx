@@ -295,7 +295,11 @@ function TransactionRow(props: {
 		>
 			<S.ID title={transaction.id} $preview={props.preview}>
 				<S.LinkLabel>
-					<ExplorerLink value={identifier} type={typeof identifier === 'number' ? 'block' : 'transaction'} />
+					<ExplorerLink
+						value={identifier}
+						type={typeof identifier === 'number' ? 'block' : 'transaction'}
+						tooltipPosition={props.preview ? 'right' : undefined}
+					/>
 				</S.LinkLabel>
 			</S.ID>
 			<S.TypeValue background={display?.typeColor ?? getTypeBackground(transaction)} $preview={props.preview}>

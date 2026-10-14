@@ -82,6 +82,7 @@ it.each([darkTheme, lightTheme])(
 		chip().focus();
 		await React.act(async () => chip().click());
 		expect(overlay.querySelector('[role="dialog"]').getAttribute('aria-modal')).toBe('true');
+		expect(overlay.querySelector('[aria-label="Enter Full Screen"]')).toBeNull();
 		expect(editors.get('graphql').initialData).toBe(getTransactionIndexQuery(id));
 		expect(overlay.querySelector<HTMLInputElement>('input').value).toBe(endpoint.replace(/\/graphql$/, ''));
 		expect(overlay.textContent).toContain(JSON.stringify(indexed, null, 2));

@@ -17,6 +17,8 @@ const monaco = vi.hoisted(() => ({
 	layout: vi.fn(),
 	disposeKeydown: vi.fn(),
 	disposeContentSize: vi.fn(),
+	contentHeight: 160,
+	onContentSizeChange: undefined as ((event: { contentHeight: number }) => void) | undefined,
 }));
 vi.mock('@monaco-editor/react', async () => {
 	const React = await import('react');
@@ -33,7 +35,11 @@ vi.mock('@monaco-editor/react', async () => {
 						},
 						getValue: () => monaco.value,
 						layout: monaco.layout,
-						onDidContentSizeChange: () => ({ dispose: monaco.disposeContentSize }),
+						getContentHeight: () => monaco.contentHeight,
+						onDidContentSizeChange: (handler: (event: { contentHeight: number }) => void) => {
+							monaco.onContentSizeChange = handler;
+							return { dispose: monaco.disposeContentSize };
+						},
 						onDidDispose: (handler: () => void) => {
 							onDispose = handler;
 						},
@@ -70,6 +76,8 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	monaco.keyHandlers = [];
 	monaco.value = 'query { blocks }';
+	monaco.contentHeight = 160;
+	monaco.onContentSizeChange = undefined;
 	container = document.createElement('main');
 	document.body.append(container);
 	root = createRoot(container);
@@ -85,6 +93,7 @@ async function render(props: {
 	onSubmit?: (value?: string) => void;
 	hasSubmitButton?: boolean;
 	useFixedHeight?: boolean;
+	fitContent?: boolean;
 }) {
 	await React.act(async () =>
 		root.render(
@@ -96,6 +105,7 @@ async function render(props: {
 					hasSubmitButton={props.hasSubmitButton}
 					loading={false}
 					useFixedHeight={props.useFixedHeight ?? true}
+					fitContent={props.fitContent}
 				/>
 			</ThemeProvider>
 		)
@@ -188,6 +198,26 @@ it('disposes the content-size subscription when a dynamic-height editor is remov
 	expect(resizeObservers).toHaveLength(0);
 	expect(monaco.disposeContentSize).toHaveBeenCalledOnce();
 	expect(monaco.disposeKeydown).toHaveBeenCalledOnce();
+});
+
+it('fits the initial content, grows and shrinks with Monaco measurements, and cleans up sizing', async () => {
+	await render({ fitContent: true, onSubmit: vi.fn() });
+	const content = container.querySelector('[data-testid="monaco"]').parentElement;
+	const wrapper = content.parentElement;
+	expect(getComputedStyle(content).height).toBe('160px');
+	expect(getComputedStyle(wrapper).maxHeight).toBe('none');
+	expect(resizeObservers).toHaveLength(1);
+
+	monaco.contentHeight = 800;
+	await React.act(async () => monaco.onContentSizeChange({ contentHeight: monaco.contentHeight }));
+	expect(getComputedStyle(content).height).toBe('800px');
+	monaco.contentHeight = 40;
+	await React.act(async () => monaco.onContentSizeChange({ contentHeight: monaco.contentHeight }));
+	expect(getComputedStyle(content).height).toBe('40px');
+
+	await React.act(async () => root.render(null));
+	expect(resizeObservers[0].disconnect).toHaveBeenCalledOnce();
+	expect(monaco.disposeContentSize).toHaveBeenCalledOnce();
 });
 
 it('keeps one fullscreen control per editor when a neighboring editor is removed and reopened', async () => {

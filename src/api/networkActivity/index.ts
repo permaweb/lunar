@@ -1,5 +1,7 @@
+import { arweaveNodeApi } from 'api/arweaveNode';
 import { getGraphQLEndpoint } from 'api/graphql';
 
+import { DEFAULT_GRAPHQL_ENDPOINT } from 'helpers/config';
 import { checkValidAddress } from 'helpers/utils';
 
 export type NetworkActivityEntry = {
@@ -95,4 +97,21 @@ export async function getNetworkActivity(signal: AbortSignal): Promise<NetworkAc
 	});
 	if (!response.ok) throw new Error('unavailable');
 	return parseNetworkActivity(await response.json());
+}
+
+export async function getNetworkActivityBlockSizes(
+	blockIds: string[],
+	signal: AbortSignal
+): Promise<Record<string, string>> {
+	if (blockIds.length > 20 || blockIds.some((id) => !/^[A-Za-z0-9_-]{64}$/.test(id))) throw new Error('invalid-input');
+	const ids = [...new Set(blockIds)];
+	const gateway = new URL(DEFAULT_GRAPHQL_ENDPOINT).origin;
+	// The block adapter caches by hash and limits concurrent requests. A failed size lookup
+	// leaves only that row unavailable, preserving the activity loaded from GraphQL.
+	const results = await Promise.allSettled(ids.map((id) => arweaveNodeApi.getBlock(gateway, id, signal)));
+	return Object.fromEntries(
+		results.flatMap((result, index) =>
+			result.status === 'fulfilled' && result.value.dataSize !== null ? [[ids[index], result.value.dataSize]] : []
+		)
+	);
 }

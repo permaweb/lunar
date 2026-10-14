@@ -1,8 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { setGraphQLEndpoint } from '../../src/api/graphql';
-import { getNetworkActivity, parseNetworkActivity } from '../../src/api/networkActivity';
+import { getNetworkActivity, getNetworkActivityBlockSizes, parseNetworkActivity } from '../../src/api/networkActivity';
 import { DEFAULT_GRAPHQL_ENDPOINT } from '../../src/helpers/config';
+import { hash, rawBlock } from '../fixtures/arweaveNode';
 
 const tx = (id: string, type?: string, timestamp: number | null = 100) => ({
 	node: {
@@ -65,4 +66,54 @@ it('uses the configured endpoint with one bounded request and propagates cancell
 	expect(fetch.mock.calls[0][1].signal).toBe(controller.signal);
 	expect(JSON.parse(fetch.mock.calls[0][1].body).query.match(/first: 20/g)).toHaveLength(4);
 	expect(JSON.parse(fetch.mock.calls[0][1].body).query).toContain('data { size }');
+});
+it.each(['0', 0, '5000000', '9007199254740993'])(
+	'loads block_size from validated block metadata, preserving zero and precision: %s',
+	async (size) => {
+		const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...rawBlock(5), block_size: size })));
+		vi.stubGlobal('fetch', fetch);
+		expect(await getNetworkActivityBlockSizes([hash(5), hash(5)], new AbortController().signal)).toEqual({
+			[hash(5)]: String(size),
+		});
+		expect(fetch).toHaveBeenCalledOnce();
+		expect(fetch.mock.calls[0][0]).toBe(`https://arweave.net/block/hash/${hash(5)}`);
+	}
+);
+it('retains successful block sizes when another block is unavailable or has invalid metadata', async () => {
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (url: string) => {
+			if (url.endsWith(hash(5))) return new Response(JSON.stringify(rawBlock(5)));
+			if (url.endsWith(hash(4))) return new Response('', { status: 503 });
+			return new Response(JSON.stringify({ ...rawBlock(3), block_size: -1 }));
+		})
+	);
+	expect(await getNetworkActivityBlockSizes([hash(5), hash(4), hash(3)], new AbortController().signal)).toEqual({
+		[hash(5)]: '123456',
+	});
+});
+it('bounds block metadata lookups and rejects invalid block IDs before requesting metadata', async () => {
+	const fetch = vi.fn();
+	vi.stubGlobal('fetch', fetch);
+	const signal = new AbortController().signal;
+	await expect(getNetworkActivityBlockSizes(['invalid'], signal)).rejects.toThrow('invalid-input');
+	await expect(
+		getNetworkActivityBlockSizes(
+			Array.from({ length: 21 }, (_, i) => hash(i)),
+			signal
+		)
+	).rejects.toThrow('invalid-input');
+	expect(await getNetworkActivityBlockSizes([], signal)).toEqual({});
+	expect(fetch).not.toHaveBeenCalled();
+});
+it('cancels block metadata requests without returning a fabricated size', async () => {
+	const controller = new AbortController();
+	const fetch = vi.fn((_url: string, _options: RequestInit) => {
+		controller.abort();
+		return Promise.reject(new DOMException('Aborted', 'AbortError'));
+	});
+	vi.stubGlobal('fetch', fetch);
+	expect(await getNetworkActivityBlockSizes([hash(5)], controller.signal)).toEqual({});
+	expect(fetch).toHaveBeenCalledOnce();
+	expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
 });

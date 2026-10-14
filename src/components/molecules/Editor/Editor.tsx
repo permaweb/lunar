@@ -25,6 +25,8 @@ export default function _Editor(props: {
 	textStyle?: 'code' | 'body';
 	useFixedHeight?: boolean;
 	fixedHeight?: number;
+	/** Grows with Monaco's rendered content, including wrapped lines, without a viewport height cap. */
+	fitContent?: boolean;
 	loading: boolean;
 }) {
 	const theme: any = useTheme();
@@ -129,17 +131,28 @@ export default function _Editor(props: {
 			onSubmit(editor.getValue());
 		});
 
-		const hasFixedHeight = props.useFixedHeight || !!props.fixedHeight;
+		const hasFixedHeight = !props.fitContent && (props.useFixedHeight || !!props.fixedHeight);
 		const contentSizeSubscription = !hasFixedHeight
 			? editor.onDidContentSizeChange((e) => setHeight(e.contentHeight))
 			: undefined;
-		const resizeObserver = hasFixedHeight ? new ResizeObserver(() => editor.layout()) : undefined;
+		let layoutFrame: number | undefined;
+		const handleLayout = () => {
+			layoutFrame = undefined;
+			editor.layout();
+			if (props.fitContent) setHeight(editor.getContentHeight());
+		};
+		const scheduleLayout = () => {
+			if (layoutFrame !== undefined) cancelAnimationFrame(layoutFrame);
+			layoutFrame = requestAnimationFrame(handleLayout);
+		};
+		const resizeObserver = hasFixedHeight || props.fitContent ? new ResizeObserver(scheduleLayout) : undefined;
 		if (editorRef.current) resizeObserver?.observe(editorRef.current);
-		const layoutFrame = requestAnimationFrame(() => editor.layout());
+		if (props.fitContent) setHeight(editor.getContentHeight());
+		scheduleLayout();
 
 		// Monaco's onMount ignores returned cleanup functions. Tie cleanup to the editor's disposal instead.
 		editor.onDidDispose(() => {
-			cancelAnimationFrame(layoutFrame);
+			if (layoutFrame !== undefined) cancelAnimationFrame(layoutFrame);
 			resizeObserver?.disconnect();
 			contentSizeSubscription?.dispose();
 			keydownSubscription.dispose();
@@ -148,11 +161,12 @@ export default function _Editor(props: {
 	};
 
 	return data !== null ? (
-		<S.Wrapper>
+		<S.Wrapper $fitContent={props.fitContent}>
 			<S.EditorWrapper
 				ref={editorRef}
 				$useFixedHeight={props.useFixedHeight}
 				$height={props.fixedHeight ?? height}
+				$fitContent={props.fitContent}
 				$noWrapper={props.noWrapper && !fullScreenMode}
 				className={props.noWrapper && !fullScreenMode ? 'scroll-wrapper' : 'border-wrapper-alt3 scroll-wrapper'}
 			>
@@ -165,6 +179,7 @@ export default function _Editor(props: {
 					$hasHeader={props.header !== null && props.header !== undefined}
 					$noWrapper={props.noWrapper && !fullScreenMode}
 					$textStyle={props.textStyle}
+					$contentHeight={props.fitContent ? height : undefined}
 				>
 					<Editor
 						height={'100%'}
@@ -201,7 +216,7 @@ export default function _Editor(props: {
 						}}
 					/>
 				</S.Editor>
-				<S.ActionsWrapper>
+				<S.ActionsWrapper $fitContent={props.fitContent}>
 					{!props.noFullScreen && (
 						<Button
 							type={'alt1'}

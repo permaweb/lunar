@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
-export const Wrapper = styled.div`
-	height: 100%;
+export const Wrapper = styled.div<{ $fitContent?: boolean }>`
+	height: ${(props) => (props.$fitContent ? 'auto' : '100%')};
 	width: 100%;
 	display: flex;
 	flex-direction: column;
@@ -23,11 +23,20 @@ export const Header = styled.div<{ $textStyle?: 'code' | 'body' }>`
 	}
 `;
 
-export const EditorWrapper = styled.div<{ $useFixedHeight?: boolean; $height: number; $noWrapper?: boolean }>`
-	height: ${(props) => (props.$useFixedHeight ? '100%' : `${props.$height}px`)};
+export const EditorWrapper = styled.div<{
+	$useFixedHeight?: boolean;
+	$height: number;
+	$noWrapper?: boolean;
+	$fitContent?: boolean;
+}>`
+	height: ${(props) => (props.$fitContent ? 'auto' : props.$useFixedHeight ? '100%' : `${props.$height}px`)};
 	min-height: ${(props) => (props.$noWrapper ? '0' : '125px')};
 	max-height: ${(props) =>
-		props.$useFixedHeight ? '100%' : `calc(100dvh - 190px + var(--workspace-height-adjustment, 0px))`};
+		props.$fitContent
+			? 'none'
+			: props.$useFixedHeight
+			? '100%'
+			: `calc(100dvh - 190px + var(--workspace-height-adjustment, 0px))`};
 	overflow: hidden;
 	width: 100%;
 	min-width: 0;
@@ -38,7 +47,12 @@ export const EditorWrapper = styled.div<{ $useFixedHeight?: boolean; $height: nu
 	isolation: isolate;
 `;
 
-export const Editor = styled.div<{ $hasHeader?: boolean; $noWrapper?: boolean; $textStyle?: 'code' | 'body' }>`
+export const Editor = styled.div<{
+	$hasHeader?: boolean;
+	$noWrapper?: boolean;
+	$textStyle?: 'code' | 'body';
+	$contentHeight?: number;
+}>`
 	height: 100%;
 	width: 100%;
 	min-width: 0;
@@ -48,6 +62,13 @@ export const Editor = styled.div<{ $hasHeader?: boolean; $noWrapper?: boolean; $
 	min-height: 0;
 	padding: ${(props) => (props.$noWrapper ? '0' : props.$hasHeader ? `0 0 15px 0` : `18.5px 0 15px 0`)};
 	background: ${(props) => (props.$noWrapper ? 'transparent' : props.theme.colors.container.alt1.background)};
+	${(props) =>
+		props.$contentHeight !== undefined &&
+		`
+		height: ${props.$contentHeight}px;
+		flex: none;
+		box-sizing: content-box;
+	`}
 
 	> div {
 		height: 100% !important;
@@ -69,7 +90,7 @@ export const Editor = styled.div<{ $hasHeader?: boolean; $noWrapper?: boolean; $
 	}
 `;
 
-export const ActionsWrapper = styled.div`
+export const ActionsWrapper = styled.div<{ $fitContent?: boolean }>`
 	width: fit-content;
 	display: flex;
 	align-items: center;
@@ -79,6 +100,13 @@ export const ActionsWrapper = styled.div`
 	right: 32.5px;
 	z-index: 1;
 	pointer-events: none;
+	${(props) =>
+		props.$fitContent &&
+		`
+		position: static;
+		align-self: flex-end;
+		margin: 0 32.5px 20px 0;
+	`}
 
 	button {
 		pointer-events: auto;
