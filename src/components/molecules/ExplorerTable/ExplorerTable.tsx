@@ -19,6 +19,7 @@ export default function ExplorerTable<Row>(props: {
 	onRowClick?: (row: Row) => void;
 	minWidth?: number;
 	columnLayout?: string;
+	columnGap?: number;
 	roundedBottom?: boolean;
 	embedded?: boolean;
 }) {
@@ -26,6 +27,7 @@ export default function ExplorerTable<Row>(props: {
 		$columns: props.columns.length,
 		$minWidth: props.minWidth,
 		$columnLayout: props.columnLayout,
+		$columnGap: props.columnGap,
 	};
 	return (
 		<S.Table role="table" aria-label={props.label} $roundedBottom={props.roundedBottom}>

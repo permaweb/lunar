@@ -6,8 +6,10 @@ import * as S from './styles';
 
 export default function Disclosure(props: {
 	label: React.ReactNode;
+	prefix?: React.ReactNode;
 	children: React.ReactNode;
 	onToggle?: (isOpen: boolean) => void;
+	chevronSize?: number;
 }) {
 	const [isOpen, setIsOpen] = React.useState(false);
 
@@ -19,7 +21,8 @@ export default function Disclosure(props: {
 	return (
 		<S.Wrapper onToggle={handleToggle}>
 			<S.Summary>
-				<Chevron isOpen={isOpen} variant="disclosure" />
+				{props.prefix}
+				<Chevron isOpen={isOpen} variant="disclosure" size={props.chevronSize} />
 				{props.label}
 			</S.Summary>
 			<S.Content>{props.children}</S.Content>

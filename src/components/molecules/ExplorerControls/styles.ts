@@ -140,7 +140,6 @@ export const UpdateWrapperType = styled(UpdateWrapper)`
 		height: 12px;
 		width: 12px;
 		color: ${(props) => props.theme.colors.font.light2};
-		fill: ${(props) => props.theme.colors.font.light2};
 	}
 `;
 

@@ -21,6 +21,12 @@ export function scrollTo(x: number, y: number, behavior?: 'smooth') {
 	}, 0);
 }
 
+export function scrollToPageTop(): void {
+	if (typeof window === 'undefined') return;
+	const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+	window.scrollTo({ left: 0, top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+}
+
 export function scrollIntoView(elementId: string) {
 	const element = document.getElementById(elementId);
 	if (element) {

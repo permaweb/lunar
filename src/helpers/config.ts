@@ -59,6 +59,7 @@ export const PROCESSES = {
 	ao: '0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc',
 	pi: '4hXj_E-5fAKmo4E8KjgQvuDJKAFk9P2grhycVmISDLs',
 	metrics: 's2ZVlUpKhpuYrE8TkRmj9wtFCJr2QToQCw2Z0PsMZ6s',
+	holders: '9BJlbDTzxmZKSQEcKSlQNoTSGh1WiO_KeEpLCdx5vwA',
 };
 
 export const TOKEN_DENOMINATIONS = {
@@ -278,7 +279,7 @@ function createURLs() {
 	const docs = `${base}docs/`;
 	const explorer = `${base}explorer/`;
 	const blocks = `${base}blocks/`;
-	const addresses = `${base}addresses/`;
+	const wallets = `${base}wallets/`;
 	const nodes = `${base}nodes/`;
 	const transactions = `${base}transactions/`;
 	const aos = `${base}aos/`;
@@ -287,7 +288,7 @@ function createURLs() {
 	return {
 		base: base,
 		blocks: blocks,
-		addresses: addresses,
+		wallets: wallets,
 		nodes: nodes,
 		nodesByFork: `${nodes}by-fork`,
 		transactions: transactions,

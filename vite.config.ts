@@ -72,7 +72,7 @@ export default defineConfig({
 		},
 	},
 	server: {
-		port: 4000,
+		port: 3000,
 		open: false,
 		strictPort: true,
 		allowedHosts: ['lunar.lape3.uk'],

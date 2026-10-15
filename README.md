@@ -30,7 +30,7 @@ gateways and AO nodes, and is published to Arweave.
 | Blocks       | `#/blocks`       | Recent blocks with height-range filters, block headers, and per-block transaction lists                |
 | Explorer     | `#/explorer`     | Unified inspector that classifies an identifier and opens the matching record                          |
 | Transactions | `#/transactions` | Recent transactions, bundles, messages, and assignments with filters                                   |
-| Addresses    | `#/addresses`    | The Arweave wallet list with balances and last-transaction links                                       |
+| Wallets      | `#/wallets`      | Arweave wallets and AO top token holders with balances                                                 |
 | Nodes        | `#/nodes`        | Arweave peer discovery, geographic distribution, fork history, and per-node inspection                 |
 | Console      | `#/aos`          | Owner-only AOS session for creating AO processes and evaluating Lua in the browser                     |
 | GraphQL      | `#/graphql`      | Multi-tab playground with gateway selection, schema introspection, and generated query templates       |
@@ -72,8 +72,8 @@ registry configuration is required.
 npm run start:development
 ```
 
-Vite serves the application at [http://localhost:4000](http://localhost:4000) with `strictPort` enabled, so the
-port is not silently reassigned. Change it in `vite.config.ts` if 4000 is already in use.
+Vite serves the application at [http://localhost:3000](http://localhost:3000) with `strictPort` enabled, so the
+port is not silently reassigned. Change it in `vite.config.ts` if 3000 is already in use.
 
 Lunar uses hash routing (`/#/explorer/...`), which lets the same build run from a gateway path, an ArNS name, or
 the local file system without server-side rewrites. Service worker registration is skipped on `localhost`, so a
@@ -83,7 +83,7 @@ development session never serves a cached shell.
 
 | Script                          | Description                                                                |
 | ------------------------------- | -------------------------------------------------------------------------- |
-| `npm run start:development`     | Start the Vite development server on port 4000                             |
+| `npm run start:development`     | Start the Vite development server on port 3000                             |
 | `npm run start:staging`         | Start the same server under the staging name                               |
 | `npm run build`                 | Produce the production bundle in `dist/`                                   |
 | `npm run typecheck`             | Run the TypeScript compiler with `--noEmit`                                |
@@ -109,7 +109,7 @@ src/
 │   ├── atoms/      Primitive controls: buttons, inputs, selects, loaders, modals, links
 │   ├── molecules/  Reusable compositions: lists, tables, editors, viewers, search
 │   └── organisms/  Stateful sections: AOS, GraphQL playground, process editor and source
-├── features/       Domain-owned UI, hooks, and models (Addresses, Explorer, Mining, Nodes, Pins, Profiles)
+├── features/       Domain-owned UI, hooks, and models (Wallets, Explorer, Mining, Nodes, Pins, Profiles)
 ├── helpers/        Pure utilities, configuration, themes, types, and validation
 ├── hooks/          Reusable React behavior
 ├── navigation/     Application shell navigation: header, sidebar, docs navigation, and footer

@@ -6,7 +6,7 @@ import { ExplorerControlStyles } from 'components/molecules/ExplorerControls';
 export const Chip = styled(ExplorerControlStyles.UpdateWrapper).attrs({ as: PrimitiveButton, type: 'button' })`
 	padding: 5px 10px 5px 12px;
 	cursor: pointer;
-	gap: 7.5px;
+	gap: 8.5px;
 	transition: background-color 120ms, border-color 120ms;
 
 	&:hover {

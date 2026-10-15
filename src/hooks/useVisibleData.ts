@@ -3,7 +3,7 @@ import React from 'react';
 type UseVisibleDataArgs<T> = {
 	cacheKey: string | number | null | undefined;
 	enabled?: boolean;
-	fetchData: () => Promise<T>;
+	fetchData: (signal: AbortSignal) => Promise<T>;
 	rootMargin?: string;
 	threshold?: number;
 };
@@ -86,6 +86,7 @@ export function useVisibleData<T, TElement extends HTMLElement = HTMLDivElement>
 
 		let cancelled = false;
 		const activeKey = args.cacheKey as string | number;
+		const controller = new AbortController();
 
 		loadingKeyRef.current = activeKey;
 
@@ -96,7 +97,7 @@ export function useVisibleData<T, TElement extends HTMLElement = HTMLDivElement>
 		}));
 
 		fetchDataRef
-			.current()
+			.current(controller.signal)
 			.then((data) => {
 				if (cancelled || loadingKeyRef.current !== activeKey) return;
 
@@ -126,6 +127,8 @@ export function useVisibleData<T, TElement extends HTMLElement = HTMLDivElement>
 
 		return () => {
 			cancelled = true;
+			controller.abort();
+			if (loadingKeyRef.current === activeKey) loadingKeyRef.current = null;
 		};
 	}, [args.cacheKey, enabled, hasCacheKey, visible]);
 

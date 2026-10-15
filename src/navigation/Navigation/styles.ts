@@ -92,7 +92,6 @@ export const SearchResult = styled.div`
 			width: 20.5px;
 			padding: 5.5px 0 0 0;
 			color: ${(props) => props.theme.colors.link.color};
-			fill: ${(props) => props.theme.colors.link.color};
 		}
 
 		&:hover,
@@ -102,7 +101,6 @@ export const SearchResult = styled.div`
 
 			svg {
 				color: ${(props) => props.theme.colors.link.active};
-				fill: ${(props) => props.theme.colors.link.active};
 			}
 		}
 
@@ -125,7 +123,6 @@ export const SearchResultInfo = styled.div`
 		width: 19.5px !important;
 		padding: 5.5px 0 0 0;
 		color: ${(props) => props.theme.colors.link.color};
-		fill: ${(props) => props.theme.colors.link.color};
 	}
 `;
 

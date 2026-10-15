@@ -51,7 +51,7 @@ const TRANSPORT_HEADERS = new Set([
 export function linkedStatePath(id: string): string {
 	if (!checkValidAddress(id)) throw new AoReadError('invalid-input');
 	// Leave nested links unresolved so the client controls when to fetch them.
-	return `/~cache@1.0/read=${id}?require-codec=json%401.0`;
+	return `/~cache@1.0/read?target=${id}&require-codec=application/json&accept-bundle=false`;
 }
 
 /** HTTP-Sig puts scalar state in headers and nested messages in +link fields. */

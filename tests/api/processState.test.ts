@@ -2,14 +2,19 @@ import fc from 'fast-check';
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { createAoReadTransport } from '../../src/api/aoNetwork';
-import { parseStateHeaders, type ProcessStateProgress, readProcessState } from '../../src/api/permaweb/processState';
+import {
+	linkedStatePath,
+	parseStateHeaders,
+	type ProcessStateProgress,
+	readProcessState,
+} from '../../src/api/permaweb/processState';
 import { DEFAULT_AO_NETWORK } from '../../src/helpers/aoNetwork';
 
 const statePath = `/${'p'.repeat(43)}~process@1.0/now`;
 const balanceId = 'b'.repeat(43);
 const ordersId = 'o'.repeat(43);
 const orderId = 'r'.repeat(43);
-const linkPath = (id: string) => `/~cache@1.0/read=${id}?require-codec=json%401.0`;
+const linkPath = (id: string) => `/~cache@1.0/read?target=${id}&require-codec=application/json&accept-bundle=false`;
 const head = (headers: Record<string, string>) => new Response(null, { headers });
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const options = { timeoutMs: 90_000 };
@@ -30,6 +35,28 @@ it('returns scalar state and unresolved links without fetching them in lazy mode
 	expect(fetcher.mock.calls.map(([path]) => path)).toEqual([statePath, linkPath(balanceId)]);
 });
 
+it('reads cached state through the target query parameter without bundling nested links', async () => {
+	const peer = 'https://cache.example';
+	const fetcher = vi.fn(async (input, init) => {
+		const url = new URL(input);
+		if (init.method === 'HEAD') return head({ 'holders+link': balanceId });
+		if (url.pathname !== '/~cache@1.0/read' || url.searchParams.get('target') !== balanceId)
+			return new Response('not_found', { status: 404 });
+		expect(url.searchParams.get('require-codec')).toBe('application/json');
+		expect(url.searchParams.get('accept-bundle')).toBe('false');
+		return json({ 'token+link': ordersId });
+	});
+	const transport = createAoReadTransport(
+		{ ...DEFAULT_AO_NETWORK, peers: [peer], preferPermawebOS: false },
+		{ fetch: fetcher, injected: () => undefined }
+	);
+	const state = await readProcessState(transport, statePath, { ...options, lazy: true });
+	expect(state.data).toEqual({ 'holders+link': balanceId });
+	expect(fetcher).toHaveBeenCalledOnce();
+	expect((await transport.readJson(linkedStatePath(balanceId))).data).toEqual({ 'token+link': ordersId });
+	expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
 it('hydrates HTTP peer state when Hyperbuddy labels HEAD responses as HTML', async () => {
 	const peer = 'http://173.255.230.49:10000';
 	const fetcher = vi.fn(async (input, init) => {
@@ -44,7 +71,8 @@ it('hydrates HTTP peer state when Hyperbuddy labels HEAD responses as HTML', asy
 			});
 		}
 		expect(relay.searchParams.get('relay-path')).toBe(`${peer}${linkPath(balanceId)}`);
-		return relay.searchParams.get('require-codec') === 'json@1.0' && !relay.searchParams.has('accept-bundle')
+		return relay.searchParams.get('require-codec') === 'application/json' &&
+			relay.searchParams.get('accept-bundle') === 'false'
 			? new Response('{"holder":10000000000000000000000}')
 			: new Response('<html>Hyperbuddy</html>');
 	});
@@ -278,7 +306,7 @@ const descend = (value: any, depth: number) => {
 it('pauses at depth 64 and resumes in bounded batches from the same snapshot', async () => {
 	const fetcher = vi.fn(async (path) => {
 		if (path === statePath) return head({ name: 'Deep process', 'next+link': numberedId(0) });
-		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		const index = Number(String(path).match(/target=x*(\d+)/)[1]);
 		return json(index === 129 ? { done: true } : { 'next+link': numberedId(index + 1) });
 	});
 	const first = await readProcessState(transportFor(fetcher), statePath, options);
@@ -344,7 +372,7 @@ it('defers links inside deeply nested inline objects and arrays without discardi
 it('keeps cycle detection across manual depth boundaries', async () => {
 	const fetcher = vi.fn(async (path) => {
 		if (path === statePath) return head({ 'next+link': numberedId(0) });
-		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		const index = Number(String(path).match(/target=x*(\d+)/)[1]);
 		return json({ 'next+link': numberedId(index === 64 ? 0 : index + 1) });
 	});
 	const first = await readProcessState(transportFor(fetcher), statePath, options);
@@ -358,7 +386,7 @@ it('shares concurrent continuation calls and permits retry after a continuation 
 	let shouldStall = true;
 	const fetcher = vi.fn(async (path) => {
 		if (path === statePath) return head({ 'next+link': numberedId(0) });
-		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		const index = Number(String(path).match(/target=x*(\d+)/)[1]);
 		if (index < 64) return json({ 'next+link': numberedId(index + 1) });
 		if (shouldStall) return new Promise<Response>(() => {});
 		return json({ done: true });
@@ -382,7 +410,7 @@ it('cancels manual loading when the original process read is disposed', async ()
 	const controller = new AbortController();
 	const fetcher = vi.fn(async (path) => {
 		if (path === statePath) return head({ 'next+link': numberedId(0) });
-		const index = Number(String(path).match(/read=x*(\d+)/)[1]);
+		const index = Number(String(path).match(/target=x*(\d+)/)[1]);
 		if (index === 64) controller.abort();
 		return json({ 'next+link': numberedId(index + 1) });
 	});

@@ -5,7 +5,7 @@ import { FormField } from 'components/atoms/FormField';
 import { Icon } from 'components/atoms/Icon';
 import { Modal } from 'components/atoms/Modal';
 import { ExplorerLink } from 'components/atoms/TxAddress';
-import { AddressList } from 'features/Addresses';
+import { AddressList } from 'features/Wallets';
 import { ASSETS } from 'helpers/config';
 import { formatNodeRewardTotal } from 'helpers/nodeMining';
 import { useLanguageProvider } from 'providers/LanguageProvider';

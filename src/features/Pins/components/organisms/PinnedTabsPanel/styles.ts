@@ -35,7 +35,7 @@ export const Open = styled(PrimitiveButton)`
 	svg {
 		width: 14px;
 		height: 14px;
-		fill: currentColor;
+		color: currentColor;
 	}
 `;
 export const Label = styled.div`

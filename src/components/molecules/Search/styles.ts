@@ -116,8 +116,6 @@ export const SearchResultInfo = styled.div`
 		height: 17.5px;
 		width: 17.5px;
 		flex-shrink: 0;
-		path {
-			fill: ${(props) => props.theme.colors.font.primary.base};
-		}
+		color: ${(props) => props.theme.colors.font.primary.base};
 	}
 `;

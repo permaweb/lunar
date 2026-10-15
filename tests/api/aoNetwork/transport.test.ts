@@ -74,7 +74,7 @@ it.each(['GET', 'HEAD'])('relays remote HTTP peer %s reads and reports the selec
 it('preserves the relay response format for linked reads and schedule reads', async () => {
 	const direct = vi.fn(async (input) => {
 		const relay = new URL(input);
-		return relay.searchParams.get('require-codec') === 'json@1.0' ||
+		return relay.searchParams.get('require-codec') === 'application/json' ||
 			relay.searchParams.get('accept') === 'application/aos-2'
 			? json({ ready: true })
 			: new Response('<html>Hyperbuddy</html>', { headers: { 'content-type': 'text/html' } });
@@ -84,7 +84,7 @@ it('preserves the relay response format for linked reads and schedule reads', as
 		{ fetch: direct, injected: () => undefined }
 	);
 	expect(
-		(await transport.readJson('/~cache@1.0/read=linked?require-codec=json%401.0&accept-bundle=false')).data
+		(await transport.readJson('/~cache@1.0/read?target=linked&require-codec=application/json&accept-bundle=false')).data
 	).toEqual({ ready: true });
 	expect((await transport.readJson(`${path}?accept=application/aos-2&from=0&to=3`)).data).toEqual({ ready: true });
 	const urls = direct.mock.calls.map(([input]) => new URL(input));

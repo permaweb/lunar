@@ -170,7 +170,9 @@ describe('stored-message reads', () => {
 		const fetcher = vi.fn(async () => json(raw));
 		const result = await readAoCoreMessage(transportFor(fetcher), id);
 		expect(fetcher).toHaveBeenCalledTimes(1);
-		expect(fetcher.mock.calls[0][0]).toBe(`/~cache@1.0/read=${id}?require-codec=json%401.0&accept-bundle=false`);
+		expect(fetcher.mock.calls[0][0]).toBe(
+			`/~cache@1.0/read?target=${id}&require-codec=application/json&accept-bundle=false`
+		);
 		expect(result.data.rawText).toBe(raw);
 		expect(result.source).toBe('permawebos');
 	});

@@ -88,6 +88,8 @@ describe('Nodes table and map', () => {
 	});
 	it('paginates peers, names controls accessibly, and cancels map work without probing any rows', async () => {
 		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+		const scrollTo = vi.fn();
+		vi.stubGlobal('scrollTo', scrollTo);
 		const fetchMock = vi.fn();
 		vi.stubGlobal('fetch', fetchMock);
 		const peers = Array.from({ length: 60 }, (_, index) => ({
@@ -139,8 +141,16 @@ describe('Nodes table and map', () => {
 			const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
 			expect(result.violations).toEqual([]);
 			await clickButton('Next');
+			expect(scrollTo).not.toHaveBeenCalled();
 			expect(container.querySelectorAll('tbody tr')).toHaveLength(10);
 			expect(container.textContent).toContain('8.8.8.51:1984');
+			for (const label of ['Previous', 'Next']) {
+				const buttons = [...container.querySelectorAll('button')].filter((element) => element.textContent === label);
+				await React.act(async () => buttons[buttons.length - 1].click());
+				expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, top: 0, behavior: 'smooth' });
+			}
+			expect(scrollTo).toHaveBeenCalledTimes(2);
+			expect(container.querySelectorAll('tbody tr')).toHaveLength(10);
 			await clickButton('Show Map');
 			await React.act(async () => {
 				await import('../../../src/features/Nodes/components/organisms/NodesMap');

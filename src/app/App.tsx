@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { requestRemote } from 'api/http';
 
@@ -11,7 +11,7 @@ const views = import.meta.glob('../views/**/index.ts');
 
 const Landing = getLazyImport<React.ComponentProps<typeof LandingView>>('Landing');
 const Blocks = getLazyImport('Blocks');
-const Addresses = getLazyImport('Addresses');
+const Wallets = getLazyImport('Wallets');
 const Nodes = getLazyImport('Nodes');
 const Transactions = getLazyImport('Transactions');
 const Explorer = getLazyImport('Explorer');
@@ -212,7 +212,8 @@ export default function App() {
 					<Routes>
 						{getRoute(URLS.base, <Landing onPricesScrollChange={setHasScrolledPastHomePrices} />)}
 						{getRoute(URLS.blocks, <Blocks />)}
-						{getRoute(URLS.addresses, <Addresses />)}
+						{getRoute(URLS.wallets, <Wallets />)}
+						<Route path="/addresses/*" element={<Navigate to={URLS.wallets} replace />} />
 						{getRoute(URLS.nodes, <Nodes />)}
 						{getRoute(URLS.nodesByFork, <Nodes />)}
 						{getRoute(URLS.transactions, <Transactions />)}

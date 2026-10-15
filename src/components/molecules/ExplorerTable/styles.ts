@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 import { STYLING } from 'helpers/config';
 
-type TableSizing = { $columns: number; $minWidth?: number; $columnLayout?: string };
+type TableSizing = { $columns: number; $minWidth?: number; $columnLayout?: string; $columnGap?: number };
 
 export const Table = styled.div<{ $roundedBottom?: boolean }>`
 	width: 100%;
@@ -18,7 +18,7 @@ export const TableHeader = styled.div<TableSizing & { $embedded?: boolean }>`
 	display: grid;
 	grid-template-columns: ${(props) => props.$columnLayout ?? `repeat(${props.$columns}, minmax(0, 1fr))`};
 	align-items: center;
-	gap: 15px;
+	gap: ${(props) => props.$columnGap ?? 15}px;
 	padding: 0 15px;
 	border: 1px solid ${(props) => props.theme.colors.border.primary};
 	border-inline-color: ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
@@ -50,7 +50,7 @@ export const TableRow = styled.div<TableSizing & { $expanded?: boolean; $interac
 	display: grid;
 	grid-template-columns: ${(props) => props.$columnLayout ?? `repeat(${props.$columns}, minmax(0, 1fr))`};
 	align-items: center;
-	gap: 15px;
+	gap: ${(props) => props.$columnGap ?? 15}px;
 	padding: 0 15px;
 	border-left: 1px solid ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
 	border-right: 1px solid ${(props) => (props.$embedded ? 'transparent' : props.theme.colors.border.primary)};
