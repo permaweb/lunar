@@ -1,4 +1,5 @@
 import { readAoBalance } from 'api/balances';
+import { getTransactions } from 'api/blocks';
 import { requestRemote } from 'api/http';
 import { lookupTransaction } from 'api/transactions';
 
@@ -375,6 +376,32 @@ async function addressHasTransactions(args: SearchTxArgs) {
 	}
 }
 
+async function addressHasIncomingTransactions(address: string) {
+	try {
+		const incoming = await getTransactions({ first: 1, recipients: [address], includeCount: false });
+		if (incoming.transactions.edges.some(({ node }) => node.recipient === address)) return true;
+
+		// AO token transfers target the token process; the wallet appears in the Recipient tag instead.
+		const transfers = await getTransactions({
+			first: 1,
+			includeCount: false,
+			tags: [
+				{ name: 'Data-Protocol', values: ['ao'] },
+				{ name: 'Type', values: ['Message'] },
+				{ name: 'Action', values: ['Transfer'] },
+				{ name: 'Recipient', values: [address] },
+			],
+		});
+
+		return transfers.transactions.edges.some(
+			({ node }) => getTagValue(node.tags, 'Action') === 'Transfer' && getTagValue(node.tags, 'Recipient') === address
+		);
+	} catch (e: any) {
+		console.error(e);
+		return false;
+	}
+}
+
 async function addressHasArBalance(address: string) {
 	try {
 		const response = await requestRemote(getARBalanceEndpoint(address));
@@ -399,11 +426,12 @@ async function addressHasAoBalance(args: SearchTxArgs) {
 	}
 }
 
-/* An address is a wallet if it has transaction activity or any AR / AO balance */
+/* An address is a wallet if it has sent or received transactions, or has any AR / AO balance. */
 async function isWalletAddress(args: SearchTxArgs) {
 	if (await addressHasTransactions(args)) return true;
 	if (!checkValidEthereumAddress(args.txId) && (await addressHasArBalance(args.txId))) return true;
 	if (await addressHasAoBalance(args)) return true;
+	if (await addressHasIncomingTransactions(args.txId)) return true;
 
 	return false;
 }

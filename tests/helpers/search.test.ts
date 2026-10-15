@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readAoBalance } from '../../src/api/balances';
+import { getTransactions } from '../../src/api/blocks';
 import { searchTxById } from '../../src/helpers/search';
 
 vi.mock('api/balances', () => ({ readAoBalance: vi.fn() }));
+vi.mock('api/blocks', () => ({ getTransactions: vi.fn() }));
 
 const txId = 'a'.repeat(43);
 const transaction = {
@@ -19,6 +21,9 @@ const transaction = {
 beforeEach(() => {
 	vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
 	vi.mocked(readAoBalance).mockResolvedValue('0');
+	vi.mocked(getTransactions).mockResolvedValue({
+		transactions: { pageInfo: { hasNextPage: false }, edges: [] },
+	});
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -54,6 +59,70 @@ describe('transaction GraphQL lookup', () => {
 		expect(await searchTxById({ txId, getGQLData })).toBeNull();
 		expect(getGQLData.mock.calls).toEqual([[{ id: [txId] }], [{ owners: [txId] }]]);
 		expect(readAoBalance).toHaveBeenCalledWith(txId);
+	});
+
+	it('recognizes a wallet from an incoming AO credit notice with no outgoing activity or balance', async () => {
+		const recipient = '4_mDz3453UAENrhbd7-L4132qZMqilcNgYYUj9f-FWg';
+		const getGQLData = vi.fn().mockResolvedValue({ data: [] });
+		vi.mocked(getTransactions).mockResolvedValueOnce({
+			transactions: {
+				pageInfo: { hasNextPage: false },
+				edges: [
+					{
+						cursor: 'credit-notice',
+						node: {
+							id: 'PlXlxvy4dQ1Rp1JJ_g1OtCUYAT4Kk5I9m8WIxwQ9CWE',
+							recipient,
+							tags: [{ name: 'Action', value: 'Credit-Notice' }],
+						},
+					},
+				],
+			},
+		});
+
+		expect(await searchTxById({ txId: recipient, getGQLData })).toMatchObject({
+			node: { id: recipient, tags: [{ name: 'Type', value: 'Wallet' }] },
+		});
+		expect(getTransactions).toHaveBeenCalledWith({ first: 1, recipients: [recipient], includeCount: false });
+	});
+
+	it('recognizes an AO transfer recipient when no direct credit notice is indexed', async () => {
+		const recipient = '4_mDz3453UAENrhbd7-L4132qZMqilcNgYYUj9f-FWg';
+		const getGQLData = vi.fn().mockResolvedValue({ data: [] });
+		vi.mocked(getTransactions).mockResolvedValueOnce({
+			transactions: { pageInfo: { hasNextPage: false }, edges: [] },
+		});
+		vi.mocked(getTransactions).mockResolvedValueOnce({
+			transactions: {
+				pageInfo: { hasNextPage: false },
+				edges: [
+					{
+						cursor: 'transfer',
+						node: {
+							id: 'MlKv6WB8KFGVXCXIzKMTw-Y7R9P7dKNkqpCW-QB8__Q',
+							tags: [
+								{ name: 'Action', value: 'Transfer' },
+								{ name: 'Recipient', value: recipient },
+							],
+						},
+					},
+				],
+			},
+		});
+
+		expect(await searchTxById({ txId: recipient, getGQLData })).toMatchObject({
+			node: { id: recipient, tags: [{ name: 'Type', value: 'Wallet' }] },
+		});
+		expect(getTransactions).toHaveBeenLastCalledWith({
+			first: 1,
+			includeCount: false,
+			tags: [
+				{ name: 'Data-Protocol', values: ['ao'] },
+				{ name: 'Type', values: ['Message'] },
+				{ name: 'Action', values: ['Transfer'] },
+				{ name: 'Recipient', values: [recipient] },
+			],
+		});
 	});
 
 	it('surfaces an endpoint failure without retrying another gateway', async () => {
