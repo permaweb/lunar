@@ -122,7 +122,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void; h
 				items: [
 					{ path: URLS.transactions, label: language.transactions },
 					{ path: URLS.blocks, label: language.blocks },
-					{ path: URLS.addresses, label: language.landing.wallets },
+					{ path: URLS.wallets, label: language.landing.wallets },
 					{ path: URLS.nodes, label: language.nodes },
 				],
 			},
@@ -131,6 +131,7 @@ export default function Navigation(props: { open: boolean; toggle: () => void; h
 				items: [
 					{ path: `${URLS.base}?network=ao&activity=process#network-activity`, label: language.landing.processes },
 					{ path: `${URLS.base}?network=ao&activity=message#network-activity`, label: language.messages },
+					{ path: `${URLS.wallets}?network=ao`, label: language.landing.wallets },
 				],
 			},
 			{

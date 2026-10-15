@@ -6,6 +6,7 @@ import { ExplorerLink } from 'components/atoms/TxAddress';
 import { BlockList } from 'components/molecules/BlockList';
 import { Overview } from 'components/molecules/Overview';
 import { formatNodeAmount, formatNodeRewardTotal, sumMiningRewards, toNodeBlockEdge } from 'helpers/nodeMining';
+import { scrollToPageTop } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import type { WalletMiningState } from '../../../hooks/useWalletMining';
@@ -101,14 +102,20 @@ export default function WalletMining(props: { address: string; mining: WalletMin
 									type={'alt3'}
 									label={language.previous}
 									disabled={currentPage === 0}
-									onPress={() => setPage(currentPage - 1)}
+									onPress={() => {
+										setPage(currentPage - 1);
+										if (showCount) scrollToPageTop();
+									}}
 								/>
 								{showCount && <S.PageCount>{language.nodesPage(currentPage + 1, pages)}</S.PageCount>}
 								<Button
 									type={'alt3'}
 									label={language.next}
 									disabled={currentPage >= pages - 1}
-									onPress={() => setPage(currentPage + 1)}
+									onPress={() => {
+										setPage(currentPage + 1);
+										if (showCount) scrollToPageTop();
+									}}
 								/>
 							</>
 						),

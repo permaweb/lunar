@@ -4,6 +4,7 @@ import { Button } from 'components/atoms/Button';
 import { ExplorerLink } from 'components/atoms/TxAddress';
 import { ASSETS } from 'helpers/config';
 import { formatBlockId } from 'helpers/utils';
+import { scrollToPageTop } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import { useNodeForks } from '../../../hooks/useNodeForks';
@@ -92,14 +93,20 @@ export default function NodeForks() {
 					type={'alt3'}
 					label={language.previous}
 					disabled={currentPage <= 1}
-					onPress={() => setPage(currentPage - 1)}
+					onPress={() => {
+						setPage(currentPage - 1);
+						if (showCount) scrollToPageTop();
+					}}
 				/>
 				{showCount && <S.PageCount>{language.nodesPage(currentPage, pages)}</S.PageCount>}
 				<Button
 					type={'alt3'}
 					label={language.next}
 					disabled={currentPage >= pages}
-					onPress={() => setPage(currentPage + 1)}
+					onPress={() => {
+						setPage(currentPage + 1);
+						if (showCount) scrollToPageTop();
+					}}
 				/>
 			</>
 		);

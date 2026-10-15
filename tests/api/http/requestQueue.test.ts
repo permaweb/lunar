@@ -1,9 +1,10 @@
 import { expect, it } from 'vitest';
 
-import { createRequestQueue } from '../../src/api/nodes/requestQueue';
+import { createRequestQueue } from '../../../src/api/http/requestQueue';
+import { NodesApiError } from '../../../src/api/nodes';
 
 it.each([2, 8])('limits active requests to %s and removes cancelled queued work', async (limit) => {
-	const enqueue = createRequestQueue(limit);
+	const enqueue = createRequestQueue(limit, () => new NodesApiError('cancelled'));
 	let active = 0;
 	let maximum = 0;
 	const started: number[] = [];

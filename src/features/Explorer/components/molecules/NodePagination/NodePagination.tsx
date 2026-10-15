@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Button } from 'components/atoms/Button';
+import { scrollToPageTop } from 'helpers/window';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
 import * as S from './styles';
@@ -21,7 +22,10 @@ export default function NodePagination(props: {
 				type={'alt3'}
 				label={language.previous}
 				disabled={props.page === 0}
-				onPress={() => props.onPageChange(props.page - 1)}
+				onPress={() => {
+					props.onPageChange(props.page - 1);
+					if (props.showCounter) scrollToPageTop();
+				}}
 			/>
 			{props.showCounter && (
 				<S.PageCount>
@@ -32,7 +36,10 @@ export default function NodePagination(props: {
 				type={'alt3'}
 				label={language.next}
 				disabled={(props.loading || !props.hasMore) && props.page >= props.totalPages - 1}
-				onPress={() => props.onPageChange(props.page + 1)}
+				onPress={() => {
+					props.onPageChange(props.page + 1);
+					if (props.showCounter) scrollToPageTop();
+				}}
 			/>
 		</>
 	);

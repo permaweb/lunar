@@ -10,9 +10,11 @@ type Content = { status: 'idle' | 'loading' | 'error' } | { status: 'ready'; val
 
 export default function JSONLinkedValue(props: {
 	id: string;
+	prefix: React.ReactNode;
 	onLoad: (id: string, signal: AbortSignal) => Promise<unknown>;
 	onRender: (value: unknown) => React.ReactNode;
 	blocked?: 'cycle' | 'depth';
+	suffix?: React.ReactNode;
 }) {
 	const provider = useLanguageProvider();
 	const language = provider.object[provider.current];
@@ -44,21 +46,34 @@ export default function JSONLinkedValue(props: {
 
 	return (
 		<S.Wrapper>
-			<Disclosure label={<S.Label>{`"${props.id}" · ${language.expandLinkedValue}`}</S.Label>} onToggle={setIsOpen}>
-				{!isOpen ? null : props.blocked ? (
-					<S.Status role="status">
-						{props.blocked === 'cycle' ? language.linkedStateCycle : language.linkedStateDepth}
-					</S.Status>
-				) : content.status === 'ready' ? (
-					props.onRender(content.value)
-				) : content.status === 'error' ? (
-					<S.Status role="alert">
-						<span>{language.aoReadUnavailable}</span>
-						<Button type="alt3" label={language.retry} onPress={() => setRevision((value) => value + 1)} />
-					</S.Status>
-				) : (
-					<S.Status role="status">{language.loadingLinkedState}</S.Status>
-				)}
+			<Disclosure
+				chevronSize={15}
+				prefix={<S.Label>{props.prefix}</S.Label>}
+				label={
+					<S.Label>
+						<S.Link>{`"${props.id}"`}</S.Link>
+						{props.suffix}
+					</S.Label>
+				}
+				onToggle={setIsOpen}
+			>
+				<S.Content>
+					{!isOpen ? null : props.blocked ? (
+						<S.Status role="status">
+							{props.blocked === 'cycle' ? language.linkedStateCycle : language.linkedStateDepth}
+						</S.Status>
+					) : content.status === 'ready' ? (
+						props.onRender(content.value)
+					) : content.status === 'error' ? (
+						<S.Status role="alert">
+							<span>{language.aoReadUnavailable}</span>
+							<span aria-hidden="true">·</span>
+							<Button type="alt2" label={language.retry} onPress={() => setRevision((value) => value + 1)} />
+						</S.Status>
+					) : (
+						<S.Status role="status">{language.loadingLinkedState}</S.Status>
+					)}
+				</S.Content>
 			</Disclosure>
 		</S.Wrapper>
 	);

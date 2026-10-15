@@ -105,6 +105,29 @@ it('detects mining from live reserved rewards when the address has no cached blo
 	expect(container.textContent).toContain('1 AR');
 	expect(container.textContent).toContain('No blocks for this miner');
 });
+it('scrolls to the page top when paging indexed mining blocks from the bottom controls', async () => {
+	const scrollTo = vi.fn();
+	vi.stubGlobal('scrollTo', scrollTo);
+	vi.mocked(getCachedNodeHistories).mockResolvedValue([
+		{
+			node: NODE_URL,
+			network: NODE_INFO.network,
+			savedAt: 1700000000000,
+			blocks: Array.from({ length: 26 }, (_, index) => nodeBlock(100 - index)),
+		},
+	]);
+	await render();
+	await React.act(async () => button('Next').click());
+	expect(scrollTo).not.toHaveBeenCalled();
+	expect(container.textContent).toContain('Page (2 of 2)');
+	for (const label of ['Previous', 'Next']) {
+		const buttons = [...container.querySelectorAll('button')].filter((element) => element.textContent === label);
+		await React.act(async () => buttons[buttons.length - 1].click());
+		expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, top: 0, behavior: 'smooth' });
+	}
+	expect(container.textContent).toContain('Page (2 of 2)');
+	expect(scrollTo).toHaveBeenCalledTimes(2);
+});
 it('does not identify normal wallets, unsupported responses, or failed lookups as miners', async () => {
 	await render();
 	expect(container.textContent).toBe('');

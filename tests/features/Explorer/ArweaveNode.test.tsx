@@ -712,6 +712,8 @@ it('keeps the full confirmed page visible while refreshing IDs and reuses confir
 });
 
 it('shows added and removed IDs in separately paginated, accessible tables', async () => {
+	const scrollTo = vi.fn();
+	vi.stubGlobal('scrollTo', scrollTo);
 	const old = Array.from({ length: 30 }, (_, index) => String(index).padStart(43, 'b'));
 	const added = Array.from({ length: 27 }, (_, index) => String(index).padStart(43, 'c'));
 	vi.mocked(arweaveNodeApi.getPending).mockResolvedValueOnce(old).mockResolvedValueOnce(added);
@@ -724,9 +726,16 @@ it('shows added and removed IDs in separately paginated, accessible tables', asy
 	expect(addedTable.querySelector('a').getAttribute('href')).toBe(`#/explorer/${added[0]}`);
 	const next = [...addedTable.parentElement.querySelectorAll('button')].find((button) => button.textContent === 'Next');
 	await React.act(async () => next.click());
+	expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, top: 0, behavior: 'smooth' });
 	expect(addedTable.querySelectorAll('tbody tr')).toHaveLength(2);
 	expect(addedTable.parentElement.textContent).toContain('Page (2 of 2)');
 	expect(removedTable.parentElement.textContent).toContain('Page (1 of 2)');
+	const previous = [...addedTable.parentElement.querySelectorAll('button')].find(
+		(button) => button.textContent === 'Previous'
+	);
+	await React.act(async () => previous.click());
+	expect(addedTable.querySelectorAll('tbody tr')).toHaveLength(25);
+	expect(scrollTo).toHaveBeenCalledTimes(2);
 	const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
 	expect(result.violations).toEqual([]);
 });

@@ -357,7 +357,7 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 			other: currentTheme.actions.other,
 		},
 		border: {
-			primary: currentTheme.neutral4,
+			primary: currentTheme.scheme === 'light' ? currentTheme.neutral4 : currentTheme.neutral3,
 			alt1: currentTheme.neutral7,
 			alt2: currentTheme.neutral8,
 			alt3: currentTheme.neutral9,
@@ -485,7 +485,7 @@ export const theme = (currentTheme: any, id?: string): DefaultTheme => ({
 		},
 		form: {
 			background: currentTheme.neutral2,
-			border: currentTheme.neutral4,
+			border: currentTheme.scheme === 'light' ? currentTheme.neutral4 : currentTheme.neutral3,
 			active: {
 				background: currentTheme.neutral2,
 				border: currentTheme.neutral6,

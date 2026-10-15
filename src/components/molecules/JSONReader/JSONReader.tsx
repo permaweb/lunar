@@ -568,15 +568,19 @@ const CustomJSONViewer = React.memo(
 				const isValidId = checkValidAddress(value);
 				if (isValidId && _key?.endsWith('+link') && props.onLoadLink) {
 					return (
-						<>
-							<JSONLinkedValue
-								id={value}
-								onLoad={props.onLoadLink}
-								blocked={ancestors.includes(value) ? 'cycle' : ancestors.length >= MAX_LINK_DEPTH ? 'depth' : undefined}
-								onRender={(loaded) => renderValue(loaded, undefined, true, path, false, [...ancestors, value])}
-							/>
-							{!isLast && <S.JSONComma>,</S.JSONComma>}
-						</>
+						<JSONLinkedValue
+							id={value}
+							prefix={
+								<>
+									<S.JSONKey>"{_key}"</S.JSONKey>
+									<S.JSONColon>: </S.JSONColon>
+								</>
+							}
+							onLoad={props.onLoadLink}
+							blocked={ancestors.includes(value) ? 'cycle' : ancestors.length >= MAX_LINK_DEPTH ? 'depth' : undefined}
+							onRender={(loaded) => renderValue(loaded, undefined, true, path, false, [...ancestors, value])}
+							suffix={!isLast && <S.JSONComma>,</S.JSONComma>}
+						/>
 					);
 				}
 				if (isValidId) {
@@ -763,6 +767,11 @@ const CustomJSONViewer = React.memo(
 																	v !== null &&
 																	(Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0);
 																const isPropCollapsed = collapsed.has(propPath);
+																const isLinked =
+																	!!props.onLoadLink &&
+																	k.endsWith('+link') &&
+																	typeof v === 'string' &&
+																	checkValidAddress(v);
 
 																if (collectPaths && isCollapsible) {
 																	allPaths.add(propPath);
@@ -778,8 +787,12 @@ const CustomJSONViewer = React.memo(
 																				›
 																			</S.CollapseArrow>
 																		)}
-																		<S.JSONKey>"{k}"</S.JSONKey>
-																		<S.JSONColon>: </S.JSONColon>
+																		{!isLinked && (
+																			<>
+																				<S.JSONKey>"{k}"</S.JSONKey>
+																				<S.JSONColon>: </S.JSONColon>
+																			</>
+																		)}
 																		{renderValue(
 																			v,
 																			k,
@@ -805,6 +818,8 @@ const CustomJSONViewer = React.memo(
 													v !== null &&
 													(Array.isArray(v) ? v.length > 0 : Object.keys(v).length > 0);
 												const isPropCollapsed = collapsed.has(propPath);
+												const isLinked =
+													!!props.onLoadLink && k.endsWith('+link') && typeof v === 'string' && checkValidAddress(v);
 
 												if (collectPaths && isCollapsible) {
 													allPaths.add(propPath);
@@ -817,8 +832,12 @@ const CustomJSONViewer = React.memo(
 																›
 															</S.CollapseArrow>
 														)}
-														<S.JSONKey>"{k}"</S.JSONKey>
-														<S.JSONColon>: </S.JSONColon>
+														{!isLinked && (
+															<>
+																<S.JSONKey>"{k}"</S.JSONKey>
+																<S.JSONColon>: </S.JSONColon>
+															</>
+														)}
 														{renderValue(v, k, index === entriesToRender.length - 1, propPath, collectPaths, ancestors)}
 													</S.JSONProperty>
 												);

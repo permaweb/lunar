@@ -7,7 +7,7 @@ import { ThemeProvider } from 'styled-components';
 import { expect, it, vi } from 'vitest';
 
 import { ExplorerLink } from '../../../src/components/atoms/TxAddress';
-import { AddressList } from '../../../src/features/Addresses';
+import { AddressList } from '../../../src/features/Wallets';
 import { darkTheme, theme } from '../../../src/helpers/themes';
 
 let isInAppTabsEnabled = false;

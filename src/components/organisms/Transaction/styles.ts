@@ -14,7 +14,7 @@ export const ColumnFlexWrapper = styled.div`
 
 export const DetailsLayout = styled.div`
 	display: grid;
-	grid-template-columns: 1fr 350px;
+	grid-template-columns: 1fr 330px;
 	align-items: start;
 	gap: 25px;
 
@@ -37,8 +37,6 @@ export const DetailsPanel = styled.aside<{ $stickyTop: number }>`
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	padding-left: 25px;
-	border-left: 1px solid ${(props) => props.theme.colors.border.primary};
 	overflow: hidden;
 
 	@media (max-width: ${STYLING.cutoffs.initial}) {

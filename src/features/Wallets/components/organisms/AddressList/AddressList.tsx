@@ -9,10 +9,11 @@ import { ExplorerLink, TxAddress } from 'components/atoms/TxAddress';
 import { ExplorerTable } from 'components/molecules/ExplorerTable';
 import { ASSETS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { formatCount, formatUnits } from 'helpers/utils';
+import { scrollToPageTop } from 'helpers/window';
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 
-import { formatArUsdValue } from '../../../model/formatAddressValue';
+import { formatTokenUsdValue } from '../../../model/formatAddressValue';
 
 import * as S from './styles';
 
@@ -71,12 +72,20 @@ export default function AddressList(props: {
 	actions?: React.ReactNode;
 	source?: {
 		addresses: string[];
-		columns: { label: string; render: (address: string) => React.ReactNode }[];
+		columns: {
+			label: string;
+			description?: string;
+			align?: 'start' | 'end';
+			render: (address: string) => React.ReactNode;
+		}[];
+		columnLayout?: string;
+		columnGap?: number;
 		renderRowDetails?: (address: string) => React.ReactNode;
 		loading: boolean;
 		onRefresh: () => void;
 		pagination?: (showCounter: boolean) => React.ReactNode;
 		emptyMessage?: string;
+		error?: string;
 	};
 }) {
 	const { openExplorer } = useExplorerNavigation();
@@ -306,7 +315,10 @@ export default function AddressList(props: {
 				<Button
 					type={'alt3'}
 					label={language.previous}
-					onPress={handlePrevious}
+					onPress={() => {
+						handlePrevious();
+						if (opts?.showCounter) scrollToPageTop();
+					}}
 					disabled={!canGoPrevious || isLoading}
 				/>
 				{opts?.showCounter && (
@@ -316,7 +328,15 @@ export default function AddressList(props: {
 						<p>{language.perPage(ADDRESSES_PER_PAGE)}</p>
 					</S.PageCounter>
 				)}
-				<Button type={'alt3'} label={language.next} onPress={handleNext} disabled={!canGoNext || isLoading} />
+				<Button
+					type={'alt3'}
+					label={language.next}
+					onPress={() => {
+						handleNext();
+						if (opts?.showCounter) scrollToPageTop();
+					}}
+					disabled={!canGoNext || isLoading}
+				/>
 			</>
 		);
 	}
@@ -355,6 +375,8 @@ export default function AddressList(props: {
 				<ExplorerTable
 					label={props.header ?? language.addresses}
 					rows={visibleAddresses}
+					columnLayout={props.source?.columnLayout}
+					columnGap={props.source?.columnGap}
 					getRowKey={(address) => address.address}
 					getRowLabel={(address) => `${language.inspect} ${address.address}`}
 					onRowClick={(address) => openExplorer(`${URLS.explorer}${address.address}`)}
@@ -373,7 +395,9 @@ export default function AddressList(props: {
 							? props.source.columns.map((column, index) => ({
 									key: column.label,
 									label: column.label,
-									align: index === props.source.columns.length - 1 ? ('end' as const) : ('start' as const),
+									description: column.description,
+									align:
+										column.align ?? (index === props.source.columns.length - 1 ? ('end' as const) : ('start' as const)),
 									render: (address: (typeof visibleAddresses)[number]) => column.render(address.address),
 							  }))
 							: [
@@ -390,7 +414,11 @@ export default function AddressList(props: {
 										key: 'value',
 										label: language.value,
 										render: (address: (typeof visibleAddresses)[number]) => (
-											<p>{address.balance === undefined ? '—' : formatArUsdValue(address.balance, arUsdPrice)}</p>
+											<p>
+												{address.balance === undefined
+													? '—'
+													: formatTokenUsdValue(address.balance, arUsdPrice, TOKEN_DENOMINATIONS.ar)}
+											</p>
 										),
 									},
 									{
@@ -407,8 +435,8 @@ export default function AddressList(props: {
 					]}
 				/>
 			) : props.source ? (
-				<S.UpdateWrapper role={isLoading ? 'status' : undefined}>
-					<p>{props.source.emptyMessage ?? `${language.loading}...`}</p>
+				<S.UpdateWrapper role={isLoading ? 'status' : props.source.error ? 'alert' : undefined}>
+					<p>{props.source.error ?? props.source.emptyMessage ?? `${language.loading}...`}</p>
 				</S.UpdateWrapper>
 			) : (
 				getMessage()
@@ -417,6 +445,11 @@ export default function AddressList(props: {
 			{!props.source && state.status === 'stale' && (
 				<S.ErrorStatus role={'status'}>
 					<p>{state.error}</p>
+				</S.ErrorStatus>
+			)}
+			{props.source?.error && visibleAddresses.length > 0 && (
+				<S.ErrorStatus role="alert">
+					<p>{props.source.error}</p>
 				</S.ErrorStatus>
 			)}
 

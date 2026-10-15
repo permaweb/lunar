@@ -1,8 +1,9 @@
+import { createRequestQueue } from 'api/http/requestQueue';
+
 import { NODE_INFO_CONCURRENCY } from 'helpers/config';
 
 import { parseCountryDatabase } from './countryDatabase';
 import { parsePeerAddress } from './peerAddress.mjs';
-import { createRequestQueue } from './requestQueue';
 import { createNodesCache } from './storage';
 import type { ArweavePeer, NodeCountry, NodeObservation, NodesApi } from './types';
 import { NodesApiError } from './types';
@@ -126,7 +127,7 @@ export function createNodesApi(
 	analyticsUrl = ANALYTICS_URL
 ): NodesApi {
 	let countryDatabase: ReturnType<typeof parseCountryDatabase> | null = null;
-	const enqueue = createRequestQueue(NODE_INFO_CONCURRENCY);
+	const enqueue = createRequestQueue(NODE_INFO_CONCURRENCY, () => new NodesApiError('cancelled'));
 	const cache = createNodesCache(PEERS_URL, analyticsUrl, parsePeers, parseObservation);
 	return {
 		getCachedInfo: (peers) => cache.getInfos(peers),
