@@ -176,7 +176,7 @@ it('presents a hero with search and network summaries, then activity and detaile
 	]);
 	const networkLinks = [...networks.querySelectorAll('a')];
 	expect(networkLinks.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-		['Visit Arweave', 'https://arweave.org'],
+		['Visit Arweave', 'https://ar.arweave.net'],
 		['Visit AO', 'https://ao.arweave.net'],
 	]);
 	for (const link of networkLinks) {
