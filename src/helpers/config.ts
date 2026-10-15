@@ -313,7 +313,7 @@ function createURLs() {
 export const URLS = createURLs();
 
 export const LINKS = {
-	arweave: `https://arweave.org`,
+	arweave: `https://ar.arweave.net`,
 	ao: `https://ao.arweave.net`,
 	permawebos: `https://ao.arweave.net/#/blog/permawebos-comes-to-the-browser`,
 };
