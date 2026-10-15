@@ -214,7 +214,7 @@ it('progressively lists indexed miners and opens coverage information', async ()
 	await click('Close');
 	await waitForPanelExit();
 	expect(document.activeElement?.getAttribute('aria-label')).toBe('Tab Information');
-	expect(container.querySelector('[role="table"] [role="columnheader"]')?.textContent).toBe('Wallet Address');
+	expect(container.querySelector('[role="table"] [role="columnheader"]')?.textContent).toBe('Address');
 	expect(container.textContent).toContain('Blocks Mined');
 	expect(getLatestAddressSnapshot).not.toHaveBeenCalled();
 	expect(container.querySelector('a[href="#/explorer/' + MINER_ADDRESS + '"]')).not.toBeNull();
@@ -506,7 +506,7 @@ it('shows per-miner rewards and expands indexed blocks beneath each miner withou
 	await render(true, 'miners');
 	const table = container.querySelector('[role="table"]');
 	expect([...table.querySelectorAll('[role="columnheader"]')].map((cell) => cell.textContent)).toEqual([
-		'Wallet Address',
+		'Address',
 		'Balance',
 		'Pending Rewards',
 		'Total Rewards',

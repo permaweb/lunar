@@ -526,6 +526,7 @@ export const language = {
 		nodesMapEmpty: 'No locations available yet.',
 		nodesMapRetry: 'Retry Locations',
 		action: `Action`,
+		address: `Address`,
 		addresses: `Addresses`,
 		addressesAtBlock: (height: string) => `Block ${height}`,
 		addressesLoading: `Loading Addresses...`,

@@ -89,10 +89,10 @@ export const BalanceColumn = styled.div`
 	width: 100%;
 	display: flex;
 	align-items: center;
-	justify-content: flex-start;
+	justify-content: flex-end;
 
 	p {
-		text-align: left;
+		text-align: right;
 	}
 `;
 

@@ -6,7 +6,7 @@ function formatScaledUsd(amount: bigint, calculationDecimals: number, decimalPla
 	const rounded = (amount + divisor / BigInt(2)) / divisor;
 	const scale = BigInt(10) ** BigInt(decimalPlaces);
 	const dollars = rounded / scale;
-	const cents = (rounded % scale).toString().padStart(decimalPlaces, '0').replace(/0+$/, '').padEnd(2, '0');
+	const cents = (rounded % scale).toString().padStart(decimalPlaces, '0');
 
 	return `$${dollars.toLocaleString()}.${cents}`;
 }
@@ -30,6 +30,5 @@ export function formatTokenUsdValue(balance: string, tokenUsdPrice: number | nul
 	if (usdAmount === BigInt(0)) return '$0.00';
 
 	const calculationDecimals = denomination + PRICE_DECIMALS;
-	const smallUsdThreshold = BigInt(10) ** BigInt(calculationDecimals - 2);
-	return formatScaledUsd(usdAmount, calculationDecimals, usdAmount < smallUsdThreshold ? 8 : 6);
+	return formatScaledUsd(usdAmount, calculationDecimals, 2);
 }

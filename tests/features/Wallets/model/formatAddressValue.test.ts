@@ -6,17 +6,24 @@ import { formatTokenUsdValue } from '../../../../src/features/Wallets/model/form
 describe('formatTokenUsdValue', () => {
 	it('formats whole and fractional balances in USD', () => {
 		expect(formatTokenUsdValue('1000000000000', 2.63, 12)).toBe('$2.63');
-		expect(formatTokenUsdValue('500000000000', 2.63, 12)).toBe('$1.315');
+		expect(formatTokenUsdValue('500000000000', 2.63, 12)).toBe('$1.32');
+		expect(formatTokenUsdValue('1000000000000', 2.5, 12)).toBe('$2.50');
 		expect(formatTokenUsdValue('1500000000000', 2.5, 12)).toBe('$3.75');
 		expect(formatTokenUsdValue('1500000', 2.5, 6)).toBe('$3.75');
 	});
 
-	it('keeps useful precision for small USD values', () => {
-		expect(formatTokenUsdValue('1000000', 2.63, 12)).toBe('$0.00000263');
+	it('rounds USD values to cents, including small values and dollar carry', () => {
+		expect(formatTokenUsdValue('1000000', 2.63, 12)).toBe('$0.00');
+		expect(formatTokenUsdValue('0', 2.63, 12)).toBe('$0.00');
+		expect(formatTokenUsdValue('4999999999', 1, 12)).toBe('$0.00');
+		expect(formatTokenUsdValue('5000000000', 1, 12)).toBe('$0.01');
+		expect(formatTokenUsdValue('1994999999999', 1, 12)).toBe('$1.99');
+		expect(formatTokenUsdValue('1995000000000', 1, 12)).toBe('$2.00');
 	});
 
 	it('preserves balances larger than Number.MAX_SAFE_INTEGER', () => {
-		expect(formatTokenUsdValue('9007199254740993000000', 1, 12)).toBe('$9,007,199,254.740993');
+		expect(formatTokenUsdValue('9007199254740993000000', 1, 12)).toBe('$9,007,199,254.74');
+		expect(formatTokenUsdValue('9007199254740993500000000000', 1, 12)).toBe('$9,007,199,254,740,993.50');
 	});
 
 	it('handles unavailable prices, invalid balances and invalid denominations', () => {

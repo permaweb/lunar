@@ -128,9 +128,9 @@ it('defaults /wallets to the existing Arweave table and loads AO only when selec
 	expect(getTokenHolders).toHaveBeenCalledOnce();
 	expect(getAoPrice).toHaveBeenCalledOnce();
 	expect(container.textContent).toContain('900,719,925.474099 AO');
-	expect(container.querySelector('[role="row"][tabindex="0"]').textContent).toContain('$1,801,439,850.948199');
+	expect(container.querySelector('[role="row"][tabindex="0"]').textContent).toContain('$1,801,439,850.95');
 	expect(Array.from(container.querySelectorAll('[role="columnheader"]')).map((header) => header.textContent)).toEqual([
-		'Wallet Address',
+		'Address',
 		'Balance',
 		'Value',
 		'Last Transaction',
@@ -255,7 +255,7 @@ it('keeps AO balances available without a USD price and retries the price on Ref
 	expect(firstRow().querySelectorAll('[role="cell"]')[2].textContent).toBe('-');
 	expect(container.querySelector('[role="alert"]')).toBeNull();
 	await clickButton('Refresh');
-	expect(firstRow().querySelectorAll('[role="cell"]')[2].textContent).toBe('$1,801,439,850.948199');
+	expect(firstRow().querySelectorAll('[role="cell"]')[2].textContent).toBe('$1,801,439,850.95');
 	expect(getAoPrice).toHaveBeenCalledTimes(2);
 });
 
@@ -271,7 +271,7 @@ it('ignores an older USD price response after refreshing', async () => {
 	expect(container.querySelector('[role="row"][tabindex="0"]').textContent).toContain('900,719,925.474099 AO');
 	await clickButton('Refresh');
 	await React.act(async () => resolvePrice(1));
-	expect(container.querySelector('[role="row"][tabindex="0"]').textContent).toContain('$1,801,439,850.948199');
+	expect(container.querySelector('[role="row"][tabindex="0"]').textContent).toContain('$1,801,439,850.95');
 });
 
 it('supports direct AO links, paginates the top list, and opens a holder in Explorer', async () => {

@@ -384,7 +384,7 @@ export default function AddressList(props: {
 					columns={[
 						{
 							key: 'address',
-							label: language.walletAddress,
+							label: language.address,
 							render: (address) => (
 								<S.AddressColumn title={address.address}>
 									<TxAddress address={address.address} tooltipPosition={'right'} />
@@ -404,6 +404,7 @@ export default function AddressList(props: {
 									{
 										key: 'balance',
 										label: language.balance,
+										align: 'end' as const,
 										render: (address: (typeof visibleAddresses)[number]) => (
 											<S.BalanceColumn title={address.balance === undefined ? undefined : `${address.balance} winston`}>
 												<p>{address.balance === undefined ? '—' : formatArBalance(address.balance)}</p>
@@ -413,6 +414,7 @@ export default function AddressList(props: {
 									{
 										key: 'value',
 										label: language.value,
+										align: 'end' as const,
 										render: (address: (typeof visibleAddresses)[number]) => (
 											<p>
 												{address.balance === undefined
