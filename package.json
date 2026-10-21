@@ -82,5 +82,8 @@
 		"vite-plugin-node-polyfills": "^0.23.0",
 		"vite-plugin-singlefile": "^2.2.0",
 		"vitest": "^3.2.4"
+	},
+	"engines": {
+		"node": "^22.23.4 || ^24.22.1 || ^26.12.1"
 	}
 }
