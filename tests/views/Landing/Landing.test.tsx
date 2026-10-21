@@ -160,7 +160,7 @@ async function enter(query: string) {
 it('presents a hero with search and network summaries, then activity and detailed statistics', () => {
 	const headings = [...container.querySelectorAll('h1,h2,h3')].map((element) => element.textContent);
 	expect(headings).toEqual(['Arweave & AO Explorer', 'Arweave', 'AO', 'Network Activity', 'Network Statistics']);
-	expect(container.querySelector('#connection-title')?.textContent).toBe('AO Connection');
+	expect(container.querySelector('[aria-labelledby="connection-title"]')).toBeNull();
 	expect(container.textContent).toContain('9,007,199,254,740,993');
 	const networks = container.querySelector('section[aria-label="Explore The Networks"]');
 	expect(networks.querySelectorAll('article')).toHaveLength(2);

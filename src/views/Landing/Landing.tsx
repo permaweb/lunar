@@ -69,7 +69,7 @@ export default function Landing(props: { onPricesScrollChange?: (hasScrolledPast
 								layout="section"
 								variant="small"
 							/>
-							{FLAGS.SHOW_HOME_AO_METRIC_CHARTS && metrics.status !== 'error' && (
+							{FLAGS.SHOW_HOME_AO_DETAILS && metrics.status !== 'error' && (
 								<>
 									<Metrics section="mainnet" gridTemplate={2} snapshot={metrics.snapshot} />
 									<Metrics section="legacynet" gridTemplate={1} snapshot={metrics.snapshot} />
@@ -83,17 +83,19 @@ export default function Landing(props: { onPricesScrollChange?: (hasScrolledPast
 							/>
 						</S.NetworkSection>
 					</S.Section>
-					<S.Section aria-labelledby="connection-title">
-						<ViewTitle
-							id="connection-title"
-							header={language.landing.connectionTitle}
-							headingLevel="h4"
-							layout="section"
-							variant="small"
-						/>
-						<NodeConnection />
-						{FLAGS.SHOW_AVAILABLE_NODES && <Nodes />}
-					</S.Section>
+					{FLAGS.SHOW_HOME_AO_DETAILS && (
+						<S.Section aria-labelledby="connection-title">
+							<ViewTitle
+								id="connection-title"
+								header={language.landing.connectionTitle}
+								headingLevel="h4"
+								layout="section"
+								variant="small"
+							/>
+							<NodeConnection />
+							{FLAGS.SHOW_AVAILABLE_NODES && <Nodes />}
+						</S.Section>
+					)}
 				</S.Wrapper>
 			</ViewWrapper>
 		</>
