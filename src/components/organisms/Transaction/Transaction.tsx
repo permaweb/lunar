@@ -596,9 +596,7 @@ const TransactionOverviewSection = (props: { compact?: boolean; bundleTransactio
 
 	function renderAddress(address: string | null | undefined) {
 		if (!address) return <p>No Recipient</p>;
-		if (checkValidAoAccount(address)) return <TxAddress address={address} />;
-
-		return <p>{address}</p>;
+		return <TxAddress address={address} />;
 	}
 
 	const statusValue = (

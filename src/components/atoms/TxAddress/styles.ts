@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import { PrimitiveButton } from '../PrimitiveButton';
+
 export const Tooltip = styled.div<{ position: string }>`
 	position: absolute;
 	z-index: 2;
@@ -72,6 +74,7 @@ export const Tooltip = styled.div<{ position: string }>`
 
 export const IconWrapper = styled.div`
 	position: relative;
+	flex-shrink: 0;
 	height: fit-content;
 	width: fit-content;
 	&:hover {
@@ -81,13 +84,20 @@ export const IconWrapper = styled.div`
 	}
 `;
 
-export const Wrapper = styled.div<{ disabled: boolean }>`
+export const Wrapper = styled.div<{ $copied: boolean }>`
 	display: flex;
+	min-width: 0;
+	max-width: 100%;
 	align-items: center;
 	gap: 6.5px;
 	pointer-events: all !important;
-	p {
-		color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
+	p,
+	button > span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: ${(props) => (props.$copied ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
 		font-size: ${(props) => props.theme.typography.size.xSmall};
 		font-family: ${(props) => props.theme.typography.family.primary};
 		font-weight: ${(props) => props.theme.typography.weight.bold};
@@ -99,24 +109,43 @@ export const Wrapper = styled.div<{ disabled: boolean }>`
 		height: 14px;
 		width: 14px;
 		margin: 5.5px 0 0 0;
-		color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
-		fill: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
+		color: ${(props) => (props.$copied ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
+		fill: ${(props) => (props.$copied ? props.theme.colors.font.alt1 : props.theme.colors.link.color)} !important;
 	}
 
-	&:hover {
-		cursor: ${(props) => (props.disabled ? 'default' : 'pointer')};
-		p {
-			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
-			text-decoration: ${(props) => (props.disabled ? 'none' : 'underline')};
+	&:hover,
+	&:focus-within {
+		cursor: ${(props) => (props.$copied ? 'default' : 'pointer')};
+		p,
+		button > span {
+			color: ${(props) => (props.$copied ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+			text-decoration: ${(props) => (props.$copied ? 'none' : 'underline')};
 			text-decoration-thickness: 1.25px;
 		}
 		svg {
-			color: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
-			fill: ${(props) => (props.disabled ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+			color: ${(props) => (props.$copied ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
+			fill: ${(props) => (props.$copied ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
 		}
 
 		${Tooltip} {
 			display: block;
 		}
+	}
+`;
+
+export const CopyControl = styled(PrimitiveButton)<{ $icon?: boolean }>`
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	max-width: 100%;
+	flex: ${(props) => (props.$icon ? '0 0 auto' : '0 1 auto')};
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	text-align: inherit;
+	&:focus-visible {
+		outline: 1px solid ${(props) => props.theme.colors.link.color};
+		outline-offset: 3px;
 	}
 `;

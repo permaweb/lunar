@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { checksumEthereumAddress, checkValidAoAccount, getAoSender } from '../../src/helpers/aoAccounts';
 import { isValidSearchInput } from '../../src/helpers/searchInput';
 import { getTokenTransfer } from '../../src/helpers/tokens';
+import { ARWEAVE_HOST, ETHEREUM_DID, ETHEREUM_KEY } from '../fixtures/identities';
 
 // secp256k1 generator: public key for private scalar 1, a standard public test vector.
 const key = btoa(
@@ -19,6 +20,19 @@ const address = '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf';
 const owner = { key: key.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), address: 'a'.repeat(43) };
 
 describe('AO accounts', () => {
+	it.each([ETHEREUM_DID, ARWEAVE_HOST, 'did:web:example.com'])(
+		'preserves the reported identity %s with or without a key',
+		(identity) => {
+			expect(getAoSender({ owner: { address: identity, key: ETHEREUM_KEY } })).toBe(identity);
+			expect(getAoSender({ owner: { address: identity } })).toBe(identity);
+			expect(
+				getAoSender({
+					owner: { address: identity, key: ETHEREUM_KEY },
+					tags: [{ name: 'From-Process', value: 'process' }],
+				})
+			).toBe('process');
+		}
+	);
 	it('uses checksum casing for the reported sender even without a public key', () => {
 		const expected = '0xEe38CE326436DaC443245F7416e4Ea25fD17C3E4';
 		expect(checksumEthereumAddress(expected.toLowerCase())).toBe(expected);

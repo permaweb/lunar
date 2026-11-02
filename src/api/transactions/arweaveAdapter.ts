@@ -1,10 +1,10 @@
 import { requestRemote } from 'api/http';
 
-import { getEthereumOwnerAddress } from 'helpers/aoAccounts';
 import { getTxEndpoint } from 'helpers/endpoints';
 import type { GQLNodeResponseType, TagType } from 'helpers/types';
 import { checkValidAddress, getTagValue } from 'helpers/utils';
 
+import { readSignatureOwner, selectTransactionSignature, type SignatureInput } from './signatureInput';
 import type { TransactionBody, TransactionData, TransactionDataErrorCode } from './types';
 
 const DECIMAL_INTEGER_PATTERN = /^\d+$/;
@@ -26,16 +26,6 @@ function base64UrlToBytes(value: string) {
 	return bytes;
 }
 
-function bytesToBase64Url(bytes: Uint8Array) {
-	let binary = '';
-
-	for (let i = 0; i < bytes.length; i++) {
-		binary += String.fromCharCode(bytes[i]);
-	}
-
-	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
 function decodeBase64UrlText(value: string) {
 	try {
 		return new TextDecoder().decode(base64UrlToBytes(value));
@@ -44,36 +34,8 @@ function decodeBase64UrlText(value: string) {
 	}
 }
 
-function getSignatureInputParam(signatureInput: string | null, paramName: string) {
-	if (!signatureInput) return null;
-
-	const escapedParamName = paramName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-	const match = signatureInput.match(new RegExp(`${escapedParamName}="([^"]*)"`));
-
-	return match?.[1] ?? null;
-}
-
-function getPublicKeyFromSignatureInput(signatureInput: string | null) {
-	if (!signatureInput) return null;
-
-	const keyIdRegex = /keyid="([^"]*)"/g;
-	let match = keyIdRegex.exec(signatureInput);
-
-	while (match) {
-		const keyId = match[1];
-
-		if (keyId.startsWith('publickey:')) {
-			return keyId.replace(/^publickey:/, '');
-		}
-
-		match = keyIdRegex.exec(signatureInput);
-	}
-
-	return null;
-}
-
-function parseOriginalTags(signatureInput: string | null) {
-	const originalTags = getSignatureInputParam(signatureInput, 'original-tags');
+function parseOriginalTags(signature: SignatureInput | null) {
+	const originalTags = signature?.params.get('original-tags');
 	if (!originalTags) return [];
 
 	return originalTags
@@ -146,37 +108,20 @@ function mergeDirectLookupTags(originalTags: TagType[], headerTags: TagType[]) {
 	);
 }
 
-function getDirectLookupTags(headers: Headers) {
-	const signatureInput = headers.get('signature-input');
-	const originalTags = parseOriginalTags(signatureInput);
-	const headerTags = getDirectLookupHeaderTags(headers, signatureInput);
+function getDirectLookupTags(headers: Headers, signature: SignatureInput | null) {
+	const originalTags = parseOriginalTags(signature);
+	const headerTags = getDirectLookupHeaderTags(headers, signature?.value ?? null);
 	const tags = mergeDirectLookupTags(originalTags, headerTags);
-	if (!signatureInput || !BUNDLE_PARAM_PATTERN.test(signatureInput)) return tags;
+	if (signature?.params.get('bundle') !== 'true') return tags;
 
 	// HyperBEAM moves the bundle tags into signature parameters when unpacking a bundle into item links.
 	const bundleTags: TagType[] = [];
 	for (const name of ['bundle-format', 'bundle-version']) {
-		const value = getSignatureInputParam(signatureInput, name);
+		const value = signature.params.get(name);
 		if (value) bundleTags.push({ name, value });
 	}
 
 	return mergeDirectLookupTags(tags, bundleTags);
-}
-
-async function getOwnerAddressFromSignatureInput(signatureInput: string | null) {
-	const publicKey = getPublicKeyFromSignatureInput(signatureInput);
-	if (!publicKey) return null;
-
-	try {
-		const ethereumAddress = getEthereumOwnerAddress(publicKey);
-		if (ethereumAddress) return ethereumAddress;
-		if (!globalThis.crypto?.subtle) return null;
-		const digest = await globalThis.crypto.subtle.digest('SHA-256', base64UrlToBytes(publicKey));
-
-		return bytesToBase64Url(new Uint8Array(digest));
-	} catch (e: any) {
-		return null;
-	}
 }
 
 function getNumberHeader(headers: Headers, name: string) {
@@ -241,12 +186,12 @@ async function buildDirectLookupResponse(txId: string, directLookup: Response): 
 	if (!directLookup.ok) return null;
 
 	const headers = directLookup.headers;
-	const tags = getDirectLookupTags(headers);
+	const signature = selectTransactionSignature(headers.get('signature-input'), txId);
+	const tags = getDirectLookupTags(headers, signature);
 	const body = getTransactionBody(headers);
 
-	const signatureInput = headers.get('signature-input');
-	const ownerAddress = await getOwnerAddressFromSignatureInput(signatureInput);
-	const recipient = headers.get('target') ?? getSignatureInputParam(signatureInput, 'field-target');
+	const owner = readSignatureOwner(signature);
+	const recipient = headers.get('target') ?? signature?.params.get('field-target');
 	const blockHeight = getNumberHeader(headers, 'block-height');
 	const blockTimestamp = getNumberHeader(headers, 'block-timestamp');
 	const slot = getNumberHeader(headers, 'slot');
@@ -261,10 +206,7 @@ async function buildDirectLookupResponse(txId: string, directLookup: Response): 
 				size: getDirectLookupDataSize(tags, headers, body) ?? undefined,
 				type: getDirectLookupDataType(tags, headers, body) ?? undefined,
 			},
-			owner: {
-				address: ownerAddress,
-				key: getPublicKeyFromSignatureInput(signatureInput) ?? undefined,
-			},
+			owner,
 			block:
 				blockHeight !== null || blockTimestamp !== null
 					? {

@@ -10,6 +10,7 @@ import {
 	LEGACY_AUTHORITIES,
 	PROCESSES,
 } from './config';
+import { isArweaveId as checkValidAddress, isEthereumAddress as checkValidEthereumAddress } from './identities';
 import {
 	DefaultGQLResponseType,
 	GQLNodeResponseType,
@@ -19,15 +20,7 @@ import {
 	TransactionType,
 } from './types';
 
-export function checkValidAddress(address: string | null) {
-	if (!address) return false;
-	return /^[a-z0-9_-]{43}$/i.test(address);
-}
-
-export function checkValidEthereumAddress(address: string | null) {
-	if (!address) return false;
-	return /^0x[a-f0-9]{40}$/i.test(address);
-}
+export { checkValidAddress, checkValidEthereumAddress };
 
 export function formatAddress(address: string | null, wrap: boolean) {
 	if (!address) return '';

@@ -611,6 +611,7 @@ export const language = {
 		copied: `Copied`,
 		copy: `Copy`,
 		copyAddress: `Copy Address`,
+		copyIdentity: 'Copy Identity',
 		copyFullUrl: `Copy Full URL`,
 		copyId: `Copy ID`,
 		copyJSON: `Copy JSON`,
