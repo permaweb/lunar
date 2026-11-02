@@ -1,11 +1,12 @@
 import { readAoBalance } from 'api/balances';
 import { getTransactions } from 'api/blocks';
 import { requestRemote } from 'api/http';
+import { readLegacyTransactionSchedule } from 'api/scheduler';
 import { lookupTransaction } from 'api/transactions';
 
 import { addTransaction, selectTransaction, touchTransaction } from 'store/transactions/reducer';
 
-import { DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
+import { DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint } from './endpoints';
 import { isArweaveId, parseAccountIdentity } from './identities';
 import { GQLNodeResponseType, MessageVariantEnum, SearchTxArgs, TagType } from './types';
@@ -112,35 +113,16 @@ async function hydrateLegacyMessageSchedule(response: GQLNodeResponseType) {
 	const recipient = response.node.recipient ?? getTagValue(tags, 'Target');
 	if (!recipient) return response;
 
-	try {
-		const schedulerResponse = await requestRemote(
-			`${DEFAULT_LEGACY_SCHEDULER_URL}/${response.node.id}?process-id=${recipient}`
-		);
-		const parsedSchedulerResponse = await schedulerResponse.json();
-		const assignmentTags = parsedSchedulerResponse?.assignment?.tags;
-
-		if (!assignmentTags?.length) return response;
-
-		const height = getNumberTag(assignmentTags, 'Block-Height');
-		const timestamp = getNumberTag(assignmentTags, 'Timestamp');
-		const slot = getNumberTag(assignmentTags, 'Nonce');
-
-		return {
-			...response,
-			node: {
-				...response.node,
-				block: {
-					...response.node.block,
-					...(height !== null ? { height } : {}),
-					...(timestamp !== null ? { timestamp: timestamp / 1000 } : {}),
-				},
-				...(slot !== null ? { slot } : {}),
-			},
-		};
-	} catch (e: any) {
-		console.error(e);
-		return response;
-	}
+	const schedule = await readLegacyTransactionSchedule({ messageId: response.node.id, processId: recipient });
+	if (!schedule) return response;
+	return {
+		...response,
+		node: {
+			...response.node,
+			block: { ...response.node.block, ...schedule.block },
+			...(schedule.slot !== undefined ? { slot: schedule.slot } : {}),
+		},
+	};
 }
 
 function getMainnetScheduleEdgeMessageId(edge: any) {
