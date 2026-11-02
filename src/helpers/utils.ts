@@ -1,15 +1,16 @@
 import { requestRemote } from 'api/http';
+import { readLegacyTransactionSchedule } from 'api/scheduler';
 
 import {
 	ASSETS,
 	DEFAULT_ACTIONS,
 	DEFAULT_AO_NODE,
 	DEFAULT_LEGACY_AUTHORITY,
-	DEFAULT_LEGACY_SCHEDULER_URL,
 	DEFAULT_SCHEDULER_URL,
 	LEGACY_AUTHORITIES,
 	PROCESSES,
 } from './config';
+import { isArweaveId as checkValidAddress, isEthereumAddress as checkValidEthereumAddress } from './identities';
 import {
 	DefaultGQLResponseType,
 	GQLNodeResponseType,
@@ -19,15 +20,7 @@ import {
 	TransactionType,
 } from './types';
 
-export function checkValidAddress(address: string | null) {
-	if (!address) return false;
-	return /^[a-z0-9_-]{43}$/i.test(address);
-}
-
-export function checkValidEthereumAddress(address: string | null) {
-	if (!address) return false;
-	return /^0x[a-f0-9]{40}$/i.test(address);
-}
+export { checkValidAddress, checkValidEthereumAddress };
 
 export function formatAddress(address: string | null, wrap: boolean) {
 	if (!address) return '';
@@ -796,25 +789,14 @@ async function resolveMessageSchedule(edge: GQLNodeResponseType) {
 		getTagValue(edge.node.tags, 'Type') === 'Message' &&
 		!getTagValue(edge.node.tags, 'Pushed-For') /* Skip any pushed messages */
 	) {
-		try {
-			const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
-			const response = await requestRemote(`${DEFAULT_LEGACY_SCHEDULER_URL}/${edge.node.id}?process-id=${recipient}`);
-			const parsed = await response.json();
-
-			return {
-				block: {
-					height: getTagValue(parsed.assignment.tags, 'Block-Height')?.replace(/^0+/, ''),
-					timestamp: parseInt(getTagValue(parsed.assignment.tags, 'Timestamp')) / 1000,
-				},
-				slot: parseInt(getTagValue(parsed.assignment.tags, 'Nonce')),
-			};
-		} catch (e) {
-			console.error(e);
-			return { block: edge.node.block };
+		const recipient = edge.node.recipient ?? getTagValue(edge.node.tags, 'Target');
+		if (recipient) {
+			const schedule = await readLegacyTransactionSchedule({ messageId: edge.node.id, processId: recipient });
+			if (schedule) return { block: { ...edge.node.block, ...schedule.block }, slot: schedule.slot ?? edge.node.slot };
 		}
 	}
 
-	return { block: edge.node.block };
+	return { block: edge.node.block, slot: edge.node.slot };
 }
 
 export async function normalizeGqlResponse(response: DefaultGQLResponseType) {

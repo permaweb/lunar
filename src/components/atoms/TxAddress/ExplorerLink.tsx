@@ -4,7 +4,8 @@ import { ReactSVG } from 'react-svg';
 
 import { getArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
-import { checkValidAddress, checkValidEthereumAddress, formatAddress, formatCount, getTagValue } from 'helpers/utils';
+import { parseAccountIdentity } from 'helpers/identities';
+import { checkValidAddress, checkValidEthereumAddress, formatCount, getTagValue } from 'helpers/utils';
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { store } from 'store';
@@ -22,8 +23,11 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 	const [copied, setCopied] = React.useState<boolean>(false);
 	const [isModifierKeyPressed, setIsModifierKeyPressed] = React.useState<boolean>(false);
+	const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const value = props.value !== null && props.value !== undefined ? props.value.toString() : '';
+	const identity = parseAccountIdentity(value);
+	const isExtendedAddress = props.type === 'address' && !checkValidAddress(value) && !checkValidEthereumAddress(value);
 	const cached =
 		props.label === undefined && props.type !== 'block' && props.type !== 'arweave-node'
 			? selectTransaction(store.getState(), value)
@@ -45,16 +49,27 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 		: language.inspect;
 
 	const copyValue = React.useCallback(
-		async (e: React.MouseEvent) => {
-			if (value.length > 0) {
-				e.stopPropagation();
-				await navigator.clipboard.writeText(value);
+		async (e: React.MouseEvent, target = value) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (!target) return;
+			try {
+				await navigator.clipboard.writeText(target);
 				setCopied(true);
-				setTimeout(() => setCopied(false), 2000);
+				if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+				copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+			} catch {
+				console.error('Unable to copy explorer value');
 			}
 		},
 		[value]
 	);
+
+	React.useEffect(() => {
+		return () => {
+			if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+		};
+	}, []);
 
 	React.useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -119,19 +134,60 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 		if (truncatedName) return truncatedName;
 
-		if (checkValidAddress(value) || checkValidEthereumAddress(value)) return formatAddress(value, props.wrap);
+		if (identity) {
+			const address = identity.address;
+			const label = `${address.slice(0, 5)}...${address.slice(-5)}`;
+			return props.wrap ? `(${label})` : label;
+		}
 
 		return value;
 	}
 
 	if (!value) return <p>-</p>;
+	if (isExtendedAddress) {
+		return (
+			<S.Wrapper as="span" $copied={copied} title={value}>
+				{identity ? (
+					<S.AccountLink
+						href={`#${route}`}
+						title={value}
+						onClick={handleClick}
+						onMouseEnter={handleMouseModifierState}
+						onMouseMove={handleMouseModifierState}
+					>
+						<span aria-live="polite">{copied ? `${language.copied}!` : getLabel()}</span>
+					</S.AccountLink>
+				) : (
+					<S.CopyControl
+						type="button"
+						title={`${language.copyIdentity}: ${value}`}
+						aria-label={`${language.copyIdentity}: ${value}`}
+						onClick={copyValue}
+					>
+						<span aria-live="polite">{copied ? `${language.copied}!` : getLabel()}</span>
+					</S.CopyControl>
+				)}
+				{props.showIcon !== false && (
+					<S.CopyControl
+						type="button"
+						title={`${language.copyIdentity}: ${value}`}
+						aria-label={`${language.copyIdentity}: ${value}`}
+						onClick={copyValue}
+						$icon
+					>
+						<ReactSVG src={ASSETS.copy} aria-hidden="true" />
+					</S.CopyControl>
+				)}
+			</S.Wrapper>
+		);
+	}
 
 	return (
 		<S.Wrapper
 			as={'a'}
 			href={`#${route}`}
 			title={value}
-			disabled={copied}
+			$copied={copied}
 			onClick={handleClick}
 			onMouseEnter={handleMouseModifierState}
 			onMouseMove={handleMouseModifierState}

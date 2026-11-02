@@ -16,6 +16,14 @@ import type { GQLNodeResponseType } from '../../../src/helpers/types';
 import { PinnedTabsProvider, usePinnedTabsProvider } from '../../../src/providers/PinnedTabsProvider';
 import { SettingsProvider } from '../../../src/providers/SettingsProvider';
 import { NODE_URL } from '../../fixtures/arweaveNode';
+import {
+	ARWEAVE_ADDRESS,
+	ARWEAVE_HOST,
+	ETHEREUM_ADDRESS,
+	ETHEREUM_DID,
+	SOLANA_ADDRESS,
+	SOLANA_DID,
+} from '../../fixtures/identities';
 
 vi.mock('providers/NotificationProvider', () => ({
 	NotificationViewport: () => null,
@@ -156,6 +164,27 @@ async function openPins() {
 	await React.act(async () => button.click());
 	return container.querySelector('[role="dialog"]');
 }
+
+it.each([
+	[ETHEREUM_DID, ETHEREUM_ADDRESS],
+	[ARWEAVE_HOST, ARWEAVE_ADDRESS],
+	[SOLANA_DID, SOLANA_ADDRESS],
+])('restores account %s with its full identity and a compact tab label', async (identifier, address) => {
+	const route = `/explorer/${identifier}/info`;
+	await render(route);
+	await React.act(async () =>
+		resolveTransaction({ node: { id: identifier, tags: [{ name: 'Type', value: 'Wallet' }] } } as GQLNodeResponseType)
+	);
+	expect(container.querySelector('[data-tab-index="0"] span[title]').textContent).toBe(
+		`${address.slice(0, 5)}...${address.slice(-5)}`
+	);
+	expect(tabs()).toMatchObject([{ id: identifier, type: 'wallet', lastRoute: route }]);
+	await React.act(async () => root.unmount());
+	root = createRoot(container);
+	await render('/explorer/');
+	expect(currentRoute).toBe(route);
+	expect(container.querySelector('[data-transaction]').getAttribute('data-transaction')).toBe(identifier);
+});
 
 it.each(['before', 'after'])('uses the custom primary name when renamed %s pinning', async (timing) => {
 	await render(getArweaveNodeRoute(NODE_URL, 'miners'));

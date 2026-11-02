@@ -8,6 +8,14 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ExplorerLink } from '../../../../src/components/atoms/TxAddress';
 import type { InAppTabsSettings, TabPageType } from '../../../../src/helpers/tabMode';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
+import {
+	ARWEAVE_ADDRESS,
+	ARWEAVE_HOST,
+	ETHEREUM_ADDRESS,
+	ETHEREUM_DID,
+	SOLANA_ADDRESS,
+	SOLANA_DID,
+} from '../../../fixtures/identities';
 
 vi.mock('providers/SettingsProvider', () => ({ useSettingsProvider: () => ({ settings: { inAppTabs: modes } }) }));
 vi.mock('store', () => ({ store: { getState: () => ({}) } }));
@@ -23,12 +31,14 @@ let modes: InAppTabsSettings;
 let currentPath: string;
 let container: HTMLElement;
 let root: ReturnType<typeof createRoot>;
+let value: string;
+let type: 'address' | undefined;
 
 function Harness() {
 	currentPath = useLocation().pathname;
 	return (
 		<div onClick={onRowClick}>
-			<ExplorerLink value={id} onPress={onPress} />
+			<ExplorerLink value={value} type={type} onPress={onPress} />
 		</div>
 	);
 }
@@ -36,6 +46,8 @@ function Harness() {
 beforeEach(() => {
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	vi.clearAllMocks();
+	value = id;
+	type = undefined;
 	modes = { explorer: false, aos: false, graphql: false };
 	Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
 	container = document.createElement('div');
@@ -84,6 +96,73 @@ it.each(['explorer', 'aos', 'graphql'] as TabPageType[])(
 		expect(currentPath).toBe(path);
 	}
 );
+
+it.each([
+	[ETHEREUM_DID, ETHEREUM_ADDRESS],
+	[ARWEAVE_HOST, ARWEAVE_ADDRESS],
+	[`did:ar:${ARWEAVE_ADDRESS}`, ARWEAVE_ADDRESS],
+	[SOLANA_DID, SOLANA_ADDRESS],
+])('opens %s with its exact identity while displaying its address', async (identifier, address) => {
+	vi.useFakeTimers();
+	value = identifier;
+	type = 'address';
+	await render('/explorer/');
+	const link = container.querySelector('a');
+	expect(link.getAttribute('href')).toBe(`#/explorer/${identifier}`);
+	expect(container.querySelector('[aria-live]').textContent).toBe(`${address.slice(0, 5)}...${address.slice(-5)}`);
+	await React.act(async () => link.click());
+	expect(currentPath).toBe(`/explorer/${identifier}`);
+	expect(onPress).toHaveBeenCalledOnce();
+	expect(writeText).not.toHaveBeenCalled();
+	const copyButton = container.querySelector('button');
+	expect(copyButton.getAttribute('aria-label')).toBe(`Copy Identity: ${identifier}`);
+	await React.act(async () => copyButton.click());
+	expect(writeText).toHaveBeenLastCalledWith(identifier);
+	expect(onRowClick).not.toHaveBeenCalled();
+	expect(currentPath).toBe(`/explorer/${identifier}`);
+	vi.clearAllTimers();
+});
+
+it.each([false, true])('preserves DID link shortcuts with in-app tabs %s', async (enabled) => {
+	vi.useFakeTimers();
+	modes.explorer = enabled;
+	value = ETHEREUM_DID;
+	type = 'address';
+	await render('/explorer/');
+	const event = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+	await React.act(async () => container.querySelector('a').dispatchEvent(event));
+	expect(event.defaultPrevented).toBe(enabled);
+	if (enabled) expect(writeText).toHaveBeenCalledWith(ETHEREUM_DID);
+	else expect(writeText).not.toHaveBeenCalled();
+	expect(onPress).not.toHaveBeenCalled();
+	expect(onRowClick).not.toHaveBeenCalled();
+	expect(currentPath).toBe('/explorer/');
+	vi.clearAllTimers();
+});
+
+it('copies the full DID when its account page is already open', async () => {
+	vi.useFakeTimers();
+	value = ETHEREUM_DID;
+	type = 'address';
+	await render(`/explorer/${value}/info`);
+	await React.act(async () => container.querySelector('a').click());
+	expect(writeText).toHaveBeenCalledWith(ETHEREUM_DID);
+	expect(onPress).not.toHaveBeenCalled();
+	expect(currentPath).toBe(`/explorer/${value}/info`);
+	vi.clearAllTimers();
+});
+
+it('keeps an unknown DID inspectable without inventing an address or navigation target', async () => {
+	vi.useFakeTimers();
+	value = 'did:web:example.com';
+	type = 'address';
+	await render('/explorer/');
+	expect(container.querySelector('[aria-live]').textContent).toBe(value);
+	expect(container.querySelector('button').getAttribute('aria-label')).toBe(`Copy Identity: ${value}`);
+	await React.act(async () => container.querySelector('button').click());
+	expect(writeText).toHaveBeenCalledWith(value);
+	vi.clearAllTimers();
+});
 
 it.each([{ metaKey: true }, { ctrlKey: true }])(
 	'keeps copy shortcuts when in-app tabs are enabled: %j',

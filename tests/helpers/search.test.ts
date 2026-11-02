@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readAoBalance } from '../../src/api/balances';
 import { getTransactions } from '../../src/api/blocks';
 import { searchTxById } from '../../src/helpers/search';
+import { isValidSearchInput } from '../../src/helpers/searchInput';
+import { normalizeGqlResponse } from '../../src/helpers/utils';
+import { ARWEAVE_ADDRESS, ARWEAVE_HOST, ETHEREUM_DID, SOLANA_DID } from '../fixtures/identities';
 
 vi.mock('api/balances', () => ({ readAoBalance: vi.fn() }));
 vi.mock('api/blocks', () => ({ getTransactions: vi.fn() }));
@@ -28,9 +31,60 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	vi.useRealTimers();
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	vi.clearAllMocks();
+});
+
+it('opens signed DID message metadata when the legacy scheduler never responds', async () => {
+	vi.useFakeTimers();
+	const target = 'p'.repeat(43);
+	vi.stubGlobal(
+		'fetch',
+		vi.fn((input: string, init?: RequestInit) => {
+			if (input.includes('su-router.ao-testnet.xyz'))
+				return new Promise((_resolve, reject) => {
+					init.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+				});
+			return Promise.resolve(
+				new Response(null, {
+					headers: {
+						'signature-input': `sig=("type" "variant" "target");alg="ans104@1.0/ethereum";committer="${ETHEREUM_DID}"`,
+						type: 'Message',
+						variant: 'ao.TN.1',
+						target,
+					},
+				})
+			);
+		})
+	);
+	const getGQLData = vi.fn();
+	const pending = searchTxById({ txId, getGQLData });
+	await vi.advanceTimersByTimeAsync(4_000);
+	const response = await pending;
+	expect(response.node.owner.address).toBe(ETHEREUM_DID);
+	expect(response.node.recipient).toBe(target);
+	expect(response.node.tags).toContainEqual({ name: 'type', value: 'Message' });
+	expect(getGQLData).not.toHaveBeenCalled();
+});
+
+it('preserves known block and slot metadata when the scheduler is unavailable', async () => {
+	vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 400 })));
+	const edge = {
+		...transaction,
+		node: {
+			...transaction.node,
+			recipient: 'p'.repeat(43),
+			slot: 5,
+			tags: [
+				{ name: 'Type', value: 'Message' },
+				{ name: 'Variant', value: 'ao.TN.1' },
+			],
+		},
+	};
+	const response = await normalizeGqlResponse({ data: [edge], count: 1, nextCursor: null, previousCursor: null });
+	expect(response.data[0].node).toMatchObject({ block: transaction.node.block, slot: 5 });
 });
 
 describe('transaction GraphQL lookup', () => {
@@ -142,3 +196,22 @@ it('opens an Ethereum AO account without transaction or AR balance probes', asyn
 	expect(getGQLData).not.toHaveBeenCalled();
 	expect(fetch).not.toHaveBeenCalled();
 });
+
+it.each([ETHEREUM_DID, ARWEAVE_HOST, `did:ar:${ARWEAVE_ADDRESS}`, SOLANA_DID])(
+	'opens the exact account identity %s without transaction or balance probes',
+	async (identifier) => {
+		const getGQLData = vi.fn();
+		expect(isValidSearchInput(` ${identifier} `)).toBe(true);
+		const response = await searchTxById({ txId: identifier, getGQLData });
+		expect(response.node.id).toBe(identifier);
+		expect(response.node.tags).toEqual([{ name: 'Type', value: 'Wallet' }]);
+		expect(getGQLData).not.toHaveBeenCalled();
+		expect(fetch).not.toHaveBeenCalled();
+		expect(readAoBalance).not.toHaveBeenCalled();
+	}
+);
+
+it.each(['did:web:example.com', ETHEREUM_DID.toLowerCase(), `${SOLANA_DID}/info`])(
+	'rejects unsupported or malformed account input %s',
+	(identifier) => expect(isValidSearchInput(identifier)).toBe(false)
+);

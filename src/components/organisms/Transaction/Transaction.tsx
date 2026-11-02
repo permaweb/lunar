@@ -39,6 +39,7 @@ import { checkValidAoAccount, getAoSender } from 'helpers/aoAccounts';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, STYLING, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
+import { parseAccountIdentity } from 'helpers/identities';
 import type { PinTarget } from 'helpers/pinnedTabs';
 import { getAoProcessSummary } from 'helpers/processes';
 import { searchTxById } from 'helpers/search';
@@ -209,7 +210,7 @@ function WalletTransactions(props: { onMessageOpen: (id: string) => void }) {
 	const { txResponse, inputTxId, refreshKey } = React.useContext(TxResponseContext);
 	const provider = useLanguageProvider();
 	const language = provider.object[provider.current];
-	if (!checkValidAoAccount(inputTxId)) return null;
+	if (!parseAccountIdentity(inputTxId)) return null;
 	return (
 		<MessageList
 			key={refreshKey}
@@ -596,9 +597,7 @@ const TransactionOverviewSection = (props: { compact?: boolean; bundleTransactio
 
 	function renderAddress(address: string | null | undefined) {
 		if (!address) return <p>No Recipient</p>;
-		if (checkValidAoAccount(address)) return <TxAddress address={address} />;
-
-		return <p>{address}</p>;
+		return <TxAddress address={address} />;
 	}
 
 	const statusValue = (
@@ -1217,7 +1216,7 @@ function Transaction(props: {
 			case 'bundle':
 				return checkValidAddress(value);
 			default:
-				return checkValidAoAccount(value);
+				return parseAccountIdentity(value) !== null;
 		}
 	}
 
@@ -1758,6 +1757,8 @@ function Transaction(props: {
 
 	const balanceSections = React.useMemo(() => {
 		if (resolvedType !== 'wallet' && resolvedType !== 'process') return null;
+		// DID history uses the index identity; legacy token balances need a separately supported account key.
+		if (resolvedType === 'wallet' && !checkValidAoAccount(inputTxId)) return null;
 		// AO balances use a legacy token dry-run. Do not issue one while opening a mainnet process.
 		if (resolvedType === 'process' && getAoVariantFromTags(txResponse?.node?.tags) !== MessageVariantEnum.Legacynet)
 			return null;

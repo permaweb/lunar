@@ -11,6 +11,7 @@ import type { MessageListEntry } from '../../../../src/components/molecules/Mess
 import { FLAGS, STORAGE } from '../../../../src/helpers/config';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
+import { ARWEAVE_HOST, ETHEREUM_DID, SOLANA_DID } from '../../../fixtures/identities';
 
 const mocks = vi.hoisted(() => ({
 	remote: vi.fn(),
@@ -125,13 +126,13 @@ function row() {
 	return container.querySelector<HTMLElement>('.message-list-element');
 }
 
-async function renderDirectional(type: 'process' | 'wallet' = 'process') {
+async function renderDirectional(type: 'process' | 'wallet' = 'process', txId = PROCESS_ID) {
 	await React.act(async () =>
 		root.render(
 			<MemoryRouter>
 				<ThemeProvider theme={theme(darkTheme)}>
 					<MessageList
-						txId={PROCESS_ID}
+						txId={txId}
 						type={type}
 						variant={MessageVariantEnum.Mainnet}
 						currentFilter="outgoing"
@@ -142,6 +143,31 @@ async function renderDirectional(type: 'process' | 'wallet' = 'process') {
 		)
 	);
 }
+
+it.each([ETHEREUM_DID, ARWEAVE_HOST, SOLANA_DID])(
+	'preserves %s in outgoing, paginated, and incoming account history queries',
+	async (identifier) => {
+		mocks.transactions.mockResolvedValueOnce({
+			transactions: {
+				edges: Array.from({ length: 25 }, (_, index) => ({
+					...entry,
+					cursor: `cursor-${index}`,
+					node: { ...entry.node, id: index.toString().padStart(43, 'm') },
+				})),
+				pageInfo: { hasNextPage: true },
+			},
+		});
+		await renderDirectional('wallet', identifier);
+		expect(mocks.transactions).toHaveBeenLastCalledWith(expect.objectContaining({ owners: [identifier] }));
+		Element.prototype.scrollIntoView = vi.fn();
+		await React.act(async () => button('Next').click());
+		expect(mocks.transactions).toHaveBeenLastCalledWith(
+			expect.objectContaining({ owners: [identifier], after: 'cursor-24' })
+		);
+		await React.act(async () => button('Incoming').click());
+		expect(mocks.transactions).toHaveBeenLastCalledWith(expect.objectContaining({ recipients: [identifier] }));
+	}
+);
 
 it.each(['process', 'wallet'] as const)(
 	'skips count queries and labels while preserving cursor pagination for %s messages by default',
