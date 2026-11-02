@@ -186,6 +186,31 @@ it.each([
 	expect(container.querySelector('[data-transaction]').getAttribute('data-transaction')).toBe(identifier);
 });
 
+it.each([ETHEREUM_DID, ARWEAVE_HOST, SOLANA_DID])(
+	'reopens a renamed DID account pin after the workspace is cleared: %s',
+	async (identifier) => {
+		const route = `/explorer/${identifier}/info?messageDirection=incoming&messageFrom=${encodeURIComponent(
+			ETHEREUM_DID
+		)}`;
+		await render(route);
+		await React.act(async () =>
+			resolveTransaction({ node: { id: identifier, tags: [{ name: 'Type', value: 'Wallet' }] } } as GQLNodeResponseType)
+		);
+		await renameTab('Saved DID account');
+		await React.act(async () => togglePin(pinTarget));
+		expect(pins()).toMatchObject([{ id: identifier, label: 'Saved DID account', labelEdited: true, route }]);
+		await React.act(async () => root.unmount());
+		localStorage.removeItem('explorer-transactions');
+		root = createRoot(container);
+		await render('/explorer/');
+		const panel = await openPins();
+		await React.act(async () => panel.querySelector<HTMLButtonElement>(`button[title="${identifier}"]`).click());
+		expect(currentRoute).toBe(route);
+		expect(container.querySelector('[data-tab-index="0"] span[title]').textContent).toBe('Saved DID account');
+		expect(container.querySelector('[data-transaction]').getAttribute('data-transaction')).toBe(identifier);
+	}
+);
+
 it.each(['before', 'after'])('uses the custom primary name when renamed %s pinning', async (timing) => {
 	await render(getArweaveNodeRoute(NODE_URL, 'miners'));
 	if (timing === 'before') await renameTab('Test');

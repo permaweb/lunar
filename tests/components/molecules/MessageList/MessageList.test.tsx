@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import axe from 'axe-core';
 import { ThemeProvider } from 'styled-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -11,7 +11,14 @@ import type { MessageListEntry } from '../../../../src/components/molecules/Mess
 import { FLAGS, STORAGE } from '../../../../src/helpers/config';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
-import { ARWEAVE_HOST, ETHEREUM_DID, SOLANA_DID } from '../../../fixtures/identities';
+import {
+	ARWEAVE_ADDRESS,
+	ARWEAVE_HOST,
+	ETHEREUM_ADDRESS,
+	ETHEREUM_DID,
+	SOLANA_ADDRESS,
+	SOLANA_DID,
+} from '../../../fixtures/identities';
 
 const mocks = vi.hoisted(() => ({
 	remote: vi.fn(),
@@ -63,12 +70,15 @@ const output = {
 let container: HTMLElement;
 let overlay: HTMLElement;
 let root: ReturnType<typeof createRoot>;
+let currentRoute: string;
 const originalMessageCountsFlag = FLAGS.ENABLE_MESSAGE_COUNTS;
 
 beforeEach(() => {
+	currentRoute = '';
 	vi.resetAllMocks();
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	vi.stubGlobal('matchMedia', () => ({ matches: true }));
+	Element.prototype.scrollIntoView = vi.fn();
 	localStorage.clear();
 	mocks.gql.mockResolvedValue({ data: [] });
 	mocks.transactions.mockResolvedValue({
@@ -125,6 +135,107 @@ function button(label: string, parent: ParentNode = container) {
 function row() {
 	return container.querySelector<HTMLElement>('.message-list-element');
 }
+
+function LocationProbe() {
+	const location = useLocation();
+	currentRoute = location.pathname + location.search;
+	return null;
+}
+
+async function renderAccountFilters(path = `/explorer/${PROCESS_ID}`) {
+	await React.act(async () =>
+		root.render(
+			<MemoryRouter initialEntries={[path]}>
+				<ThemeProvider theme={theme(darkTheme)}>
+					<LocationProbe />
+					<MessageList type="wallet" txId={PROCESS_ID} variant={MessageVariantEnum.Mainnet} />
+				</ThemeProvider>
+			</MemoryRouter>
+		)
+	);
+}
+
+async function enterFilter(label: string, value: string) {
+	const input = overlay.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`);
+	expect(input).not.toBeNull();
+	await React.act(async () => {
+		Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	});
+}
+
+it.each([
+	{ identifier: ETHEREUM_DID, address: ETHEREUM_ADDRESS, counts: false },
+	{ identifier: ETHEREUM_DID, address: ETHEREUM_ADDRESS, counts: true },
+	{ identifier: ARWEAVE_HOST, address: ARWEAVE_ADDRESS, counts: false },
+	{ identifier: `did:ar:${ARWEAVE_ADDRESS}`, address: ARWEAVE_ADDRESS, counts: false },
+	{ identifier: SOLANA_DID, address: SOLANA_ADDRESS, counts: false },
+	{ identifier: ETHEREUM_ADDRESS, address: ETHEREUM_ADDRESS, counts: false },
+])(
+	'applies and restores full account filters for $identifier with counts $counts',
+	async ({ identifier, address, counts }) => {
+		FLAGS.ENABLE_MESSAGE_COUNTS = counts;
+		mocks.gql.mockResolvedValue({ data: [entry], count: 1, nextCursor: null });
+		const requests = counts ? mocks.gql : mocks.transactions;
+		const short = `${address.slice(0, 5)}...${address.slice(-5)}`;
+		await renderAccountFilters();
+		await React.act(async () => button('Filter').click());
+		await enterFilter('Recipient', identifier);
+		await React.act(async () => button('Apply Filters', overlay).click());
+		expect(requests).toHaveBeenCalledWith(expect.objectContaining({ owners: [PROCESS_ID], recipients: [identifier] }));
+		expect(button(`To (${short})`)).toBeDefined();
+		expect(new URL(currentRoute, 'https://lunar.test').searchParams.get('messageRecipient')).toBe(identifier);
+		expect(JSON.parse(localStorage.getItem(STORAGE.messageFilter(PROCESS_ID))).recipient).toBe(identifier);
+		await React.act(async () =>
+			[...container.querySelectorAll('button')].find((element) => element.textContent.startsWith('Incoming')).click()
+		);
+		await React.act(async () => button('Filter').click());
+		await enterFilter('From', identifier);
+		await React.act(async () => button('Apply Filters', overlay).click());
+		expect(requests).toHaveBeenCalledWith(expect.objectContaining({ owners: [identifier], recipients: [PROCESS_ID] }));
+		expect(button(`From (${short})`)).toBeDefined();
+		expect(new URL(currentRoute, 'https://lunar.test').searchParams.get('messageFrom')).toBe(identifier);
+		expect(
+			requests.mock.calls.some(([args]) =>
+				args.tags?.some((tag) => tag.name.toLowerCase() === 'from-process' && tag.values.includes(identifier))
+			)
+		).toBe(false);
+		const savedRoute = currentRoute;
+		await React.act(async () => root.unmount());
+		root = createRoot(container);
+		requests.mockClear();
+		await renderAccountFilters(savedRoute);
+		expect(requests).toHaveBeenCalledWith(expect.objectContaining({ owners: [identifier], recipients: [PROCESS_ID] }));
+		expect(button(`From (${short})`)).toBeDefined();
+		await React.act(async () => button(`From (${short})`).click());
+		expect(new URL(currentRoute, 'https://lunar.test').searchParams.has('messageFrom')).toBe(false);
+	}
+);
+
+it('preserves a DID From filter restored from local storage when paging', async () => {
+	localStorage.setItem(
+		STORAGE.messageFilter(PROCESS_ID),
+		JSON.stringify({ filter: 'incoming', fromAddress: ETHEREUM_DID, perPage: '1' })
+	);
+	mocks.transactions.mockResolvedValue({
+		transactions: { edges: [{ ...entry, cursor: 'next' }], pageInfo: { hasNextPage: true } },
+	});
+	await renderAccountFilters();
+	await React.act(async () => button('Next').click());
+	expect(mocks.transactions).toHaveBeenLastCalledWith(
+		expect.objectContaining({ owners: [ETHEREUM_DID], recipients: [PROCESS_ID], after: 'next' })
+	);
+	expect(new URL(currentRoute, 'https://lunar.test').searchParams.get('messageFrom')).toBe(ETHEREUM_DID);
+});
+
+it('does not turn an unsupported DID filter into an owner query', async () => {
+	const identifier = 'did:web:example.com';
+	await renderAccountFilters(
+		`/explorer/${PROCESS_ID}?messageDirection=incoming&messageFrom=${encodeURIComponent(identifier)}`
+	);
+	expect(mocks.transactions.mock.calls.some(([args]) => args.owners?.includes(identifier))).toBe(false);
+	expect(container.textContent).not.toContain(`From (${identifier})`);
+});
 
 async function renderDirectional(type: 'process' | 'wallet' = 'process', txId = PROCESS_ID) {
 	await React.act(async () =>
