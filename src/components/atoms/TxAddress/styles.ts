@@ -92,6 +92,7 @@ export const Wrapper = styled.div<{ $copied: boolean }>`
 	gap: 6.5px;
 	pointer-events: all !important;
 	p,
+	a > span,
 	button > span {
 		min-width: 0;
 		overflow: hidden;
@@ -117,6 +118,7 @@ export const Wrapper = styled.div<{ $copied: boolean }>`
 	&:focus-within {
 		cursor: ${(props) => (props.$copied ? 'default' : 'pointer')};
 		p,
+		a > span,
 		button > span {
 			color: ${(props) => (props.$copied ? props.theme.colors.font.alt1 : props.theme.colors.link.active)} !important;
 			text-decoration: ${(props) => (props.$copied ? 'none' : 'underline')};
@@ -130,6 +132,16 @@ export const Wrapper = styled.div<{ $copied: boolean }>`
 		${Tooltip} {
 			display: block;
 		}
+	}
+`;
+
+export const AccountLink = styled.a`
+	display: flex;
+	min-width: 0;
+	max-width: 100%;
+	&:focus-visible {
+		outline: 1px solid ${(props) => props.theme.colors.link.color};
+		outline-offset: 3px;
 	}
 `;
 

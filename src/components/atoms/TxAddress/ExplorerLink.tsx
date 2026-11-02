@@ -27,7 +27,7 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 
 	const value = props.value !== null && props.value !== undefined ? props.value.toString() : '';
 	const identity = parseAccountIdentity(value);
-	const isCopyOnly = props.type === 'address' && !checkValidAddress(value) && !checkValidEthereumAddress(value);
+	const isExtendedAddress = props.type === 'address' && !checkValidAddress(value) && !checkValidEthereumAddress(value);
 	const cached =
 		props.label === undefined && props.type !== 'block' && props.type !== 'arweave-node'
 			? selectTransaction(store.getState(), value)
@@ -144,19 +144,29 @@ export default function ExplorerLink(props: ExplorerLinkProps) {
 	}
 
 	if (!value) return <p>-</p>;
-	if (isCopyOnly) {
-		const address = identity?.address ?? value;
-		const copyLabel = identity ? language.copyAddress : language.copyIdentity;
+	if (isExtendedAddress) {
 		return (
 			<S.Wrapper as="span" $copied={copied} title={value}>
-				<S.CopyControl
-					type="button"
-					title={`${copyLabel}: ${address}`}
-					aria-label={`${copyLabel}: ${address}`}
-					onClick={(event) => copyValue(event, address)}
-				>
-					<span aria-live="polite">{copied ? `${language.copied}!` : getLabel()}</span>
-				</S.CopyControl>
+				{identity ? (
+					<S.AccountLink
+						href={`#${route}`}
+						title={value}
+						onClick={handleClick}
+						onMouseEnter={handleMouseModifierState}
+						onMouseMove={handleMouseModifierState}
+					>
+						<span aria-live="polite">{copied ? `${language.copied}!` : getLabel()}</span>
+					</S.AccountLink>
+				) : (
+					<S.CopyControl
+						type="button"
+						title={`${language.copyIdentity}: ${value}`}
+						aria-label={`${language.copyIdentity}: ${value}`}
+						onClick={copyValue}
+					>
+						<span aria-live="polite">{copied ? `${language.copied}!` : getLabel()}</span>
+					</S.CopyControl>
+				)}
 				{props.showIcon !== false && (
 					<S.CopyControl
 						type="button"

@@ -11,6 +11,7 @@ import { Transaction } from '../../../../src/components/organisms/Transaction';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import type { GQLNodeResponseType, TagType, TransactionType } from '../../../../src/helpers/types';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
+import { ARWEAVE_ADDRESS, ARWEAVE_HOST, ETHEREUM_DID, SOLANA_DID } from '../../../fixtures/identities';
 import {
 	BUNDLE_HEADERS,
 	BUNDLE_ID,
@@ -60,7 +61,11 @@ vi.mock('components/molecules/Editor', () => ({
 	Editor: (props: { initialData: string }) => <pre data-testid={'editor'}>{props.initialData}</pre>,
 }));
 vi.mock('components/molecules/MessageList', () => ({
-	MessageList: (props: { header: string }) => <div data-testid="message-list">{props.header}</div>,
+	MessageList: (props: { header: string; txId: string; type: string }) => (
+		<div data-testid="message-list" data-identity={props.txId} data-type={props.type}>
+			{props.header}
+		</div>
+	),
 }));
 vi.mock('components/molecules/MessageResult', () => ({
 	MessageResult: () => <div data-testid="message-result" />,
@@ -147,6 +152,25 @@ it('retains the GQL control when a transaction is not found', async () => {
 	await render('transaction');
 	expect(container.querySelector('[data-testid="graphql-chip"]')?.textContent).toBe(processId);
 });
+
+it.each([ETHEREUM_DID, ARWEAVE_HOST, `did:ar:${ARWEAVE_ADDRESS}`, SOLANA_DID])(
+	'opens DID account history for %s without probing legacy balances',
+	async (identifier) => {
+		mocks.showTabContent = true;
+		mocks.lookup.mockResolvedValue({
+			...transaction([{ name: 'Type', value: 'Wallet' }]),
+			node: { ...transaction([{ name: 'Type', value: 'Wallet' }]).node, id: identifier },
+		});
+		await render('transaction', identifier);
+		expect(mocks.lookup).toHaveBeenCalledWith(expect.objectContaining({ txId: identifier }));
+		const list = container.querySelector('[data-testid="message-list"]');
+		expect(list?.getAttribute('data-identity')).toBe(identifier);
+		expect(list?.getAttribute('data-type')).toBe('wallet');
+		expect(mocks.balance).not.toHaveBeenCalled();
+		expect(mocks.arBalance).not.toHaveBeenCalled();
+		expect(container.textContent).not.toContain('Loading...');
+	}
+);
 
 it('populates the bundle table by resolving each linked ID from its tags', async () => {
 	mocks.showTabContent = true;

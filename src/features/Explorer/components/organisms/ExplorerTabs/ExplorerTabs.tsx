@@ -7,15 +7,9 @@ import { AoCoreTransaction } from 'features/AoCore';
 import { PinnedTabsPanel } from 'features/Pins';
 import { getArweaveNodeRoute, normalizeArweaveNode, readArweaveNodeRoute } from 'helpers/arweaveNode';
 import { ASSETS, URLS } from 'helpers/config';
+import { parseAccountIdentity } from 'helpers/identities';
 import type { GQLNodeResponseType, TransactionTabType } from 'helpers/types';
-import {
-	checkValidAddress,
-	formatAddress,
-	formatBlockId,
-	getTagValue,
-	getTransactionIcon,
-	getTransactionTypeFromTags,
-} from 'helpers/utils';
+import { formatBlockId, getTagValue, getTransactionIcon, getTransactionTypeFromTags } from 'helpers/utils';
 import { useExplorerNavigation } from 'hooks/useExplorerNavigation';
 import { useLanguageProvider } from 'providers/LanguageProvider';
 import { usePinnedTabsProvider } from 'providers/PinnedTabsProvider';
@@ -80,7 +74,8 @@ export default function ExplorerTabs(props: { type: 'explorer' | 'aos' }) {
 			if (!tab.label) return language.untitled;
 			if (tab.labelEdited) return tab.label;
 			if (checkValidBlockId(tab.label)) return formatBlockId(tab.label, false);
-			return checkValidAddress(tab.label) ? formatAddress(tab.label, false) : tab.label;
+			const identity = parseAccountIdentity(tab.label);
+			return identity ? `${identity.address.slice(0, 5)}...${identity.address.slice(-5)}` : tab.label;
 		},
 		[language.untitled]
 	);

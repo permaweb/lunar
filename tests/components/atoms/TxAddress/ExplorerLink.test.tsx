@@ -100,23 +100,55 @@ it.each(['explorer', 'aos', 'graphql'] as TabPageType[])(
 it.each([
 	[ETHEREUM_DID, ETHEREUM_ADDRESS],
 	[ARWEAVE_HOST, ARWEAVE_ADDRESS],
+	[`did:ar:${ARWEAVE_ADDRESS}`, ARWEAVE_ADDRESS],
 	[SOLANA_DID, SOLANA_ADDRESS],
-])('displays the address of %s and offers distinct address and identity copies', async (identifier, address) => {
+])('opens %s with its exact identity while displaying its address', async (identifier, address) => {
 	vi.useFakeTimers();
 	value = identifier;
 	type = 'address';
 	await render('/explorer/');
-	expect(container.querySelector('a')).toBeNull();
+	const link = container.querySelector('a');
+	expect(link.getAttribute('href')).toBe(`#/explorer/${identifier}`);
 	expect(container.querySelector('[aria-live]').textContent).toBe(`${address.slice(0, 5)}...${address.slice(-5)}`);
-	const buttons = container.querySelectorAll('button');
-	expect(buttons[0].getAttribute('aria-label')).toBe(`Copy Address: ${address}`);
-	expect(buttons[1].getAttribute('aria-label')).toBe(`Copy Identity: ${identifier}`);
-	await React.act(async () => buttons[0].click());
-	expect(writeText).toHaveBeenLastCalledWith(address);
-	await React.act(async () => buttons[1].click());
+	await React.act(async () => link.click());
+	expect(currentPath).toBe(`/explorer/${identifier}`);
+	expect(onPress).toHaveBeenCalledOnce();
+	expect(writeText).not.toHaveBeenCalled();
+	const copyButton = container.querySelector('button');
+	expect(copyButton.getAttribute('aria-label')).toBe(`Copy Identity: ${identifier}`);
+	await React.act(async () => copyButton.click());
 	expect(writeText).toHaveBeenLastCalledWith(identifier);
 	expect(onRowClick).not.toHaveBeenCalled();
+	expect(currentPath).toBe(`/explorer/${identifier}`);
+	vi.clearAllTimers();
+});
+
+it.each([false, true])('preserves DID link shortcuts with in-app tabs %s', async (enabled) => {
+	vi.useFakeTimers();
+	modes.explorer = enabled;
+	value = ETHEREUM_DID;
+	type = 'address';
+	await render('/explorer/');
+	const event = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+	await React.act(async () => container.querySelector('a').dispatchEvent(event));
+	expect(event.defaultPrevented).toBe(enabled);
+	if (enabled) expect(writeText).toHaveBeenCalledWith(ETHEREUM_DID);
+	else expect(writeText).not.toHaveBeenCalled();
+	expect(onPress).not.toHaveBeenCalled();
+	expect(onRowClick).not.toHaveBeenCalled();
 	expect(currentPath).toBe('/explorer/');
+	vi.clearAllTimers();
+});
+
+it('copies the full DID when its account page is already open', async () => {
+	vi.useFakeTimers();
+	value = ETHEREUM_DID;
+	type = 'address';
+	await render(`/explorer/${value}/info`);
+	await React.act(async () => container.querySelector('a').click());
+	expect(writeText).toHaveBeenCalledWith(ETHEREUM_DID);
+	expect(onPress).not.toHaveBeenCalled();
+	expect(currentPath).toBe(`/explorer/${value}/info`);
 	vi.clearAllTimers();
 });
 

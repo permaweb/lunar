@@ -7,6 +7,7 @@ import { addTransaction, selectTransaction, touchTransaction } from 'store/trans
 
 import { DEFAULT_LEGACY_SCHEDULER_URL, DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint } from './endpoints';
+import { isArweaveId, parseAccountIdentity } from './identities';
 import { GQLNodeResponseType, MessageVariantEnum, SearchTxArgs, TagType } from './types';
 import {
 	checkValidEthereumAddress,
@@ -437,7 +438,8 @@ async function isWalletAddress(args: SearchTxArgs) {
 }
 
 export async function searchTxById(args: SearchTxArgs, depth: number = 0): Promise<GQLNodeResponseType> {
-	if (checkValidEthereumAddress(args.txId)) {
+	// Explicit account identities cannot be transaction IDs. Preserve their exact index key.
+	if (!isArweaveId(args.txId) && parseAccountIdentity(args.txId)) {
 		return {
 			cursor: null,
 			node: {

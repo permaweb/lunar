@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readAoBalance } from '../../src/api/balances';
 import { getTransactions } from '../../src/api/blocks';
 import { searchTxById } from '../../src/helpers/search';
+import { isValidSearchInput } from '../../src/helpers/searchInput';
+import { ARWEAVE_ADDRESS, ARWEAVE_HOST, ETHEREUM_DID, SOLANA_DID } from '../fixtures/identities';
 
 vi.mock('api/balances', () => ({ readAoBalance: vi.fn() }));
 vi.mock('api/blocks', () => ({ getTransactions: vi.fn() }));
@@ -142,3 +144,22 @@ it('opens an Ethereum AO account without transaction or AR balance probes', asyn
 	expect(getGQLData).not.toHaveBeenCalled();
 	expect(fetch).not.toHaveBeenCalled();
 });
+
+it.each([ETHEREUM_DID, ARWEAVE_HOST, `did:ar:${ARWEAVE_ADDRESS}`, SOLANA_DID])(
+	'opens the exact account identity %s without transaction or balance probes',
+	async (identifier) => {
+		const getGQLData = vi.fn();
+		expect(isValidSearchInput(` ${identifier} `)).toBe(true);
+		const response = await searchTxById({ txId: identifier, getGQLData });
+		expect(response.node.id).toBe(identifier);
+		expect(response.node.tags).toEqual([{ name: 'Type', value: 'Wallet' }]);
+		expect(getGQLData).not.toHaveBeenCalled();
+		expect(fetch).not.toHaveBeenCalled();
+		expect(readAoBalance).not.toHaveBeenCalled();
+	}
+);
+
+it.each(['did:web:example.com', ETHEREUM_DID.toLowerCase(), `${SOLANA_DID}/info`])(
+	'rejects unsupported or malformed account input %s',
+	(identifier) => expect(isValidSearchInput(identifier)).toBe(false)
+);
