@@ -1,4 +1,5 @@
 import { getArweaveNodeRoute, normalizeArweaveNode, readArweaveNodeRoute } from './arweaveNode';
+import { parseAccountIdentity } from './identities';
 import type { TransactionTabType } from './types';
 
 export type PinTarget = {
@@ -39,7 +40,7 @@ export function normalizePin(value: unknown): PinTarget | null {
 			route.includes('?') ? route.slice(route.indexOf('?')) : ''
 		}`;
 	} else {
-		if (!/^(?:[A-Za-z0-9_-]{43}|[A-Za-z0-9_-]{64}|\d+)$/.test(candidate.id)) return null;
+		if (!parseAccountIdentity(candidate.id) && !/^(?:[A-Za-z0-9_-]{64}|\d+)$/.test(candidate.id)) return null;
 		if (route.split('?')[0].split('/')[2] !== candidate.id) return null;
 	}
 	return {

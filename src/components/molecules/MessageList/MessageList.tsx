@@ -35,6 +35,7 @@ import {
 import { buildCsvFilename, downloadCsv, mapTransactionForCsv } from 'helpers/csv';
 import { arweaveEndpoint, getTxEndpoint } from 'helpers/endpoints';
 import { dedupeGqlEdgesById } from 'helpers/gqlEdges';
+import { parseAccountIdentity } from 'helpers/identities';
 import { getSearchParam, updateSearchParams } from 'helpers/query';
 import { searchTxById } from 'helpers/search';
 import { getTokenTransfer } from 'helpers/tokens';
@@ -48,7 +49,6 @@ import {
 import {
 	buildSyntheticResultMessageEdge,
 	checkValidAddress,
-	formatAddress,
 	formatCount,
 	getRelativeDate,
 	getTagValue,
@@ -105,6 +105,11 @@ const MESSAGE_QUERY_KEYS = {
 
 // Gateways match tag values case-sensitively, and HyperBEAM writes the transfer action in lowercase.
 const TRANSFER_ACTION_TAG_VALUES = [DEFAULT_ACTIONS.transfer.name, DEFAULT_ACTIONS.transfer.name.toLowerCase()];
+
+function formatFilterAddress(value: string): string {
+	const address = parseAccountIdentity(value)?.address ?? value;
+	return `${address.slice(0, 5)}...${address.slice(-5)}`;
+}
 
 function tagValueEquals(tags: any[] | undefined, name: string, value: string) {
 	return getTagValue(tags, name)?.toLowerCase() === value.toLowerCase();
@@ -1306,8 +1311,8 @@ export default function MessageList(props: {
 			appliedTransferFilter !== 'all' ||
 			appliedAction ||
 			appliedVariant ||
-			(appliedRecipient && checkValidAddress(appliedRecipient)) ||
-			(appliedFromAddress && checkValidAddress(appliedFromAddress)) ||
+			(appliedRecipient && parseAccountIdentity(appliedRecipient)) ||
+			(appliedFromAddress && parseAccountIdentity(appliedFromAddress)) ||
 			appliedStartDate ||
 			appliedEndDate
 	);
@@ -1329,8 +1334,8 @@ export default function MessageList(props: {
 			currentTransferFilter !== 'all' ||
 			currentAction ||
 			currentVariant ||
-			(recipient && checkValidAddress(recipient)) ||
-			(fromAddress && checkValidAddress(fromAddress)) ||
+			(recipient && parseAccountIdentity(recipient)) ||
+			(fromAddress && parseAccountIdentity(fromAddress)) ||
 			startDate ||
 			endDate
 	);
@@ -1404,8 +1409,8 @@ export default function MessageList(props: {
 				nextTransferFilter !== 'all' ||
 				nextAction ||
 				nextVariant ||
-				(queryFilterState.recipient && checkValidAddress(queryFilterState.recipient)) ||
-				(queryFilterState.fromAddress && checkValidAddress(queryFilterState.fromAddress)) ||
+				(queryFilterState.recipient && parseAccountIdentity(queryFilterState.recipient)) ||
+				(queryFilterState.fromAddress && parseAccountIdentity(queryFilterState.fromAddress)) ||
 				queryFilterState.startDate ||
 				queryFilterState.endDate
 		);
@@ -1666,8 +1671,8 @@ export default function MessageList(props: {
 			...(matchRecipientTag ? {} : { recipients: [props.txId] }),
 		};
 
-		if (appliedFromAddress && checkValidAddress(appliedFromAddress)) {
-			if (appliedFromAddressIsProcess) {
+		if (appliedFromAddress && parseAccountIdentity(appliedFromAddress)) {
+			if (appliedFromAddressIsProcess && checkValidAddress(appliedFromAddress)) {
 				return {
 					...incomingArgs,
 					...getQueryTagsArg([...tags, { name: 'From-Process', values: [appliedFromAddress] }]),
@@ -1793,7 +1798,7 @@ export default function MessageList(props: {
 				}
 				case 'outgoing': {
 					let outgoingArgs: any = {
-						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+						...(appliedRecipient && parseAccountIdentity(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 						...cursorArg,
 						// sort: 'descending',
 						...(await getOutgoingGQLArgs(tags)),
@@ -1822,7 +1827,7 @@ export default function MessageList(props: {
 
 		let globalQueryArgs: any = {
 			...getQueryTagsArg(tags),
-			...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+			...(appliedRecipient && parseAccountIdentity(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 			...cursorArg,
 		};
 
@@ -1921,7 +1926,7 @@ export default function MessageList(props: {
 					}
 
 					let outgoingQueryArgs: any = {
-						...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+						...(appliedRecipient && parseAccountIdentity(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 						...(await getOutgoingGQLArgs(baseTags)),
 					};
 
@@ -2060,7 +2065,7 @@ export default function MessageList(props: {
 								break;
 							case 'outgoing':
 								let outgoingArgs: any = {
-									...(appliedRecipient && checkValidAddress(appliedRecipient)
+									...(appliedRecipient && parseAccountIdentity(appliedRecipient)
 										? { recipients: [appliedRecipient] }
 										: {}),
 									...(pageCursor ? { cursor: pageCursor } : {}),
@@ -2175,7 +2180,7 @@ export default function MessageList(props: {
 				let globalQueryArgs: any = {
 					...getQueryTagsArg(tags),
 					...(props.preview ? { sort: 'descending' } : {}),
-					...(appliedRecipient && checkValidAddress(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
+					...(appliedRecipient && parseAccountIdentity(appliedRecipient) ? { recipients: [appliedRecipient] } : {}),
 					...(pageCursor ? { cursor: pageCursor } : {}),
 				};
 
@@ -2457,7 +2462,7 @@ export default function MessageList(props: {
 		setAppliedVariant(variantFiltersDisabled ? null : currentVariant);
 		setAppliedRecipient(recipient);
 		setAppliedFromAddress(fromAddress);
-		setAppliedFromAddressIsProcess(fromAddressIsProcess);
+		setAppliedFromAddressIsProcess(checkValidAddress(fromAddress) && fromAddressIsProcess);
 		setAppliedStartDate(startDate);
 		setAppliedEndDate(endDate);
 		setPerPage(parsedPerPageInput.toString());
@@ -2753,10 +2758,11 @@ export default function MessageList(props: {
 											icon={ASSETS.close}
 										/>
 									)}
-									{appliedRecipient && checkValidAddress(appliedRecipient) && (
+									{appliedRecipient && parseAccountIdentity(appliedRecipient) && (
 										<Button
 											type={'alt3'}
-											label={`To (${formatAddress(appliedRecipient, false)})`}
+											label={`${language.to} (${formatFilterAddress(appliedRecipient)})`}
+											tooltip={appliedRecipient}
 											onPress={() => {
 												setRecipient('');
 												setAppliedRecipient('');
@@ -2768,10 +2774,11 @@ export default function MessageList(props: {
 											icon={ASSETS.close}
 										/>
 									)}
-									{appliedFromAddress && checkValidAddress(appliedFromAddress) && (
+									{appliedFromAddress && parseAccountIdentity(appliedFromAddress) && (
 										<Button
 											type={'alt3'}
-											label={`From (${formatAddress(appliedFromAddress, false)})`}
+											label={`${language.from} (${formatFilterAddress(appliedFromAddress)})`}
+											tooltip={appliedFromAddress}
 											onPress={() => {
 												setFromAddress('');
 												setAppliedFromAddress('');
@@ -3064,7 +3071,7 @@ export default function MessageList(props: {
 								value={recipient}
 								onChange={(e: any) => setRecipient(e.target.value)}
 								disabled={loadingMessages}
-								invalid={{ status: recipient ? !checkValidAddress(recipient) : null, message: null }}
+								invalid={{ status: recipient ? !parseAccountIdentity(recipient) : null, message: null }}
 								hideErrorMessage
 							/>
 						)}
@@ -3075,7 +3082,7 @@ export default function MessageList(props: {
 								value={fromAddress}
 								onChange={(e: any) => setFromAddress(e.target.value)}
 								disabled={loadingMessages}
-								invalid={{ status: fromAddress ? !checkValidAddress(fromAddress) : null, message: null }}
+								invalid={{ status: fromAddress ? !parseAccountIdentity(fromAddress) : null, message: null }}
 								hideErrorMessage
 							/>
 						)}
