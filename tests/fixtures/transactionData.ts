@@ -5,6 +5,15 @@ export const MESSAGE_ID = 'xoD4IhFzmFTsAaqJ3-S7_k6-SkfVJLNUBTBsfTunL-k';
 export const BUNDLE_ID = 'YOtNvBJNUYutcKFiICzbRNq_N7IHs0vFyiL4uTOfjpA';
 export const PORTAL_RELEASE_ID = 'Dwqr5ArAgjAteYr4EYS5E_k3tZLLBirvdEGVD5BjGTg';
 
+/** Original GraphQL tags for the L1 transfer at block 2006276, captured on 2026-11-08. */
+export const EMPTY_TRANSFER_TAGS = [
+	{ name: 'action', value: 'transfer' },
+	{ name: 'recipient', value: 'n6QjVXFWUMHUIgNL6E7tEAHGGbKc2jFwW4bU-LYNbDU' },
+	{ name: 'quantity', value: '1000000000000' },
+	{ name: 'signing-client', value: 'PermawebOS-Browser' },
+	{ name: 'signing-client-version', value: '0.1.0' },
+];
+
 /** The gateway signs the original data field rather than its HTTP content-digest for this portal release. */
 export const PORTAL_RELEASE_HEADERS: Record<string, string> = {
 	'content-type': 'application/json; charset=utf-8',
@@ -21,6 +30,19 @@ export const PORTAL_RELEASE_HEADERS: Record<string, string> = {
 
 export const PORTAL_RELEASE_DATA =
 	'{"schemaVersion":"2.1.0","type":"portal-release","mode":"base","portalId":"xq688x6oyBtrZTDCUPIlU9U2U-4j8u5pWpCfbAK4hrs","rootTxId":"QmcFF827fs52y2PYzrykiGAA-i0FZdChYoIEN35jL1Y","previousTxId":"XK54qIk88LNigJz0b4JoB5nf4DdjcIfgDu3FwoEPFSA","generatedAt":"2026-09-24T17:22:09.377Z","authorAddress":"wCSXTL1g1Entfpv5iyPNHxJlk9N6MfhYve2reKFJWTg","changes":{"patches":[["d",["users",["=","address","kaYP9bJtpqON8Kyy3RbqnqdtDBDUsPTQTNUCvZtKiFI"]]]]}}';
+
+/** Original tag parameter returned for this release at block 2007724, captured on 2026-11-08. */
+export const PORTAL_RELEASE_ORIGINAL_TAGS =
+	':1:%3aname%3aContent-Type%2c value%3aapplication/json; charset=utf-8, 2:%3aname%3aApp-Name%2c value%3aPortal, 3:%3aname%3aApp-Version%2c value%3a2.1.0, 4:%3aname%3aPortal-Mode%2c value%3abase, 5:%3aname%3aType%2c value%3aportal-release, 6:%3aname%3aPortal-Id%2c value%3axq688x6oyBtrZTDCUPIlU9U2U-4j8u5pWpCfbAK4hrs, 7:%3aname%3aPortal-Root%2c value%3aQmcFF827fs52y2PYzrykiGAA-i0FZdChYoIEN35jL1Y, 8:%3aname%3aPrevious-Tx%2c value%3aXK54qIk88LNigJz0b4JoB5nf4DdjcIfgDu3FwoEPFSA, 9:%3aname%3aAuthor%2c value%3awCSXTL1g1Entfpv5iyPNHxJlk9N6MfhYve2reKFJWTg';
+
+/** The four members and canonical JSON redirect observed for the bundle at block 2006276. */
+export const CURRENT_BUNDLE_LOCATION = `//mdvu3pasjviyxllqufrcalg3itnl6n5sa6zuxrokel4lsm47r2ia.arweave.net/${BUNDLE_ID}?require-codec=application/json&accept-bundle=false`;
+export const CURRENT_BUNDLE_LINKS = {
+	'1': 'ao:hqzZYRhss7wgxZ8s7cAIEg7FTlTRZwxQXg7jKn_9bAQ',
+	'2': 'ao:pBiFX7kOAeMNnncHJlc8M4DwCPgT74nmMrJKzAknVec',
+	'3': 'ao:sQ6qtl_dNOMe49jelp5sABNXrtOpJdnb9sb-pVoVwgc',
+	'4': 'ao:zJkuPlyQr55SddGFXhLx928uf0ODp6Od5K_hxaFl1RY',
+};
 
 /** The HyperBEAM node web UI a gateway serves as the body of a message that carries no data. */
 export const HYPERBUDDY_HTML = [

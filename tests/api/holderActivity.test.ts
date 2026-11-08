@@ -205,16 +205,25 @@ it('times out a stalled index lookup without claiming no transactions exist', as
 	await expect(reading).resolves.toEqual({ [address]: { status: 'error' } });
 });
 
-it('validates input and distinguishes unsupported Ethereum accounts from an empty history', async () => {
+it('validates input before requesting any history', async () => {
 	await expect(getLatestHolderTransactions({ addresses: ['../bad'] })).rejects.toMatchObject({ code: 'invalid-input' });
 	await expect(getLatestHolderTransactions({ addresses: Array(101).fill(address) })).rejects.toMatchObject({
 		code: 'invalid-input',
 	});
 	await expect(getLatestHolderTransactions({ addresses: [] })).resolves.toEqual({});
 	expect(requestRemote).not.toHaveBeenCalled();
-	const ethereum = `0x${'a'.repeat(40)}`;
+});
+
+it('queries a real Ethereum owner supported by the current HyperBEAM index', async () => {
+	const ethereum = '0x9340d6860A301b869Bb7a7d4664Ed757294267A1';
+	const transactionId = 'uswIcEksS3YeDgOTKIEwmj8RVd1wKP8fv4gnUXuhLqA';
+	vi.mocked(requestRemote).mockResolvedValueOnce(
+		response({ incoming0: connection(null), outgoing0: connection(transactionId) })
+	);
 	await expect(getLatestHolderTransactions({ addresses: [ethereum] })).resolves.toEqual({
-		[ethereum]: { status: 'unsupported' },
+		[ethereum]: { status: 'found', transactionId },
 	});
-	expect(requestRemote).not.toHaveBeenCalled();
+	expect(requestRemote).toHaveBeenCalledOnce();
+	const query = JSON.parse(String(vi.mocked(requestRemote).mock.calls[0][1].body)).query;
+	expect(query).toContain(`owners:["${ethereum}"]`);
 });

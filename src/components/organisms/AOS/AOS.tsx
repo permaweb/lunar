@@ -8,6 +8,7 @@ import { Loader } from 'components/atoms/Loader';
 import { Modal } from 'components/atoms/Modal';
 import { Editor } from 'components/molecules/Editor';
 import { ASSETS, DEFAULT_AO_NODE, TAGS } from 'helpers/config';
+import { sameAccountIdentity } from 'helpers/identities';
 import { searchTxById } from 'helpers/search';
 import { CSS_COLORS } from 'helpers/themes';
 import { GQLNodeResponseType, MessageVariantEnum } from 'helpers/types';
@@ -280,7 +281,7 @@ function AOS(props: {
 
 	React.useEffect(() => {
 		if (props.active && inputProcessId && checkValidAddress(inputProcessId) && txResponse && !hasConnected) {
-			const hasAccess = txResponse.node?.owner?.address === arProvider.walletAddress;
+			const hasAccess = sameAccountIdentity(txResponse.node?.owner?.address, arProvider.walletAddress);
 			if (hasAccess) {
 				sendMessage(null, 'prompt');
 			}
@@ -293,7 +294,7 @@ function AOS(props: {
 			return;
 		}
 
-		const hasAccess = txResponse.node.owner.address === arProvider.walletAddress;
+		const hasAccess = sameAccountIdentity(txResponse.node.owner.address, arProvider.walletAddress);
 		if (!hasAccess) {
 			return;
 		}
@@ -609,8 +610,7 @@ function AOS(props: {
 		}
 	}
 
-	const hasAccess =
-		txResponse && arProvider.walletAddress && txResponse.node?.owner?.address === arProvider.walletAddress;
+	const hasAccess = sameAccountIdentity(txResponse?.node?.owner?.address, arProvider.walletAddress);
 
 	if (!arProvider.walletAddress) {
 		return props.active ? <WalletBlock /> : null;

@@ -8,7 +8,7 @@ import { addTransaction, selectTransaction, touchTransaction } from 'store/trans
 
 import { DEFAULT_SCHEDULER_URL, FLAGS } from './config';
 import { getARBalanceEndpoint } from './endpoints';
-import { isArweaveId, parseAccountIdentity } from './identities';
+import { isArweaveId, parseAccountIdentity, sameAccountIdentity } from './identities';
 import { GQLNodeResponseType, MessageVariantEnum, SearchTxArgs, TagType } from './types';
 import {
 	checkValidEthereumAddress,
@@ -333,7 +333,7 @@ async function resolveResponseData(
 		// a known trusted legacy authority for the message's block height.
 		if (
 			fromProcessAuthority &&
-			fromProcessAuthority !== messageOwner &&
+			!sameAccountIdentity(fromProcessAuthority, messageOwner) &&
 			!isTrustedLegacyAuthority(messageOwner, responseData.node?.block?.height)
 		) {
 			return null;

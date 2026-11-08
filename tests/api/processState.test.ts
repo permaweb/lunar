@@ -9,12 +9,13 @@ import {
 	readProcessState,
 } from '../../src/api/permaweb/processState';
 import { DEFAULT_AO_NETWORK } from '../../src/helpers/aoNetwork';
+import { LUNAR_BALANCES_LINK, LUNAR_LINK_BALANCES, LUNAR_LINK_HEADERS } from '../fixtures/aoLinks';
 
 const statePath = `/${'p'.repeat(43)}~process@1.0/now`;
 const balanceId = 'b'.repeat(43);
 const ordersId = 'o'.repeat(43);
 const orderId = 'r'.repeat(43);
-const linkPath = (id: string) => `/~cache@1.0/read?target=${id}&require-codec=application/json&accept-bundle=false`;
+const linkPath = (id: string) => `/~cache@1.0/read?read=${id}&accept-bundle=false`;
 const head = (headers: Record<string, string>) => new Response(null, { headers });
 const json = (value: unknown) => new Response(JSON.stringify(value));
 const options = { timeoutMs: 90_000 };
@@ -35,14 +36,14 @@ it('returns scalar state and unresolved links without fetching them in lazy mode
 	expect(fetcher.mock.calls.map(([path]) => path)).toEqual([statePath, linkPath(balanceId)]);
 });
 
-it('reads cached state through the target query parameter without bundling nested links', async () => {
+it('reads cached state through the read query parameter without bundling nested links', async () => {
 	const peer = 'https://cache.example';
 	const fetcher = vi.fn(async (input, init) => {
 		const url = new URL(input);
 		if (init.method === 'HEAD') return head({ 'holders+link': balanceId });
-		if (url.pathname !== '/~cache@1.0/read' || url.searchParams.get('target') !== balanceId)
+		if (url.pathname !== '/~cache@1.0/read' || url.searchParams.get('read') !== balanceId)
 			return new Response('not_found', { status: 404 });
-		expect(url.searchParams.get('require-codec')).toBe('application/json');
+		expect(new Headers(init.headers).get('accept')).toBe('application/json');
 		expect(url.searchParams.get('accept-bundle')).toBe('false');
 		return json({ 'token+link': ordersId });
 	});
@@ -71,7 +72,7 @@ it('hydrates HTTP peer state when Hyperbuddy labels HEAD responses as HTML', asy
 			});
 		}
 		expect(relay.searchParams.get('relay-path')).toBe(`${peer}${linkPath(balanceId)}`);
-		return relay.searchParams.get('require-codec') === 'application/json' &&
+		return new Headers(init.headers).get('accept') === 'application/json' &&
 			relay.searchParams.get('accept-bundle') === 'false'
 			? new Response('{"holder":10000000000000000000000}')
 			: new Response('<html>Hyperbuddy</html>');
@@ -84,6 +85,56 @@ it('hydrates HTTP peer state when Hyperbuddy labels HEAD responses as HTML', asy
 		data: { name: 'AO PoT Integration Test', balances: { holder: '10000000000000000000000' } },
 		provider: peer,
 		source: 'peers',
+	});
+	expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it('hydrates the observed Lunar balance URI only after requesting the lazy continuation', async () => {
+	const fetcher = vi.fn(async (path, init) => {
+		if (path === statePath) return head(LUNAR_LINK_HEADERS);
+		expect(path).toBe(linkPath(LUNAR_BALANCES_LINK));
+		expect(new Headers(init.headers).get('accept')).toBe('application/json');
+		return json(LUNAR_LINK_BALANCES);
+	});
+	const result = await readProcessState(transportFor(fetcher), statePath, { ...options, lazy: true });
+	expect(result.data).toEqual(LUNAR_LINK_HEADERS);
+	expect(fetcher).toHaveBeenCalledTimes(1);
+	expect((await result.loadMore()).data).toEqual({ ...LUNAR_LINK_HEADERS, balances: LUNAR_LINK_BALANCES });
+	expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it('hydrates URI values in lists while leaving syntax and commitment metadata literal', async () => {
+	const uri = `ao:${balanceId}`;
+	const fetcher = vi.fn(async (path) => {
+		if (path === statePath) return head({ items: uri, path: uri, hashpath: uri, 'commitments+link': ordersId });
+		if (path === linkPath(ordersId)) return json({ signed: { signature: uri, 'body+link': balanceId } });
+		if (path === linkPath(balanceId)) return json([`ao:${orderId}`]);
+		return json('done');
+	});
+	const result = await readProcessState(transportFor(fetcher), statePath, options);
+	expect(result.data).toEqual({
+		items: ['done'],
+		path: uri,
+		hashpath: uri,
+		commitments: { signed: { signature: uri, 'body+link': balanceId } },
+	});
+	expect(fetcher).toHaveBeenCalledTimes(4);
+});
+
+it('preserves a current URI field whose literal name ends in the historical suffix', async () => {
+	const fetcher = vi.fn(async (path) =>
+		path === statePath ? head({ 'body+link': `ao:${balanceId}` }) : json({ name: 'Linked value' })
+	);
+	expect((await readProcessState(transportFor(fetcher), statePath, options)).data).toEqual({
+		'body+link': { name: 'Linked value' },
+	});
+});
+
+it('rejects cycles expressed through current URI values after fetching a linked message', async () => {
+	const uri = `ao:${balanceId}`;
+	const fetcher = vi.fn(async (path) => (path === statePath ? head({ balances: uri }) : json({ self: uri })));
+	await expect(readProcessState(transportFor(fetcher), statePath, options)).rejects.toMatchObject({
+		code: 'invalid-response',
 	});
 	expect(fetcher).toHaveBeenCalledTimes(2);
 });

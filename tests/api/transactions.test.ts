@@ -15,6 +15,7 @@ import {
 	PORTAL_RELEASE_DATA,
 	PORTAL_RELEASE_HEADERS,
 	PORTAL_RELEASE_ID,
+	PORTAL_RELEASE_ORIGINAL_TAGS,
 	TOKEN_PROCESS_ID,
 } from '../fixtures/transactionData';
 
@@ -110,6 +111,59 @@ describe('direct transaction lookup', () => {
 			type: 'application/json; charset=utf-8',
 		});
 	});
+
+	it('recovers the Portal release’s original tags from the observed nested parameter', async () => {
+		respond(PORTAL_RELEASE_DATA, {
+			...PORTAL_RELEASE_HEADERS,
+			'signature-input': `${PORTAL_RELEASE_HEADERS['signature-input']};original-tags="${PORTAL_RELEASE_ORIGINAL_TAGS}"`,
+		});
+		const tags = (await lookupTransaction(PORTAL_RELEASE_ID)).node.tags;
+		expect(tags.map((tag) => tag.name)).toEqual([
+			'Content-Type',
+			'App-Name',
+			'App-Version',
+			'Portal-Mode',
+			'Type',
+			'Portal-Id',
+			'Portal-Root',
+			'Previous-Tx',
+			'Author',
+		]);
+		expect(tags[0].value).toBe('application/json; charset=utf-8');
+		expect(tags.find((tag) => tag.name === 'Portal-Root')?.value).toBe('QmcFF827fs52y2PYzrykiGAA-i0FZdChYoIEN35jL1Y');
+	});
+
+	it('keeps repeated original tag names in numeric order across lexically sorted map indexes', async () => {
+		const members = Array.from({ length: 10 }, (_, index) => String(index + 1))
+			.sort()
+			.map((index) => `${index}:%3aname%3aTag%2c value%3a${index}`);
+		respond(null, {
+			'signature-input': `native=("tag");alg="ans104@1.0/rsa-pss-sha256";original-tags=":${members.join(', ')}"`,
+			tag: 'normalized fallback',
+		});
+		expect((await lookupTransaction(MESSAGE_ID)).node.tags).toEqual(
+			Array.from({ length: 10 }, (_, index) => ({ name: 'Tag', value: String(index + 1) }))
+		);
+	});
+
+	it('decodes nested percent escaping without interpreting escaped literal delimiters as containers', async () => {
+		respond(null, {
+			'signature-input':
+				'native=();alg="ans104@1.0/rsa-pss-sha256";original-tags=":1:%3aname%3aX%25253aName%2c value%3a%25253aleading%25252c%252525%2525c3%2525a9"',
+		});
+		expect((await lookupTransaction(MESSAGE_ID)).node.tags).toEqual([{ name: 'X:Name', value: ':leading,%é' }]);
+	});
+
+	it.each([':1:%zz', ':1:%3aname%3aX', ':1:%3aname%3aX%2c value%3ay, 1:%3aname%3aX%2c value%3az'])(
+		'falls back to covered headers for malformed original tags: %s',
+		async (originalTags) => {
+			respond(null, {
+				'signature-input': `native=("action");alg="ans104@1.0/rsa-pss-sha256";original-tags="${originalTags}"`,
+				action: 'Transfer',
+			});
+			expect((await lookupTransaction(MESSAGE_ID)).node.tags).toEqual([{ name: 'action', value: 'Transfer' }]);
+		}
+	);
 
 	it('leaves the size and type of a bundle unknown', async () => {
 		respond(HYPERBUDDY_HTML, { ...BUNDLE_HEADERS, 'content-length': String(HYPERBUDDY_HTML.length) });

@@ -1,15 +1,23 @@
 import { AoReadError, type AoReadResult, type getAoReadTransport } from 'api/aoNetwork';
 
+import { isAoLinkMetadataKey, isLegacyAoLinkKey, readAoLinkId, readMessageLinkId } from 'helpers/aoLinks';
 import { AO_STATE_READ_TIMEOUT_MS } from 'helpers/config';
 import { checkValidAddress } from 'helpers/utils';
 
 type StateRecord = Record<string, unknown>;
-type Link = { id: string; key: string; target: StateRecord; ancestors: ReadonlySet<string>; depth: number };
+type Link = {
+	id: string;
+	assign: (value: unknown) => void;
+	ancestors: ReadonlySet<string>;
+	depth: number;
+	isCommitmentMetadata: boolean;
+};
 type DeferredValue = {
 	value: unknown;
 	assign: (value: unknown) => void;
 	ancestors: ReadonlySet<string>;
 	depth: number;
+	isCommitmentMetadata?: boolean;
 };
 
 export type ProcessStateProgress = AoReadResult<unknown> & { completedLinks: number; totalLinks: number };
@@ -51,10 +59,10 @@ const TRANSPORT_HEADERS = new Set([
 export function linkedStatePath(id: string): string {
 	if (!checkValidAddress(id)) throw new AoReadError('invalid-input');
 	// Leave nested links unresolved so the client controls when to fetch them.
-	return `/~cache@1.0/read?target=${id}&require-codec=application/json&accept-bundle=false`;
+	return `/~cache@1.0/read?read=${id}&accept-bundle=false`;
 }
 
-/** HTTP-Sig puts scalar state in headers and nested messages in +link fields. */
+/** HTTP-Sig carries scalar state and AO link URIs in headers. */
 export function parseStateHeaders(headers: Headers): StateRecord {
 	const entries: [string, string][] = [];
 	headers.forEach((value, encodedName) => {
@@ -129,6 +137,7 @@ export async function readProcessState(
 		function follow(visit: DeferredValue, discovered: Link[], suspended: DeferredValue[]) {
 			checkCancelled();
 			const { value, assign, ancestors, depth } = visit;
+			const isCommitmentMetadata = visit.isCommitmentMetadata ?? false;
 			if (value === null || typeof value !== 'object') return assign(value);
 			if (depth > depthLimit) {
 				// Inline values are already available; defer discovering their deeper links.
@@ -138,34 +147,72 @@ export async function readProcessState(
 			}
 			if (Array.isArray(value)) {
 				const result: unknown[] = [];
-				value.forEach((entry, index) =>
+				value.forEach((entry, index) => {
+					const id = readMessageLinkId('', entry, isCommitmentMetadata);
+					if (id) {
+						if (ancestors.has(id)) throw new AoReadError('invalid-response');
+						result[index] = entry;
+						discovered.push({
+							id,
+							assign: (child) => (result[index] = child),
+							ancestors,
+							depth,
+							isCommitmentMetadata,
+						});
+						return;
+					}
 					follow(
-						{ value: entry, assign: (child) => (result[index] = child), ancestors, depth: depth + 1 },
+						{
+							value: entry,
+							assign: (child) => (result[index] = child),
+							ancestors,
+							depth: depth + 1,
+							isCommitmentMetadata,
+						},
 						discovered,
 						suspended
-					)
-				);
+					);
+				});
 				assign(result);
 				return;
 			}
 			const entries = Object.entries(value);
-			const result: StateRecord = Object.fromEntries(entries.filter(([key]) => !key.endsWith('+link')));
+			const result: StateRecord = Object.fromEntries(
+				entries.filter(([key]) => !isLegacyAoLinkKey(key, isCommitmentMetadata))
+			);
 			for (const [name, entry] of entries) {
-				if (!name.endsWith('+link')) {
+				const isLegacyLink = isLegacyAoLinkKey(name, isCommitmentMetadata) && !readAoLinkId(entry);
+				const id = readMessageLinkId(name, entry, isCommitmentMetadata);
+				const childMetadata = isCommitmentMetadata || isAoLinkMetadataKey(name);
+				if (!isLegacyLink && !id) {
 					follow(
-						{ value: entry, assign: (child) => (result[name] = child), ancestors, depth: depth + 1 },
+						{
+							value: entry,
+							assign: (child) => (result[name] = child),
+							ancestors,
+							depth: depth + 1,
+							isCommitmentMetadata: childMetadata,
+						},
 						discovered,
 						suspended
 					);
 					continue;
 				}
-				const key = name.slice(0, -5);
+				const key = isLegacyLink ? name.slice(0, -5) : name;
 				if (!key || ['__proto__', 'constructor', 'prototype'].includes(key)) throw new AoReadError('invalid-response');
-				if (Object.hasOwn(result, key)) continue;
-				if (typeof entry !== 'string' || !checkValidAddress(entry) || ancestors.has(entry))
-					throw new AoReadError('invalid-response');
+				if (isLegacyLink && Object.hasOwn(result, key)) continue;
+				if (!id || ancestors.has(id)) throw new AoReadError('invalid-response');
 				result[name] = entry;
-				discovered.push({ id: entry, key, target: result, ancestors, depth });
+				discovered.push({
+					id,
+					assign: (child) => {
+						result[key] = child;
+						if (isLegacyLink) delete result[name];
+					},
+					ancestors,
+					depth,
+					isCommitmentMetadata: childMetadata,
+				});
 			}
 			assign(result);
 		}
@@ -191,7 +238,11 @@ export async function readProcessState(
 			let pending = messages.get(link.id);
 			if (!pending) {
 				pending = transport
-					.readJson(linkedStatePath(link.id), { signal, timeoutMs: AO_STATE_READ_TIMEOUT_MS })
+					.readJson(linkedStatePath(link.id), {
+						signal,
+						timeoutMs: AO_STATE_READ_TIMEOUT_MS,
+						headers: { Accept: 'application/json' },
+					})
 					.then((result) => result.data)
 					.catch((error: unknown) => {
 						messages.delete(link.id);
@@ -201,11 +252,11 @@ export async function readProcessState(
 			}
 			discover({
 				value: await pending,
-				assign: (value) => (link.target[link.key] = value),
+				assign: link.assign,
 				ancestors: new Set([...link.ancestors, link.id]),
 				depth: link.depth + 1,
+				isCommitmentMetadata: link.isCommitmentMetadata,
 			});
-			delete link.target[`${link.key}+link`];
 			completedLinks++;
 			publish();
 		};

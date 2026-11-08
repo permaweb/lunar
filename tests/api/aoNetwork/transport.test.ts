@@ -19,6 +19,34 @@ it('uses the injected transport without a wallet or a direct peer request', asyn
 	expect(direct).not.toHaveBeenCalled();
 });
 
+it.each(['injected', 'peers'])('negotiates modern JSON cache reads through %s', async (source) => {
+	const readPath = '/~cache@1.0/read?read=gjU_jEYhcQugu6pemjiFizCCaCUWOKTLo2HFAKMA9l8&accept-bundle=false';
+	const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+		const headers = new Headers(init?.headers);
+		return headers.get('accept') === 'application/json' ? json({ holder: '1' }) : new Response(null);
+	});
+	const transport = createAoReadTransport(settings, {
+		fetch: fetcher,
+		injected: () => (source === 'injected' ? fetcher : undefined),
+	});
+	expect((await transport.readJson(readPath, { headers: { 'accept-bundle': 'false' } })).data).toEqual({ holder: '1' });
+	const headers = new Headers(fetcher.mock.calls[0][1].headers);
+	expect(headers.get('accept-bundle')).toBe('false');
+	expect(headers.has('require-codec')).toBe(false);
+});
+
+it('preserves an explicit AOS-2 schedule format while adding JSON defaults to other reads', async () => {
+	const injected = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+		return new Headers(init?.headers).get('accept') === 'application/aos-2'
+			? json({ edges: [] })
+			: new Response('Wrong schedule format', { status: 400 });
+	});
+	const transport = createAoReadTransport(settings, { injected: () => injected });
+	expect((await transport.readJson('/process/schedule', { headers: { Accept: 'application/aos-2' } })).data).toEqual({
+		edges: [],
+	});
+});
+
 it('reads HEAD responses and falls back when the extension headers are invalid', async () => {
 	const injected = vi.fn(async () => new Response(null));
 	const direct = vi.fn(async () => new Response(null, { headers: { name: 'state' } }));

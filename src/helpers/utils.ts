@@ -10,7 +10,12 @@ import {
 	LEGACY_AUTHORITIES,
 	PROCESSES,
 } from './config';
-import { isArweaveId as checkValidAddress, isEthereumAddress as checkValidEthereumAddress } from './identities';
+import {
+	isArweaveId as checkValidAddress,
+	isEthereumAddress as checkValidEthereumAddress,
+	parseAccountIdentity,
+	sameAccountIdentity,
+} from './identities';
 import {
 	DefaultGQLResponseType,
 	GQLNodeResponseType,
@@ -396,7 +401,7 @@ function isStrictCuNoticeMessage(message: ResultMessageType, variant: MessageVar
 }
 
 function getStrictNoticeAuthority(authority: string | undefined, variant: MessageVariantEnum) {
-	if (checkValidAddress(authority)) return authority;
+	if (parseAccountIdentity(authority)) return authority;
 
 	switch (variant) {
 		case MessageVariantEnum.Mainnet:
@@ -421,7 +426,7 @@ export function isTrustedLegacyAuthority(
 	if (!address) return false;
 
 	return LEGACY_AUTHORITIES.some((authority) => {
-		if (authority.address !== address) return false;
+		if (!sameAccountIdentity(authority.address, address)) return false;
 		if (height === null || height === undefined) return true;
 		if (authority.minHeight !== null && height < authority.minHeight) return false;
 		if (authority.maxHeight !== null && height > authority.maxHeight) return false;
@@ -540,7 +545,7 @@ function filterStrictSettledNoticeEdges(args: {
 			const action = getTagValue(edgeTags, 'Action');
 
 			if (getNoticeBucket(action) === null) return false;
-			if (!matchesIgnoreCase(edge.node?.owner?.address, args.authority)) return false;
+			if (!sameAccountIdentity(edge.node?.owner?.address, args.authority)) return false;
 			if (!matchesIgnoreCase(getTagValue(edgeTags, 'From-Process'), args.fromProcess)) return false;
 			if (!matchesIgnoreCase(getTagValue(edgeTags, 'Data-Protocol'), 'ao')) return false;
 			if (!matchesIgnoreCase(getTagValue(edgeTags, 'Type'), 'Message')) return false;
@@ -822,16 +827,6 @@ export async function normalizeGqlResponse(response: DefaultGQLResponseType) {
 		);
 	}
 	return response;
-}
-
-export function normalizeTagKeys(tags: TagType[]): TagType[] {
-	return tags.map((tag) => ({
-		...tag,
-		name: tag.name
-			.split('-')
-			.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-			.join('-'),
-	}));
 }
 
 export async function resolveMessageId(args: {

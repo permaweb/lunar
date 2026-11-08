@@ -30,7 +30,7 @@ export interface PeerApi {
 	readLinkedState(id: string, signal?: AbortSignal): Promise<unknown>;
 }
 
-const JSON_HEADERS = { 'require-codec': 'application/json', 'accept-bundle': 'true' };
+const JSON_HEADERS = { Accept: 'application/json', 'accept-bundle': 'true' };
 const ID = /^[A-Za-z0-9_-]{43}$/;
 
 function processPath(processId: string) {
@@ -114,7 +114,7 @@ export function createPeerApi(settings: AoNetworkSettings, wallet: unknown): Pee
 				throw new AoReadError('invalid-input');
 			const response = await transport.readJson(
 				`${processPath(args.processId)}/schedule?accept=application/aos-2&from=${args.from}&to=${args.to}`,
-				{ signal: args.signal },
+				{ signal: args.signal, headers: { Accept: 'application/aos-2' } },
 				record
 			);
 			return response.data;

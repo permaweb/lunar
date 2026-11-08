@@ -56,7 +56,6 @@ import {
 	isNativeArTransfer,
 	isTransferAction,
 	lowercaseTagKeys,
-	normalizeTagKeys,
 	removeCommitments,
 	resolveMessageId,
 	resolvePermawebApi,
@@ -188,7 +187,7 @@ function getSchedulerTags(source: any): { name: string; value: string }[] {
 
 	return Array.isArray(tags)
 		? tags
-				.filter((tag) => tag?.name && tag?.value !== undefined && tag?.value !== null)
+				.filter((tag) => typeof tag?.name === 'string' && tag?.value !== undefined && tag?.value !== null)
 				.map((tag) => ({ name: tag.name, value: tag.value.toString() }))
 		: [];
 }
@@ -223,7 +222,7 @@ function getSchedulerMessageTags(tags: { name: string; value: string }[], varian
 	nextTags = withSchedulerMessageTag(nextTags, TAGS.keys.type, 'Message');
 	nextTags = withSchedulerMessageTag(nextTags, TAGS.keys.variant, variant);
 
-	return normalizeTagKeys(nextTags);
+	return nextTags;
 }
 
 function getSchedulerTotalCount(latestSlot: number, variant: MessageVariantEnum) {
@@ -545,9 +544,10 @@ function Message(props: {
 		return () => controller.abort();
 	}, [open, input.status, props.element.node.id, props.element.display?.input, language.errorFetchingMessageData]);
 
-	const excludedTagNames = ['Type', 'Authority', 'Module', 'Scheduler'];
+	const excludedTagNames = ['type', 'authority', 'module', 'scheduler'];
 	const filteredTags =
-		props?.element?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name)) || [];
+		props?.element?.node?.tags?.filter((tag: { name: string }) => !excludedTagNames.includes(tag.name.toLowerCase())) ||
+		[];
 
 	function handleShowViewResult(e: React.MouseEvent) {
 		e.preventDefault();

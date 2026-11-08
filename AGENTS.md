@@ -1,5 +1,11 @@
 # Agent instructions
 
+## Execution authorization
+
+- Never run repository scripts, npm/package-manager commands, VS Code tasks, development servers, builds, tests, formatters, or architecture validators without the user's explicit authorization to execute them.
+- Do not bypass this rule by invoking a script, compiler, test runner, or task directly instead of through npm or VS Code.
+- Editing or staging changes does not authorize execution. Prepare checks without running them and report which verification remains pending.
+
 ## Required frontend architecture skill
 
 - Before acting on every prompt in this repository, load and follow `$permaweb-frontend-code-style` from `.agents/skills/permaweb-frontend-code-style/SKILL.md`.

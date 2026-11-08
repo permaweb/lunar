@@ -3,6 +3,7 @@ import React from 'react';
 import { type MessageValue, readAoCoreValue } from 'api/aoCore';
 import { AoReadError, getAoReadTransport } from 'api/aoNetwork';
 
+import { isAoLinkMetadataKey } from 'helpers/aoLinks';
 import { useAoReadNetwork } from 'hooks/useAoReadNetwork';
 
 import { getMessageFields, MAX_MESSAGE_EXPANSION_DEPTH } from '../model/fields';
@@ -86,7 +87,9 @@ export function useAoCoreGraph(value: MessageValue, rootId: string) {
 				if (child) return { ...next, entries: removeGraphBranch(next.entries, child.id) };
 				const parent = next.entries.find((entry) => entry.id === id);
 				if (parent?.content.status !== 'ready' || next.entries.length >= MAX_GRAPH_NODES) return next;
-				const field = getMessageFields(parent.content.value).find((item) => item.key === key);
+				const field = getMessageFields(parent.content.value, parent.isCommitmentMetadata).find(
+					(item) => item.key === key
+				);
 				if (!field || (!field.linkId && field.type !== 'message' && field.type !== 'list')) return next;
 				const reason =
 					parent.depth >= MAX_MESSAGE_EXPANSION_DEPTH
@@ -101,7 +104,7 @@ export function useAoCoreGraph(value: MessageValue, rootId: string) {
 					linkId: field.linkId,
 					ancestors: field.linkId ? [...parent.ancestors, field.linkId] : parent.ancestors,
 					depth: parent.depth + 1,
-					isCommitmentMetadata: parent.isCommitmentMetadata || key === 'commitments' || key === 'commitments+link',
+					isCommitmentMetadata: parent.isCommitmentMetadata || isAoLinkMetadataKey(key),
 					content: reason
 						? { status: 'blocked', reason }
 						: field.linkId

@@ -1,5 +1,6 @@
 import { getGraphQLEndpoint } from 'api/graphql';
 
+import { readAoLinkId } from 'helpers/aoLinks';
 import { FLAGS } from 'helpers/config';
 import { checkValidAddress } from 'helpers/utils';
 
@@ -332,13 +333,6 @@ function normalizeCount(value: number | string | undefined): number | undefined 
 	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function normalizeTagName(name: string) {
-	return name
-		.split('-')
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-		.join('-');
-}
-
 function normalizeTransactionConnection(connection: GQLConnection<TransactionNode>) {
 	return {
 		...connection,
@@ -347,10 +341,7 @@ function normalizeTransactionConnection(connection: GQLConnection<TransactionNod
 			...edge,
 			node: {
 				...edge.node,
-				tags: (edge.node.tags ?? []).map((tag) => ({
-					...tag,
-					name: normalizeTagName(tag.name),
-				})),
+				tags: edge.node.tags ?? [],
 			},
 		})),
 	};
@@ -419,10 +410,15 @@ function isArweaveId(value: unknown): value is string {
 
 function getBundleLinkIds(entries: [string, unknown][]): string[] {
 	const links = entries
-		.filter((entry): entry is [string, string] => /^\d+\+link$/i.test(entry[0]) && isArweaveId(entry[1]))
-		.sort(([a], [b]) => Number(a.split('+')[0]) - Number(b.split('+')[0]));
+		.flatMap(([name, value]) => {
+			const position = /^([1-9]\d*)(\+link)?$/i.exec(name);
+			if (!position || !Number.isSafeInteger(Number(position[1]))) return [];
+			const id = position[2] ? (isArweaveId(value) ? value : null) : readAoLinkId(value);
+			return id ? [{ index: Number(position[1]), id }] : [];
+		})
+		.sort((left, right) => left.index - right.index);
 
-	return [...new Set(links.map(([, id]) => id))];
+	return [...new Set(links.map(({ id }) => id))];
 }
 
 function getBundleCursor(index: number) {
@@ -443,6 +439,8 @@ function getIdsFromList(value: unknown) {
 	return value
 		.map((entry) => {
 			if (isArweaveId(entry)) return entry;
+			const linkedId = readAoLinkId(entry);
+			if (linkedId) return linkedId;
 			if (entry && typeof entry === 'object') {
 				const objectEntry = entry as Record<string, unknown>;
 
@@ -473,6 +471,53 @@ function getBundleTransactionIdsFromResponse(value: unknown) {
 	return [];
 }
 
+/** A JSON-encoded redirect may only select this bundle's public gateway sandbox. */
+function getCanonicalBundleUrl(location: string, bundleId: string, baseUrl: string): string {
+	const url = new URL(location, baseUrl);
+	const gateway = new URL(DEFAULT_ARWEAVE_ENDPOINT);
+	const sandbox = url.hostname.endsWith(`.${gateway.hostname}`)
+		? url.hostname.slice(0, -gateway.hostname.length - 1)
+		: '';
+	if (
+		url.protocol !== 'https:' ||
+		(url.hostname !== gateway.hostname && !/^[a-z2-7]{52}$/.test(sandbox)) ||
+		url.port ||
+		url.username ||
+		url.password ||
+		url.hash ||
+		url.pathname !== `/${bundleId}`
+	)
+		throw new Error('Invalid bundle redirect');
+	url.search = '';
+	url.searchParams.set('accept-bundle', 'false');
+	return url.href;
+}
+
+async function readBundleJson(
+	url: string,
+	args: GetTransactionsByBundleArgs,
+	response?: Response,
+	redirectsLeft = 1
+): Promise<string[]> {
+	response ??= await fetch(url, {
+		signal: args.signal,
+		headers: { Accept: 'application/json' },
+	});
+	if (!response.ok && response.status !== 302) throw new Error(`Bundle request failed with status ${response.status}`);
+	if (!response.headers.get('content-type')?.toLowerCase().startsWith('application/json'))
+		throw new Error('Bundle response is not JSON');
+	const value: unknown = await response.json();
+	if (response.status === 302) {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid bundle redirect');
+		const redirect = value as Record<string, unknown>;
+		if (redirectsLeft === 0 || redirect.status !== 302 || typeof redirect.location !== 'string')
+			throw new Error('Invalid bundle redirect');
+		const target = getCanonicalBundleUrl(redirect.location, args.bundleId, url);
+		return readBundleJson(target, args, undefined, redirectsLeft - 1);
+	}
+	return [...new Set(getBundleTransactionIdsFromResponse(value))];
+}
+
 async function getBundleTransactionIds(args: GetTransactionsByBundleArgs) {
 	const taggedIds = getBundleLinkIds((args.bundleTags ?? []).map((tag) => [tag.name, tag.value]));
 	if (taggedIds.length) return taggedIds;
@@ -482,25 +527,23 @@ async function getBundleTransactionIds(args: GetTransactionsByBundleArgs) {
 	if (cached) return cached;
 
 	const bundlePath = encodeURIComponent(args.bundleId);
-	const response = await fetch(
-		`${DEFAULT_ARWEAVE_ENDPOINT}/${bundlePath}?require-codec=application/json&accept-bundle=false`,
-		{
-			signal: args.signal,
-			headers: {
-				Accept: 'application/json',
-			},
-		}
-	);
+	const url = `${DEFAULT_ARWEAVE_ENDPOINT}/${bundlePath}?accept-bundle=false`;
+	// The default HTTP representation keeps Location as a transport header for browser redirects.
+	const response = await fetch(url, { signal: args.signal, headers: { Accept: '*/*' } });
 
-	if (!response.ok) {
+	if (!response.ok && response.status !== 302) {
 		throw new Error(`Bundle request failed with status ${response.status}`);
 	}
 
 	const headerEntries: [string, string][] = [];
 	response.headers.forEach((value, name) => headerEntries.push([name, value]));
-	const headerIds = getBundleLinkIds(headerEntries);
-	// HyperBEAM may serve its own HTML page as the body; bundle membership is in the headers.
-	const ids = headerIds.length ? headerIds : [...new Set(getBundleTransactionIdsFromResponse(await response.json()))];
+	const headerIds = response.ok ? getBundleLinkIds(headerEntries) : [];
+	const isJson = response.headers.get('content-type')?.toLowerCase().startsWith('application/json');
+	const ids = headerIds.length
+		? headerIds
+		: isJson
+		? await readBundleJson(url, args, response)
+		: await readBundleJson(getCanonicalBundleUrl(response.url || url, args.bundleId, url), args);
 
 	bundleTransactionIdsCache.set(args.bundleId, ids);
 	if (bundleTransactionIdsCache.size > BUNDLE_CACHE_LIMIT) {

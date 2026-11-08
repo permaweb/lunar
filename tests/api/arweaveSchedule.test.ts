@@ -11,7 +11,7 @@ const json = (value: unknown) =>
 	new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
 
 function reader(payload: unknown = assignments(0, 1), latestSlot = 1) {
-	const fetch = vi.fn(async (_input: RequestInfo | URL) => json(payload));
+	const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => json(payload));
 	const latest = vi.fn(async () => latestSlot);
 	const transport = createAoReadTransport(settings, { fetch, injected: () => undefined });
 	return { read: createArweaveScheduleReader(transport, latest), fetch, latest };
@@ -38,8 +38,46 @@ it('reads native JSON assignments, selecting tx@1.0 IDs and including the spawn 
 	expect(page.messages[0].tags.some((tag) => tag.name === 'commitments')).toBe(false);
 	const url = new URL(String(fetch.mock.calls[0][0]));
 	expect(url.pathname).toBe(`/${PROCESS_ID}~process@1.0/schedule&from=0&to=1/assignments`);
-	expect(url.searchParams.get('require-codec')).toBe('json@1.0');
+	expect(url.searchParams.has('require-codec')).toBe(false);
 	expect(url.searchParams.get('accept-bundle')).toBe('true');
+	expect(new Headers(fetch.mock.calls[0][1].headers).get('accept')).toBe('application/json');
+});
+
+it('accepts the committer URI returned for the real slots at blocks 1995392 and 1995397', async () => {
+	const committer = 'uri-did-ar-krdpoyat5puuinfdauymqo1vcybzpafnpnndls-a1347iulrvqrk';
+	const input = (slot: number, id: string) => {
+		const item = assignment(slot);
+		return {
+			...item,
+			body: {
+				...item.body,
+				commitments: { [id]: { 'commitment-device': 'tx@1.0', committer } },
+			},
+		};
+	};
+	const { read } = reader({ 0: input(0, PROCESS_ID), 1: input(1, MESSAGE_ID) });
+	const page = await read({ processId: PROCESS_ID, page: 0 });
+	expect(page.messages.map(({ sender }) => sender)).toEqual([committer, committer]);
+	expect(page.messages.map(({ id }) => id)).toEqual([MESSAGE_ID, PROCESS_ID]);
+});
+
+it('rejects malformed signer identities without relaxing transaction ID validation', async () => {
+	const item = assignment(0);
+	const { read } = reader(
+		{
+			0: {
+				...item,
+				body: {
+					...item.body,
+					commitments: {
+						[PROCESS_ID]: { 'commitment-device': 'tx@1.0', committer: 'did:web:example.com' },
+					},
+				},
+			},
+		},
+		0
+	);
+	await expect(read({ processId: PROCESS_ID, page: 0 })).rejects.toMatchObject({ code: 'invalid-response' });
 });
 
 it('keeps inputs assigned from other native recipients', async () => {

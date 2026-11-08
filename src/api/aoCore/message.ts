@@ -2,6 +2,7 @@ import JSONbig from 'json-bigint';
 
 import { AoReadError } from 'api/aoNetwork';
 
+import { readAoLinkId } from 'helpers/aoLinks';
 import { checkValidAddress } from 'helpers/utils';
 
 import type { AoCoreMessage, CommitmentInfo, MessageRecord, MessageValue, RecognitionEvidence } from './types';
@@ -38,6 +39,7 @@ export function recognizeAoMetadata(message: MessageRecord): RecognitionEvidence
 	if (['ao.TN.1', 'ao.N.1'].includes(messageText(message, 'variant'))) evidence.push('variant');
 	if (
 		DEVICE.test(messageText(message, 'device') ?? '') ||
+		readAoLinkId(messageText(message, 'device')) !== null ||
 		checkValidAddress(messageText(message, 'device+link') ?? '') ||
 		checkValidAddress(messageText(message, 'device') ?? '')
 	)
@@ -122,6 +124,7 @@ export function parseAoCoreMessage(
 	if (context) evidence.push('context');
 	const device = Object.entries(message).find(([key]) => key.toLowerCase() === 'device');
 	const deviceLink = messageText(message, 'device+link');
+	const hasDeviceUri = readAoLinkId(device?.[1]) !== null;
 	return {
 		requestedId,
 		message,
@@ -129,7 +132,15 @@ export function parseAoCoreMessage(
 		headers,
 		evidence,
 		device: typeof device?.[1] === 'string' ? device[1] : deviceLink ?? null,
-		deviceSource: device ? (typeof device[1] === 'string' ? 'explicit' : 'inline') : deviceLink ? 'linked' : 'default',
+		deviceSource: device
+			? hasDeviceUri
+				? 'linked'
+				: typeof device[1] === 'string'
+				? 'explicit'
+				: 'inline'
+			: deviceLink
+			? 'linked'
+			: 'default',
 		commitments: readCommitments(message),
 	};
 }

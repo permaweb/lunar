@@ -8,6 +8,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 import { JSONReader } from '../../../../src/components/molecules/JSONReader';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
+import { LUNAR_BALANCES_LINK, LUNAR_LINK_BALANCES, LUNAR_LINK_HEADERS } from '../../../fixtures/aoLinks';
 
 vi.mock('providers/LanguageProvider', () => ({
 	useLanguageProvider: () => ({
@@ -100,6 +101,35 @@ it('fetches linked values only when expanded, leaves nested links lazy, and reus
 	await toggleLink(nested, true);
 	expect(onLoadLink).toHaveBeenCalledTimes(2);
 	expect((await axe.run(container, { rules: { 'color-contrast': { enabled: false } } })).violations).toEqual([]);
+});
+
+it('expands current URI values on demand while retaining their original text and field names', async () => {
+	const onLoadLink = vi.fn(async () => LUNAR_LINK_BALANCES);
+	await render(LUNAR_LINK_HEADERS, true, undefined, { onLoadLink });
+	expect(onLoadLink).not.toHaveBeenCalled();
+	expect(container.textContent).toContain(`"ao:${LUNAR_BALANCES_LINK}"`);
+	expect(container.textContent).toContain('"balances"');
+	expect(container.querySelectorAll('details')).toHaveLength(1);
+	await toggleLink(container.querySelector('details'), true);
+	expect(onLoadLink).toHaveBeenCalledExactlyOnceWith(LUNAR_BALANCES_LINK, expect.any(AbortSignal));
+	expect(container.textContent).toContain(Object.keys(LUNAR_LINK_BALANCES)[0]);
+});
+
+it('supports URI list items without interpreting syntax or commitment metadata as links', async () => {
+	const uri = `ao:${LUNAR_BALANCES_LINK}`;
+	const onLoadLink = vi.fn(async () => 'loaded value');
+	await render(
+		{ items: [uri], path: uri, hashpath: uri, commitments: { signed: { signature: uri } } },
+		true,
+		undefined,
+		{ onLoadLink }
+	);
+	expect(container.querySelectorAll('details')).toHaveLength(1);
+	expect(onLoadLink).not.toHaveBeenCalled();
+	await toggleLink(container.querySelector('details'), true);
+	expect(onLoadLink).toHaveBeenCalledExactlyOnceWith(LUNAR_BALANCES_LINK, expect.any(AbortSignal));
+	expect(container.textContent).not.toContain('undefined');
+	expect(container.textContent).toContain('loaded value');
 });
 
 it('cancels collapsed linked reads, ignores their late results, and retries failed reads on demand', async () => {
