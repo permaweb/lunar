@@ -1,6 +1,6 @@
 import { type CommitmentInfo, isMessageRecord, messageText, type MessageValue } from 'api/aoCore';
 
-import { checkValidAddress } from 'helpers/utils';
+import { isLegacyAoLinkKey, readMessageLinkId } from 'helpers/aoLinks';
 
 export const MESSAGE_FIELDS_PAGE_SIZE = 50;
 export const MAX_MESSAGE_EXPANSION_DEPTH = 16;
@@ -20,14 +20,15 @@ export type FieldCoverage = {
 	fieldCount: number | null;
 };
 
-export function getMessageFields(value: MessageValue): MessageField[] {
+export function getMessageFields(value: MessageValue, isCommitmentMetadata = false): MessageField[] {
 	const entries: [string, MessageValue][] = Array.isArray(value)
 		? value.map((item, index) => [String(index + 1), item])
 		: isMessageRecord(value)
 		? Object.entries(value)
 		: [['', value]];
 	return entries.map(([key, value]) => {
-		const link = key.endsWith('+link');
+		const linkId = readMessageLinkId(key, value, isCommitmentMetadata);
+		const link = !!linkId || isLegacyAoLinkKey(key, isCommitmentMetadata);
 		return {
 			key,
 			value,
@@ -46,7 +47,7 @@ export function getMessageFields(value: MessageValue): MessageField[] {
 				: typeof value === 'boolean'
 				? 'boolean'
 				: 'text',
-			linkId: link && typeof value === 'string' && checkValidAddress(value) ? value : undefined,
+			linkId: linkId ?? undefined,
 		};
 	});
 }

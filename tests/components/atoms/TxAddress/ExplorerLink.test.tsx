@@ -13,6 +13,7 @@ import {
 	ARWEAVE_HOST,
 	ETHEREUM_ADDRESS,
 	ETHEREUM_DID,
+	HB_IDENTITY_WITNESSES,
 	SOLANA_ADDRESS,
 	SOLANA_DID,
 } from '../../../fixtures/identities';
@@ -102,6 +103,9 @@ it.each([
 	[ARWEAVE_HOST, ARWEAVE_ADDRESS],
 	[`did:ar:${ARWEAVE_ADDRESS}`, ARWEAVE_ADDRESS],
 	[SOLANA_DID, SOLANA_ADDRESS],
+	[HB_IDENTITY_WITNESSES.ethereum.committer, HB_IDENTITY_WITNESSES.ethereum.address],
+	[HB_IDENTITY_WITNESSES.solana.committer, HB_IDENTITY_WITNESSES.solana.address],
+	[HB_IDENTITY_WITNESSES.solana.address, HB_IDENTITY_WITNESSES.solana.address],
 ])('opens %s with its exact identity while displaying its address', async (identifier, address) => {
 	vi.useFakeTimers();
 	value = identifier;

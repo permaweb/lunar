@@ -12,6 +12,7 @@ import { AoCoreInfo } from '../../../src/features/AoCore/components/organisms/Ao
 import { AoCoreMessageInfo } from '../../../src/features/AoCore/components/organisms/AoCoreMessageInfo';
 import { DEFAULT_AO_NETWORK } from '../../../src/helpers/aoNetwork';
 import { darkTheme, theme } from '../../../src/helpers/themes';
+import { LUNAR_BALANCES_LINK, LUNAR_LINK_BALANCES, LUNAR_LINK_HEADERS } from '../../fixtures/aoLinks';
 
 const mocks = vi.hoisted(() => ({ read: vi.fn(), network: null }));
 vi.mock('api/aoCore', async (original) => ({ ...(await original()), readAoCoreValue: mocks.read }));
@@ -381,6 +382,40 @@ it('loads a linked message only on expansion and shows its own field coverage', 
 	expect(container.querySelector(`a[href="#/explorer/${link}"]`)).not.toBeNull();
 	await click('Collapse body+link');
 	expect(container.querySelectorAll('[role=table]')).toHaveLength(1);
+});
+
+it('expands the observed balance URI only on a click and preserves exact field coverage', async () => {
+	mocks.read.mockResolvedValue(linkedResult(LUNAR_LINK_BALANCES));
+	await render(
+		readyMessage({
+			...LUNAR_LINK_HEADERS,
+			hashpath: `ao:${LUNAR_BALANCES_LINK}`,
+			commitments: { signed: { committed: ['balances'], signature: 'original-signature' } },
+		})
+	);
+	const table = container.querySelector('[role=table][aria-label="Message Fields"]');
+	expect(fieldCells(table, 'balances')[1].textContent).toBe('Link');
+	expect(fieldCells(table, 'balances')[2].textContent).toBe('1 of 1 listed');
+	expect(fieldCells(table, 'balances')[3].textContent).toContain(`ao:${LUNAR_BALANCES_LINK}`);
+	expect(fieldCells(table, 'hashpath')[1].textContent).toBe('Text');
+	expect(mocks.read).not.toHaveBeenCalled();
+	await click('Expand balances');
+	expect(mocks.read.mock.calls[0][1]).toBe(LUNAR_BALANCES_LINK);
+	expect(container.querySelector('[role=table][aria-label="Fields of balances"]')?.textContent).toContain(
+		Object.keys(LUNAR_LINK_BALANCES)[0]
+	);
+});
+
+it('keeps AO URI text literal inside an expanded commitment record', async () => {
+	const uri = `ao:${LUNAR_BALANCES_LINK}`;
+	await render(readyMessage({ commitments: { original: { signature: uri, target: uri } } }));
+	await click('Expand commitments');
+	await click('Expand original');
+	const table = container.querySelector('[role=table][aria-label="Fields of original"]');
+	expect(fieldCells(table, 'signature')[1].textContent).toBe('Text');
+	expect(table.querySelector('[aria-label="Expand signature"]')).toBeNull();
+	expect(table.querySelector('[aria-label="Expand target"]')).toBeNull();
+	expect(mocks.read).not.toHaveBeenCalled();
 });
 
 it('loads linked commitments on demand using the same child tables', async () => {

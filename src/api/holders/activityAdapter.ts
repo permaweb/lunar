@@ -140,11 +140,6 @@ export async function getLatestHolderTransactions(options: {
 	const result: Record<string, HolderLastTransaction> = {};
 	const missing: string[] = [];
 	for (const address of addresses) {
-		// Owner filters use the ANS-104 address, not a derived Ethereum account.
-		if (!checkValidAddress(address)) {
-			result[address] = { status: 'unsupported' };
-			continue;
-		}
 		const saved = cache.get(`${endpoint}:${address}`);
 		if (saved && Date.now() >= saved.updatedAt && Date.now() - saved.updatedAt < CACHE_TTL_MS)
 			result[address] = saved.transaction;

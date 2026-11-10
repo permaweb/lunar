@@ -11,6 +11,7 @@ import type { MessageListEntry } from '../../../../src/components/molecules/Mess
 import { FLAGS, STORAGE } from '../../../../src/helpers/config';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
+import { LEGACY_PROCESS_ID, LEGACY_SCHEDULE_EDGE } from '../../../fixtures/arweaveSchedule';
 import {
 	ARWEAVE_ADDRESS,
 	ARWEAVE_HOST,
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => ({
 	transactions: vi.fn(),
 	latestSlot: vi.fn(),
 	schedule: vi.fn(),
+	download: vi.fn(),
 }));
 const provider = {
 	legacyApi: {
@@ -39,6 +41,10 @@ const provider = {
 vi.mock('api/blocks', () => ({ getTransactions: mocks.transactions }));
 vi.mock('providers/PermawebProvider', () => ({ usePermawebProvider: () => provider }));
 vi.mock('api/http', () => ({ requestRemote: mocks.remote }));
+vi.mock('helpers/csv', async (importOriginal) => ({
+	...(await importOriginal<typeof import('../../../../src/helpers/csv')>()),
+	downloadCsv: mocks.download,
+}));
 vi.mock('react-redux', () => ({ useDispatch: () => vi.fn() }));
 vi.mock('components/molecules/Editor', () => ({ Editor: (props) => <pre>{props.initialData}</pre> }));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden="true" /> }));
@@ -254,6 +260,58 @@ async function renderDirectional(type: 'process' | 'wallet' = 'process', txId = 
 		)
 	);
 }
+
+it.each([false, true])(
+	'preserves scheduler SDK casing and raw CSV tag fields (extra boundary tags: %s)',
+	async (extraTags) => {
+		const tags = extraTags
+			? [
+					...LEGACY_SCHEDULE_EDGE.node.message.tags,
+					{ name: 'SDK', value: '' },
+					{ name: 'customTag', value: 'second' },
+					{ name: '', value: 'unnamed' },
+			  ]
+			: LEGACY_SCHEDULE_EDGE.node.message.tags;
+		const edge = {
+			...LEGACY_SCHEDULE_EDGE,
+			node: {
+				...LEGACY_SCHEDULE_EDGE.node,
+				message: { ...LEGACY_SCHEDULE_EDGE.node.message, tags },
+			},
+		};
+		mocks.remote.mockImplementation(async (url) => {
+			if (String(url).endsWith('/latest')) {
+				return new Response(JSON.stringify({ assignment: LEGACY_SCHEDULE_EDGE.node.assignment }));
+			}
+			if (String(url).includes('from-nonce=')) {
+				return new Response(JSON.stringify({ edges: [edge] }));
+			}
+			return new Response(LEGACY_SCHEDULE_EDGE.node.message.data);
+		});
+		await React.act(async () =>
+			root.render(
+				<MemoryRouter>
+					<ThemeProvider theme={theme(darkTheme)}>
+						<MessageList
+							txId={LEGACY_PROCESS_ID}
+							type="process"
+							variant={MessageVariantEnum.Legacynet}
+							currentFilter="incoming"
+						/>
+					</ThemeProvider>
+				</MemoryRouter>
+			)
+		);
+		await React.act(async () => row().click());
+		const input = container.querySelector('section[aria-label^="Input"]');
+		expect(input.textContent).toContain('SDKaoconnect');
+		expect(input.textContent).not.toContain('Sdkaoconnect');
+		await React.act(async () => button('Download').click());
+		expect(mocks.download).toHaveBeenCalledWith(expect.any(String), [
+			expect.objectContaining({ id: LEGACY_SCHEDULE_EDGE.node.message.id, tags }),
+		]);
+	}
+);
 
 it.each([ETHEREUM_DID, ARWEAVE_HOST, SOLANA_DID])(
 	'preserves %s in outgoing, paginated, and incoming account history queries',

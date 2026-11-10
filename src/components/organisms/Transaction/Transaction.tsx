@@ -39,7 +39,7 @@ import { checkValidAoAccount, getAoSender } from 'helpers/aoAccounts';
 import { getArweaveNodeRoute, normalizeArweaveNode } from 'helpers/arweaveNode';
 import { ASSETS, PROCESSES, STYLING, TAGS, TOKEN_DENOMINATIONS, URLS } from 'helpers/config';
 import { getTxEndpoint } from 'helpers/endpoints';
-import { parseAccountIdentity } from 'helpers/identities';
+import { parseAccountIdentity, sameAccountIdentity } from 'helpers/identities';
 import type { PinTarget } from 'helpers/pinnedTabs';
 import { getAoProcessSummary } from 'helpers/processes';
 import { searchTxById } from 'helpers/search';
@@ -1733,7 +1733,7 @@ function Transaction(props: {
 				}
 			);
 
-			if (arProvider.walletAddress && ownerAddress === arProvider.walletAddress) {
+			if (sameAccountIdentity(ownerAddress, arProvider.walletAddress)) {
 				tabs.push({
 					label: language.aos,
 					icon: ASSETS.console,

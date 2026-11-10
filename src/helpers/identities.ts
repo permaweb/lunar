@@ -92,21 +92,54 @@ function decodeArweaveAccount(identifier: string): string | null {
 	return /[AEIMQUYcgkosw048]$/.test(address) ? address : null;
 }
 
+/** Solana host DIDs restore address casing from a nine-character base36 bitmap. */
+function decodeSolanaAccount(identifier: string): string | null {
+	const match = /^uri-did-pkh-solana-([a-z0-9]{32,44})([0-9a-z]{9})$/.exec(identifier);
+	if (!match) return null;
+	let bitmap = 0n;
+	for (const char of match[2]) bitmap = bitmap * 36n + BigInt(parseInt(char, 36));
+	if (bitmap >= 1n << BigInt(match[1].length)) return null;
+	let address = '';
+	for (let index = 0; index < match[1].length; index++) {
+		const char = match[1][index];
+		const isSet = (bitmap & (1n << BigInt(match[1].length - 1 - index))) !== 0n;
+		if (isSet && !/[a-z]/.test(char)) return null;
+		address += isSet ? char.toUpperCase() : char;
+	}
+	return isSolanaAddress(address) ? address : null;
+}
+
 /** Parse display information without changing the identifier used by an index or ledger. */
 export function parseAccountIdentity(identifier: unknown): AccountIdentity | null {
 	if (typeof identifier !== 'string') return null;
 	if (isArweaveId(identifier)) return { identifier, address: identifier, namespace: 'arweave' };
 	if (isEthereumAddress(identifier))
-		return { identifier, address: checksumEthereumAddress(identifier), namespace: 'eip155' };
+		return { identifier, address: checksumEthereumAddress(identifier), namespace: 'eip155', reference: '1' };
 	const arweave = identifier.startsWith('did:ar:') ? identifier.slice(7) : decodeArweaveAccount(identifier);
 	if (isArweaveId(arweave)) return { identifier, address: arweave, namespace: 'arweave' };
+	const ethereumHost = /^uri-did-pkh-eip155-1-(0x[\da-f]{40})$/.exec(identifier);
+	if (ethereumHost)
+		return { identifier, address: checksumEthereumAddress(ethereumHost[1]), namespace: 'eip155', reference: '1' };
 	const ethereum = /^did:pkh:eip155:1:(0x[\da-fA-F]{40})$/.exec(identifier);
 	if (ethereum && checksumEthereumAddress(ethereum[1]) === ethereum[1])
 		return { identifier, address: ethereum[1], namespace: 'eip155', reference: '1' };
 	const solana = identifier.startsWith(`did:pkh:solana:${SOLANA_MAINNET}:`)
 		? identifier.slice(`did:pkh:solana:${SOLANA_MAINNET}:`.length)
-		: null;
+		: decodeSolanaAccount(identifier) ?? identifier;
 	if (solana && isSolanaAddress(solana))
 		return { identifier, address: solana, namespace: 'solana', reference: SOLANA_MAINNET };
 	return null;
+}
+
+/** Compare account representations without changing their index or ledger keys. */
+export function sameAccountIdentity(left: unknown, right: unknown): boolean {
+	const leftAccount = parseAccountIdentity(left);
+	const rightAccount = parseAccountIdentity(right);
+	return (
+		leftAccount !== null &&
+		rightAccount !== null &&
+		leftAccount.namespace === rightAccount.namespace &&
+		leftAccount.reference === rightAccount.reference &&
+		leftAccount.address === rightAccount.address
+	);
 }

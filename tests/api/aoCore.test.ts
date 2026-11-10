@@ -167,14 +167,26 @@ describe('stored-message reads', () => {
 	});
 	it('reads only the opened cache ID and leaves links unloaded', async () => {
 		const raw = JSON.stringify({ device: 'process@1.0', 'body+link': 'b'.repeat(43) });
-		const fetcher = vi.fn(async () => json(raw));
+		const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => json(raw));
 		const result = await readAoCoreMessage(transportFor(fetcher), id);
 		expect(fetcher).toHaveBeenCalledTimes(1);
-		expect(fetcher.mock.calls[0][0]).toBe(
-			`/~cache@1.0/read?target=${id}&require-codec=application/json&accept-bundle=false`
-		);
+		expect(fetcher.mock.calls[0][0]).toBe(`/~cache@1.0/read?read=${id}&accept-bundle=false`);
+		expect(new Headers(fetcher.mock.calls[0][1].headers).get('accept')).toBe('application/json');
 		expect(result.data.rawText).toBe(raw);
 		expect(result.source).toBe('permawebos');
+	});
+	it('negotiates JSON and supplies the cache read key for a real linked balance dictionary', async () => {
+		const balanceId = 'gjU_jEYhcQugu6pemjiFizCCaCUWOKTLo2HFAKMA9l8';
+		const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = new URL(String(input), 'https://arweave.net');
+			if (url.searchParams.get('read') !== balanceId) return new Response('Missing required key', { status: 400 });
+			return new Headers(init?.headers).get('accept') === 'application/json'
+				? json('{"holder":"1"}')
+				: new Response(null);
+		});
+		const result = await readAoCoreValue(transportFor(fetcher), balanceId);
+		expect(result.data.value).toEqual({ holder: '1' });
+		expect(fetcher).toHaveBeenCalledOnce();
 	});
 	it('rejects unsupported content, oversized responses and unsafe paths', async () => {
 		await expect(

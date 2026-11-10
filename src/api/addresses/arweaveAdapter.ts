@@ -363,9 +363,10 @@ export async function getAddressChunk(args: {
 	let response: Response;
 
 	try {
+		// Ask for JSON in the response; this GET has no JSON request body.
 		response = await fetch(path, {
 			headers: {
-				'Content-Type': 'application/json',
+				Accept: 'application/json',
 			},
 			signal: args.signal,
 		});

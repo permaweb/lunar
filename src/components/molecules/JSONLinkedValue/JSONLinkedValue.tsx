@@ -10,6 +10,7 @@ type Content = { status: 'idle' | 'loading' | 'error' } | { status: 'ready'; val
 
 export default function JSONLinkedValue(props: {
 	id: string;
+	displayValue?: string;
 	prefix: React.ReactNode;
 	onLoad: (id: string, signal: AbortSignal) => Promise<unknown>;
 	onRender: (value: unknown) => React.ReactNode;
@@ -51,7 +52,7 @@ export default function JSONLinkedValue(props: {
 				prefix={<S.Label>{props.prefix}</S.Label>}
 				label={
 					<S.Label>
-						<S.Link>{`"${props.id}"`}</S.Link>
+						<S.Link>{`"${props.displayValue ?? props.id}"`}</S.Link>
 						{props.suffix}
 					</S.Label>
 				}

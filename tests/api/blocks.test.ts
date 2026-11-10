@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getTransactions } from '../../src/api/blocks';
+import { getTransactionById, getTransactions, getTransactionsByBlock } from '../../src/api/blocks';
 import { setGraphQLEndpoint } from '../../src/api/graphql';
 import { DEFAULT_GRAPHQL_ENDPOINT } from '../../src/helpers/config';
+import { mapTransactionForCsv } from '../../src/helpers/csv';
+import { EMPTY_TRANSFER_ID, EMPTY_TRANSFER_TAGS } from '../fixtures/transactionData';
 
 afterEach(() => {
 	vi.unstubAllGlobals();
@@ -20,6 +22,48 @@ function stubEmptyTransactions() {
 }
 
 describe('Arweave block API adapter', () => {
+	it('preserves the real lowercase transfer tags in recent, block, by-ID, and CSV results', async () => {
+		const node = { id: EMPTY_TRANSFER_ID, tags: EMPTY_TRANSFER_TAGS };
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({
+				ok: true,
+				json: async () => ({
+					data: { transactions: { edges: [{ node }], pageInfo: { hasNextPage: false } } },
+				}),
+			})
+		);
+
+		const recent = await getTransactions();
+		const block = await getTransactionsByBlock({ blockHeight: 2006276 });
+		const transaction = await getTransactionById({ id: EMPTY_TRANSFER_ID });
+
+		for (const result of [recent.transactions.edges[0].node, block.transactions.edges[0].node, transaction]) {
+			expect(result.tags).toEqual(EMPTY_TRANSFER_TAGS);
+			expect(mapTransactionForCsv(result).tags).toEqual(EMPTY_TRANSFER_TAGS);
+		}
+	});
+
+	it('keeps duplicate names, mixed casing, empty values, and original tag order', async () => {
+		const tags = [
+			{ name: 'SDK', value: 'first' },
+			{ name: 'appName', value: '' },
+			{ name: 'SDK', value: 'second' },
+			{ name: 'sdk', value: 'third' },
+		];
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({
+				ok: true,
+				json: async () => ({
+					data: { transactions: { edges: [{ node: { id: EMPTY_TRANSFER_ID, tags } }], pageInfo: {} } },
+				}),
+			})
+		);
+
+		expect((await getTransactionById({ id: EMPTY_TRANSFER_ID })).tags).toEqual(tags);
+	});
+
 	it('requests the latest transactions in descending block order', async () => {
 		const fetchMock = vi.fn().mockResolvedValue({
 			ok: true,

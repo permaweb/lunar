@@ -10,6 +10,12 @@ const losslessJson = JSONbig({ storeAsString: true, protoAction: 'error', constr
 const HTTP_RELAY_URL = 'https://arweave.net/~relay@1.0/call';
 type ReadOptions = RequestInit & { timeoutMs?: number };
 
+function jsonReadOptions(options?: ReadOptions): ReadOptions {
+	const headers = new Headers(options?.headers);
+	if (!headers.has('accept')) headers.set('Accept', 'application/json');
+	return { ...options, headers };
+}
+
 export function createAoReadTransport(
 	settings: AoNetworkSettings,
 	dependencies: {
@@ -196,7 +202,7 @@ export function createAoReadTransport(
 						throw new AoReadError('invalid-response');
 					}
 				},
-				init
+				jsonReadOptions(init)
 			),
 		readText: <T = string>(path: string, init?: ReadOptions, parse?: (value: string) => T) =>
 			read(

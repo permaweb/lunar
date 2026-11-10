@@ -11,7 +11,13 @@ import { Transaction } from '../../../../src/components/organisms/Transaction';
 import { darkTheme, theme } from '../../../../src/helpers/themes';
 import type { GQLNodeResponseType, TagType, TransactionType } from '../../../../src/helpers/types';
 import { MessageVariantEnum } from '../../../../src/helpers/types';
-import { ARWEAVE_ADDRESS, ARWEAVE_HOST, ETHEREUM_DID, SOLANA_DID } from '../../../fixtures/identities';
+import {
+	ARWEAVE_ADDRESS,
+	ARWEAVE_HOST,
+	ETHEREUM_DID,
+	HB_IDENTITY_WITNESSES,
+	SOLANA_DID,
+} from '../../../fixtures/identities';
 import {
 	BUNDLE_HEADERS,
 	BUNDLE_ID,
@@ -32,6 +38,7 @@ const mocks = vi.hoisted(() => ({
 	arBalance: vi.fn(),
 	showTabContent: false,
 	activeTab: 'Overview',
+	walletAddress: null as string | null,
 	tabLabels: [] as string[],
 }));
 vi.mock('helpers/search', () => ({ searchTxById: mocks.lookup }));
@@ -40,7 +47,7 @@ vi.mock('react-redux', () => ({ useDispatch: () => mocks.dispatch }));
 vi.mock('react-svg', () => ({ ReactSVG: () => <svg aria-hidden={'true'} /> }));
 vi.mock('store', () => ({ store: { getState: () => ({ transactions: {} }) } }));
 vi.mock('providers/PermawebProvider', () => ({ usePermawebProvider: () => ({ legacyApi: mocks.legacyApi }) }));
-vi.mock('providers/ArweaveProvider', () => ({ useArweaveProvider: () => ({ walletAddress: null }) }));
+vi.mock('providers/ArweaveProvider', () => ({ useArweaveProvider: () => ({ walletAddress: mocks.walletAddress }) }));
 vi.mock('providers/NotificationProvider', () => ({ useNotifications: () => ({ addNotification: vi.fn() }) }));
 vi.mock('features/Mining', () => ({ useWalletMining: () => ({ isMiner: false }) }));
 vi.mock('api/http', () => ({ requestRemote: vi.fn() }));
@@ -92,6 +99,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.showTabContent = false;
 	mocks.activeTab = 'Overview';
+	mocks.walletAddress = null;
 	vi.mocked(requestRemote).mockResolvedValue(new Response(null, { status: 404 }));
 	vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 	mocks.balance.mockResolvedValue('0');
@@ -153,24 +161,53 @@ it('retains the GQL control when a transaction is not found', async () => {
 	expect(container.querySelector('[data-testid="graphql-chip"]')?.textContent).toBe(processId);
 });
 
-it.each([ETHEREUM_DID, ARWEAVE_HOST, `did:ar:${ARWEAVE_ADDRESS}`, SOLANA_DID])(
-	'opens DID account history for %s without probing legacy balances',
-	async (identifier) => {
-		mocks.showTabContent = true;
-		mocks.lookup.mockResolvedValue({
-			...transaction([{ name: 'Type', value: 'Wallet' }]),
-			node: { ...transaction([{ name: 'Type', value: 'Wallet' }]).node, id: identifier },
-		});
-		await render('transaction', identifier);
-		expect(mocks.lookup).toHaveBeenCalledWith(expect.objectContaining({ txId: identifier }));
-		const list = container.querySelector('[data-testid="message-list"]');
-		expect(list?.getAttribute('data-identity')).toBe(identifier);
-		expect(list?.getAttribute('data-type')).toBe('wallet');
-		expect(mocks.balance).not.toHaveBeenCalled();
-		expect(mocks.arBalance).not.toHaveBeenCalled();
-		expect(container.textContent).not.toContain('Loading...');
-	}
-);
+it.each([
+	ETHEREUM_DID,
+	ARWEAVE_HOST,
+	`did:ar:${ARWEAVE_ADDRESS}`,
+	SOLANA_DID,
+	HB_IDENTITY_WITNESSES.ethereum.committer,
+	HB_IDENTITY_WITNESSES.solana.committer,
+	HB_IDENTITY_WITNESSES.solana.address,
+])('opens DID account history for %s without probing legacy balances', async (identifier) => {
+	mocks.showTabContent = true;
+	mocks.lookup.mockResolvedValue({
+		...transaction([{ name: 'Type', value: 'Wallet' }]),
+		node: { ...transaction([{ name: 'Type', value: 'Wallet' }]).node, id: identifier },
+	});
+	await render('transaction', identifier);
+	expect(mocks.lookup).toHaveBeenCalledWith(expect.objectContaining({ txId: identifier }));
+	const list = container.querySelector('[data-testid="message-list"]');
+	expect(list?.getAttribute('data-identity')).toBe(identifier);
+	expect(list?.getAttribute('data-type')).toBe('wallet');
+	expect(mocks.balance).not.toHaveBeenCalled();
+	expect(mocks.arBalance).not.toHaveBeenCalled();
+	expect(container.textContent).not.toContain('Loading...');
+});
+
+it.each([
+	{ walletAddress: HB_IDENTITY_WITNESSES.process.address, hasAccess: true },
+	{ walletAddress: HB_IDENTITY_WITNESSES.process.address.toLowerCase(), hasAccess: false },
+	{ walletAddress: null, hasAccess: false },
+])('offers AOS only to the captured process owner account $walletAddress', async ({ walletAddress, hasAccess }) => {
+	const process = HB_IDENTITY_WITNESSES.process;
+	mocks.walletAddress = walletAddress;
+	mocks.lookup.mockResolvedValue({
+		cursor: null,
+		node: {
+			id: process.id,
+			tags: [
+				{ name: 'Type', value: 'Process' },
+				{ name: 'Variant', value: MessageVariantEnum.Mainnet },
+			],
+			owner: { address: process.committer },
+			data: null,
+			block: { height: 2037778, timestamp: 1794105027 },
+		},
+	});
+	await render('process', process.id);
+	expect(mocks.tabLabels.includes('AOS')).toBe(hasAccess);
+});
 
 it('populates the bundle table by resolving each linked ID from its tags', async () => {
 	mocks.showTabContent = true;

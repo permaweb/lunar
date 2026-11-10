@@ -11,6 +11,7 @@ import { AoReadError } from '../../../src/api/aoNetwork';
 import { AoCoreInfo } from '../../../src/features/AoCore/components/organisms/AoCoreInfo';
 import { DEFAULT_AO_NETWORK } from '../../../src/helpers/aoNetwork';
 import { darkTheme, theme } from '../../../src/helpers/themes';
+import { LUNAR_BALANCES_LINK, LUNAR_LINK_BALANCES, LUNAR_LINK_HEADERS } from '../../fixtures/aoLinks';
 
 const mocks = vi.hoisted(() => ({
 	read: vi.fn(),
@@ -139,6 +140,28 @@ it('switches views without refetching the root and expands inline messages from 
 	await mode('table');
 	expect(container.querySelector('[role=table][aria-label="Message Fields"]')).not.toBeNull();
 	expect(mocks.read).not.toHaveBeenCalled();
+});
+
+it('opens current URI links on demand while keeping graph metadata values literal', async () => {
+	mocks.read.mockResolvedValue(result(LUNAR_LINK_BALANCES));
+	const uri = `ao:${LUNAR_BALANCES_LINK}`;
+	await render({
+		...LUNAR_LINK_HEADERS,
+		path: uri,
+		hashpath: uri,
+		commitments: { original: { signature: uri } },
+	});
+	await mode('graph');
+	expect(mocks.read).not.toHaveBeenCalled();
+	expect(container.querySelector('[aria-label="Expand path"]')).toBeNull();
+	expect(container.querySelector('[aria-label="Expand hashpath"]')).toBeNull();
+	await click('Expand balances');
+	expect(mocks.read.mock.calls[0][1]).toBe(LUNAR_BALANCES_LINK);
+	expect(container.querySelectorAll('[data-node-id]')).toHaveLength(2);
+	await click('Expand commitments');
+	await click('Expand original');
+	expect(container.querySelector('[aria-label="Expand signature"]')).toBeNull();
+	expect(mocks.read).toHaveBeenCalledTimes(1);
 });
 
 it('shows exact coverage evidence and highlights only the selected message’s matching fields', async () => {

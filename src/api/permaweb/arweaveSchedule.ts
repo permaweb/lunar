@@ -1,5 +1,6 @@
 import { AoReadError, type getAoReadTransport } from 'api/aoNetwork';
 
+import { parseAccountIdentity } from 'helpers/identities';
 import type { TagType } from 'helpers/types';
 import { checkValidAddress } from 'helpers/utils';
 
@@ -50,6 +51,11 @@ function address(value: unknown): string {
 	return value;
 }
 
+function committer(value: unknown): string {
+	if (typeof value !== 'string' || !parseAccountIdentity(value)) throw new AoReadError('invalid-response');
+	return value;
+}
+
 function parseAssignments(value: unknown, processId: string, from: number, to: number): ArweaveScheduleMessage[] {
 	const assignments = record(value);
 	const entries = Object.entries(assignments).filter(([key]) => /^\d+$/.test(key));
@@ -74,7 +80,7 @@ function parseAssignments(value: unknown, processId: string, from: number, to: n
 			slot,
 			blockHeight: integer(assignment['block-height']),
 			blockIndex: integer(assignment['block-index']),
-			sender: address(record(commitment).committer),
+			sender: committer(record(commitment).committer),
 			// Assign-To can schedule this input even when its native recipient is a different process.
 			recipient: body.target === undefined || body.target === '' ? null : address(body.target),
 			action: typeof body.action === 'string' ? body.action : null,
@@ -106,8 +112,8 @@ export function createArweaveScheduleReader(
 		const to = latestSlot - args.page * ARWEAVE_SCHEDULE_PAGE_SIZE;
 		const from = Math.max(0, to - ARWEAVE_SCHEDULE_PAGE_SIZE + 1);
 		const response = await transport.readJson(
-			`/${args.processId}~process@1.0/schedule&from=${from}&to=${to}/assignments?require-codec=json%401.0&accept-bundle=true`,
-			{ signal: args.signal },
+			`/${args.processId}~process@1.0/schedule&from=${from}&to=${to}/assignments?accept-bundle=true`,
+			{ signal: args.signal, headers: { Accept: 'application/json' } },
 			(value) => parseAssignments(value, args.processId, from, to)
 		);
 		return { messages: response.data, latestSlot, totalCount, page: args.page, totalPages };

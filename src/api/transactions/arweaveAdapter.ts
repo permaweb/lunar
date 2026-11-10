@@ -34,10 +34,47 @@ function decodeBase64UrlText(value: string) {
 	}
 }
 
+type SignatureParameter = string | Map<string, SignatureParameter>;
+
+/** HB parameter containers are identified before one layer of percent escaping is removed. */
+function decodeSignatureParameter(value: string, depth = 0): SignatureParameter {
+	if (depth > 3 || value.startsWith(',')) throw new Error('Invalid original tags');
+	if (!value.startsWith(':')) return decodeURIComponent(value);
+	const members = value === ':' ? [] : value.slice(1).split(', ');
+	if (members.length > 128) throw new Error('Invalid original tags');
+	const map = new Map<string, SignatureParameter>();
+	for (const member of members) {
+		const separator = member.indexOf(':');
+		if (separator <= 0) throw new Error('Invalid original tags');
+		const key = decodeURIComponent(member.slice(0, separator));
+		if (!key || map.has(key)) throw new Error('Invalid original tags');
+		map.set(key, decodeSignatureParameter(decodeURIComponent(member.slice(separator + 1)), depth + 1));
+	}
+	return map;
+}
+
 function parseOriginalTags(signature: SignatureInput | null) {
 	const originalTags = signature?.params.get('original-tags');
 	if (!originalTags) return [];
+	if (originalTags.startsWith(':')) {
+		try {
+			const decoded = decodeSignatureParameter(originalTags);
+			if (!(decoded instanceof Map)) return [];
+			const entries = [...decoded.entries()].sort(([left], [right]) => Number(left) - Number(right));
+			return entries.map(([index, tag], position): TagType => {
+				if (index !== String(position + 1) || !(tag instanceof Map)) throw new Error('Invalid original tags');
+				const name = tag.get('name');
+				const value = tag.get('value');
+				if (typeof name !== 'string' || typeof value !== 'string') throw new Error('Invalid original tags');
+				return { name, value };
+			});
+		} catch {
+			// Malformed parameters retain the covered-header fallback; never invent original tags.
+			return [];
+		}
+	}
 
+	// Older gateways use compact numbered name/base64-value entries.
 	return originalTags
 		.split(/,\s*/)
 		.map((entry) => {

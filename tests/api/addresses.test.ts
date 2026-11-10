@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getLatestAddressSnapshot } from '../../src/api/addresses';
+import { getAddressChunk, getLatestAddressSnapshot } from '../../src/api/addresses';
 import { decodeWalletListChunk } from '../../src/api/addresses/arweaveAdapter';
 
 const WALLET_LIST_ROOT = 'A'.repeat(64);
@@ -53,7 +53,7 @@ describe('Arweave address API adapter', () => {
 		expect(fetchMock).toHaveBeenNthCalledWith(
 			3,
 			`https://gateway.example/wallet_list/${WALLET_LIST_ROOT}`,
-			expect.objectContaining({ headers: { 'Content-Type': 'application/json' } })
+			expect.objectContaining({ headers: { Accept: 'application/json' } })
 		);
 		expect(snapshot).toEqual({
 			blockHeight: 123,
@@ -61,6 +61,27 @@ describe('Arweave address API adapter', () => {
 			addresses: [{ address: ADDRESS, balance: '9007199254740993000000', lastTransaction: LAST_TRANSACTION }],
 			nextCursor: NEXT_CURSOR,
 		});
+	});
+
+	it('avoids empty-body JSON decoding and preserves the observed wallet root not-found error', async () => {
+		// Block 2038032's real root: the gateway returned 500 with Content-Type, then 404 with Accept.
+		const walletListRoot = '9Ve9bC8urJXl3AHnDZYnb7mPbv3mdAVGmnL8bJ5SHJL7DaOJy9rYeU9FjC4Tw8rk';
+		const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+			const headers = new Headers(init?.headers);
+			if (headers.has('content-type')) return new Response('unexpected_end', { status: 500 });
+			expect(headers.get('accept')).toBe('application/json');
+			return new Response('{"body":"Not Found","status":404}', {
+				status: 404,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		await expect(getAddressChunk({ walletListRoot })).rejects.toMatchObject({
+			code: 'unavailable',
+			message: 'Wallet list request failed with status 404',
+		});
+		expect(fetchMock).toHaveBeenCalledOnce();
 	});
 
 	it('decodes Erlang term wallet chunks and omits non-address ledger keys', () => {

@@ -5,7 +5,7 @@ import { getTransactions } from '../../src/api/blocks';
 import { searchTxById } from '../../src/helpers/search';
 import { isValidSearchInput } from '../../src/helpers/searchInput';
 import { normalizeGqlResponse } from '../../src/helpers/utils';
-import { ARWEAVE_ADDRESS, ARWEAVE_HOST, ETHEREUM_DID, SOLANA_DID } from '../fixtures/identities';
+import { ARWEAVE_ADDRESS, ARWEAVE_HOST, ETHEREUM_DID, HB_IDENTITY_WITNESSES, SOLANA_DID } from '../fixtures/identities';
 
 vi.mock('api/balances', () => ({ readAoBalance: vi.fn() }));
 vi.mock('api/blocks', () => ({ getTransactions: vi.fn() }));
@@ -197,19 +197,60 @@ it('opens an Ethereum AO account without transaction or AR balance probes', asyn
 	expect(fetch).not.toHaveBeenCalled();
 });
 
-it.each([ETHEREUM_DID, ARWEAVE_HOST, `did:ar:${ARWEAVE_ADDRESS}`, SOLANA_DID])(
-	'opens the exact account identity %s without transaction or balance probes',
-	async (identifier) => {
-		const getGQLData = vi.fn();
-		expect(isValidSearchInput(` ${identifier} `)).toBe(true);
-		const response = await searchTxById({ txId: identifier, getGQLData });
-		expect(response.node.id).toBe(identifier);
-		expect(response.node.tags).toEqual([{ name: 'Type', value: 'Wallet' }]);
-		expect(getGQLData).not.toHaveBeenCalled();
-		expect(fetch).not.toHaveBeenCalled();
-		expect(readAoBalance).not.toHaveBeenCalled();
-	}
-);
+it.each([
+	ETHEREUM_DID,
+	ARWEAVE_HOST,
+	`did:ar:${ARWEAVE_ADDRESS}`,
+	SOLANA_DID,
+	HB_IDENTITY_WITNESSES.ethereum.committer,
+	HB_IDENTITY_WITNESSES.solana.committer,
+	HB_IDENTITY_WITNESSES.solana.address,
+])('opens the exact account identity %s without transaction or balance probes', async (identifier) => {
+	const getGQLData = vi.fn();
+	expect(isValidSearchInput(` ${identifier} `)).toBe(true);
+	const response = await searchTxById({ txId: identifier, getGQLData });
+	expect(response.node.id).toBe(identifier);
+	expect(response.node.tags).toEqual([{ name: 'Type', value: 'Wallet' }]);
+	expect(getGQLData).not.toHaveBeenCalled();
+	expect(fetch).not.toHaveBeenCalled();
+	expect(readAoBalance).not.toHaveBeenCalled();
+});
+
+it('retains a real legacy pushed notice whose trusted signer is reported as a host DID', async () => {
+	const notice = HB_IDENTITY_WITNESSES.trustedNotice;
+	const nativeRecipient = 'kRdpOYaT5pUUiNFDaUymqO1VcybZpAfNPnNdls-A134';
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (input: RequestInfo | URL) => {
+			const url = String(input);
+			if (url.includes('su-router.ao-testnet.xyz')) return new Response(null, { status: 404 });
+			if (url.endsWith(`/${notice.fromProcess}`))
+				return new Response(null, {
+					headers: {
+						'signature-input': `sig=("type" "variant" "authority");alg="ans104@1.0/rsa-pss-sha256";committer="${notice.processCommitter}"`,
+						type: 'Process',
+						variant: 'ao.TN.1',
+						authority: notice.processAuthority,
+					},
+				});
+			return new Response(null, {
+				headers: {
+					'signature-input': `sig=("type" "variant" "from-process" "pushed-for" "target");alg="ans104@1.0/rsa-pss-sha256";committer="${notice.committer}";field-target="${nativeRecipient}"`,
+					type: 'Message',
+					variant: 'ao.TN.1',
+					'from-process': notice.fromProcess,
+					'pushed-for': 'sBO6WjuQu9ov9yGlir2QaUr5Nc4HfKbIYdduOxy75Fs',
+					target: nativeRecipient,
+				},
+			});
+		})
+	);
+	const getGQLData = vi.fn();
+	const response = await searchTxById({ txId: notice.id, getGQLData });
+	expect(response?.node.id).toBe(notice.id);
+	expect(response?.node.owner.address).toBe(notice.committer);
+	expect(getGQLData).not.toHaveBeenCalled();
+});
 
 it.each(['did:web:example.com', ETHEREUM_DID.toLowerCase(), `${SOLANA_DID}/info`])(
 	'rejects unsupported or malformed account input %s',

@@ -39,7 +39,7 @@ async function readDocument<T>(
 	if (!checkValidAddress(id)) throw new AoReadError('invalid-input');
 	// Read the stored message without resolving its device or running /now /compute.
 	// Linked values remain links; opening one is a separate, explicit read.
-	const path = `/~cache@1.0/read?target=${id}&require-codec=application/json&accept-bundle=false`;
+	const path = `/~cache@1.0/read?read=${id}&accept-bundle=false`;
 	return transport.readResponse(
 		path,
 		async (response) => {
@@ -66,6 +66,6 @@ async function readDocument<T>(
 				await reader.cancel();
 			}
 		},
-		{ signal: options.signal, timeoutMs: AO_READ_TIMEOUT_MS, headers: { 'require-codec': 'application/json' } }
+		{ signal: options.signal, timeoutMs: AO_READ_TIMEOUT_MS, headers: { Accept: 'application/json' } }
 	);
 }

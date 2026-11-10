@@ -36,7 +36,10 @@ export default function AoCoreGraphNode(props: NodeProps<MessageGraphNode>) {
 	const [hasOverflow, setHasOverflow] = React.useState(false);
 	const [page, setPage] = React.useState(0);
 	const content = props.data.entry.content;
-	const fields = React.useMemo(() => (content.status === 'ready' ? getMessageFields(content.value) : []), [content]);
+	const fields = React.useMemo(
+		() => (content.status === 'ready' ? getMessageFields(content.value, props.data.entry.isCommitmentMetadata) : []),
+		[content, props.data.entry.isCommitmentMetadata]
+	);
 	const message = content.status === 'ready' && isMessageRecord(content.value) ? content.value : null;
 	const commitments = React.useMemo(() => (message ? readCommitments(message) : []), [message]);
 	const hasDevice = message && Object.keys(message).some((key) => key.toLowerCase() === 'device');

@@ -8,6 +8,7 @@ import {
 	getTransactionsByBundle,
 } from '../../src/api/blocks';
 import { FLAGS } from '../../src/helpers/config';
+import { BUNDLE_ID, CURRENT_BUNDLE_LINKS, CURRENT_BUNDLE_LOCATION } from '../fixtures/transactionData';
 
 const bundleId = 'laivGT63LsUVPqzVwDLfFj5AHE9QOCycxs8C_DWcKbs';
 const firstId = 'uX2tJrIgBgDTGvSU30Q16-TVZU1J3NXpflyDtu0kA5c';
@@ -70,6 +71,104 @@ describe('bundle links', () => {
 		expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal);
 	});
 
+	it('reads the current numeric AO links from loaded bundle metadata', async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+		const result = await getTransactionsByBundle({
+			bundleId: BUNDLE_ID,
+			bundleTags: Object.entries(CURRENT_BUNDLE_LINKS).map(([name, value]) => ({ name, value })),
+		});
+		expect(result.transactions.edges.map((edge) => edge.node.id)).toEqual(
+			Object.values(CURRENT_BUNDLE_LINKS).map((link) => link.slice(3))
+		);
+		expect(result.transactions.count).toBe(4);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('reads numeric AO links directly from the gateway HTTP headers', async () => {
+		const response = new Response(null, { headers: CURRENT_BUNDLE_LINKS });
+		const fetchMock = vi.fn().mockResolvedValue(response);
+		vi.stubGlobal('fetch', fetchMock);
+		const result = await getTransactionsByBundle({ bundleId: 'n'.repeat(43) });
+		expect(result.transactions.count).toBe(4);
+		expect(response.bodyUsed).toBe(false);
+		expect(fetchMock.mock.calls[0][1].headers.Accept).toBe('*/*');
+	});
+
+	it('follows the observed JSON canonical redirect and paginates its four bundle members', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ status: 302, location: CURRENT_BUNDLE_LOCATION }), {
+					status: 302,
+					headers: { 'content-type': 'application/json' },
+				})
+			)
+			.mockResolvedValueOnce(jsonResponse({ ...CURRENT_BUNDLE_LINKS, reward: '3280315789', commitments: {} }));
+		vi.stubGlobal('fetch', fetchMock);
+		const controller = new AbortController();
+		const first = await getTransactionsByBundle({ bundleId: BUNDLE_ID, first: 2, signal: controller.signal });
+		expect(first.transactions.count).toBe(4);
+		expect(first.transactions.edges.map((edge) => edge.node.id)).toEqual(
+			Object.values(CURRENT_BUNDLE_LINKS)
+				.slice(0, 2)
+				.map((link) => link.slice(3))
+		);
+		expect(first.transactions.pageInfo.hasNextPage).toBe(true);
+		expect(fetchMock.mock.calls[1][0]).toBe(
+			`https://mdvu3pasjviyxllqufrcalg3itnl6n5sa6zuxrokel4lsm47r2ia.arweave.net/${BUNDLE_ID}?accept-bundle=false`
+		);
+		expect(fetchMock.mock.calls[1][1]).toEqual({
+			signal: controller.signal,
+			headers: { Accept: 'application/json' },
+		});
+		const last = await getTransactionsByBundle({
+			bundleId: BUNDLE_ID,
+			first: 2,
+			after: first.transactions.edges[1].cursor,
+		});
+		expect(last.transactions.edges.map((edge) => edge.node.id)).toEqual(
+			Object.values(CURRENT_BUNDLE_LINKS)
+				.slice(2)
+				.map((link) => link.slice(3))
+		);
+		expect(last.transactions.pageInfo.hasNextPage).toBe(false);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it.each([
+		`https://example.com/${'r'.repeat(43)}`,
+		`http://${'a'.repeat(52)}.arweave.net/${'r'.repeat(43)}`,
+		`https://user:secret@${'a'.repeat(52)}.arweave.net/${'r'.repeat(43)}`,
+		`https://${'a'.repeat(52)}.arweave.net:444/${'r'.repeat(43)}`,
+		`https://${'a'.repeat(52)}.arweave.net/${'x'.repeat(43)}`,
+		`https://${'a'.repeat(52)}.arweave.net/${'r'.repeat(43)}#fragment`,
+	])('rejects a JSON redirect outside this bundle’s public canonical URL: %s', async (location) => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ status: 302, location }), {
+				status: 302,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		await expect(getTransactionsByBundle({ bundleId: 'r'.repeat(43) })).rejects.toThrow('Invalid bundle redirect');
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('bounds JSON redirects instead of following a canonical redirect loop', async () => {
+		const id = 'l'.repeat(43);
+		const fetchMock = vi.fn().mockImplementation(
+			async () =>
+				new Response(JSON.stringify({ status: 302, location: `https://${'a'.repeat(52)}.arweave.net/${id}` }), {
+					status: 302,
+					headers: { 'content-type': 'application/json' },
+				})
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		await expect(getTransactionsByBundle({ bundleId: id })).rejects.toThrow('Invalid bundle redirect');
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
 	it.each([{ '2+link': secondId, '1+link': firstId }, { txs: [firstId, { id: secondId }, firstId, 'invalid'] }])(
 		'keeps JSON bundle responses working: %j',
 		async (body) => {
@@ -113,8 +212,8 @@ describe('bundle links', () => {
 				fc.integer({ min: 1, max: 10 }),
 				async (indexes, pageSize) => {
 					const bundleTags = indexes.map((index) => ({
-						name: `${index}+link`,
-						value: String(index).padStart(43, '0'),
+						name: index % 2 ? `${index}+link` : String(index),
+						value: `${index % 2 ? '' : 'ao:'}${String(index).padStart(43, '0')}`,
 					}));
 					const resolved: string[] = [];
 					let after: string | null = null;

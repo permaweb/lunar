@@ -91,10 +91,13 @@ it('uses the same peer transport for schedules, linked state, results, and unsig
 	await api.ao.dryrun({ process: processId, tags: [{ name: 'Action', value: 'A&B' }] });
 	expect(mocks.readJson.mock.calls.map(([path]) => path)).toEqual([
 		`/${processId}~process@1.0/schedule?accept=application/aos-2&from=0&to=3`,
-		`/~cache@1.0/read?target=${processId}&require-codec=application/json&accept-bundle=false`,
+		`/~cache@1.0/read?read=${processId}&accept-bundle=false`,
 		`/${processId}~process@1.0/compute/results=3`,
 		`/${processId}~process@1.0/as=execution/compute&Action=A%26B`,
 	]);
+	expect(mocks.readJson.mock.calls[0][1].headers.Accept).toBe('application/aos-2');
+	expect(mocks.readJson.mock.calls[2][1].headers.Accept).toBe('application/json');
+	expect(mocks.readJson.mock.calls[3][1].headers.Accept).toBe('application/json');
 	expect(mocks.connect).not.toHaveBeenCalled();
 });
 

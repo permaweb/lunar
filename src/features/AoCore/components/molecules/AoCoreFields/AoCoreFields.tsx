@@ -9,6 +9,7 @@ import { Loader } from 'components/atoms/Loader';
 import { Toggle } from 'components/atoms/Toggle';
 import { ExplorerLink } from 'components/atoms/TxAddress';
 import { ExplorerTable } from 'components/molecules/ExplorerTable';
+import { isAoLinkMetadataKey } from 'helpers/aoLinks';
 import { ASSETS } from 'helpers/config';
 import { checkValidAddress } from 'helpers/utils';
 import { useLanguageProvider } from 'providers/LanguageProvider';
@@ -99,7 +100,10 @@ export default function AoCoreFields(
 	const [view, setView] = React.useState({ value: props.value, page: 0, expanded: new Map<string, FieldExpansion>() });
 	const current =
 		view.value === props.value ? view : { value: props.value, page: 0, expanded: new Map<string, FieldExpansion>() };
-	const fields = React.useMemo(() => (props.value === undefined ? [] : getMessageFields(props.value)), [props.value]);
+	const fields = React.useMemo(
+		() => (props.value === undefined ? [] : getMessageFields(props.value, props.isCommitmentMetadata)),
+		[props.value, props.isCommitmentMetadata]
+	);
 	const commitments = React.useMemo(
 		() => (isMessageRecord(props.value) ? readCommitments(props.value) : []),
 		[props.value]
@@ -317,8 +321,7 @@ export default function AoCoreFields(
 					renderRowDetails={(field) => {
 						const expansion = current.expanded.get(field.key);
 						if (!expansion) return null;
-						const isCommitmentMetadata =
-							props.isCommitmentMetadata || field.key === 'commitments' || field.key === 'commitments+link';
+						const isCommitmentMetadata = props.isCommitmentMetadata || isAoLinkMetadataKey(field.key);
 						return (
 							<S.Child id={`${regionId}-${page}-${rows.indexOf(field)}`}>
 								{expansion === 'coverage' ? (
