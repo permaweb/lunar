@@ -995,9 +995,8 @@ export function formatUnits(value: string | bigint, decimals: number, precision 
 	let roundedFraction = fraction / scale;
 
 	const remainder = fraction % scale;
-	const half = scale / BigInt(2);
 
-	if (remainder >= half) {
+	if (remainder * BigInt(2) >= scale) {
 		roundedFraction += BigInt(1);
 	}
 
@@ -1006,8 +1005,9 @@ export function formatUnits(value: string | bigint, decimals: number, precision 
 	}
 
 	const fractionStr = roundedFraction.toString().padStart(safePrecision, '0').replace(/0+$/, '');
+	const formattedWhole = `${sign}${formatIntegerWithCommas(whole)}`;
 
-	return `${sign}${formatIntegerWithCommas(whole)}.${fractionStr}`;
+	return fractionStr ? `${formattedWhole}.${fractionStr}` : formattedWhole;
 }
 
 export function getTranslucentColor(color: string, alpha = 0.25) {
