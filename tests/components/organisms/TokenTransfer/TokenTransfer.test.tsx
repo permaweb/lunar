@@ -101,6 +101,14 @@ it('uses known token metadata without looking up the token', async () => {
 	expect(container.textContent).toContain(`${en.amount}: 2.5`);
 });
 
+it('shows the observed AO transfer without a dangling decimal point', async () => {
+	// GhW22uT3t4eOY0xV2Eku_VAmRz1VkD7wv1FTYNdAyS8: 5.000000140064 AO.
+	await render({ token: PROCESSES.ao, quantity: '5000000140064' });
+
+	expect(container.textContent).toContain(`${en.amount}: 5`);
+	expect(container.textContent).not.toContain(`${en.amount}: 5.`);
+});
+
 it('shows the raw quantity when the token has no denomination', async () => {
 	mocks.lookup.mockResolvedValue({ node: { id: TOKEN, tags: [] } });
 	await render({});
